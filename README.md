@@ -7,10 +7,38 @@
 LLMs write code that looks correct but contains subtle bugs.  
 Formal verification checks **every possible case**
 
+## Why Mumei? (Not Just Lean)
+
+Lean 4 is powerful, but using it well requires learning theorem-proving tactics.
+That is hard for humans and brittle for AI agents: the model must generate both
+the program and a proof script.
+
+mumei takes the opposite path for everyday verification: it is the Z3-based
+automatic verification engine, while Lean 4 is an optional complement. You write
+normal atoms with `requires` and `ensures`, plus effect/state contracts. mumei
+lowers those contracts into SMT constraints and asks Z3 to prove them
+automatically.
+
+| Dimension | Lean 4 | Mumei |
+| --- | --- | --- |
+| Difficulty | Requires tactic and proof-script knowledge | Write `requires` / `ensures` constraints |
+| Automation | Powerful, but often proof-guided | Automatic Z3 verification by default |
+| AI-friendly | AI must synthesize fragile proofs | AI writes code + contracts; solver checks them |
+| Output | Theorem/proof artifacts | Verified atoms, counter-examples, LLVM-ready code |
+
 ## See It In Action
 
 ```text
-LLM → mumei → Lean → Proof failure → Bug found
+User request
+    ↓
+LLM generates mumei atom
+    ↓
+mumei verify (Z3)
+    ├── Proven safe ──▶ LLVM binary
+    └── Bug found ───▶ Counter-example ───▶ AI fixes code
+
+Optional safety net:
+Lean 4 proves obligations that Z3 cannot decide
 ```
 
 ### ❌ Without Mumei
@@ -68,16 +96,48 @@ make demo-settlement
 `make demo` executes the Phase 1 Ownership Transfer Protocol scenario:
 
 1. LLM-generated `hostile_takeover` code tries to reach `Transferred` from `Idle`.
-2. `mumei verify` rejects it with `InvalidPreState`.
+2. `mumei verify` rejects it with `InvalidPreState` — Z3 proves the state violation.
 3. The corrected implementation verifies all five ownership atoms with Z3.
 4. `mumei-lean` certifies `no_transfer_without_accept` when Lean is available.
 
 `make demo-settlement` executes the Phase 2 RTGS Settlement Protocol scenario:
 
 1. LLM-generated `hostile_settlement` code tries to reach `Settled` from `Pending`.
-2. `mumei verify` rejects it with `InvalidPreState`.
+2. `mumei verify` rejects it with `InvalidPreState` — Z3 proves the state violation.
 3. The corrected implementation verifies all four settlement atoms with Z3.
 4. `mumei-lean` certifies `no_settlement_without_validate` and balance conservation when Lean is available.
+
+## What Mumei Does That Lean Can't (Easily)
+
+```mumei
+atom increment(counter: i64) -> i64 {
+    requires: counter >= 0;
+    ensures: result == counter + 1;
+    ensures: result > counter;
+    body: {
+        return counter + 1;
+    }
+}
+```
+
+- **Refinement types**: attach logical predicates directly to values and APIs.
+- **Effect safety**: prove side effects are allowed before code reaches runtime.
+- **Temporal state machines**: reject invalid state transitions like
+  `Idle → Transferred`.
+- **AI-native**: return solver counter-examples that an agent can use to repair
+  the code.
+
+No Lean tactics. No proof scripts. Just constraints.
+
+## Three-Layer Architecture
+
+| Layer | Repository | Role |
+| --- | --- | --- |
+| L1 | `mumei` + Z3 | Automatic contract & effect verification |
+| L2 | `mumei-agent` | AI-driven self-healing |
+| L3 | `mumei-lean` + Lean 4 | Optional: proves what Z3 can't decide |
+
+L1 handles 95%+ of verification automatically. L3 is the safety net for edge cases.
 
 ## Repositories
 
