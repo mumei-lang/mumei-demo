@@ -41,13 +41,16 @@ def box(lines: list[str], width: int = 68) -> str:
 
 def render(data: dict) -> str:
     title = f"  Mumei Verification Report: {data.get('scenario_name', data.get('scenario'))}"
+    narrative = data.get("narrative", {})
+    before = narrative.get("before", "hostile_takeover skips accept and tries Idle → Transferred")
+    after = narrative.get("after", "InvalidPreState catches the bug before deployment")
     table = [
         "",
         "  BEFORE: LLM alone",
-        "    hostile_takeover skips accept and tries Idle → Transferred",
+        f"    {before}",
         "",
         "  AFTER: LLM + mumei",
-        "    InvalidPreState catches the bug before deployment",
+        f"    {after}",
         "",
         "  Layer   Step                          Status     Duration",
         "  ──────  ────────────────────────────  ─────────  ────────",

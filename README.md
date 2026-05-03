@@ -75,10 +75,20 @@ Watch the recorded Ownership Transfer dashboard walkthrough in
 [docs/DEMO_SHOWCASE.md](docs/DEMO_SHOWCASE.md), or open the video file directly:
 [`docs/assets/ownership-transfer-dashboard-demo.mp4`](docs/assets/ownership-transfer-dashboard-demo.mp4).
 
+The Phase 2 RTGS Settlement dashboard walkthrough is also available in
+[docs/DEMO_SHOWCASE.md](docs/DEMO_SHOWCASE.md), or open the video directly:
+[`docs/assets/rtgs-settlement-dashboard-demo.mp4`](docs/assets/rtgs-settlement-dashboard-demo.mp4).
+
 ## Try It
 
 ```bash
 make demo
+```
+
+For the RTGS Settlement scenario:
+
+```bash
+make demo-settlement
 ```
 
 ## What Runs
@@ -89,6 +99,13 @@ make demo
 2. `mumei verify` rejects it with `InvalidPreState` — Z3 proves the state violation.
 3. The corrected implementation verifies all five ownership atoms with Z3.
 4. `mumei-lean` certifies `no_transfer_without_accept` when Lean is available.
+
+`make demo-settlement` executes the Phase 2 RTGS Settlement Protocol scenario:
+
+1. LLM-generated `hostile_settlement` code tries to reach `Settled` from `Pending`.
+2. `mumei verify` rejects it with `InvalidPreState` — Z3 proves the state violation.
+3. The corrected implementation verifies all four settlement atoms with Z3.
+4. `mumei-lean` certifies `no_settlement_without_validate` and balance conservation when Lean is available.
 
 ## What Mumei Does That Lean Can't (Easily)
 

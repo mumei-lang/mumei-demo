@@ -4,11 +4,15 @@ description: Test mumei-demo scenarios end-to-end through make demo, CLI report 
 ---
 # Testing mumei-demo
 
+## Devin Secrets Needed
+
+None. Local demo validation does not require API keys, browser login, or external service credentials.
+
 ## Prerequisites
 
 - A sibling checkout of `mumei` should exist at `../mumei` and provide a built binary at `../mumei/target/debug/mumei` or `../mumei/target/release/mumei`.
 - Sibling checkouts of `mumei-agent` and `mumei-lean` should exist at `../mumei-agent` and `../mumei-lean`.
-- No API keys or browser login are required for local demo validation.
+- RTGS Settlement validation requires `forge_tasks/vstd_settlement.json` in the default `../mumei-agent` checkout.
 - If the dashboard needs dependencies, install them with:
 
 ```bash
@@ -26,7 +30,33 @@ bash -n scripts/run_scenario.sh
 bash -n scripts/run_all.sh
 python3 -m json.tool scenarios/ownership_transfer/scenario.json >/dev/null
 python3 -m json.tool scenarios/_template/scenario.json >/dev/null
+python3 -m json.tool scenarios/rtgs_settlement/scenario.json >/dev/null
 ```
+
+## Primary RTGS Settlement demo
+
+Run:
+
+```bash
+./scripts/run_scenario.sh rtgs_settlement \
+  --mumei-repo /home/ubuntu/repos/mumei \
+  --mumei-lean-repo /home/ubuntu/repos/mumei-lean \
+  --mumei-agent-repo /home/ubuntu/repos/mumei-agent \
+  --mumei-bin /home/ubuntu/repos/mumei/target/debug/mumei \
+  --mumei-agent-python "$(command -v python3)"
+```
+
+Expected assertions:
+
+- Command exits `0`.
+- Output includes `Step 1: LLM generates RTGS settlement code...` and `BUG DETECTED!`.
+- Output includes `InvalidPreState: 'settle' requires 'Validated'` and current state `Pending`.
+- Output includes `All 4 atoms verified by Z3 (balance conservation)`.
+- Output includes the visible certified headline prefix `CERTIFIED: no_settlement_without_validate` when Lake is available.
+- Output does not include ownership-only strings like `PendingTransfer`, `All 5 atoms`, or `no_transfer_without_accept`.
+- `reports/rtgs_settlement/latest/result.json` has `overall_status == "PASS"`, L1/L2/L3 layer status `PASS`, and proof density `100% (6/6 atoms)`.
+- `reports/rtgs_settlement/latest/settlement.proof.json` contains exactly the RTGS atoms: `validate_transaction`, `execute_settlement`, `safe_settlement`, `full_settlement`.
+- `reports/rtgs_settlement/latest/settlement.lean-cert.json` exists and is listed in `result.json.artifacts`; `lean_bridge.log` should mention writing the lean cert.
 
 ## Primary ownership transfer demo
 
@@ -51,24 +81,23 @@ Expected assertions:
 
 ## CLI report
 
-After `make demo`, run:
+After running a scenario, render its latest report:
 
 ```bash
+python3 dashboard/cli_report.py reports/rtgs_settlement/latest/result.json
 python3 dashboard/cli_report.py reports/ownership_transfer/latest/result.json
 ```
 
 Expected assertions:
 
-- Output includes `BEFORE: LLM alone`.
-- Output includes `hostile_takeover skips accept and tries Idle → Transferred`.
-- Output includes `AFTER: LLM + mumei`.
-- Output includes `InvalidPreState catches the bug before deployment`.
-- Output includes `Audit Status:  TRUSTLESS`.
-- Output includes `Moment:        Proof failure → Bug found`.
+- Output includes `BEFORE: LLM alone`, `AFTER: LLM + mumei`, `Audit Status:  TRUSTLESS`, and `Moment:        Proof failure → Bug found`.
+- RTGS output includes the visible prefix `hostile_settlement skips validate and tries Pending → Settle` and `Proof Density: 100% (6/6 atoms)`.
+- Ownership output includes `hostile_takeover skips accept and tries Idle → Transferred`.
+- The CLI box is fixed-width, so long visible narrative may be truncated; verify full untruncated narrative strings in `result.json`.
 
 ## Lean bridge failure regression
 
-Create a fake failing Lake executable and run the scenario with it first in `PATH`:
+Create a fake failing Lake executable and run the ownership scenario with it first in `PATH`:
 
 ```bash
 mkdir -p /home/ubuntu/fake-lake
@@ -88,7 +117,7 @@ Expected assertions:
 
 ## Dashboard recording flow
 
-After restoring a successful latest report with `make demo`, start the dashboard:
+After generating a successful latest report, start the dashboard:
 
 ```bash
 streamlit run dashboard/app.py
@@ -96,8 +125,15 @@ streamlit run dashboard/app.py
 
 Open the local Streamlit page in the browser and verify:
 
-- Sidebar scenario is `ownership_transfer`.
+- Sidebar scenario can be changed between `ownership_transfer` and `rtgs_settlement`.
 - Top metrics show `l1_z3=PASS`, `l2_agent=PASS`, and `l3_lean=PASS` when Lake is available.
 - Proof Density is `100%` and `6/6 atoms` in the normal Lake-available environment.
-- Expanding `REJECTED: Z3 Bug Detection: hostile_takeover` shows log text containing `InvalidPreState`.
-- Expanding `ownership.proof.json` shows generated proof certificate data.
+- Expanding the rejected step shows log text containing `InvalidPreState`.
+- Expanding proof certificate artifacts shows generated JSON. RTGS should show both `settlement.proof.json` and `settlement.lean-cert.json`.
+
+If recording dashboard evidence, save the processed mp4 under `docs/assets/`, then update `docs/DEMO_SHOWCASE.md` and the relevant scenario README to link it. Validate the artifact with:
+
+```bash
+test -s docs/assets/rtgs-settlement-dashboard-demo.mp4
+grep -R "rtgs-settlement-dashboard-demo.mp4" -n README.md docs/DEMO_SHOWCASE.md scenarios/rtgs_settlement/README.md
+```
