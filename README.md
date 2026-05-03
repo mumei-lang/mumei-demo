@@ -36,6 +36,12 @@ flowchart TD
 python dashboard/cli_report.py reports/ownership_transfer/latest/result.json
 ```
 
+## Demo showcase
+
+Watch the recorded Ownership Transfer dashboard walkthrough in
+[docs/DEMO_SHOWCASE.md](docs/DEMO_SHOWCASE.md), or open the video file directly:
+[`docs/assets/ownership-transfer-dashboard-demo.mp4`](docs/assets/ownership-transfer-dashboard-demo.mp4).
+
 If the repositories are already checked out elsewhere, pass explicit paths:
 
 ```bash
