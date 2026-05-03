@@ -3,6 +3,44 @@
   "version": "1.0.0",
   "description": "validate なしに Settled 状態へ到達不可能であること、および残高保存を3層で検証するデモ",
   "layers": ["l1_z3", "l2_agent", "l3_lean"],
+  "narrative": {
+    "intro": [
+      "Step 1: LLM generates RTGS settlement code...",
+      "Step 2: mumei verifies the code..."
+    ],
+    "before": "hostile_settlement skips validate and tries Pending → Settled",
+    "after": "InvalidPreState catches the bug before deployment",
+    "steps": {
+      "detect_bug": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "BUG DETECTED!",
+          "follow_up": [
+            "  InvalidPreState: 'settle' requires 'Validated'",
+            "  but current state is 'Pending'",
+            "",
+            "  Step 3: Verifying the correct implementation..."
+          ]
+        }
+      },
+      "verify_correct": {
+        "pass": {
+          "icon": "✅",
+          "headline": "All 4 atoms verified by Z3 (balance conservation)",
+          "follow_up": [
+            "",
+            "  Step 4: Lean proves unreachability and balance conservation..."
+          ]
+        }
+      },
+      "lean_build": {
+        "certified": {
+          "icon": "✅",
+          "headline": "CERTIFIED: no_settlement_without_validate, balance_conservation"
+        }
+      }
+    }
+  },
   "l1_z3": {
     "steps": [
       {

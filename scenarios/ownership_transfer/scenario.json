@@ -3,6 +3,44 @@
   "version": "1.0.0",
   "description": "accept なしに Transferred 状態へ到達不可能であることを3層で検証するデモ",
   "layers": ["l1_z3", "l2_agent", "l3_lean"],
+  "narrative": {
+    "intro": [
+      "Step 1: LLM generates ownership transfer code...",
+      "Step 2: mumei verifies the code..."
+    ],
+    "before": "hostile_takeover skips accept and tries Idle → Transferred",
+    "after": "InvalidPreState catches the bug before deployment",
+    "steps": {
+      "detect_bug": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "BUG DETECTED!",
+          "follow_up": [
+            "  InvalidPreState: 'accept' requires 'PendingTransfer'",
+            "  but current state is 'Idle'",
+            "",
+            "  Step 3: Verifying the correct implementation..."
+          ]
+        }
+      },
+      "verify_correct": {
+        "pass": {
+          "icon": "✅",
+          "headline": "All 5 atoms verified by Z3",
+          "follow_up": [
+            "",
+            "  Step 4: Lean proves unreachability..."
+          ]
+        }
+      },
+      "lean_build": {
+        "certified": {
+          "icon": "✅",
+          "headline": "CERTIFIED: no_transfer_without_accept"
+        }
+      }
+    }
+  },
   "l1_z3": {
     "steps": [
       {
