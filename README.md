@@ -7,38 +7,50 @@
 LLMs write code that looks correct but contains subtle bugs.  
 Formal verification checks **every possible case**
 
-## Why Mumei? (Not Just Lean)
+## How It Works
 
-Lean 4 is powerful, but using it well requires learning theorem-proving tactics.
-That is hard for humans and brittle for AI agents: the model must generate both
-the program and a proof script.
+Mumei is a proof-driven programming language where verification is automatic.
+You write `requires` / `ensures` constraints in familiar syntax — the rest is
+handled by a unified proof pipeline.
 
-mumei takes the opposite path for everyday verification: it is the Z3-based
-automatic verification engine, while Lean 4 is an optional complement. You write
-normal atoms with `requires` and `ensures`, plus effect/state contracts. mumei
-lowers those contracts into SMT constraints and asks Z3 to prove them
-automatically.
+```text
+mumei contract
+      ↓
+Z3 (automatic, fast)
+      ↓
+Lean 4 (deep proof)
+      ↓
+AI agent (self-heal)
+```
 
-| Dimension | Lean 4 | Mumei |
-| --- | --- | --- |
-| Difficulty | Requires tactic and proof-script knowledge | Write `requires` / `ensures` constraints |
-| Automation | Powerful, but often proof-guided | Automatic Z3 verification by default |
-| AI-friendly | AI must synthesize fragile proofs | AI writes code + contracts; solver checks them |
-| Output | Theorem/proof artifacts | Verified atoms, counter-examples, LLVM-ready code |
+One language. One contract syntax. Multiple proof engines — escalating
+automatically from fast (Z3) to deep (Lean 4) to autonomous (AI agent).
+
+What makes this possible:
+
+| You write | mumei does |
+| --- | --- |
+| `requires: balance >= amount;` | Turns preconditions into solver obligations before code runs |
+| `ensures: result == old(balance) - amount;` | Checks postconditions against every possible execution path |
+| `requires: state == PendingTransfer;` | Rejects invalid temporal state transitions at compile time |
+| `ensures: total_before == total_after;` | Escalates deeper invariants through the proof certificate chain |
+
+The key insight: mumei is the contract language that all proof engines share.
+Z3 and Lean 4 are not alternatives — they are layers in the same pipeline,
+connected by a Proof Certificate Chain that flows automatically.
 
 ## See It In Action
 
 ```text
-User request
-    ↓
-LLM generates mumei atom
-    ↓
-mumei verify (Z3)
-    ├── Proven safe ──▶ LLVM binary
-    └── Bug found ───▶ Counter-example ───▶ AI fixes code
-
-Optional safety net:
-Lean 4 proves obligations that Z3 cannot decide
+LLM generates code
+      ↓
+mumei verifies (Z3 — automatic)
+      ↓
+  ✅ Proven safe        ❌ Counter-example found
+      ↓                       ↓
+  LLVM binary           AI agent fixes & retries
+      ↓
+  Lean 4 certifies properties beyond Z3's reach
 ```
 
 ### ❌ Without Mumei
@@ -98,7 +110,7 @@ make demo-settlement
 1. LLM-generated `hostile_takeover` code tries to reach `Transferred` from `Idle`.
 2. `mumei verify` rejects it with `InvalidPreState` — Z3 proves the state violation.
 3. The corrected implementation verifies all five ownership atoms with Z3.
-4. `mumei-lean` certifies `no_transfer_without_accept` when Lean is available.
+4. Lean 4 certifies `no_transfer_without_accept` through the proof certificate chain (when available).
 
 `make demo-settlement` executes the Phase 2 RTGS Settlement Protocol scenario:
 
@@ -107,7 +119,7 @@ make demo-settlement
 3. The corrected implementation verifies all four settlement atoms with Z3.
 4. `mumei-lean` certifies `no_settlement_without_validate` and balance conservation when Lean is available.
 
-## What Mumei Does That Lean Can't (Easily)
+## What Mumei Adds to the Pipeline
 
 ```mumei
 atom increment(counter: i64) -> i64 {
@@ -127,7 +139,8 @@ atom increment(counter: i64) -> i64 {
 - **AI-native**: return solver counter-examples that an agent can use to repair
   the code.
 
-No Lean tactics. No proof scripts. Just constraints.
+One contract language drives automatic checks, counter-example feedback, and
+deeper proof certification.
 
 ## Three-Layer Architecture
 
@@ -135,15 +148,16 @@ No Lean tactics. No proof scripts. Just constraints.
 | --- | --- | --- |
 | L1 | `mumei` + Z3 | Automatic contract & effect verification |
 | L2 | `mumei-agent` | AI-driven self-healing |
-| L3 | `mumei-lean` + Lean 4 | Optional: proves what Z3 can't decide |
+| L3 | `mumei-lean` + Lean 4 | Deep proof backend for auto-escalation from Z3 |
 
-L1 handles 95%+ of verification automatically. L3 is the safety net for edge cases.
+L1 handles fast automatic verification. L3 extends the same contract pipeline
+through the proof certificate chain.
 
 ## Repositories
 
-- [mumei-lang/mumei](https://github.com/mumei-lang/mumei): L1 Z3-backed contract and effect verification.
-- [mumei-lang/mumei-agent](https://github.com/mumei-lang/mumei-agent): L2 agent forge workflows.
-- [mumei-lang/mumei-lean](https://github.com/mumei-lang/mumei-lean): L3 Lean proof bridge.
+- [mumei-lang/mumei](https://github.com/mumei-lang/mumei): Contract language + Z3 automatic verification.
+- [mumei-lang/mumei-agent](https://github.com/mumei-lang/mumei-agent): AI-driven self-healing loop.
+- [mumei-lang/mumei-lean](https://github.com/mumei-lang/mumei-lean): Lean 4 deep proof backend (auto-escalation from Z3).
 
 ## Advanced usage
 
