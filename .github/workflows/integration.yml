@@ -50,6 +50,7 @@ jobs:
           python -m venv "$GITHUB_WORKSPACE/.venv"
           "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install --upgrade pip
           "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -r requirements.txt
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip show openai
         working-directory: repos/mumei-agent
       - name: Run ownership_transfer scenario
         run: |
