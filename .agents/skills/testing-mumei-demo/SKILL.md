@@ -12,7 +12,7 @@ None. Local demo validation does not require API keys, browser login, or externa
 
 - A sibling checkout of `mumei` should exist at `../mumei` and provide a built binary at `../mumei/target/debug/mumei` or `../mumei/target/release/mumei`.
 - Sibling checkouts of `mumei-agent` and `mumei-lean` should exist at `../mumei-agent` and `../mumei-lean`.
-- RTGS Settlement validation requires `forge_tasks/vstd_settlement.json` in the agent repo. If the default `../mumei-agent` checkout lacks it, use a companion worktree from the settlement task branch and pass it with `--mumei-agent-repo`.
+- RTGS Settlement validation requires `forge_tasks/vstd_settlement.json` in the default `../mumei-agent` checkout.
 - If the dashboard needs dependencies, install them with:
 
 ```bash
@@ -41,7 +41,7 @@ Run:
 ./scripts/run_scenario.sh rtgs_settlement \
   --mumei-repo /home/ubuntu/repos/mumei \
   --mumei-lean-repo /home/ubuntu/repos/mumei-lean \
-  --mumei-agent-repo /home/ubuntu/repos/mumei-agent-settlement \
+  --mumei-agent-repo /home/ubuntu/repos/mumei-agent \
   --mumei-bin /home/ubuntu/repos/mumei/target/debug/mumei \
   --mumei-agent-python "$(command -v python3)"
 ```
