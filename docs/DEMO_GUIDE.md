@@ -22,7 +22,7 @@ This clones or updates:
 - `mumei-lang/mumei-agent`
 
 It builds `mumei`, optionally builds `mumei-lean` when `lake` exists, installs
-agent dependencies, and writes `repos.env`.
+agent dependencies into `mumei-agent/.venv`, and writes `repos.env`.
 
 If LLVM is not discoverable:
 
@@ -43,6 +43,7 @@ Or provide explicit repository paths:
   --mumei-repo ../mumei \
   --mumei-lean-repo ../mumei-lean \
   --mumei-agent-repo ../mumei-agent \
+  --mumei-agent-python ../mumei-agent/.venv/bin/python \
   --mumei-bin ../mumei/target/release/mumei
 ```
 

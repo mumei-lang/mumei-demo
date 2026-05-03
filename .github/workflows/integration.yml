@@ -27,6 +27,9 @@ jobs:
           repository: mumei-lang/mumei-agent
           ref: develop
           path: repos/mumei-agent
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Install Z3 + LLVM 17
         run: |
           sudo apt-get update
@@ -43,18 +46,27 @@ jobs:
         run: cargo build --release
         working-directory: repos/mumei
       - name: Install mumei-agent deps
-        run: pip install -r requirements.txt
+        run: |
+          python -m venv "$GITHUB_WORKSPACE/.venv"
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install --upgrade pip
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -r requirements.txt
         working-directory: repos/mumei-agent
       - name: Run ownership_transfer scenario
         run: |
+          set +e
           ./scripts/run_scenario.sh ownership_transfer \
             --mumei-repo "$GITHUB_WORKSPACE/repos/mumei" \
             --mumei-lean-repo "$GITHUB_WORKSPACE/repos/mumei-lean" \
             --mumei-agent-repo "$GITHUB_WORKSPACE/repos/mumei-agent" \
+            --mumei-agent-python "$GITHUB_WORKSPACE/.venv/bin/python" \
             --mumei-bin "$GITHUB_WORKSPACE/repos/mumei/target/release/mumei"
+          scenario_status=$?
+          exit "$scenario_status"
       - name: Generate report
+        if: always()
         run: python scripts/generate_report.py reports/ownership_transfer/latest/result.json
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: demo-reports
           path: reports/

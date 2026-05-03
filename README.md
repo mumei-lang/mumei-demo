@@ -49,6 +49,7 @@ If the repositories are already checked out elsewhere, pass explicit paths:
   --mumei-repo ../mumei \
   --mumei-lean-repo ../mumei-lean \
   --mumei-agent-repo ../mumei-agent \
+  --mumei-agent-python ../mumei-agent/.venv/bin/python \
   --mumei-bin ../mumei/target/release/mumei
 ```
 

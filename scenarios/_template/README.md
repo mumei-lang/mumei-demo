@@ -18,4 +18,4 @@ Each step has an `id`, display `name`, target `repo`, shell `command`,
 `cwd`, optional `depends_on`, and optional `optional_toolchain`.
 
 Available placeholders include `{mumei_repo}`, `{mumei_lean_repo}`,
-`{mumei_agent_repo}`, `{mumei_bin}`, and `{output_dir}`.
+`{mumei_agent_repo}`, `{mumei_agent_python}`, `{mumei_bin}`, and `{output_dir}`.

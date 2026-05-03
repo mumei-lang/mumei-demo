@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Usage: ./scripts/run_scenario.sh <scenario_name> [--mumei-repo PATH] [--mumei-lean-repo PATH] [--mumei-agent-repo PATH] [--mumei-bin PATH]
+# Usage: ./scripts/run_scenario.sh <scenario_name> [--mumei-repo PATH] [--mumei-lean-repo PATH] [--mumei-agent-repo PATH] [--mumei-agent-python PATH] [--mumei-bin PATH]
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <scenario_name> [--mumei-repo PATH] [--mumei-lean-repo PATH] [--mumei-agent-repo PATH] [--mumei-bin PATH]" >&2
+  echo "Usage: $0 <scenario_name> [--mumei-repo PATH] [--mumei-lean-repo PATH] [--mumei-agent-repo PATH] [--mumei-agent-python PATH] [--mumei-bin PATH]" >&2
   exit 2
 fi
 
@@ -49,10 +49,18 @@ def parse_args(argv: list[str]) -> dict[str, str | None]:
         "mumei_repo": env.get("MUMEI_REPO") or str((root / "../mumei").resolve()),
         "mumei_lean_repo": env.get("MUMEI_LEAN_REPO") or str((root / "../mumei-lean").resolve()),
         "mumei_agent_repo": env.get("MUMEI_AGENT_REPO") or str((root / "../mumei-agent").resolve()),
+        "mumei_agent_python": env.get("MUMEI_AGENT_PYTHON"),
         "mumei_bin": env.get("MUMEI_BIN"),
     }
     if not values["mumei_bin"]:
         values["mumei_bin"] = str(Path(str(values["mumei_repo"])) / "target" / "release" / "mumei")
+    if not values["mumei_agent_python"]:
+        agent_venv_python = Path(str(values["mumei_agent_repo"])) / ".venv" / "bin" / "python"
+        values["mumei_agent_python"] = (
+            str(agent_venv_python)
+            if agent_venv_python.exists()
+            else shutil.which("python") or sys.executable
+        )
 
     args = argv[2:]
     i = 0
@@ -62,6 +70,7 @@ def parse_args(argv: list[str]) -> dict[str, str | None]:
             "--mumei-repo",
             "--mumei-lean-repo",
             "--mumei-agent-repo",
+            "--mumei-agent-python",
             "--mumei-bin",
         }:
             raise SystemExit(f"unknown argument: {key}")
@@ -130,6 +139,7 @@ def main(argv: list[str]) -> int:
         "mumei_repo": str(values["mumei_repo"]),
         "mumei_lean_repo": str(values["mumei_lean_repo"]),
         "mumei_agent_repo": str(values["mumei_agent_repo"]),
+        "mumei_agent_python": str(values["mumei_agent_python"]),
         "mumei_bin": str(values["mumei_bin"]),
         "output_dir": str(output_dir),
     }
@@ -185,6 +195,7 @@ def main(argv: list[str]) -> int:
                         "MUMEI_REPO": placeholders["mumei_repo"],
                         "MUMEI_LEAN_REPO": placeholders["mumei_lean_repo"],
                         "MUMEI_AGENT_REPO": placeholders["mumei_agent_repo"],
+                        "MUMEI_AGENT_PYTHON": placeholders["mumei_agent_python"],
                         "MUMEI_BIN": placeholders["mumei_bin"],
                         "MUMEI_STD_PATH": os.environ.get(
                             "MUMEI_STD_PATH",

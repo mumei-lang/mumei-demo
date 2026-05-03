@@ -61,12 +61,16 @@ Commands and `cwd` can use:
 - `{mumei_repo}`
 - `{mumei_lean_repo}`
 - `{mumei_agent_repo}`
+- `{mumei_agent_python}`
 - `{mumei_bin}`
 - `{output_dir}`
 
 Values come from CLI arguments, `repos.env`, or defaults next to this repo.
 The runner also exports these values as environment variables and sets
 `MUMEI_STD_PATH` to `{mumei_repo}/std` unless it is already defined.
+`{mumei_agent_python}` defaults to `MUMEI_AGENT_PYTHON` from `repos.env`,
+`{mumei_agent_repo}/.venv/bin/python` when it exists, or the current Python
+interpreter.
 
 ## Adding a scenario
 
@@ -103,7 +107,7 @@ vim scenarios/regtech_policy/scenario.json
         "id": "agent_policy_dryrun",
         "name": "Agent Policy Dry Run",
         "repo": "mumei-agent",
-        "command": "python -m agent forge --tasks-dir {mumei_agent_repo}/forge_tasks --task regtech_policy.json --mumei-repo {mumei_repo} --dry-run",
+        "command": "{mumei_agent_python} -m agent forge --tasks-dir {mumei_agent_repo}/forge_tasks --task regtech_policy.json --mumei-repo {mumei_repo} --dry-run",
         "cwd": "{mumei_agent_repo}",
         "expected_exit": 0,
         "expected_patterns": [],
