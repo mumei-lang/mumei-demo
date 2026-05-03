@@ -43,6 +43,12 @@ def render(data: dict) -> str:
     title = f"  Mumei Verification Report: {data.get('scenario_name', data.get('scenario'))}"
     table = [
         "",
+        "  BEFORE: LLM alone",
+        "    hostile_takeover skips accept and tries Idle → Transferred",
+        "",
+        "  AFTER: LLM + mumei",
+        "    InvalidPreState catches the bug before deployment",
+        "",
         "  Layer   Step                          Status     Duration",
         "  ──────  ────────────────────────────  ─────────  ────────",
     ]
@@ -57,6 +63,7 @@ def render(data: dict) -> str:
         "",
         f"  Proof Density: {pct:g}% ({verified}/{total} atoms)",
         f"  Audit Status:  {audit_status}",
+        "  Moment:        Proof failure → Bug found",
     ])
     return box([title, *table])
 

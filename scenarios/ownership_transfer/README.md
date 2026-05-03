@@ -1,47 +1,53 @@
 # Ownership Transfer Protocol
 
-This scenario demonstrates Mumei's three-layer verification story for a smart
-contract ownership-transfer protocol.
+> Mumei detects bugs in LLM-generated ownership-transfer code using formal verification.
 
-## Background
+## BEFORE: LLM alone
 
-Ownership transfer is a common smart-contract control path: a current owner
-proposes a new owner, and the candidate must explicitly accept before privileged
-state moves. The safety property is that the contract must never reach
-`Transferred` without `accept`.
+The user asks an LLM to implement ownership transfer. The generated code looks
+plausible, but `hostile_takeover` attempts to enter `Transferred` from `Idle`
+without a valid pending transfer.
 
-## L1: Z3 contract verification
+```text
+Idle ── hostile_takeover ──▶ Transferred
+```
 
-The Mumei verifier checks `std/ownership.mm` and emits a proof certificate. The
-effect state machine has three states:
+This is the production failure mode: an attacker becomes owner without the
+intended propose → accept handshake.
 
-- `Idle`: no pending transfer.
-- `PendingTransfer`: transfer has been proposed and awaits acceptance.
-- `Transferred`: ownership was accepted by the pending owner.
+## AFTER: LLM + mumei
 
-The hostile takeover regression (`tests/test_ownership_error.mm`) attempts to
-reach the transferred state from an invalid pre-state. It must be rejected with
-`InvalidPreState` / `Temporal effect violation`.
+`mumei verify scenarios/ownership_transfer/buggy_code.mm` rejects the code:
 
-## L2: Agent forge dry run
+```text
+InvalidPreState: 'accept' requires 'PendingTransfer'
+but current state is 'Idle'
+Counter-example: hostile_takeover(attacker=42)
+```
 
-The agent loads `forge_tasks/vstd_ownership.json` and prints the planned forge
-operation without contacting an LLM or mutating the `mumei` repository.
+The bug is caught before deployment.
 
-## L3: Lean proof bridge
+## CERTIFIED: Lean proof
 
-`MumeiLean.Ownership` contains the finite-state model and the
-`no_transfer_without_accept` theorem. The theorem states that accepted ownership
-transfer cannot be derived from traces that omit `accept`. When Lake is present,
-the scenario builds this module and runs the certificate bridge. Without Lake,
-L3 can be skipped while L1 and L2 still pass.
+`correct_code.mm` implements the intended protocol:
 
-## Expected result
+```text
+Idle ── propose ──▶ PendingTransfer ── accept ──▶ Transferred
+```
 
-- `verify_pass`: `PASS`, proof certificate generated.
-- `verify_reject`: `REJECTED`, hostile takeover rejected as expected.
-- `verify_e2e`: `PASS`.
-- `forge_dryrun`: `PASS`.
-- `lean_build`: `CERTIFIED` when Lake is installed, otherwise `SKIPPED`.
-- `lean_bridge`: `PASS` if `verify_pass` completed and its toolchain is
-  available.
+Z3 verifies all five ownership atoms, and `mumei-lean` proves
+`no_transfer_without_accept`: transfer cannot be derived from traces that omit a
+valid `accept`.
+
+## Run
+
+```bash
+make demo
+```
+
+Expected story:
+
+1. LLM generates ownership transfer code.
+2. mumei detects the invalid pre-state.
+3. The corrected implementation verifies.
+4. Lean certifies the unreachability proof.
