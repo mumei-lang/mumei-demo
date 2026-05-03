@@ -23,8 +23,36 @@ import shutil
 import subprocess
 import sys
 import time
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+def display_width(text: str) -> int:
+    width = 0
+    for char in text:
+        if unicodedata.category(char) in {"Mn", "Me", "Cf"}:
+            continue
+        if unicodedata.east_asian_width(char) in {"W", "F"}:
+            width += 2
+        else:
+            width += 1
+    return width
+
+
+def truncate_to_width(text: str, max_width: int) -> str:
+    width = 0
+    result: list[str] = []
+    for char in text:
+        if unicodedata.category(char) in {"Mn", "Me", "Cf"}:
+            result.append(char)
+            continue
+        char_width = 2 if unicodedata.east_asian_width(char) in {"W", "F"} else 1
+        if width + char_width > max_width:
+            break
+        result.append(char)
+        width += char_width
+    return "".join(result)
 
 
 def load_env(path: Path) -> dict[str, str]:
@@ -169,8 +197,12 @@ def main(argv: list[str]) -> int:
 
     box_width = 64
 
+    inner_width = box_width - 2
+
     def story(line: str = "") -> None:
-        print("║" + line[: box_width - 2].ljust(box_width - 2) + "║")
+        truncated = truncate_to_width(line, inner_width)
+        padding = inner_width - display_width(truncated)
+        print("║" + truncated + " " * padding + "║")
 
     def story_icon(icon: str, text: str) -> None:
         story(f"  {icon} {text}")
