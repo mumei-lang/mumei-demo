@@ -1,0 +1,48 @@
+{
+  "name": "Scenario Name",
+  "version": "0.1.0",
+  "description": "Short description of the demo property.",
+  "layers": ["l1_z3", "l2_agent"],
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "verify_property",
+        "name": "Z3 Property Verification",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {mumei_repo}/path/to/file.mm",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed"],
+        "artifacts": []
+      }
+    ]
+  },
+  "l2_agent": {
+    "steps": [
+      {
+        "id": "agent_preview",
+        "name": "Agent Preview",
+        "repo": "mumei-agent",
+        "command": "python -m agent forge --tasks-dir {mumei_agent_repo}/forge_tasks --task example.json --mumei-repo {mumei_repo} --dry-run",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [],
+        "artifacts": []
+      }
+    ]
+  },
+  "l3_lean": {
+    "steps": [
+      {
+        "id": "lean_build",
+        "name": "Lean Proof Build",
+        "repo": "mumei-lean",
+        "command": "lake build Example.Module",
+        "cwd": "{mumei_lean_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [],
+        "artifacts": [],
+        "optional_toolchain": "lake"
+      }
+    ]
+  }
+}
