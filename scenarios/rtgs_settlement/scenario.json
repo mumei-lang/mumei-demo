@@ -1,0 +1,78 @@
+{
+  "name": "RTGS Settlement Protocol",
+  "version": "1.0.0",
+  "description": "validate なしに Settled 状態へ到達不可能であること、および残高保存を3層で検証するデモ",
+  "layers": ["l1_z3", "l2_agent", "l3_lean"],
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "detect_bug",
+        "name": "Z3 Bug Detection: hostile_settlement",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/rtgs_settlement/buggy_code.mm",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": ["InvalidPreState"],
+        "artifacts": []
+      },
+      {
+        "id": "verify_correct",
+        "name": "Z3 Correct Settlement Verification",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/rtgs_settlement/correct_code.mm --proof-cert --output {output_dir}/settlement.proof.json",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed"],
+        "artifacts": ["settlement.proof.json"]
+      },
+      {
+        "id": "verify_e2e",
+        "name": "Z3 E2E Test Suite",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {mumei_repo}/tests/test_settlement.mm",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed"],
+        "artifacts": []
+      }
+    ]
+  },
+  "l2_agent": {
+    "steps": [
+      {
+        "id": "forge_dryrun",
+        "name": "Agent Forge Dry Run",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent forge --tasks-dir {mumei_agent_repo}/forge_tasks --task vstd_settlement.json --mumei-repo {mumei_repo} --dry-run",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": ["vstd-settlement"],
+        "artifacts": []
+      }
+    ]
+  },
+  "l3_lean": {
+    "steps": [
+      {
+        "id": "lean_build",
+        "name": "Lean Settlement Proof Build",
+        "repo": "mumei-lean",
+        "command": "lake build MumeiLean.Settlement",
+        "cwd": "{mumei_lean_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [],
+        "artifacts": [],
+        "optional_toolchain": "lake"
+      },
+      {
+        "id": "lean_bridge",
+        "name": "Lean Bridge Certificate",
+        "repo": "mumei-lean",
+        "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/settlement.proof.json --lean-cert-out {output_dir}/settlement.lean-cert.json --no-build",
+        "expected_exit": 0,
+        "expected_patterns": ["ingested"],
+        "artifacts": ["settlement.lean-cert.json"],
+        "depends_on": ["verify_correct", "lean_build"],
+        "optional_toolchain": "lake"
+      }
+    ]
+  }
+}
