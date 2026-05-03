@@ -1,11 +1,11 @@
 # Mumei Demo
 
-> **Mumei detects bugs in LLM-generated code using formal verification.**
+> **Mumei proves that LLM-generated code has bugs — mathematically.**
 
 ## The Problem
 
-LLMs write code that looks correct but contains subtle bugs.
-Traditional testing catches some. Mumei catches **all** — mathematically.
+LLMs write code that looks correct but contains subtle bugs.  
+Formal verification checks **every possible case**
 
 ## See It In Action
 
