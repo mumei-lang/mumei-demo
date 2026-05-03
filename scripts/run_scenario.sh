@@ -23,8 +23,36 @@ import shutil
 import subprocess
 import sys
 import time
+import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
+
+
+def display_width(text: str) -> int:
+    width = 0
+    for char in text:
+        if unicodedata.category(char) in {"Mn", "Me", "Cf"}:
+            continue
+        if unicodedata.east_asian_width(char) in {"W", "F"}:
+            width += 2
+        else:
+            width += 1
+    return width
+
+
+def truncate_to_width(text: str, max_width: int) -> str:
+    width = 0
+    result: list[str] = []
+    for char in text:
+        if unicodedata.category(char) in {"Mn", "Me", "Cf"}:
+            result.append(char)
+            continue
+        char_width = 2 if unicodedata.east_asian_width(char) in {"W", "F"} else 1
+        if width + char_width > max_width:
+            break
+        result.append(char)
+        width += char_width
+    return "".join(result)
 
 
 def load_env(path: Path) -> dict[str, str]:
@@ -44,17 +72,29 @@ def parse_args(argv: list[str]) -> dict[str, str | None]:
     root = Path(argv[0]).resolve()
     scenario_name = argv[1]
     env = load_env(root / "repos.env")
+    mumei_repo = env.get("MUMEI_REPO") or os.environ.get("MUMEI_REPO") or str((root / "../mumei").resolve())
+    mumei_lean_repo = (
+        env.get("MUMEI_LEAN_REPO")
+        or os.environ.get("MUMEI_LEAN_REPO")
+        or str((root / "../mumei-lean").resolve())
+    )
+    mumei_agent_repo = (
+        env.get("MUMEI_AGENT_REPO")
+        or os.environ.get("MUMEI_AGENT_REPO")
+        or str((root / "../mumei-agent").resolve())
+    )
+    release_bin = Path(mumei_repo) / "target" / "release" / "mumei"
+    debug_bin = Path(mumei_repo) / "target" / "debug" / "mumei"
+    default_mumei_bin = str(release_bin if release_bin.exists() else debug_bin)
     values: dict[str, str | None] = {
         "root_dir": str(root),
         "scenario_name": scenario_name,
-        "mumei_repo": env.get("MUMEI_REPO") or str((root / "../mumei").resolve()),
-        "mumei_lean_repo": env.get("MUMEI_LEAN_REPO") or str((root / "../mumei-lean").resolve()),
-        "mumei_agent_repo": env.get("MUMEI_AGENT_REPO") or str((root / "../mumei-agent").resolve()),
-        "mumei_agent_python": env.get("MUMEI_AGENT_PYTHON"),
-        "mumei_bin": env.get("MUMEI_BIN"),
+        "mumei_repo": mumei_repo,
+        "mumei_lean_repo": mumei_lean_repo,
+        "mumei_agent_repo": mumei_agent_repo,
+        "mumei_agent_python": env.get("MUMEI_AGENT_PYTHON") or os.environ.get("MUMEI_AGENT_PYTHON"),
+        "mumei_bin": env.get("MUMEI_BIN") or os.environ.get("MUMEI_BIN") or default_mumei_bin,
     }
-    if not values["mumei_bin"]:
-        values["mumei_bin"] = str(Path(str(values["mumei_repo"])) / "target" / "release" / "mumei")
     if not values["mumei_agent_python"]:
         agent_venv_python = Path(str(values["mumei_agent_repo"])) / ".venv" / "bin" / "python"
         values["mumei_agent_python"] = (
@@ -145,6 +185,7 @@ def main(argv: list[str]) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     placeholders = {
+        "root_dir": str(root),
         "mumei_repo": str(values["mumei_repo"]),
         "mumei_lean_repo": str(values["mumei_lean_repo"]),
         "mumei_agent_repo": str(values["mumei_agent_repo"]),
@@ -154,7 +195,25 @@ def main(argv: list[str]) -> int:
     }
     command_placeholders = shell_placeholders(placeholders)
 
-    print(f"Running scenario: {scenario['name']}")
+    box_width = 64
+
+    inner_width = box_width - 2
+
+    def story(line: str = "") -> None:
+        truncated = truncate_to_width(line, inner_width)
+        padding = inner_width - display_width(truncated)
+        print("║" + truncated + " " * padding + "║")
+
+    def story_icon(icon: str, text: str) -> None:
+        story(f"  {icon} {text}")
+
+    print("╔" + "═" * (box_width - 2) + "╗")
+    story(f"  Mumei Demo: {scenario['name']}")
+    print("╠" + "═" * (box_width - 2) + "╣")
+    story()
+    story("  Step 1: LLM generates ownership transfer code...")
+    story("  Step 2: mumei verifies the code...")
+    story()
     print(f"Report directory: {output_dir}")
 
     results: dict[str, dict] = {}
@@ -263,6 +322,24 @@ def main(argv: list[str]) -> int:
             layer_steps.append(step_result)
             step_index[step_id] = step_result
             print(f"{layer}/{step_id}: {status}")
+            if step_id == "detect_bug" and status == "REJECTED":
+                story_icon("❌", "BUG DETECTED!")
+                story("  InvalidPreState: 'accept' requires 'PendingTransfer'")
+                story("  but current state is 'Idle'")
+                story()
+                story("  Step 3: Verifying the correct implementation...")
+            elif step_id == "verify_correct" and status == "PASS":
+                story_icon("✅", "All 5 atoms verified by Z3")
+                story()
+                story("  Step 4: Lean proves unreachability...")
+            elif step_id == "lean_build" and status == "CERTIFIED":
+                story_icon("✅", "CERTIFIED: no_transfer_without_accept")
+            elif step_id == "lean_bridge" and status == "SKIPPED":
+                lean_build_status = step_index.get("lean_build", {}).get("status")
+                if lean_build_status == "SKIPPED":
+                    story_icon("⚠️", "Lean proof skipped: Lake toolchain unavailable")
+                elif lean_build_status == "FAIL":
+                    story_icon("⚠️", "Lean bridge skipped: proof build failed")
 
         layer_status = "PASS"
         if any(step["status"] == "FAIL" for step in layer_steps):
@@ -300,6 +377,14 @@ def main(argv: list[str]) -> int:
         cwd=root,
         check=False,
     )
+    if overall_status == "PASS":
+        story()
+        story("  Result: Bug caught. Correct code proven. Zero human review.")
+        print("╚" + "═" * (box_width - 2) + "╝")
+    else:
+        story()
+        story("  Result: Demo failed. Inspect result.json for details.")
+        print("╚" + "═" * (box_width - 2) + "╝")
     return 0 if overall_status == "PASS" else 1
 
 

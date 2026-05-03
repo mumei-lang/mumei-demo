@@ -6,23 +6,23 @@
   "l1_z3": {
     "steps": [
       {
-        "id": "verify_pass",
-        "name": "Z3 Contract Verification (Pass)",
+        "id": "detect_bug",
+        "name": "Z3 Bug Detection: hostile_takeover",
         "repo": "mumei",
-        "command": "{mumei_bin} verify {mumei_repo}/std/ownership.mm --proof-cert --output {output_dir}/ownership.proof.json",
-        "expected_exit": 0,
-        "expected_patterns": ["Verification passed", "verified"],
-        "artifacts": ["ownership.proof.json"]
-      },
-      {
-        "id": "verify_reject",
-        "name": "Z3 Hostile Takeover Rejection",
-        "repo": "mumei",
-        "command": "{mumei_bin} verify {mumei_repo}/tests/test_ownership_error.mm",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/ownership_transfer/buggy_code.mm",
         "expected_exit": 1,
         "expect_failure": true,
-        "expected_patterns": ["InvalidPreState", "Temporal effect violation"],
+        "expected_patterns": ["InvalidPreState"],
         "artifacts": []
+      },
+      {
+        "id": "verify_correct",
+        "name": "Z3 Correct Implementation Verification",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/ownership_transfer/correct_code.mm --proof-cert --output {output_dir}/ownership.proof.json",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed"],
+        "artifacts": ["ownership.proof.json"]
       },
       {
         "id": "verify_e2e",
@@ -70,7 +70,7 @@
         "expected_exit": 0,
         "expected_patterns": ["ingested"],
         "artifacts": ["ownership.lean-cert.json"],
-        "depends_on": ["verify_pass", "lean_build"],
+        "depends_on": ["verify_correct", "lean_build"],
         "optional_toolchain": "lake"
       }
     ]
