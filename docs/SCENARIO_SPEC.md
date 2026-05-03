@@ -54,6 +54,38 @@ Each layer contains a `steps` array.
 - `depends_on`: step IDs that must have `PASS`, `REJECTED`, or `CERTIFIED`
   status before this step runs.
 
+## Narrative (optional)
+
+A top-level `narrative` object lets each scenario provide its own story text
+for the runner banner and the CLI report. All fields are optional; missing
+fields fall back to generic defaults.
+
+```json
+{
+  "narrative": {
+    "intro": [
+      "Step 1: LLM generates code...",
+      "Step 2: mumei verifies the code..."
+    ],
+    "before": "Short BEFORE summary used by the CLI report",
+    "after": "Short AFTER summary used by the CLI report",
+    "steps": {
+      "<step_id>": {
+        "<status>": {
+          "icon": "❌",
+          "headline": "Headline shown in the runner banner",
+          "follow_up": ["additional indented lines"]
+        }
+      }
+    }
+  }
+}
+```
+
+`<status>` is the lowercase step status (`pass`, `rejected`, `certified`,
+`fail`, `skipped`). The matching entry is rendered in the runner banner when
+the step finishes with that status.
+
 ## Placeholders
 
 Commands and `cwd` can use:
