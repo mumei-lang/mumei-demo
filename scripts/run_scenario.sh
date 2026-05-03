@@ -303,7 +303,11 @@ def main(argv: list[str]) -> int:
             elif step_id == "lean_build" and status == "CERTIFIED":
                 story_icon("✅", "CERTIFIED: no_transfer_without_accept")
             elif step_id == "lean_bridge" and status == "SKIPPED":
-                story_icon("✅", "CERTIFIED: no_transfer_without_accept")
+                lean_build_status = step_index.get("lean_build", {}).get("status")
+                if lean_build_status == "SKIPPED":
+                    story_icon("⚠️", "Lean proof skipped: Lake toolchain unavailable")
+                elif lean_build_status == "FAIL":
+                    story_icon("⚠️", "Lean bridge skipped: proof build failed")
 
         layer_status = "PASS"
         if any(step["status"] == "FAIL" for step in layer_steps):
