@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -89,6 +90,10 @@ def substitute(value: str, placeholders: dict[str, str]) -> str:
     return result
 
 
+def shell_placeholders(placeholders: dict[str, str]) -> dict[str, str]:
+    return {key: shlex.quote(value) for key, value in placeholders.items()}
+
+
 def expected_status(step: dict, exit_code: int) -> str:
     if exit_code != int(step.get("expected_exit", 0)):
         return "FAIL"
@@ -143,6 +148,7 @@ def main(argv: list[str]) -> int:
         "mumei_bin": str(values["mumei_bin"]),
         "output_dir": str(output_dir),
     }
+    command_placeholders = shell_placeholders(placeholders)
 
     print(f"Running scenario: {scenario['name']}")
     print(f"Report directory: {output_dir}")
@@ -181,7 +187,7 @@ def main(argv: list[str]) -> int:
                 stdout = message
                 stderr = ""
             else:
-                command = substitute(step["command"], placeholders)
+                command = substitute(step["command"], command_placeholders)
                 cwd = substitute(step.get("cwd", str(root)), placeholders)
                 proc = subprocess.run(
                     command,
