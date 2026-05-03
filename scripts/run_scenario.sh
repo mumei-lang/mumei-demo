@@ -156,6 +156,7 @@ def main(argv: list[str]) -> int:
     results: dict[str, dict] = {}
     step_index: dict[str, dict] = {}
     artifacts: list[str] = []
+    overall_status = "PASS"
 
     for layer in scenario.get("layers", []):
         layer_steps: list[dict] = []
@@ -229,6 +230,13 @@ def main(argv: list[str]) -> int:
                     with log_path.open("a", encoding="utf-8") as handle:
                         handle.write("\n[missing expected patterns]\n")
                         handle.write("\n".join(missing) + "\n")
+                    print(f"[missing expected patterns] {step_id}: {', '.join(missing)}", file=sys.stderr)
+                if status == "FAIL":
+                    overall_status = "FAIL"
+                    if stderr:
+                        print(f"[stderr] {step_id}:\n{stderr}", file=sys.stderr)
+                    if stdout:
+                        print(f"[stdout] {step_id}:\n{stdout}", file=sys.stderr)
 
             step_result = {
                 "id": step_id,
@@ -259,7 +267,6 @@ def main(argv: list[str]) -> int:
             layer_status = "SKIPPED"
         results[layer] = {"status": layer_status, "steps": layer_steps}
 
-    overall = "FAIL" if any(layer["status"] == "FAIL" for layer in results.values()) else "PASS"
     result = {
         "scenario": scenario_name,
         "scenario_name": scenario.get("name", scenario_name),
@@ -267,7 +274,7 @@ def main(argv: list[str]) -> int:
         "description": scenario.get("description"),
         "timestamp": iso_timestamp,
         "layers": results,
-        "overall_status": overall,
+        "overall_status": overall_status,
         "proof_density": proof_density(step_index),
         "artifacts": artifacts,
     }
@@ -289,7 +296,7 @@ def main(argv: list[str]) -> int:
         cwd=root,
         check=False,
     )
-    return 0 if overall == "PASS" else 1
+    return 0 if overall_status == "PASS" else 1
 
 
 if __name__ == "__main__":
