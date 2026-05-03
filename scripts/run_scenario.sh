@@ -170,7 +170,7 @@ def main(argv: list[str]) -> int:
     box_width = 64
 
     def story(line: str = "") -> None:
-        print("║" + line[: box_width - 4].ljust(box_width - 2) + "║")
+        print("║" + line[: box_width - 2].ljust(box_width - 2) + "║")
 
     def story_icon(icon: str, text: str) -> None:
         story(f"  {icon} {text}")
