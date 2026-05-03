@@ -1,0 +1,78 @@
+{
+  "name": "Ownership Transfer Protocol",
+  "version": "1.0.0",
+  "description": "accept なしに Transferred 状態へ到達不可能であることを3層で検証するデモ",
+  "layers": ["l1_z3", "l2_agent", "l3_lean"],
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "verify_pass",
+        "name": "Z3 Contract Verification (Pass)",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {mumei_repo}/std/ownership.mm --proof-cert --output {output_dir}/ownership.proof.json",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed", "verified"],
+        "artifacts": ["ownership.proof.json"]
+      },
+      {
+        "id": "verify_reject",
+        "name": "Z3 Hostile Takeover Rejection",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {mumei_repo}/tests/test_ownership_error.mm",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": ["InvalidPreState", "Temporal effect violation"],
+        "artifacts": []
+      },
+      {
+        "id": "verify_e2e",
+        "name": "Z3 E2E Test Suite",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {mumei_repo}/tests/test_ownership.mm",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed"],
+        "artifacts": []
+      }
+    ]
+  },
+  "l2_agent": {
+    "steps": [
+      {
+        "id": "forge_dryrun",
+        "name": "Agent Forge Dry Run",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent forge --tasks-dir {mumei_agent_repo}/forge_tasks --task vstd_ownership.json --mumei-repo {mumei_repo} --dry-run",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": ["vstd-ownership"],
+        "artifacts": []
+      }
+    ]
+  },
+  "l3_lean": {
+    "steps": [
+      {
+        "id": "lean_build",
+        "name": "Lean Ownership Proof Build",
+        "repo": "mumei-lean",
+        "command": "lake build MumeiLean.Ownership",
+        "cwd": "{mumei_lean_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [],
+        "artifacts": [],
+        "optional_toolchain": "lake"
+      },
+      {
+        "id": "lean_bridge",
+        "name": "Lean Bridge Certificate",
+        "repo": "mumei-lean",
+        "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/ownership.proof.json --lean-cert-out {output_dir}/ownership.lean-cert.json --no-build",
+        "expected_exit": 0,
+        "expected_patterns": ["ingested"],
+        "artifacts": ["ownership.lean-cert.json"],
+        "depends_on": ["verify_pass", "lean_build"],
+        "optional_toolchain": "lake"
+      }
+    ]
+  }
+}

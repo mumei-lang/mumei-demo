@@ -1,0 +1,73 @@
+name: Integration Demo
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: mumei-lang/mumei
+          ref: develop
+          path: repos/mumei
+      - uses: actions/checkout@v4
+        with:
+          repository: mumei-lang/mumei-lean
+          ref: develop
+          path: repos/mumei-lean
+      - uses: actions/checkout@v4
+        with:
+          repository: mumei-lang/mumei-agent
+          ref: develop
+          path: repos/mumei-agent
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Z3 + LLVM 17
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libz3-dev pkg-config libssl-dev libzstd-dev z3
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
+          codename=$(lsb_release -cs)
+          echo "deb http://apt.llvm.org/${codename}/ llvm-toolchain-${codename}-17 main" \
+            | sudo tee /etc/apt/sources.list.d/llvm-17.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y llvm-17-dev libclang-17-dev libpolly-17-dev
+          echo "LLVM_SYS_170_PREFIX=/usr/lib/llvm-17" >> "$GITHUB_ENV"
+      - name: Build mumei
+        run: cargo build --release
+        working-directory: repos/mumei
+      - name: Install mumei-agent deps
+        run: |
+          python -m venv "$GITHUB_WORKSPACE/.venv"
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install --upgrade pip
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -r requirements.txt
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip show openai
+        working-directory: repos/mumei-agent
+      - name: Run ownership_transfer scenario
+        run: |
+          set +e
+          ./scripts/run_scenario.sh ownership_transfer \
+            --mumei-repo "$GITHUB_WORKSPACE/repos/mumei" \
+            --mumei-lean-repo "$GITHUB_WORKSPACE/repos/mumei-lean" \
+            --mumei-agent-repo "$GITHUB_WORKSPACE/repos/mumei-agent" \
+            --mumei-agent-python "$GITHUB_WORKSPACE/.venv/bin/python" \
+            --mumei-bin "$GITHUB_WORKSPACE/repos/mumei/target/release/mumei"
+          scenario_status=$?
+          exit "$scenario_status"
+      - name: Generate report
+        if: always()
+        run: python scripts/generate_report.py reports/ownership_transfer/latest/result.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: demo-reports
+          path: reports/
