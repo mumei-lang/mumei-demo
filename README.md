@@ -33,6 +33,20 @@ mumei: ❌ InvalidPreState: 'accept' requires 'PendingTransfer'
        → Bug caught at compile time. Zero damage.
 ```
 
+## Demo showcase
+
+- for user
+
+https://github.com/user-attachments/assets/a7ac51f6-9b8a-4134-93f1-8d47492eefb6
+
+- for developer
+
+https://github.com/user-attachments/assets/58028a7c-252d-4ec0-bb5a-87bb03b5a7d0
+
+Watch the recorded Ownership Transfer dashboard walkthrough in
+[docs/DEMO_SHOWCASE.md](docs/DEMO_SHOWCASE.md), or open the video file directly:
+[`docs/assets/ownership-transfer-dashboard-demo.mp4`](docs/assets/ownership-transfer-dashboard-demo.mp4).
+
 ## Try It
 
 ```bash
@@ -53,12 +67,6 @@ make demo
 - [mumei-lang/mumei](https://github.com/mumei-lang/mumei): L1 Z3-backed contract and effect verification.
 - [mumei-lang/mumei-agent](https://github.com/mumei-lang/mumei-agent): L2 agent forge workflows.
 - [mumei-lang/mumei-lean](https://github.com/mumei-lang/mumei-lean): L3 Lean proof bridge.
-
-## Demo showcase
-
-Watch the recorded Ownership Transfer dashboard walkthrough in
-[docs/DEMO_SHOWCASE.md](docs/DEMO_SHOWCASE.md), or open the video file directly:
-[`docs/assets/ownership-transfer-dashboard-demo.mp4`](docs/assets/ownership-transfer-dashboard-demo.mp4).
 
 ## Advanced usage
 
