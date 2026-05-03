@@ -53,3 +53,16 @@ Expected story:
 2. mumei detects the invalid pre-state (validate skipped).
 3. The corrected implementation verifies (balance conservation proved by Z3).
 4. Lean certifies the temporal safety and global balance conservation proofs.
+
+## Dashboard recording
+
+The recorded dashboard walkthrough is available at
+[`docs/assets/rtgs-settlement-dashboard-demo.mp4`](../../docs/assets/rtgs-settlement-dashboard-demo.mp4).
+
+It shows:
+
+- `rtgs_settlement` selected in the Streamlit dashboard.
+- L1/L2/L3 layer status cards all reporting `PASS`.
+- Proof density at `100% (6/6 atoms)`.
+- The rejected `hostile_settlement` log showing `InvalidPreState`.
+- `settlement.proof.json` and `settlement.lean-cert.json` proof artifacts.
