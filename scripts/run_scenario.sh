@@ -78,7 +78,10 @@ def parse_args(argv: list[str]) -> dict[str, str | None]:
         if i + 1 >= len(args):
             raise SystemExit(f"missing value for {key}")
         name = key[2:].replace("-", "_")
-        values[name] = str(Path(args[i + 1]).expanduser().resolve())
+        if name == "mumei_agent_python":
+            values[name] = str(Path(args[i + 1]).expanduser())
+        else:
+            values[name] = str(Path(args[i + 1]).expanduser().resolve())
         i += 2
     return values
 
@@ -135,8 +138,9 @@ def main(argv: list[str]) -> int:
         raise SystemExit(f"scenario not found: {scenario_path}")
 
     scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    iso_timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    timestamp = now.strftime("%Y%m%dT%H%M%SZ")
+    iso_timestamp = now.isoformat().replace("+00:00", "Z")
     output_dir = root / "reports" / scenario_name / timestamp
     output_dir.mkdir(parents=True, exist_ok=True)
 
