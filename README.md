@@ -96,6 +96,11 @@ The Phase 3 RegTech Compliance dashboard walkthrough shows Z3 catching a
 missing `PEP` match arm and the 2-layer Z3 + Agent report:
 [`docs/assets/regtech-compliance-dashboard-demo.mp4`](docs/assets/regtech-compliance-dashboard-demo.mp4).
 
+The P11 Natural Language to Verified Mumei walkthrough shows Japanese
+requirements converted to forge task spec JSON, generated `.mm`, and final Z3
+verification:
+[`docs/assets/nl-to-verified-dashboard-demo.mp4`](docs/assets/nl-to-verified-dashboard-demo.mp4).
+
 ## Try It
 
 ```bash
@@ -112,6 +117,13 @@ For the RegTech Compliance scenario:
 
 ```bash
 make demo-regtech
+```
+
+For the Natural Language to Verified Mumei scenario, provide `OPENAI_API_KEY`
+for the Step 0 spec extraction and run:
+
+```bash
+make demo-nl
 ```
 
 To run the complete Phase 1 + Phase 2 demo sequence:
@@ -151,6 +163,16 @@ make demo-all
 4. The Agent forge dry-run validates the RegTech generation task. This scenario
    intentionally has no Lean layer because Z3 covers match exhaustiveness and
    quantifier checks for the demo.
+
+`make demo-nl` executes the P11 Natural Language to Verified Mumei scenario:
+
+1. Japanese natural-language bank-transfer requirements are extracted into a
+   forge task spec JSON.
+2. `mumei-agent generate` turns the extracted spec into `generated.mm`.
+3. `mumei verify` proves the generated `secure_transfer` atom with Z3.
+4. The latest E2E run produced `l2_agent/extract_spec: PASS`,
+   `l2_agent/generate_code: PASS`, `l1_z3/verify_code: PASS`, and
+   `Proof Density: 100% (3/3 atoms)`.
 
 ## What Mumei Adds to the Pipeline
 
