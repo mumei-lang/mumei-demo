@@ -255,11 +255,11 @@ def main(argv: list[str]) -> int:
     print("╠" + "═" * (box_width - 2) + "╣")
     story()
     intro_lines = narrative.get("intro", [
-        "  Step 1: LLM generates ownership transfer code...",
-        "  Step 2: mumei verifies the code...",
+        "Step 1: LLM generates ownership transfer code...",
+        "Step 2: mumei verifies the code...",
     ])
     for intro_line in intro_lines:
-        story(intro_line)
+        story(f"  {intro_line}")
     story()
     print(f"Report directory: {output_dir}")
 
