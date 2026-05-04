@@ -13,6 +13,7 @@ None. Local demo validation does not require API keys, browser login, or externa
 - A sibling checkout of `mumei` should exist at `../mumei` and provide a built binary at `../mumei/target/debug/mumei` or `../mumei/target/release/mumei`.
 - Sibling checkouts of `mumei-agent` and `mumei-lean` should exist at `../mumei-agent` and `../mumei-lean`.
 - RTGS Settlement validation requires `forge_tasks/vstd_settlement.json` in the default `../mumei-agent` checkout.
+- RegTech Compliance validation requires `forge_tasks/vstd_regtech.json` in the default `../mumei-agent` checkout.
 - If the dashboard needs dependencies, install them with:
 
 ```bash
@@ -31,7 +32,34 @@ bash -n scripts/run_all.sh
 python3 -m json.tool scenarios/ownership_transfer/scenario.json >/dev/null
 python3 -m json.tool scenarios/_template/scenario.json >/dev/null
 python3 -m json.tool scenarios/rtgs_settlement/scenario.json >/dev/null
+python3 -m json.tool scenarios/regtech_compliance/scenario.json >/dev/null
 ```
+
+## Primary RegTech Compliance demo
+
+Run:
+
+```bash
+MUMEI_BIN=/home/ubuntu/repos/mumei/target/debug/mumei \
+MUMEI_AGENT_PYTHON="$(command -v python3)" \
+make demo-regtech
+```
+
+Expected assertions:
+
+- Command exits `0`.
+- Output includes `Mumei Demo: RegTech Compliance Protocol`.
+- Output includes `Step 1: LLM generates KYC compliance code...` and `Step 2: mumei verifies the code...`.
+- Output includes `l1_z3/detect_bug: REJECTED`, `BUG DETECTED!`, `Match is not exhaustive`, and `Counter-example: CustomerType::PEP (tag=3)`.
+- Output includes `l1_z3/verify_correct: PASS` and `All 5 atoms verified by Z3 (match exhaustiveness + forall)`.
+- Output includes `l1_z3/verify_e2e: PASS` and `l2_agent/forge_dryrun: PASS`.
+- Output does not include any `l3_lean` step because RegTech is intentionally a 2-layer Z3 + Agent scenario.
+- Final success line is exactly `Result: Bug caught. Correct code proven. Zero human review.` with the trailing period.
+- `reports/regtech_compliance/latest/result.json` has `overall_status == "PASS"` and exactly the `l1_z3` and `l2_agent` layer keys.
+- RegTech step statuses are `detect_bug == "REJECTED"`, `verify_correct == "PASS"`, `verify_e2e == "PASS"`, and `forge_dryrun == "PASS"`.
+- RegTech proof density is `100% (4/4 atoms)`.
+- `reports/regtech_compliance/latest/detect_bug.log` contains `Match is not exhaustive` and `CustomerType::PEP (tag=3)`.
+- `reports/regtech_compliance/latest/compliance.proof.json` exists and contains `classify_risk`, `get_transaction_limit`, `check_transaction`, `verify_all_transactions_compliant`, and `approval_level`.
 
 ## Primary RTGS Settlement demo
 
@@ -84,6 +112,7 @@ Expected assertions:
 After running a scenario, render its latest report:
 
 ```bash
+python3 dashboard/cli_report.py reports/regtech_compliance/latest/result.json
 python3 dashboard/cli_report.py reports/rtgs_settlement/latest/result.json
 python3 dashboard/cli_report.py reports/ownership_transfer/latest/result.json
 ```
@@ -91,6 +120,8 @@ python3 dashboard/cli_report.py reports/ownership_transfer/latest/result.json
 Expected assertions:
 
 - Output includes `BEFORE: LLM alone`, `AFTER: LLM + mumei`, `Audit Status:  TRUSTLESS`, and `Moment:        Proof failure → Bug found`.
+- RegTech output includes `buggy_classify_risk misses PEP customer type in match`, `Non-exhaustive match catches the bug before deployment`, and `Proof Density: 100% (4/4 atoms)`.
+- RegTech output must not contain `L3: Lean`.
 - RTGS output includes the visible prefix `hostile_settlement skips validate and tries Pending → Settle` and `Proof Density: 100% (6/6 atoms)`.
 - Ownership output includes `hostile_takeover skips accept and tries Idle → Transferred`.
 - The CLI box is fixed-width, so long visible narrative may be truncated; verify full untruncated narrative strings in `result.json`.
@@ -125,15 +156,11 @@ streamlit run dashboard/app.py
 
 Open the local Streamlit page in the browser and verify:
 
-- Sidebar scenario can be changed between `ownership_transfer` and `rtgs_settlement`.
-- Top metrics show `l1_z3=PASS`, `l2_agent=PASS`, and `l3_lean=PASS` when Lake is available.
-- Proof Density is `100%` and `6/6 atoms` in the normal Lake-available environment.
-- Expanding the rejected step shows log text containing `InvalidPreState`.
-- Expanding proof certificate artifacts shows generated JSON. RTGS should show both `settlement.proof.json` and `settlement.lean-cert.json`.
+- Sidebar scenario can be changed between `ownership_transfer`, `rtgs_settlement`, and `regtech_compliance`.
+- RegTech dashboard evidence should show `l1_z3=PASS`, `l2_agent=PASS`, no `l3_lean` metric, and Proof Density `100%` with `4/4 atoms`.
+- RTGS/ownership dashboard evidence should show expected L1/L2/L3 metrics; proof density is usually `100%` and `6/6 atoms` for RTGS in a Lake-available environment.
+- Expanding the RegTech rejected step shows log text containing `Match is not exhaustive` and `CustomerType::PEP (tag=3)`.
+- Expanding the ownership rejected step shows log text containing `InvalidPreState`.
+- Expanding proof certificate artifacts shows generated JSON. RegTech should show `compliance.proof.json`; RTGS should show both `settlement.proof.json` and `settlement.lean-cert.json`.
 
-If recording dashboard evidence, save the processed mp4 under `docs/assets/`, then update `docs/DEMO_SHOWCASE.md` and the relevant scenario README to link it. Validate the artifact with:
-
-```bash
-test -s docs/assets/rtgs-settlement-dashboard-demo.mp4
-grep -R "rtgs-settlement-dashboard-demo.mp4" -n README.md docs/DEMO_SHOWCASE.md scenarios/rtgs_settlement/README.md
-```
+If recording dashboard evidence, maximize the browser first and annotate scenario selection, layer metrics, expanded rejected-step log, and proof certificate expansion. Save and attach the processed mp4 in the final testing report.
