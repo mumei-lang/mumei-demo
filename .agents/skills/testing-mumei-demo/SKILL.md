@@ -33,6 +33,8 @@ python3 -m json.tool scenarios/ownership_transfer/scenario.json >/dev/null
 python3 -m json.tool scenarios/_template/scenario.json >/dev/null
 python3 -m json.tool scenarios/rtgs_settlement/scenario.json >/dev/null
 python3 -m json.tool scenarios/regtech_compliance/scenario.json >/dev/null
+python3 -m json.tool scenarios/nl_to_verified/scenario.json >/dev/null
+python3 -m json.tool scenarios/nl_to_verified/expected/extracted_spec.json >/dev/null
 ```
 
 ## Primary RegTech Compliance demo
@@ -156,7 +158,7 @@ streamlit run dashboard/app.py
 
 Open the local Streamlit page in the browser and verify:
 
-- Sidebar scenario can be changed between `ownership_transfer`, `rtgs_settlement`, and `regtech_compliance`.
+- Sidebar scenario can be changed between `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`, and `nl_to_verified`.
 - RegTech dashboard evidence should show `l1_z3=PASS`, `l2_agent=PASS`, no `l3_lean` metric, and Proof Density `100%` with `4/4 atoms`.
 - RTGS/ownership dashboard evidence should show expected L1/L2/L3 metrics; proof density is usually `100%` and `6/6 atoms` for RTGS in a Lake-available environment.
 - Expanding the RegTech rejected step shows log text containing `Match is not exhaustive` and `CustomerType::PEP (tag=3)`.

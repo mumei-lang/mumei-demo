@@ -13,6 +13,7 @@ SCENARIO_ORDER = [
     "ownership_transfer",
     "rtgs_settlement",
     "regtech_compliance",
+    "nl_to_verified",
 ]
 
 

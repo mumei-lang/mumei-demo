@@ -1,0 +1,19 @@
+{
+  "task_id": "nl-safe-transfer",
+  "target_file": "std/finance/safe_transfer.mm",
+  "mode": "create",
+  "atoms": [
+    {
+      "name": "safe_transfer",
+      "description": "Safe bank transfer with balance and overflow checks",
+      "inputs": [
+        {"name": "from_balance", "type": "i64"},
+        {"name": "amount", "type": "i64"}
+      ],
+      "return_type": "i64",
+      "requires": "from_balance >= 0 && amount > 0 && from_balance >= amount",
+      "ensures": "result == from_balance - amount && result >= 0",
+      "effects": []
+    }
+  ]
+}

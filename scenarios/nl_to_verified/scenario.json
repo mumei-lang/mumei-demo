@@ -1,0 +1,59 @@
+{
+  "name": "Natural Language to Verified Mumei",
+  "version": "1.0.0",
+  "description": "自然言語の銀行送金要件から forge task spec JSON を抽出し、.mm コード生成と mumei verify までを2層で検証するデモ",
+  "layers": ["l2_agent", "l1_z3"],
+  "narrative": {
+    "intro": [
+      "Step 1: 自然言語の要件テキストから Mumei 仕様を抽出...",
+      "Step 2: 抽出した spec から .mm コードを生成...",
+      "Step 3: mumei verify で最終検証..."
+    ],
+    "before": "人間はラフなテキストで要件を記述するだけ",
+    "after": "AIが仕様を抽出し、コードを生成し、Z3が検証する",
+    "steps": {
+      "extract_spec": "自然言語 → forge task spec JSON",
+      "generate_code": "spec JSON → .mm コード生成 + self-healing",
+      "verify_code": "mumei verify で最終検証"
+    }
+  },
+  "l2_agent": {
+    "steps": [
+      {
+        "id": "extract_spec",
+        "name": "Agent Spec Extraction",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent extract-spec --text-file {root_dir}/scenarios/nl_to_verified/spec_text.md --domain financial --output {output_dir}/extracted_spec.json",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": ["Extracted spec written"],
+        "artifacts": ["extracted_spec.json"]
+      },
+      {
+        "id": "generate_code",
+        "name": "Agent Code Generation",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent generate --spec-file {output_dir}/extracted_spec.json --output {output_dir}/generated.mm",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": ["Generated verified code written"],
+        "artifacts": ["generated.mm"],
+        "depends_on": ["extract_spec"]
+      }
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "verify_code",
+        "name": "Z3 Generated Code Verification",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {output_dir}/generated.mm",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed"],
+        "artifacts": [],
+        "depends_on": ["generate_code"]
+      }
+    ]
+  }
+}
