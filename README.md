@@ -87,7 +87,8 @@ Watch the recorded Ownership Transfer dashboard walkthrough in
 [docs/DEMO_SHOWCASE.md](docs/DEMO_SHOWCASE.md), or open the video file directly:
 [`docs/assets/ownership-transfer-dashboard-demo.mp4`](docs/assets/ownership-transfer-dashboard-demo.mp4).
 
-The Phase 2 RTGS Settlement dashboard walkthrough is also available in
+The Phase 2 RTGS Settlement demo is complete. Its dashboard walkthrough is
+available in
 [docs/DEMO_SHOWCASE.md](docs/DEMO_SHOWCASE.md), or open the video directly:
 [`docs/assets/rtgs-settlement-dashboard-demo.mp4`](docs/assets/rtgs-settlement-dashboard-demo.mp4).
 
@@ -113,7 +114,7 @@ For the RegTech Compliance scenario:
 make demo-regtech
 ```
 
-To run all scenarios in sequence:
+To run the complete Phase 1 + Phase 2 demo sequence:
 
 ```bash
 make demo-all
@@ -127,6 +128,11 @@ make demo-all
 2. `mumei verify` rejects it with `InvalidPreState` — Z3 proves the state violation.
 3. The corrected implementation verifies all five ownership atoms with Z3.
 4. Lean 4 certifies `no_transfer_without_accept` through the proof certificate chain (when available).
+
+`make demo-all` runs the complete Phase 1 + Phase 2 demo sequence:
+
+1. Phase 1 Ownership Transfer Protocol.
+2. Phase 2 RTGS Settlement Protocol.
 
 `make demo-settlement` executes the Phase 2 RTGS Settlement Protocol scenario:
 
