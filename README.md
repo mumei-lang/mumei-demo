@@ -91,6 +91,10 @@ The Phase 2 RTGS Settlement dashboard walkthrough is also available in
 [docs/DEMO_SHOWCASE.md](docs/DEMO_SHOWCASE.md), or open the video directly:
 [`docs/assets/rtgs-settlement-dashboard-demo.mp4`](docs/assets/rtgs-settlement-dashboard-demo.mp4).
 
+The Phase 3 RegTech Compliance dashboard walkthrough shows Z3 catching a
+missing `PEP` match arm and the 2-layer Z3 + Agent report:
+[`docs/assets/regtech-compliance-dashboard-demo.mp4`](docs/assets/regtech-compliance-dashboard-demo.mp4).
+
 ## Try It
 
 ```bash
@@ -101,6 +105,18 @@ For the RTGS Settlement scenario:
 
 ```bash
 make demo-settlement
+```
+
+For the RegTech Compliance scenario:
+
+```bash
+make demo-regtech
+```
+
+To run all scenarios in sequence:
+
+```bash
+make demo-all
 ```
 
 ## What Runs
@@ -118,6 +134,17 @@ make demo-settlement
 2. `mumei verify` rejects it with `InvalidPreState` — Z3 proves the state violation.
 3. The corrected implementation verifies all four settlement atoms with Z3.
 4. `mumei-lean` certifies `no_settlement_without_validate` and balance conservation when Lean is available.
+
+`make demo-regtech` executes the Phase 3 RegTech Compliance Protocol scenario:
+
+1. LLM-generated KYC code omits the `PEP` customer category from a `match`.
+2. `mumei verify` rejects it with `Match is not exhaustive` and
+   `CustomerType::PEP (tag=3)`.
+3. The corrected implementation verifies all five compliance atoms with Z3,
+   including `forall`-based transaction-limit checks.
+4. The Agent forge dry-run validates the RegTech generation task. This scenario
+   intentionally has no Lean layer because Z3 covers match exhaustiveness and
+   quantifier checks for the demo.
 
 ## What Mumei Adds to the Pipeline
 
@@ -151,7 +178,8 @@ deeper proof certification.
 | L3 | `mumei-lean` + Lean 4 | Deep proof backend for auto-escalation from Z3 |
 
 L1 handles fast automatic verification. L3 extends the same contract pipeline
-through the proof certificate chain.
+through the proof certificate chain. Some scenarios, such as RegTech Compliance,
+intentionally stop at L1 + L2 when Z3 fully proves the relevant properties.
 
 ## Repositories
 

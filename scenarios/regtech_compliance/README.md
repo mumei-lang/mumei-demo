@@ -34,6 +34,17 @@ Z3 alone can fully verify match exhaustiveness and forall quantifiers.
 
     make demo-regtech
 
+## Dashboard recording
+
+After running the scenario, open the Streamlit dashboard and select
+`regtech_compliance`, or watch the recorded walkthrough:
+
+    docs/assets/regtech-compliance-dashboard-demo.mp4
+
+The recording shows the 2-layer report, the rejected non-exhaustive match with
+`CustomerType::PEP (tag=3)`, proof density `100% (4/4 atoms)`, and the
+`compliance.proof.json` certificate.
+
 Expected story:
 1. LLM generates KYC compliance code.
 2. mumei detects the non-exhaustive match (PEP missing).

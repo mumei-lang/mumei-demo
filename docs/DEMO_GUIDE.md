@@ -50,10 +50,40 @@ Or provide explicit repository paths:
 Reports are written to `reports/ownership_transfer/<timestamp>/` and mirrored
 via `reports/ownership_transfer/latest/`.
 
+## Run the RTGS Settlement scenario
+
+```bash
+make demo-settlement
+```
+
+Reports are written to `reports/rtgs_settlement/<timestamp>/` and mirrored via
+`reports/rtgs_settlement/latest/`.
+
+## Run the RegTech Compliance scenario
+
+```bash
+make demo-regtech
+```
+
+RegTech is a 2-layer demo (`l1_z3` + `l2_agent`) with no Lean layer. It first
+verifies `scenarios/regtech_compliance/buggy_code.mm`, expecting Z3 to reject
+the missing `PEP` match arm with `CustomerType::PEP (tag=3)`, then verifies
+`correct_code.mm` and writes `compliance.proof.json`.
+
+Reports are written to `reports/regtech_compliance/<timestamp>/` and mirrored
+via `reports/regtech_compliance/latest/`.
+
+## Run all scenarios
+
+```bash
+make demo-all
+```
+
 ## CLI dashboard
 
 ```bash
 python dashboard/cli_report.py reports/ownership_transfer/latest/result.json
+python dashboard/cli_report.py reports/regtech_compliance/latest/result.json
 ```
 
 Statuses:
@@ -74,6 +104,11 @@ streamlit run dashboard/app.py
 The dashboard lets you select a scenario, inspect layer cards, view step logs,
 open proof certificates, and compare proof density across scenarios.
 
+Recorded walkthroughs are listed in
+[`docs/DEMO_SHOWCASE.md`](DEMO_SHOWCASE.md), including the RegTech dashboard
+recording at
+[`docs/assets/regtech-compliance-dashboard-demo.mp4`](assets/regtech-compliance-dashboard-demo.mp4).
+
 ## Troubleshooting
 
 - `z3: command not found`: install Z3 or run `mumei setup`.
@@ -84,3 +119,5 @@ open proof certificates, and compare proof density across scenarios.
   the agent repository.
 - `ownership.proof.json` missing: ensure `verify_pass` completed before running
   Lean bridge steps.
+- `compliance.proof.json` missing: ensure `verify_correct` completed in the
+  RegTech scenario before opening the dashboard.
