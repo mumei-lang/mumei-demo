@@ -1,0 +1,81 @@
+{
+  "name": "RegTech Compliance Protocol",
+  "version": "1.0.0",
+  "description": "PEP 顧客タイプの match 漏れを Z3 が検出し、全顧客タイプの網羅性と取引限度額遵守を2層で検証するデモ",
+  "layers": ["l1_z3", "l2_agent"],
+  "narrative": {
+    "intro": [
+      "Step 1: LLM generates KYC compliance code...",
+      "Step 2: mumei verifies the code..."
+    ],
+    "before": "buggy_classify_risk misses PEP customer type in match",
+    "after": "Non-exhaustive match catches the bug before deployment",
+    "steps": {
+      "detect_bug": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "BUG DETECTED!",
+          "follow_up": [
+            "  Match is not exhaustive:",
+            "  Counter-example: CustomerType::PEP (tag=3)",
+            "",
+            "  Step 3: Verifying the correct implementation..."
+          ]
+        }
+      },
+      "verify_correct": {
+        "pass": {
+          "icon": "✅",
+          "headline": "All 5 atoms verified by Z3 (match exhaustiveness + forall)",
+          "follow_up": []
+        }
+      }
+    }
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "detect_bug",
+        "name": "Z3 Bug Detection: buggy_classify_risk",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/regtech_compliance/buggy_code.mm",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": ["not exhaustive"],
+        "artifacts": []
+      },
+      {
+        "id": "verify_correct",
+        "name": "Z3 Correct Compliance Verification",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/regtech_compliance/correct_code.mm --proof-cert --output {output_dir}/compliance.proof.json",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed"],
+        "artifacts": ["compliance.proof.json"]
+      },
+      {
+        "id": "verify_e2e",
+        "name": "Z3 E2E Test Suite",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {mumei_repo}/tests/test_compliance.mm",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed"],
+        "artifacts": []
+      }
+    ]
+  },
+  "l2_agent": {
+    "steps": [
+      {
+        "id": "forge_dryrun",
+        "name": "Agent Forge Dry Run",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent forge --tasks-dir {mumei_agent_repo}/forge_tasks --task vstd_regtech.json --mumei-repo {mumei_repo} --dry-run",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": ["vstd-regtech"],
+        "artifacts": []
+      }
+    ]
+  }
+}

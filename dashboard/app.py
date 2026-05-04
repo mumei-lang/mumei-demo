@@ -9,13 +9,20 @@ import streamlit as st
 ROOT = Path(__file__).resolve().parent.parent
 SCENARIOS = ROOT / "scenarios"
 REPORTS = ROOT / "reports"
+SCENARIO_ORDER = [
+    "ownership_transfer",
+    "rtgs_settlement",
+    "regtech_compliance",
+]
 
 
 def scenario_names() -> list[str]:
-    return sorted(
+    names = sorted(
         path.name for path in SCENARIOS.iterdir()
         if path.is_dir() and path.name != "_template"
     )
+    ordered = [name for name in SCENARIO_ORDER if name in names]
+    return ordered + [name for name in names if name not in SCENARIO_ORDER]
 
 
 def latest_result(scenario: str) -> Path | None:

@@ -208,12 +208,11 @@ def main(argv: list[str]) -> int:
         story(f"  {icon} {text}")
 
     narrative = scenario.get("narrative", {})
+    step_narratives = narrative.get("steps", {})
 
-    def narrative_event(step_id: str, status: str) -> dict | None:
-        step_events = narrative.get("steps", {}).get(step_id, {})
-        return step_events.get(status.lower())
-
-    def render_narrative_event(event: dict) -> None:
+    def render_narrative_event(event: dict) -> bool:
+        if not event:
+            return False
         icon = event.get("icon")
         headline = event.get("headline")
         if icon and headline:
@@ -222,15 +221,44 @@ def main(argv: list[str]) -> int:
             story(f"  {headline}")
         for line in event.get("follow_up", []):
             story(line)
+        return True
+
+    def render_step_narrative(step_id: str, status: str) -> bool:
+        if step_id == "detect_bug" and status == "REJECTED":
+            event = step_narratives.get("detect_bug", {}).get("rejected", {})
+            if event:
+                return render_narrative_event(event)
+            story_icon("❌", "BUG DETECTED!")
+            story("  InvalidPreState: 'accept' requires 'PendingTransfer'")
+            story("  but current state is 'Idle'")
+            story()
+            story("  Step 3: Verifying the correct implementation...")
+            return True
+        if step_id == "verify_correct" and status == "PASS":
+            event = step_narratives.get("verify_correct", {}).get("pass", {})
+            if event:
+                return render_narrative_event(event)
+            story_icon("✅", "All 5 atoms verified by Z3")
+            story()
+            story("  Step 4: Lean proves unreachability...")
+            return True
+        if step_id == "lean_build" and status == "CERTIFIED":
+            event = step_narratives.get("lean_build", {}).get("certified", {})
+            if event:
+                return render_narrative_event(event)
+            story_icon("✅", "CERTIFIED: no_transfer_without_accept")
+            return True
+        return False
 
     print("╔" + "═" * (box_width - 2) + "╗")
     story(f"  Mumei Demo: {scenario['name']}")
     print("╠" + "═" * (box_width - 2) + "╣")
     story()
-    for intro_line in narrative.get("intro", [
+    intro_lines = narrative.get("intro", [
         "Step 1: LLM generates ownership transfer code...",
         "Step 2: mumei verifies the code...",
-    ]):
+    ])
+    for intro_line in intro_lines:
         story(f"  {intro_line}")
     story()
     print(f"Report directory: {output_dir}")
@@ -341,9 +369,8 @@ def main(argv: list[str]) -> int:
             layer_steps.append(step_result)
             step_index[step_id] = step_result
             print(f"{layer}/{step_id}: {status}")
-            event = narrative_event(step_id, status)
-            if event:
-                render_narrative_event(event)
+            if render_step_narrative(step_id, status):
+                pass
             elif step_id == "lean_bridge" and status == "SKIPPED":
                 lean_build_status = step_index.get("lean_build", {}).get("status")
                 if lean_build_status == "SKIPPED":
