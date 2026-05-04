@@ -1,12 +1,13 @@
 ---
 name: testing-mumei-demo
-description: Test mumei-demo scenarios end-to-end through make demo, CLI report output, Lean bridge regression checks, and Streamlit dashboard evidence.
+description: Test mumei-demo scenarios end-to-end through make demo, CLI report output, Lean bridge regression checks, natural-language extraction, and Streamlit dashboard evidence.
 ---
 # Testing mumei-demo
 
 ## Devin Secrets Needed
 
-None. Local demo validation does not require API keys, browser login, or external service credentials.
+- `OPENAI_API_KEY`: required only for scenarios that call `mumei-agent` LLM extraction/generation, such as `nl_to_verified`.
+- Local demos that do not call an external LLM can run without API keys, browser login, or external service credentials.
 
 ## Prerequisites
 
@@ -14,6 +15,7 @@ None. Local demo validation does not require API keys, browser login, or externa
 - Sibling checkouts of `mumei-agent` and `mumei-lean` should exist at `../mumei-agent` and `../mumei-lean`.
 - RTGS Settlement validation requires `forge_tasks/vstd_settlement.json` in the default `../mumei-agent` checkout.
 - RegTech Compliance validation requires `forge_tasks/vstd_regtech.json` in the default `../mumei-agent` checkout.
+- Natural-language validation requires the companion `mumei-agent` checkout to support `python -m agent extract-spec` and `python -m agent generate` for forge task specs.
 - If the dashboard needs dependencies, install them with:
 
 ```bash
@@ -36,6 +38,37 @@ python3 -m json.tool scenarios/regtech_compliance/scenario.json >/dev/null
 python3 -m json.tool scenarios/nl_to_verified/scenario.json >/dev/null
 python3 -m json.tool scenarios/nl_to_verified/expected/extracted_spec.json >/dev/null
 ```
+
+## Primary Natural Language to Verified demo
+
+Run with an `OPENAI_API_KEY` available in the environment:
+
+```bash
+OPENAI_API_KEY="$OPENAI_API_KEY" \
+MUMEI_BIN=/home/ubuntu/repos/mumei/target/debug/mumei \
+MUMEI_AGENT_PYTHON="$(command -v python3)" \
+./scripts/run_scenario.sh nl_to_verified \
+  --mumei-repo /home/ubuntu/repos/mumei \
+  --mumei-agent-repo /home/ubuntu/repos/mumei-agent \
+  --mumei-bin /home/ubuntu/repos/mumei/target/debug/mumei \
+  --mumei-agent-python "$(command -v python3)"
+```
+
+Expected assertions:
+
+- Command exits `0`.
+- Output includes `Mumei Demo: Natural Language to Verified Mumei`.
+- Output includes the three scenario narration steps for spec extraction, code generation, and final verification.
+- Output includes `l2_agent/extract_spec: PASS`, `l2_agent/generate_code: PASS`, and `l1_z3/verify_code: PASS` in that order.
+- Final success line is exactly `Result: Bug caught. Correct code proven. Zero human review.` with the trailing period.
+- `reports/nl_to_verified/latest/result.json` has `overall_status == "PASS"` and layer keys `l2_agent` and `l1_z3`.
+- Step statuses are `extract_spec == "PASS"`, `generate_code == "PASS"`, and `verify_code == "PASS"`.
+- Proof density is `100% (3/3 atoms)`.
+- `reports/nl_to_verified/latest/extracted_spec.json` is a valid forge task spec with `task_id`, `target_file` starting with `std/`, valid `mode`, and at least one atom with `name`, `inputs`, `return_type`, `requires`, and `ensures`.
+- `reports/nl_to_verified/latest/generated.mm` exists and is non-empty.
+- `reports/nl_to_verified/latest/verify_code.log` contains `Verification passed`.
+
+If `extract_spec` passes but `generate_code` fails with unsupported Mumei syntax, verify that the companion `mumei-agent` checkout normalizes single-atom forge task specs to the single-atom generation path and that generation prompts warn against unsupported syntax such as `if ... then`, `.unwrap()`, or atom-level `else` blocks.
 
 ## Primary RegTech Compliance demo
 
@@ -117,6 +150,7 @@ After running a scenario, render its latest report:
 python3 dashboard/cli_report.py reports/regtech_compliance/latest/result.json
 python3 dashboard/cli_report.py reports/rtgs_settlement/latest/result.json
 python3 dashboard/cli_report.py reports/ownership_transfer/latest/result.json
+python3 dashboard/cli_report.py reports/nl_to_verified/latest/result.json
 ```
 
 Expected assertions:
@@ -126,6 +160,7 @@ Expected assertions:
 - RegTech output must not contain `L3: Lean`.
 - RTGS output includes the visible prefix `hostile_settlement skips validate and tries Pending → Settle` and `Proof Density: 100% (6/6 atoms)`.
 - Ownership output includes `hostile_takeover skips accept and tries Idle → Transferred`.
+- Natural-language output includes `Mumei Verification Report: Natural Language to Verified Mumei`, all three PASS steps, and `Proof Density: 100% (3/3 atoms)`.
 - The CLI box is fixed-width, so long visible narrative may be truncated; verify full untruncated narrative strings in `result.json`.
 
 ## Lean bridge failure regression
@@ -159,10 +194,12 @@ streamlit run dashboard/app.py
 Open the local Streamlit page in the browser and verify:
 
 - Sidebar scenario can be changed between `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`, and `nl_to_verified`.
+- Natural-language dashboard evidence should show `l2_agent=PASS`, `l1_z3=PASS`, and Proof Density `100%` with `3/3 atoms`.
+- Expanding the natural-language steps should show `PASS: Agent Spec Extraction`, `PASS: Agent Code Generation`, and `PASS: Z3 Generated Code Verification`; the Z3 log should contain `Verification passed`.
 - RegTech dashboard evidence should show `l1_z3=PASS`, `l2_agent=PASS`, no `l3_lean` metric, and Proof Density `100%` with `4/4 atoms`.
 - RTGS/ownership dashboard evidence should show expected L1/L2/L3 metrics; proof density is usually `100%` and `6/6 atoms` for RTGS in a Lake-available environment.
 - Expanding the RegTech rejected step shows log text containing `Match is not exhaustive` and `CustomerType::PEP (tag=3)`.
 - Expanding the ownership rejected step shows log text containing `InvalidPreState`.
 - Expanding proof certificate artifacts shows generated JSON. RegTech should show `compliance.proof.json`; RTGS should show both `settlement.proof.json` and `settlement.lean-cert.json`.
 
-If recording dashboard evidence, maximize the browser first and annotate scenario selection, layer metrics, expanded rejected-step log, and proof certificate expansion. Save and attach the processed mp4 in the final testing report.
+If recording dashboard evidence, maximize the browser first where possible and annotate scenario selection, layer metrics, proof density, expanded step logs, and verification/proof evidence. Save and attach the processed mp4 in the final testing report.
