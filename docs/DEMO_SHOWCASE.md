@@ -75,6 +75,25 @@ The recording highlights:
 - `PASS: Agent Code Generation` producing `generated.mm`.
 - `PASS: Z3 Generated Code Verification` with `Verification passed` in the log.
 
+### CLI execution walkthrough
+
+The companion CLI recording is aimed at developers who want to follow the
+terminal-first execution flow from scenario command to final proof report.
+
+<video controls src="./assets/nl-to-verified-cli-demo.mp4" title="Natural Language to Verified Mumei CLI walkthrough"></video>
+
+If the embedded player is unavailable, open the CLI video directly:
+[`docs/assets/nl-to-verified-cli-demo.mp4`](assets/nl-to-verified-cli-demo.mp4).
+
+The CLI recording highlights:
+
+- The `nl_to_verified` scenario command with `OPENAI_API_KEY`, `MUMEI_BIN`, and
+  repo paths configured.
+- `extract_spec` writing `extracted_spec.json`.
+- `generate_code` writing `generated.mm`.
+- `mumei verify` proving the generated `secure_transfer` atom.
+- The final CLI report with all three PASS lines and proof density.
+
 Latest E2E evidence:
 
 ```text

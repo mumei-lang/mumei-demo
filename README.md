@@ -100,6 +100,10 @@ The P11 Natural Language to Verified Mumei walkthrough shows Japanese
 requirements converted to forge task spec JSON, generated `.mm`, and final Z3
 verification:
 [`docs/assets/nl-to-verified-dashboard-demo.mp4`](docs/assets/nl-to-verified-dashboard-demo.mp4).
+For developers who prefer terminal output, the companion CLI walkthrough shows
+the same scenario as an execution log with each extraction, generation, and
+verification step:
+[`docs/assets/nl-to-verified-cli-demo.mp4`](docs/assets/nl-to-verified-cli-demo.mp4).
 
 ## Try It
 
@@ -173,6 +177,9 @@ make demo-all
 4. The latest E2E run produced `l2_agent/extract_spec: PASS`,
    `l2_agent/generate_code: PASS`, `l1_z3/verify_code: PASS`, and
    `Proof Density: 100% (3/3 atoms)`.
+5. The CLI recording at
+   [`docs/assets/nl-to-verified-cli-demo.mp4`](docs/assets/nl-to-verified-cli-demo.mp4)
+   shows the developer-facing command flow and PASS log.
 
 ## What Mumei Adds to the Pipeline
 
