@@ -15,6 +15,7 @@ demo-nl:
 demo-all:
 	@./scripts/run_scenario.sh ownership_transfer
 	@./scripts/run_scenario.sh rtgs_settlement
+	@./scripts/run_scenario.sh regtech_compliance
 	@./scripts/run_scenario.sh nl_to_verified
 
 setup:
