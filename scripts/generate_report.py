@@ -17,6 +17,11 @@ SCENARIO_ORDER = [
     "regtech_compliance",
     "nl_to_verified",
 ]
+LAYER_LABELS = {
+    "l1_z3": "L1 / Z3",
+    "l2_agent": "L2 / Agent",
+    "l3_lean": "L3 / Lean",
+}
 
 ERROR_LINE_RE = re.compile(
     r"InvalidPreState|not exhaustive|Counter[- ]?example|counterexample|Verification failed|error",
@@ -45,6 +50,19 @@ def density_values(data: dict) -> tuple[int, int, float]:
     return verified, total, percentage
 
 
+def duration_seconds(step: dict) -> float:
+    return float(step.get("duration_ms", 0)) / 1000
+
+
+def duration_text(step: dict) -> str:
+    return f"{duration_seconds(step):.2f}s"
+
+
+def proof_density_bar(percentage: float, width: int = 20) -> str:
+    filled = round(width * max(0, min(percentage, 100)) / 100)
+    return "█" * filled + "░" * (width - filled)
+
+
 def generated_at() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
@@ -60,6 +78,10 @@ def iter_steps(data: dict):
     for layer, payload in data.get("layers", {}).items():
         for step in payload.get("steps", []):
             yield layer, step
+
+
+def total_duration_seconds(data: dict) -> float:
+    return sum(duration_seconds(step) for _, step in iter_steps(data))
 
 
 def rejected_failure_steps(data: dict) -> list[tuple[str, dict]]:
@@ -226,8 +248,69 @@ def bug_detection_moment(data: dict, root: Path, heading: str, subheading: str) 
     return "\n".join(lines).rstrip()
 
 
-def render_scenario_markdown(data: dict, root: Path) -> str:
+def render_proof_density_markdown(data: dict) -> str:
     verified, total, percentage = density_values(data)
+    return "\n".join([
+        "## Proof Density",
+        "",
+        f"- Verified atoms/steps: **{verified}**",
+        f"- Total atoms/steps: **{total}**",
+        f"- Percentage: **{percentage:g}%**",
+        f"- Visual: `{proof_density_bar(percentage)}`",
+    ])
+
+
+def render_layer_breakdown_markdown(data: dict) -> str:
+    lines = [
+        "## Layer Breakdown",
+        "",
+        "| Layer | Step | Result | Duration |",
+        "| --- | --- | --- | ---: |",
+    ]
+    step_count = 0
+    for layer, step in iter_steps(data):
+        step_count += 1
+        label = LAYER_LABELS.get(layer, layer)
+        status = step.get("display_status") or step.get("status", "UNKNOWN")
+        name = str(step.get("name", step.get("id", ""))).replace("|", "\\|")
+        lines.append(f"| {label} | {name} | {status} | {duration_text(step)} |")
+    if step_count == 0:
+        lines.append("| _No layer steps were recorded._ |  |  |  |")
+    return "\n".join(lines)
+
+
+def render_duration_markdown(data: dict) -> str:
+    lines = [
+        "## Duration",
+        "",
+        f"- Total recorded step time: **{total_duration_seconds(data):.2f}s**",
+        "",
+        "| Step | Duration |",
+        "| --- | ---: |",
+    ]
+    for _, step in iter_steps(data):
+        name = str(step.get("name", step.get("id", ""))).replace("|", "\\|")
+        lines.append(f"| {name} | {duration_text(step)} |")
+    return "\n".join(lines)
+
+
+def render_bug_detection_markdown(data: dict, root: Path) -> str:
+    narrative = data.get("narrative", {})
+    before = narrative.get("before", "_No BEFORE narrative was provided._")
+    after = narrative.get("after", "_No AFTER narrative was provided._")
+    return "\n".join([
+        "## Bug Detection",
+        "",
+        "### Narrative",
+        "",
+        f"- Before: {before}",
+        f"- After: {after}",
+        "",
+        bug_detection_moment(data, root, "### Evidence", "####"),
+    ]).rstrip()
+
+
+def render_scenario_markdown(data: dict, root: Path) -> str:
     lines = [
         f"# Mumei Verification Report: {data.get('scenario_name', data.get('scenario'))}",
         "",
@@ -235,9 +318,14 @@ def render_scenario_markdown(data: dict, root: Path) -> str:
         "",
         f"Scenario: `{data.get('scenario')}`",
         f"Overall status: {data.get('overall_status', 'UNKNOWN')}",
-        f"Proof density: {percentage:g}% ({verified}/{total} atoms)",
         "",
-        bug_detection_moment(data, root, "## Bug Detection Moment", "###"),
+        render_bug_detection_markdown(data, root),
+        "",
+        render_proof_density_markdown(data),
+        "",
+        render_layer_breakdown_markdown(data),
+        "",
+        render_duration_markdown(data),
         "",
     ]
     return "\n".join(lines)

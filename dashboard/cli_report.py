@@ -39,6 +39,11 @@ def box(lines: list[str], width: int = 68) -> str:
     return "\n".join([top, body[0], sep, *body[1:], bottom])
 
 
+def proof_density_bar(percentage: float, width: int = 24) -> str:
+    filled = round(width * max(0, min(percentage, 100)) / 100)
+    return "█" * filled + "░" * (width - filled)
+
+
 def render(data: dict) -> str:
     title = f"  Mumei Verification Report: {data.get('scenario_name', data.get('scenario'))}"
     narrative = data.get("narrative", {})
@@ -52,11 +57,11 @@ def render(data: dict) -> str:
         "  AFTER: LLM + mumei",
         f"    {after}",
         "",
-        "  Layer   Step                          Status     Duration",
-        "  ──────  ────────────────────────────  ─────────  ────────",
+        "  Layer      Step                       Status      Duration",
+        "  ─────────  ─────────────────────────  ──────────  ────────",
     ]
     for layer, name, status, elapsed in rows(data):
-        table.append(f"  {layer:<7} {name[:28]:<28}  {status:<9}  {elapsed:<8}")
+        table.append(f"  {layer:<10} {name[:25]:<25}  {status:<10}  {elapsed:<8}")
     density = data.get("proof_density", {})
     pct = density.get("percentage", 0)
     verified = density.get("verified", 0)
@@ -64,7 +69,8 @@ def render(data: dict) -> str:
     audit_status = "TRUSTLESS" if data.get("overall_status") == "PASS" else "ATTENTION"
     table.extend([
         "",
-        f"  Proof Density: {pct:g}% ({verified}/{total} atoms)",
+        f"  Proof Density: [{proof_density_bar(float(pct))}] {pct:g}%",
+        f"                 {verified}/{total} atoms or layer steps verified",
         f"  Audit Status:  {audit_status}",
         "  Moment:        Proof failure → Bug found",
     ])

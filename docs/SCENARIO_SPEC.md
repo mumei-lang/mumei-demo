@@ -95,6 +95,7 @@ Commands and `cwd` can use:
 - `{mumei_agent_repo}`
 - `{mumei_agent_python}`
 - `{mumei_bin}`
+- `{root_dir}`
 - `{output_dir}`
 
 Values come from CLI arguments, `repos.env`, or defaults next to this repo.
@@ -110,7 +111,12 @@ interpreter.
 cp -R scenarios/_template scenarios/regtech_policy
 vim scenarios/regtech_policy/scenario.json
 ./scripts/run_scenario.sh regtech_policy
+python3 scripts/generate_report.py reports/regtech_policy/latest/result.json --format markdown
 ```
+
+`run_scenario.sh` writes both `result.json` and a per-scenario `report.md`.
+The standalone `--format markdown` command regenerates that report from any
+saved result file.
 
 ## Two-layer RegTech skeleton
 
