@@ -39,6 +39,69 @@ python3 -m json.tool scenarios/nl_to_verified/scenario.json >/dev/null
 python3 -m json.tool scenarios/nl_to_verified/expected/extracted_spec.json >/dev/null
 ```
 
+## Full CI-equivalent validation (`make demo-ci`)
+
+This is the fastest way to validate the complete pipeline without live LLM credentials.
+It runs all four scenarios with fixture mode, then generates a cross-scenario summary.
+
+```bash
+# Clean stale reports first
+rm -rf reports/ dashboard/summary.md
+
+# Run with fixture mode (skips live LLM calls for nl_to_verified)
+CI_FIXTURE_MODE=1 make demo-ci
+```
+
+Expected assertions:
+
+- Command exits `0`.
+- `reports/{scenario}/latest/result.json` exists for all four scenarios: `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`, `nl_to_verified`.
+- Each `result.json` has `overall_status == "PASS"`.
+- Each `result.json` has `proof_density.percentage == 100` (ownership_transfer 6/6, rtgs_settlement 6/6, regtech_compliance 4/4, nl_to_verified 3/3).
+- `dashboard/summary.md` exists with a markdown table containing all four scenario rows.
+- `dashboard/summary.md` has no "Missing results" section.
+
+### Cross-scenario summary validation
+
+After `demo-ci`, verify the generated summary:
+
+```bash
+cat dashboard/summary.md
+```
+
+Expected table format:
+```
+| Scenario | Overall status | Verified | Total | Proof density |
+| --- | --- | ---: | ---: | ---: |
+| `ownership_transfer` | PASS | 6 | 6 | 100% |
+| `rtgs_settlement` | PASS | 6 | 6 | 100% |
+| `regtech_compliance` | PASS | 4 | 4 | 100% |
+| `nl_to_verified` | PASS | 3 | 3 | 100% |
+```
+
+You can also generate the summary standalone:
+
+```bash
+python3 scripts/generate_report.py --summary --require-all
+```
+
+### Negative test for `demo-ci` non-zero exit
+
+To verify that `demo-ci` returns non-zero on failure, set `MUMEI_BIN` to a non-existent path:
+
+```bash
+rm -rf reports/ dashboard/summary.md
+CI_FIXTURE_MODE=1 MUMEI_BIN=/nonexistent/mumei make demo-ci; echo "EXIT_CODE=$?"
+```
+
+Expected: exit code is non-zero (typically 2 via make Error 1). All four scenarios still run
+(continue-on-failure behavior) and `dashboard/summary.md` is still generated.
+
+**Tip**: Corrupting `.mm` source files (e.g. writing invalid content) may not trigger a failure
+because `mumei verify` might report "0 item(s) verified" with exit code 0 when the file contains
+no atoms. This means expected patterns like "Verification passed" can still match. Use a missing
+binary or missing scenario config to force a definitive failure instead.
+
 ## Primary Natural Language to Verified demo
 
 Run with an `OPENAI_API_KEY` available in the environment:
@@ -69,6 +132,17 @@ Expected assertions:
 - `reports/nl_to_verified/latest/verify_code.log` contains `Verification passed`.
 
 If `extract_spec` passes but `generate_code` fails with unsupported Mumei syntax, verify that the companion `mumei-agent` checkout normalizes single-atom forge task specs to the single-atom generation path and that generation prompts warn against unsupported syntax such as `if ... then`, `.unwrap()`, or atom-level `else` blocks.
+
+### NL fixture mode verification
+
+When `CI_FIXTURE_MODE=1` is set, `nl_to_verified` loads `scenarios/nl_to_verified/expected/extracted_spec.json`
+instead of calling the live LLM. To verify fixture artifacts:
+
+```bash
+test -f reports/nl_to_verified/latest/extracted_spec.json && echo "EXISTS" || echo "MISSING"
+test -f reports/nl_to_verified/latest/generated.mm && echo "EXISTS" || echo "MISSING"
+grep -l "Verification passed" reports/nl_to_verified/latest/verify_code.log
+```
 
 ## Primary RegTech Compliance demo
 
@@ -203,3 +277,10 @@ Open the local Streamlit page in the browser and verify:
 - Expanding proof certificate artifacts shows generated JSON. RegTech should show `compliance.proof.json`; RTGS should show both `settlement.proof.json` and `settlement.lean-cert.json`.
 
 If recording dashboard evidence, maximize the browser first where possible and annotate scenario selection, layer metrics, proof density, expanded step logs, and verification/proof evidence. Save and attach the processed mp4 in the final testing report.
+
+## General tips
+
+- Lean builds are slow on first run (~160s) but cached afterward (~0.6s). If you see long Lean build times, that is expected for the first invocation.
+- The first run of `make demo-ci` may take 3-5 minutes due to Lean compilation. Subsequent runs are much faster.
+- All testing is shell-only CLI output; no browser recording is needed unless testing the Streamlit dashboard.
+- When running `demo-ci`, always clean `reports/` and `dashboard/summary.md` first to avoid stale data from previous runs.
