@@ -1,0 +1,124 @@
+name: Demo All
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+jobs:
+  demo-all:
+    runs-on: ubuntu-latest
+    env:
+      LLVM_SYS_170_PREFIX: /usr/lib/llvm-17
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      LLM_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - name: Checkout mumei-demo
+        uses: actions/checkout@v4
+        with:
+          path: mumei-demo
+
+      - name: Checkout mumei
+        uses: actions/checkout@v4
+        with:
+          repository: mumei-lang/mumei
+          ref: develop
+          path: mumei
+
+      - name: Checkout mumei-agent
+        uses: actions/checkout@v4
+        with:
+          repository: mumei-lang/mumei-agent
+          ref: develop
+          path: mumei-agent
+
+      - name: Checkout mumei-lean
+        uses: actions/checkout@v4
+        with:
+          repository: mumei-lang/mumei-lean
+          ref: develop
+          path: mumei-lean
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Z3 and LLVM 17
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libz3-dev pkg-config libssl-dev libzstd-dev z3
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
+          codename="$(lsb_release -cs)"
+          echo "deb http://apt.llvm.org/${codename}/ llvm-toolchain-${codename}-17 main" \
+            | sudo tee /etc/apt/sources.list.d/llvm-17.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y llvm-17-dev libclang-17-dev libpolly-17-dev
+
+      - name: Build mumei compiler
+        run: cargo build --release
+        working-directory: mumei
+
+      - name: Install mumei-agent dependencies
+        run: |
+          python -m venv "$GITHUB_WORKSPACE/.venv"
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install --upgrade pip
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -r requirements.txt
+        working-directory: mumei-agent
+
+      - name: Run all demo scenarios
+        run: make demo-ci
+        working-directory: mumei-demo
+        env:
+          MUMEI_REPO: ${{ github.workspace }}/mumei
+          MUMEI_LEAN_REPO: ${{ github.workspace }}/mumei-lean
+          MUMEI_AGENT_REPO: ${{ github.workspace }}/mumei-agent
+          MUMEI_AGENT_PYTHON: ${{ github.workspace }}/.venv/bin/python
+          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
+
+      - name: Verify scenario result statuses
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          root = Path("reports")
+          scenarios = [
+              "ownership_transfer",
+              "rtgs_settlement",
+              "regtech_compliance",
+              "nl_to_verified",
+          ]
+          failures = []
+          for scenario in scenarios:
+              path = root / scenario / "latest" / "result.json"
+              if not path.exists():
+                  failures.append(f"{scenario}: missing {path}")
+                  continue
+              data = json.loads(path.read_text(encoding="utf-8"))
+              status = data.get("overall_status")
+              density = data.get("proof_density", {})
+              print(
+                  f"{scenario}: overall_status={status} "
+                  f"proof_density={density.get('percentage', 0):g}% "
+                  f"({density.get('verified', 0)}/{density.get('total', 0)})"
+              )
+              if status != "PASS":
+                  failures.append(f"{scenario}: overall_status={status}")
+          if failures:
+              print("\n".join(failures), file=sys.stderr)
+              sys.exit(1)
+          PY
+        working-directory: mumei-demo
+
+      - name: Upload demo reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-reports
+          path: |
+            mumei-demo/reports/
+            mumei-demo/dashboard/summary.md

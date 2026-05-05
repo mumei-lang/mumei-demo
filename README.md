@@ -130,10 +130,16 @@ for the Step 0 spec extraction and run:
 make demo-nl
 ```
 
-To run the complete Phase 1 + Phase 2 demo sequence:
+To run the complete four-scenario demo sequence:
 
 ```bash
 make demo-all
+```
+
+For CI-equivalent validation with a dashboard summary:
+
+```bash
+make demo-ci
 ```
 
 ## What Runs
@@ -145,10 +151,12 @@ make demo-all
 3. The corrected implementation verifies all five ownership atoms with Z3.
 4. Lean 4 certifies `no_transfer_without_accept` through the proof certificate chain (when available).
 
-`make demo-all` runs the complete Phase 1 + Phase 2 demo sequence:
+`make demo-all` runs the complete four-scenario demo sequence:
 
 1. Phase 1 Ownership Transfer Protocol.
 2. Phase 2 RTGS Settlement Protocol.
+3. Phase 3 RegTech Compliance Protocol.
+4. P11 Natural Language to Verified Mumei.
 
 `make demo-settlement` executes the Phase 2 RTGS Settlement Protocol scenario:
 
