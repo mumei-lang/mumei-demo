@@ -511,6 +511,19 @@ def main(argv: list[str]) -> int:
         cwd=root,
         check=False,
     )
+    subprocess.run(
+        [
+            sys.executable,
+            str(root / "scripts" / "generate_report.py"),
+            str(output_dir / "result.json"),
+            "--format",
+            "markdown",
+            "--report-output",
+            str(output_dir / "report.md"),
+        ],
+        cwd=root,
+        check=False,
+    )
     if overall_status == "PASS":
         story()
         story("  Result: Bug caught. Correct code proven. Zero human review.")
