@@ -1,4 +1,4 @@
-.PHONY: demo demo-settlement demo-regtech demo-nl demo-all demo-ci setup
+.PHONY: demo demo-settlement demo-regtech demo-nl demo-all demo-ci report setup
 
 demo:
 	@./scripts/run_scenario.sh ownership_transfer
@@ -23,8 +23,11 @@ demo-ci:
 	for scenario in ownership_transfer rtgs_settlement regtech_compliance nl_to_verified; do \
 		./scripts/run_scenario.sh "$$scenario" || status=1; \
 	done; \
-	python3 scripts/generate_report.py --summary --require-all || status=1; \
+	$(MAKE) report || status=1; \
 	exit "$$status"
+
+report:
+	@python3 scripts/generate_report.py --summary --highlights --require-all
 
 setup:
 	@./scripts/setup_repos.sh
