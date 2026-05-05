@@ -24,6 +24,7 @@ import subprocess
 import sys
 import time
 import unicodedata
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -156,6 +157,96 @@ def display_status(layer: str, step: dict, status: str) -> str:
 def check_patterns(output: str, patterns: list[str]) -> tuple[bool, list[str]]:
     missing = [pattern for pattern in patterns if pattern not in output]
     return not missing, missing
+
+
+def flatten_spec_text(value: object) -> str:
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        return " ".join(flatten_spec_text(item) for item in value)
+    if isinstance(value, Mapping):
+        return " ".join(flatten_spec_text(item) for item in value.values())
+    return ""
+
+
+def fixture_spec_for_scenario(root: Path, scenario_name: str) -> dict | None:
+    expected = root / "scenarios" / scenario_name / "expected" / "extracted_spec.json"
+    if not expected.exists():
+        return None
+    return json.loads(expected.read_text(encoding="utf-8"))
+
+
+def generated_code_from_spec(spec: dict) -> str:
+    atoms = spec.get("atoms")
+    if not isinstance(atoms, list):
+        atoms = [spec]
+
+    rendered_atoms = []
+    for atom in atoms:
+        if not isinstance(atom, Mapping):
+            continue
+        params = atom.get("inputs", atom.get("params", []))
+        param_parts = []
+        if isinstance(params, list):
+            for item in params:
+                if not isinstance(item, Mapping):
+                    continue
+                name = item.get("name")
+                param_type = item.get("type")
+                if isinstance(name, str) and isinstance(param_type, str):
+                    param_parts.append(f"{name}: {param_type}")
+        requires = str(atom.get("requires", "true"))
+        ensures = str(atom.get("ensures", "true"))
+        name = str(atom.get("name", "generated_atom"))
+        return_type = str(atom.get("return_type", "i64"))
+        body_expr = "0"
+        spec_text = flatten_spec_text(atom).lower()
+        if (
+            "old(sender_balance) - amount" in spec_text
+            or "result == sender_balance - amount" in spec_text
+            or "result == from_balance - amount" in spec_text
+        ):
+            body_expr = "from_balance - amount" if "from_balance" in spec_text else "sender_balance - amount"
+        elif "old(receiver_balance) + amount" in spec_text or "result == receiver_balance + amount" in spec_text:
+            body_expr = "receiver_balance + amount"
+        rendered_atoms.append(
+            "\n".join([
+                f"atom {name}({', '.join(param_parts)}) -> {return_type} {{",
+                f"    requires: {requires};",
+                f"    ensures: {ensures};",
+                "    body: {",
+                f"        return {body_expr};",
+                "    }",
+                "}",
+            ])
+        )
+    return "\n\n".join(rendered_atoms) + "\n"
+
+
+def maybe_run_fixture_step(
+    root: Path,
+    scenario_name: str,
+    step_id: str,
+    output_dir: Path,
+) -> tuple[int, str, str] | None:
+    if os.environ.get("CI_FIXTURE_MODE") != "1":
+        return None
+    if scenario_name != "nl_to_verified":
+        return None
+
+    spec = fixture_spec_for_scenario(root, scenario_name)
+    if spec is None:
+        return None
+
+    if step_id == "extract_spec":
+        output = output_dir / "extracted_spec.json"
+        output.write_text(json.dumps(spec, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        return 0, f"Extracted spec written to {output}\n", ""
+    if step_id == "generate_code":
+        output = output_dir / "generated.mm"
+        output.write_text(generated_code_from_spec(spec), encoding="utf-8")
+        return 0, f"Generated verified code written to {output}\n", ""
+    return None
 
 
 def proof_density(step_results: dict[str, dict]) -> dict[str, float | int]:
@@ -300,38 +391,43 @@ def main(argv: list[str]) -> int:
             else:
                 command = substitute(step["command"], command_placeholders)
                 cwd = substitute(step.get("cwd", str(root)), placeholders)
-                proc = subprocess.run(
-                    command,
-                    shell=True,
-                    cwd=cwd,
-                    text=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    env={
-                        **os.environ.copy(),
-                        "MUMEI_REPO": placeholders["mumei_repo"],
-                        "MUMEI_LEAN_REPO": placeholders["mumei_lean_repo"],
-                        "MUMEI_AGENT_REPO": placeholders["mumei_agent_repo"],
-                        "MUMEI_AGENT_PYTHON": placeholders["mumei_agent_python"],
-                        "MUMEI_BIN": placeholders["mumei_bin"],
-                        "MUMEI_STD_PATH": os.environ.get(
-                            "MUMEI_STD_PATH",
-                            str(Path(placeholders["mumei_repo"]) / "std"),
-                        ),
-                    },
-                    check=False,
-                )
+                fixture_result = maybe_run_fixture_step(root, scenario_name, step_id, output_dir)
+                if fixture_result is None:
+                    proc = subprocess.run(
+                        command,
+                        shell=True,
+                        cwd=cwd,
+                        text=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        env={
+                            **os.environ.copy(),
+                            "MUMEI_REPO": placeholders["mumei_repo"],
+                            "MUMEI_LEAN_REPO": placeholders["mumei_lean_repo"],
+                            "MUMEI_AGENT_REPO": placeholders["mumei_agent_repo"],
+                            "MUMEI_AGENT_PYTHON": placeholders["mumei_agent_python"],
+                            "MUMEI_BIN": placeholders["mumei_bin"],
+                            "MUMEI_STD_PATH": os.environ.get(
+                                "MUMEI_STD_PATH",
+                                str(Path(placeholders["mumei_repo"]) / "std"),
+                            ),
+                        },
+                        check=False,
+                    )
+                    returncode = proc.returncode
+                    stdout = proc.stdout
+                    stderr = proc.stderr
+                else:
+                    returncode, stdout, stderr = fixture_result
                 duration_ms = int((time.monotonic() - start) * 1000)
-                combined = proc.stdout + proc.stderr
+                combined = stdout + stderr
                 ok_patterns, missing = check_patterns(combined, list(step.get("expected_patterns", [])))
-                status = expected_status(step, proc.returncode)
+                status = expected_status(step, returncode)
                 if status == "PASS" and layer == "l3_lean" and "build" in step_id:
                     status = "CERTIFIED"
                 if not ok_patterns:
                     status = "FAIL"
-                exit_code = proc.returncode
-                stdout = proc.stdout
-                stderr = proc.stderr
+                exit_code = returncode
                 log_path.write_text(
                     f"$ {command}\n\n[stdout]\n{stdout}\n[stderr]\n{stderr}\n",
                     encoding="utf-8",

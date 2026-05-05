@@ -34,6 +34,30 @@ Z3 alone can fully verify match exhaustiveness and forall quantifiers.
 
     make demo-regtech
 
+From a checkout with sibling `mumei`, `mumei-agent`, and `mumei-lean` repos,
+the CI-equivalent full demo run is:
+
+    make demo-ci
+
+`demo-ci` runs `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`,
+and `nl_to_verified` in order. It returns a non-zero exit code if any scenario
+does not produce `overall_status: PASS`.
+
+## Expected output
+
+The bug-detection step must reject the incomplete KYC classifier with the
+pattern recorded in `expected/detect_bug.txt`:
+
+    not exhaustive
+
+The corrected implementation must pass verification with the pattern recorded
+in `expected/verify_correct.txt`:
+
+    Verification passed
+
+The scenario report is written to `reports/regtech_compliance/latest/result.json`
+with `overall_status: PASS` and `proof_density: 100%`.
+
 ## Dashboard recording
 
 After running the scenario, open the Streamlit dashboard and select
