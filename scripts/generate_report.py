@@ -311,7 +311,6 @@ def render_bug_detection_markdown(data: dict, root: Path) -> str:
 
 
 def render_scenario_markdown(data: dict, root: Path) -> str:
-    verified, total, percentage = density_values(data)
     lines = [
         f"# Mumei Verification Report: {data.get('scenario_name', data.get('scenario'))}",
         "",
@@ -319,7 +318,6 @@ def render_scenario_markdown(data: dict, root: Path) -> str:
         "",
         f"Scenario: `{data.get('scenario')}`",
         f"Overall status: {data.get('overall_status', 'UNKNOWN')}",
-        f"Proof density: {percentage:g}% ({verified}/{total} atoms)",
         "",
         render_bug_detection_markdown(data, root),
         "",
