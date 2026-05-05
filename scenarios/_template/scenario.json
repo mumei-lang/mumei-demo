@@ -1,24 +1,71 @@
 {
+  "_schema": "Template-only comments use keys prefixed with `_`. Remove or customize them in copied scenarios.",
   "name": "Scenario Name",
+  "_name": "Human-readable title shown in CLI reports and dashboards.",
   "version": "0.1.0",
+  "_version": "Scenario contract version. Bump when expected outputs or layer semantics change.",
   "description": "Short description of the demo property.",
+  "_description": "One sentence describing the invariant, bug class, and proof goal.",
   "layers": ["l1_z3", "l2_agent"],
+  "_layers": "Execution order. Use l1_z3 for Mumei/Z3, l2_agent for agent workflows, and l3_lean for Lean certificates.",
+  "narrative": {
+    "_narrative": "Optional presentation text used by scripts/run_scenario.sh and dashboard/cli_report.py.",
+    "intro": [
+      "Step 1: LLM generates scenario code...",
+      "Step 2: mumei verifies the code..."
+    ],
+    "before": "Short description of the bug before Mumei verification.",
+    "after": "Short description of the verified outcome after Mumei catches or repairs it.",
+    "steps": {
+      "detect_bug": {
+        "rejected": {
+          "headline": "BUG DETECTED!",
+          "follow_up": [
+            "  Replace this with the concrete counter-example or solver error.",
+            "",
+            "  Step 3: Verifying the correct implementation..."
+          ]
+        }
+      },
+      "verify_correct": {
+        "pass": {
+          "headline": "Correct implementation verified",
+          "follow_up": []
+        }
+      }
+    }
+  },
   "l1_z3": {
+    "_l1_z3": "Layer 1 runs Mumei verifier commands. Add expect_failure=true for a known-bug rejection.",
     "steps": [
       {
-        "id": "verify_property",
-        "name": "Z3 Property Verification",
+        "_step": "Expected rejection of the intentionally buggy implementation.",
+        "id": "detect_bug",
+        "name": "Z3 Bug Detection",
         "repo": "mumei",
-        "command": "{mumei_bin} verify {mumei_repo}/path/to/file.mm",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/_template/buggy_code.mm",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": ["InvalidPreState"],
+        "artifacts": []
+      },
+      {
+        "_step": "Successful verification of the corrected implementation.",
+        "id": "verify_correct",
+        "name": "Z3 Correct Implementation Verification",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/_template/correct_code.mm --proof-cert --output {output_dir}/scenario.proof.json",
         "expected_exit": 0,
         "expected_patterns": ["Verification passed"],
-        "artifacts": []
+        "artifacts": ["scenario.proof.json"]
       }
     ]
   },
   "l2_agent": {
+    "_l2_agent": "Layer 2 previews or executes agent repair/generation. Keep dry-run commands deterministic for CI.",
     "steps": [
       {
+        "_step": "Agent dry-run or generation command. Change `example.json` to your forge task.",
         "id": "agent_preview",
         "name": "Agent Preview",
         "repo": "mumei-agent",
@@ -31,8 +78,10 @@
     ]
   },
   "l3_lean": {
+    "_l3_lean": "Optional Layer 3 proof build. Steps with optional_toolchain are skipped if the executable is absent.",
     "steps": [
       {
+        "_step": "Lean module build for deep proof obligations.",
         "id": "lean_build",
         "name": "Lean Proof Build",
         "repo": "mumei-lean",

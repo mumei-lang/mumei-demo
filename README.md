@@ -5,7 +5,17 @@
 ## The Problem
 
 LLMs write code that looks correct but contains subtle bugs.  
-Formal verification checks **every possible case**
+Formal verification checks **every possible case** before the bug becomes a
+production incident.
+
+Mumei's demo scenarios make those bugs concrete:
+
+| Scenario | Bug an LLM can miss | How Mumei catches it |
+| --- | --- | --- |
+| Ownership Transfer | `hostile_takeover` skips `accept` and tries `Idle → Transferred`. | The effect checker rejects the invalid pre-state with `InvalidPreState`. |
+| RTGS Settlement | A transfer flow can break balance conservation or settle before validation. | Z3 checks settlement contracts, then Lean certifies deeper invariants when available. |
+| RegTech Compliance | `PEP` customers are missing from a `match` expression. | Exhaustiveness checking reports `CustomerType::PEP (tag=3)` as a counter-example. |
+| NL → Verified | Requirements start as natural language instead of verified code. | The agent extracts a spec, generates `.mm`, and Z3 verifies the result automatically. |
 
 ## How It Works
 
@@ -105,7 +115,25 @@ the same scenario as an execution log with each extraction, generation, and
 verification step:
 [`docs/assets/nl-to-verified-cli-demo.mp4`](docs/assets/nl-to-verified-cli-demo.mp4).
 
-## Try It
+## Quick Start
+
+Prepare sibling checkouts and run every demo scenario:
+
+```bash
+make setup && make demo-all
+```
+
+`make setup` clones or refreshes `mumei`, `mumei-agent`, and `mumei-lean` next
+to this repository. `make demo-all` then runs the complete four-scenario
+presentation sequence and writes reports under `reports/<scenario>/latest/`.
+
+For CI-equivalent validation with fixture mode and dashboard summaries:
+
+```bash
+CI_FIXTURE_MODE=1 make demo-ci
+```
+
+## Run Individual Scenarios
 
 ```bash
 make demo
@@ -140,6 +168,63 @@ For CI-equivalent validation with a dashboard summary:
 
 ```bash
 make demo-ci
+```
+
+## Scenario Examples
+
+### Ownership Transfer
+
+```text
+$ make demo
+l1_z3/detect_bug: REJECTED
+❌ BUG DETECTED!
+  InvalidPreState: 'accept' requires 'PendingTransfer'
+  but current state is 'Idle'
+l1_z3/verify_correct: PASS
+l1_z3/verify_e2e: PASS
+l2_agent/forge_dryrun: PASS
+l3_lean/lean_build: CERTIFIED
+Proof Density: 100% (6/6 atoms)
+```
+
+### RTGS Settlement
+
+```text
+$ make demo-settlement
+l1_z3/detect_bug: REJECTED
+❌ BUG DETECTED!
+  InvalidPreState: 'settle' requires 'Validated'
+  but current state is 'Pending'
+l1_z3/verify_correct: PASS
+l1_z3/verify_e2e: PASS
+l2_agent/forge_dryrun: PASS
+l3_lean/lean_build: CERTIFIED
+Proof Density: 100% (6/6 atoms)
+```
+
+### RegTech Compliance
+
+```text
+$ make demo-regtech
+l1_z3/detect_bug: REJECTED
+❌ BUG DETECTED!
+  Match is not exhaustive:
+  Counter-example: CustomerType::PEP (tag=3)
+l1_z3/verify_correct: PASS
+l1_z3/verify_e2e: PASS
+l2_agent/forge_dryrun: PASS
+Proof Density: 100% (4/4 atoms)
+```
+
+### Natural Language → Verified Mumei
+
+```text
+$ make demo-nl
+l2_agent/extract_spec: PASS
+l2_agent/generate_code: PASS
+l1_z3/verify_code: PASS
+✅ DEMO COMPLETE: Natural language specification verified
+Proof Density: 100% (3/3 atoms)
 ```
 
 ## What Runs
