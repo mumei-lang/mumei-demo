@@ -7,6 +7,11 @@ on:
 
 jobs:
   demo-all:
+    # Skip on pull requests from forks: cross-repo checkouts of sibling
+    # repositories and secrets (OPENAI_API_KEY) are not available to forks.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     env:
       LLVM_SYS_170_PREFIX: /usr/lib/llvm-17
@@ -55,6 +60,9 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/llvm-17.list > /dev/null
           sudo apt-get update
           sudo apt-get install -y llvm-17-dev libclang-17-dev libpolly-17-dev
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Build mumei compiler
         run: cargo build --release
