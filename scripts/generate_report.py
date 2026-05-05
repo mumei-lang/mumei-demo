@@ -436,17 +436,17 @@ def main() -> int:
     if report_output and not report_output.is_absolute():
         report_output = root / report_output
     if args.format == "markdown":
-        data = load_json(result_path)
-        markdown = render_scenario_markdown(data, root)
-        if report_output:
+        if report_output is None:
+            report_path = write_scenario_markdown(result_path, root, None)
+            print(f"Markdown report written to {report_path}")
+        else:
+            data = load_json(result_path)
+            markdown = render_scenario_markdown(data, root)
             report_output.parent.mkdir(parents=True, exist_ok=True)
             report_output.write_text(markdown, encoding="utf-8")
-            print(f"Markdown report written to {report_output}", file=sys.stderr)
-        print(markdown)
+            print(f"Markdown report written to {report_output}")
         return 0
 
-    report_path = write_scenario_markdown(result_path, root, report_output)
-    print(f"Markdown report written to {report_path}")
     return subprocess.run(
         [sys.executable, str(root / "dashboard" / "cli_report.py"), str(result_path)],
         check=False,
