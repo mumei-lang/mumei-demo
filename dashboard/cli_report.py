@@ -13,6 +13,9 @@ LAYER_LABELS = {
 }
 
 
+ROOT = Path(__file__).resolve().parent.parent
+
+
 def step_status(layer: str, step: dict) -> str:
     status = step.get("status", "UNKNOWN")
     return step.get("display_status") or status
@@ -77,11 +80,54 @@ def render(data: dict) -> str:
     return box([title, *table])
 
 
+def latest_result(scenario_dir: Path) -> Path | None:
+    report_dir = ROOT / "reports" / scenario_dir.name
+    latest = report_dir / "latest" / "result.json"
+    if latest.exists():
+        return latest
+    candidates = sorted(report_dir.glob("*/result.json"), reverse=True)
+    return candidates[0] if candidates else None
+
+
+def render_all() -> str:
+    lines = [
+        "Scenario                  Status      Verification  Proof Density",
+        "────────────────────────  ──────────  ────────────  ─────────────",
+    ]
+    for scenario_dir in sorted((ROOT / "scenarios").iterdir()):
+        if not scenario_dir.is_dir() or scenario_dir.name == "_template":
+            continue
+        path = latest_result(scenario_dir)
+        if path is None:
+            lines.append(f"{scenario_dir.name[:24]:<24}  MISSING     -             -")
+            continue
+        data = json.loads(path.read_text(encoding="utf-8"))
+        layers = data.get("layers", {})
+        verification = "Z3 + Lean 4" if "l3_lean" in layers else "Z3 Only"
+        density = data.get("proof_density", {})
+        pct = density.get("percentage", 0)
+        verified = density.get("verified", 0)
+        total = density.get("total", 0)
+        lines.append(
+            f"{scenario_dir.name[:24]:<24}  "
+            f"{data.get('overall_status', 'UNKNOWN'):<10}  "
+            f"{verification:<12}  "
+            f"{pct:g}% ({verified}/{total})"
+        )
+    return "\n".join(lines)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Render a Mumei verification report.")
-    parser.add_argument("result_json", help="Path to result.json")
+    parser.add_argument("result_json", nargs="?", help="Path to result.json")
+    parser.add_argument("--all", action="store_true", help="Render all scenarios")
     args = parser.parse_args()
 
+    if args.all:
+        print(render_all())
+        return 0
+    if not args.result_json:
+        parser.error("result_json is required unless --all is used")
     data = json.loads(Path(args.result_json).read_text(encoding="utf-8"))
     print(render(data))
     return 0

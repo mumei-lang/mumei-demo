@@ -95,6 +95,11 @@ def parse_args(argv: list[str]) -> dict[str, str | None]:
         "mumei_agent_repo": mumei_agent_repo,
         "mumei_agent_python": env.get("MUMEI_AGENT_PYTHON") or os.environ.get("MUMEI_AGENT_PYTHON"),
         "mumei_bin": env.get("MUMEI_BIN") or os.environ.get("MUMEI_BIN") or default_mumei_bin,
+        "nl_requirements_file": (
+            env.get("NL_REQUIREMENTS_FILE")
+            or os.environ.get("NL_REQUIREMENTS_FILE")
+            or "spec_text.md"
+        ),
     }
     if not values["mumei_agent_python"]:
         agent_venv_python = Path(str(values["mumei_agent_repo"])) / ".venv" / "bin" / "python"
@@ -282,6 +287,7 @@ def main(argv: list[str]) -> int:
         "mumei_agent_repo": str(values["mumei_agent_repo"]),
         "mumei_agent_python": str(values["mumei_agent_python"]),
         "mumei_bin": str(values["mumei_bin"]),
+        "nl_requirements_file": str(values["nl_requirements_file"]),
         "output_dir": str(output_dir),
     }
     command_placeholders = shell_placeholders(placeholders)

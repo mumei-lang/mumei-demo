@@ -55,9 +55,13 @@ def main() -> None:
 
     data = load_json(result_path)
     st.caption(f"Report: `{result_path}`")
+    layers = data.get("layers", {})
+    has_lean = "l3_lean" in layers
+    verification_type = "Z3 + Lean 4" if has_lean else "Z3 Only"
+    st.caption(f"Verification: **{verification_type}**")
 
-    cols = st.columns(len(data.get("layers", {})) or 1)
-    for col, (layer, payload) in zip(cols, data.get("layers", {}).items()):
+    cols = st.columns(len(layers) or 1)
+    for col, (layer, payload) in zip(cols, layers.items()):
         col.metric(layer, payload.get("status", "UNKNOWN"))
 
     density = data.get("proof_density", {})
