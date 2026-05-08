@@ -1,13 +1,14 @@
 # RegTech Compliance Protocol
 
-> Mumei detects missing customer categories in LLM-generated KYC compliance code.
+> Mumei detects missing customer categories in LLM-generated KYC/AML compliance code.
 
 ## BEFORE: LLM alone
 
-The user asks an LLM to implement KYC (Know Your Customer) compliance checking.
-The generated code classifies customers by risk level, but `buggy_classify_risk`
-misses the `PEP` (Politically Exposed Person) category — a critical regulatory
-oversight that could allow high-risk customers to bypass compliance checks.
+The user asks an LLM to implement KYC (Know Your Customer) and AML compliance
+checking. The generated code classifies customers by risk level, but
+`buggy_classify_risk` misses the `PEP` (Politically Exposed Person) category — a
+critical regulatory oversight that could allow high-risk customers to bypass
+compliance checks.
 
 ## AFTER: LLM + mumei
 
@@ -20,43 +21,60 @@ The bug is caught before deployment. No PEP customer can bypass compliance.
 
 ## CERTIFIED: Z3 proof
 
-`correct_code.mm` implements the complete protocol:
-- All 4 customer types (Individual, Corporate, Government, PEP) are classified
-- `forall` quantifier ensures all transactions comply with risk-based limits
-- Guard-based match determines approval levels by amount
+`correct_code.mm` imports the verified `std/compliance.mm` atoms and exercises
+them through demo wrappers:
+- all 4 customer types (Individual, Corporate, Government, PEP) are classified
+- the `forall` quantifier ensures all transactions comply with risk-based limits
+- guard-based match determines approval levels by amount
 
-Z3 verifies all atoms including match exhaustiveness and forall compliance.
+Z3 verifies the imported compliance workflow, including match exhaustiveness and
+forall limit compliance.
 
-Note: This is a 2-layer demo (Z3 + Agent). No Lean proof is needed because
-Z3 alone can fully verify match exhaustiveness and forall quantifiers.
+Note: This is a 2-layer demo (Z3 + Agent). No Lean proof is needed because Z3
+fully verifies match exhaustiveness and forall quantifiers for this scenario.
 
 ## Run
 
     make demo-regtech
 
-From a checkout with sibling `mumei`, `mumei-agent`, and `mumei-lean` repos,
-the CI-equivalent full demo run is:
+From a checkout with sibling `mumei`, `mumei-agent`, and `mumei-lean` repos, run
+all four scenarios in sequence:
+
+    make demo-all
+
+For CI-equivalent validation with dashboard summaries:
 
     make demo-ci
 
-`demo-ci` runs `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`,
-and `nl_to_verified` in order. It returns a non-zero exit code if any scenario
-does not produce `overall_status: PASS`.
+`demo-all` and `demo-ci` run `ownership_transfer`, `rtgs_settlement`,
+`regtech_compliance`, and `nl_to_verified` in order. `demo-ci` returns a
+non-zero exit code if any scenario does not produce `overall_status: PASS`.
 
 ## Expected output
 
-The bug-detection step must reject the incomplete KYC classifier with the
-pattern recorded in `expected/detect_bug.txt`:
+`make demo-regtech` should show the two-layer RegTech story:
 
-    not exhaustive
+    Step 1: LLM generates KYC/AML compliance code...
+    Step 2: mumei verify checks match exhaustiveness...
+    l1_z3/detect_bug: REJECTED
+    BUG DETECTED! Match exhaustiveness violation
+    Match is not exhaustive:
+    Counter-example: CustomerType::PEP (tag=3)
+    l1_z3/verify_correct: PASS
+    All atoms verified
+    forall quantifier proves limit compliance
+    l1_z3/verify_e2e: PASS
+    l2_agent/forge_dryrun: PASS
+    Proof Density: 100% (4/4 atoms or layer steps verified)
 
-The corrected implementation must pass verification with the pattern recorded
-in `expected/verify_correct.txt`:
-
-    Verification passed
+The bug-detection expectation is recorded in `expected/verify_buggy.json` and
+the corrected implementation expectation is recorded in
+`expected/verify_correct.json`. The scenario runner also keeps lightweight text
+patterns in `expected/detect_bug.txt` and `expected/verify_correct.txt`.
 
 The scenario report is written to `reports/regtech_compliance/latest/result.json`
-with `overall_status: PASS` and `proof_density: 100%`.
+with `overall_status: PASS`, `proof_density: 100%`, and the RegTech scenario
+included in aggregated dashboard summaries from `scripts/generate_report.py`.
 
 ## Dashboard recording
 
@@ -70,6 +88,7 @@ The recording shows the 2-layer report, the rejected non-exhaustive match with
 `compliance.proof.json` certificate.
 
 Expected story:
-1. LLM generates KYC compliance code.
-2. mumei detects the non-exhaustive match (PEP missing).
-3. The corrected implementation verifies (all customer types covered + forall).
+1. LLM generates KYC/AML compliance code with a missing PEP match arm.
+2. `mumei verify` detects the match exhaustiveness violation.
+3. The corrected implementation imports `std/compliance.mm` and verifies the
+   forall-based transaction-limit proof.
