@@ -5,19 +5,20 @@
   "layers": ["l1_z3", "l2_agent"],
   "narrative": {
     "intro": [
-      "Step 1: LLM generates KYC compliance code...",
-      "Step 2: mumei verifies the code..."
+      "Step 1: LLM generates KYC/AML compliance code...",
+      "Step 2: mumei verify checks match exhaustiveness..."
     ],
-    "before": "buggy_classify_risk misses PEP customer type in match",
-    "after": "Non-exhaustive match catches the bug before deployment",
+    "before": "LLM が KYC/AML コンプライアンスコードを生成（バグ入り: match 網羅性不足）",
+    "after": "mumei verify → match 網羅性違反でバグ検出し、正しい実装を Z3 で証明",
     "steps": {
       "detect_bug": {
         "rejected": {
           "icon": "❌",
-          "headline": "BUG DETECTED!",
+          "headline": "BUG DETECTED! Match exhaustiveness violation",
           "follow_up": [
             "  Match is not exhaustive:",
             "  Counter-example: CustomerType::PEP (tag=3)",
+            "  mumei verify rejects the buggy KYC/AML classifier.",
             "",
             "  Step 3: Verifying the correct implementation..."
           ]
@@ -26,8 +27,12 @@
       "verify_correct": {
         "pass": {
           "icon": "✅",
-          "headline": "All 5 atoms verified by Z3 (match exhaustiveness + forall)",
-          "follow_up": []
+          "headline": "All atoms verified",
+          "follow_up": [
+            "  forall quantifier proves limit compliance",
+            "  Correct implementation imports std/compliance.mm atoms.",
+            "  every transaction stays within its risk-based limit."
+          ]
         }
       }
     }
@@ -41,7 +46,7 @@
         "command": "{mumei_bin} verify {root_dir}/scenarios/regtech_compliance/buggy_code.mm",
         "expected_exit": 1,
         "expect_failure": true,
-        "expected_patterns": ["not exhaustive"],
+        "expected_patterns": ["Match is not exhaustive", "Counter-example", "CustomerType::PEP (tag=3)"],
         "artifacts": []
       },
       {
@@ -50,7 +55,7 @@
         "repo": "mumei",
         "command": "{mumei_bin} verify {root_dir}/scenarios/regtech_compliance/correct_code.mm --proof-cert --output {output_dir}/compliance.proof.json",
         "expected_exit": 0,
-        "expected_patterns": ["Verification passed"],
+        "expected_patterns": ["Verification passed", "verified", "demo_verify_all_transactions_compliant"],
         "artifacts": ["compliance.proof.json"]
       },
       {

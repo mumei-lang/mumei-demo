@@ -1,0 +1,13 @@
+{
+  "step": "detect_bug",
+  "command": "mumei verify scenarios/regtech_compliance/buggy_code.mm",
+  "expected_status": "REJECTED",
+  "expected_exit": 1,
+  "expect_failure": true,
+  "expected_patterns": [
+    "Match is not exhaustive",
+    "Counter-example",
+    "CustomerType::PEP (tag=3)"
+  ],
+  "story": "BUG DETECTED! Match exhaustiveness violation prevents PEP customers from bypassing KYC/AML checks."
+}
