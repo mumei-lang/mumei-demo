@@ -33,6 +33,19 @@ forall limit compliance.
 Note: This is a 2-layer demo (Z3 + Agent). No Lean proof is needed because Z3
 fully verifies match exhaustiveness and forall quantifiers for this scenario.
 
+## Prerequisites
+
+`correct_code.mm` imports `std/compliance.mm` from the sibling `mumei` repo:
+
+    import "std/compliance" as compliance;
+
+The scenario runner resolves this via `MUMEI_STD_PATH`, which defaults to
+`{mumei_repo}/std` (see `scripts/run_scenario.sh`). The sibling `mumei`
+checkout must therefore contain `std/compliance.mm` with the atoms
+`classify_risk`, `get_transaction_limit`, `check_transaction`,
+`verify_all_transactions_compliant`, and `approval_level`. Without this file
+the `verify_correct` step will fail with an import-resolution error.
+
 ## Run
 
     make demo-regtech

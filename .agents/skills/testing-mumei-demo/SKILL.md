@@ -15,6 +15,7 @@ description: Test mumei-demo scenarios end-to-end through make demo, CLI report 
 - Sibling checkouts of `mumei-agent` and `mumei-lean` should exist at `../mumei-agent` and `../mumei-lean`.
 - RTGS Settlement validation requires `forge_tasks/vstd_settlement.json` in the default `../mumei-agent` checkout.
 - RegTech Compliance validation requires `forge_tasks/vstd_regtech.json` in the default `../mumei-agent` checkout.
+- RegTech Compliance validation also requires `std/compliance.mm` in the sibling `../mumei` checkout (resolved via `MUMEI_STD_PATH`, which defaults to `{mumei_repo}/std`). `correct_code.mm` imports this module via `import "std/compliance" as compliance;` and the verify step will fail if the file is missing.
 - Natural-language validation requires the companion `mumei-agent` checkout to support `python -m agent extract-spec` and `python -m agent generate` for forge task specs.
 - If the dashboard needs dependencies, install them with:
 
@@ -158,9 +159,9 @@ Expected assertions:
 
 - Command exits `0`.
 - Output includes `Mumei Demo: RegTech Compliance Protocol`.
-- Output includes `Step 1: LLM generates KYC compliance code...` and `Step 2: mumei verifies the code...`.
-- Output includes `l1_z3/detect_bug: REJECTED`, `BUG DETECTED!`, `Match is not exhaustive`, and `Counter-example: CustomerType::PEP (tag=3)`.
-- Output includes `l1_z3/verify_correct: PASS` and `All 5 atoms verified by Z3 (match exhaustiveness + forall)`.
+- Output includes `Step 1: LLM generates KYC/AML compliance code...` and `Step 2: mumei verify checks match exhaustiveness...`.
+- Output includes `l1_z3/detect_bug: REJECTED`, `BUG DETECTED! Match exhaustiveness violation`, `Match is not exhaustive`, and `Counter-example: CustomerType::PEP (tag=3)`.
+- Output includes `l1_z3/verify_correct: PASS`, `All atoms verified`, and `forall quantifier proves limit compliance`.
 - Output includes `l1_z3/verify_e2e: PASS` and `l2_agent/forge_dryrun: PASS`.
 - Output does not include any `l3_lean` step because RegTech is intentionally a 2-layer Z3 + Agent scenario.
 - Final success line is exactly `Result: Bug caught. Correct code proven. Zero human review.` with the trailing period.
@@ -168,7 +169,7 @@ Expected assertions:
 - RegTech step statuses are `detect_bug == "REJECTED"`, `verify_correct == "PASS"`, `verify_e2e == "PASS"`, and `forge_dryrun == "PASS"`.
 - RegTech proof density is `100% (4/4 atoms)`.
 - `reports/regtech_compliance/latest/detect_bug.log` contains `Match is not exhaustive` and `CustomerType::PEP (tag=3)`.
-- `reports/regtech_compliance/latest/compliance.proof.json` exists and contains `classify_risk`, `get_transaction_limit`, `check_transaction`, `verify_all_transactions_compliant`, and `approval_level`.
+- `reports/regtech_compliance/latest/compliance.proof.json` exists and contains the demo wrapper atoms `demo_classify_all_customer_types`, `demo_get_transaction_limit`, `demo_check_transaction`, `demo_verify_all_transactions_compliant`, and `demo_approval_level`, which delegate to the imported `std/compliance.mm` atoms.
 
 ## Primary RTGS Settlement demo
 
