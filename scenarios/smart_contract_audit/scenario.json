@@ -2,7 +2,7 @@
   "name": "Smart Contract Audit: Reentrancy Guard",
   "version": "1.0.0",
   "description": "再入攻撃脆弱性を持つ withdraw 実装を Z3 が検出し、Checks-Effects-Interactions と Lean 証明で資金保存則を検証するデモ",
-  "layers": ["l1_z3", "l2_agent", "l3_lean"],
+  "layers": ["l1_z3", "l3_lean"],
   "narrative": {
     "intro": [
       "Step 1: LLM generates smart contract withdrawal code...",
@@ -63,20 +63,6 @@
         "expected_exit": 0,
         "expected_patterns": ["Verification passed", "withdraw"],
         "artifacts": ["smart_contract.proof.json"]
-      }
-    ]
-  },
-  "l2_agent": {
-    "steps": [
-      {
-        "id": "forge_dryrun",
-        "name": "Agent Forge Dry Run: std math patterns",
-        "repo": "mumei-agent",
-        "command": "{mumei_agent_python} -m agent forge --tasks-dir {mumei_agent_repo}/forge_tasks --task vstd_math_patterns.json --mumei-repo {mumei_repo} --dry-run",
-        "cwd": "{mumei_agent_repo}",
-        "expected_exit": 0,
-        "expected_patterns": ["vstd-math-patterns"],
-        "artifacts": []
       }
     ]
   },
