@@ -1,0 +1,95 @@
+{
+  "name": "Smart Contract Audit: Reentrancy Guard",
+  "version": "1.0.0",
+  "description": "再入攻撃脆弱性を持つ withdraw 実装を Z3 が検出し、Checks-Effects-Interactions と Lean 証明で資金保存則を検証するデモ",
+  "layers": ["l1_z3", "l3_lean"],
+  "narrative": {
+    "intro": [
+      "Step 1: LLM generates smart contract withdrawal code...",
+      "Step 2: mumei verifies state invariants and fund conservation..."
+    ],
+    "before": "withdraw 関数が external_call 前に再入ロックを取得せず、状態遷移不変条件に違反",
+    "after": "Checks-Effects-Interactions と ReentrancyGuard で修正し、残高更新の保存則を Lean で証明",
+    "steps": {
+      "detect_bug": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "BUG DETECTED! Invalid reentrancy state transition",
+          "follow_up": [
+            "  External call requires the contract to be Locked.",
+            "  Buggy withdraw performs the external call from Unlocked.",
+            "",
+            "  Step 3: Verifying the guarded implementation..."
+          ]
+        }
+      },
+      "verify_correct": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Z3 verified Checks-Effects-Interactions guards",
+          "follow_up": [
+            "  balance_after = balance_before - amount",
+            "  external interaction occurs only while the guard is Locked.",
+            "",
+            "  Step 4: Lean proves withdrawal balance preservation..."
+          ]
+        }
+      },
+      "lean_build": {
+        "certified": {
+          "icon": "✅",
+          "headline": "CERTIFIED: no_reentrancy_after_withdraw"
+        }
+      }
+    }
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "detect_bug",
+        "name": "Z3 Bug Detection: unguarded withdraw",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/smart_contract_audit/buggy_code.mm",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": ["InvalidPreState"],
+        "artifacts": []
+      },
+      {
+        "id": "verify_correct",
+        "name": "Z3 Correct Reentrancy Guard Verification",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/smart_contract_audit/correct_code.mm --proof-cert --output {output_dir}/smart_contract.proof.json",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed", "withdraw"],
+        "artifacts": ["smart_contract.proof.json"]
+      }
+    ]
+  },
+  "l3_lean": {
+    "steps": [
+      {
+        "id": "lean_build",
+        "name": "Lean Smart Contract Proof Build",
+        "repo": "mumei-lean",
+        "command": "lake build MumeiLean.SmartContract",
+        "cwd": "{mumei_lean_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [],
+        "artifacts": [],
+        "optional_toolchain": "lake"
+      },
+      {
+        "id": "lean_bridge",
+        "name": "Lean Bridge Certificate",
+        "repo": "mumei-lean",
+        "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/smart_contract.proof.json --lean-cert-out {output_dir}/smart_contract.lean-cert.json --no-build",
+        "expected_exit": 0,
+        "expected_patterns": ["dry run: skipping `lake build`"],
+        "artifacts": ["smart_contract.lean-cert.json"],
+        "depends_on": ["verify_correct", "lean_build"],
+        "optional_toolchain": "lake"
+      }
+    ]
+  }
+}
