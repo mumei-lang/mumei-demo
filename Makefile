@@ -1,4 +1,4 @@
-.PHONY: demo demo-settlement demo-regtech demo-nl demo-all demo-ci report setup
+.PHONY: demo demo-settlement demo-regtech demo-nl demo-smart-contract demo-all demo-ci report setup
 
 demo:
 	@./scripts/run_scenario.sh ownership_transfer
@@ -12,15 +12,19 @@ demo-regtech:
 demo-nl:
 	@./scripts/run_scenario.sh nl_to_verified
 
+demo-smart-contract:
+	@./scripts/run_scenario.sh smart_contract_audit
+
 demo-all:
 	@./scripts/run_scenario.sh ownership_transfer
 	@./scripts/run_scenario.sh rtgs_settlement
 	@./scripts/run_scenario.sh regtech_compliance
 	@./scripts/run_scenario.sh nl_to_verified
+	@./scripts/run_scenario.sh smart_contract_audit
 
 demo-ci:
 	@status=0; \
-	for scenario in ownership_transfer rtgs_settlement regtech_compliance nl_to_verified; do \
+	for scenario in ownership_transfer rtgs_settlement regtech_compliance nl_to_verified smart_contract_audit; do \
 		./scripts/run_scenario.sh "$$scenario" || status=1; \
 	done; \
 	$(MAKE) report || status=1; \
