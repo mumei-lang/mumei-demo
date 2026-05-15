@@ -18,6 +18,7 @@ SCENARIO_ORDER = [
     "nl_to_verified",
     "smart_contract_audit",
     "medical_device",
+    "aviation_control",
 ]
 LAYER_LABELS = {
     "l1_z3": "L1 / Z3",

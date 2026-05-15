@@ -16,6 +16,7 @@ SCENARIO_ORDER = [
     "nl_to_verified",
     "smart_contract_audit",
     "medical_device",
+    "aviation_control",
 ]
 
 

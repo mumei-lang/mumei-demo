@@ -17,6 +17,7 @@ Mumei's demo scenarios make those bugs concrete:
 | RegTech Compliance | `PEP` customers are missing from a `match` expression. | Exhaustiveness checking reports `CustomerType::PEP (tag=3)` as a counter-example. |
 | NL → Verified | Requirements start as natural language instead of verified code. | The agent extracts a spec, generates `.mm`, and Z3 verifies the result automatically. |
 | Medical Device Control | An insulin pump skips hourly dosage safety checks. | Z3 catches the invalid delivery state, then Lean proves cumulative dosage safety. |
+| Aviation Control | Runway allocation has inconsistent lock ordering. | Z3 verifies ordered allocation, and the agent validates the generation task. |
 
 ## How It Works
 
