@@ -84,7 +84,7 @@ def render_spec_code_mapping(data: dict) -> None:
                     loc = {}
                 if loc.get("line", 0) > 0:
                     st.caption(
-                        f"Code location: Line {loc['line']}, Column {loc['col']}"
+                        f"Code location: Line {loc.get('line')}, Column {loc.get('col', '?')}"
                     )
                 st.write(
                     "**Verification Status:** "
