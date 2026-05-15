@@ -1,0 +1,84 @@
+{
+  "name": "Aviation Control: Runway Allocation Protocol",
+  "version": "1.0.0",
+  "description": "滑走路割り当てプロトコルにおける競合状態をZ3が検出し、ロック順序と不変条件で安全性を検証するデモ",
+  "layers": ["l1_z3", "l2_agent"],
+  "narrative": {
+    "intro": [
+      "Step 1: LLM generates runway allocation code...",
+      "Step 2: mumei verifies mutual exclusion and deadlock freedom..."
+    ],
+    "before": "allocate_runway 関数がロック順序を無視し、デッドロックの可能性",
+    "after": "順序付けられたロックと不変条件で修正し、相互排除をZ3で検証",
+    "steps": {
+      "detect_bug": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "BUG DETECTED! Potential deadlock in runway allocation",
+          "follow_up": [
+            "  Lock acquisition order is not consistent across flights.",
+            "  Two flights could deadlock waiting for each other's runways.",
+            "",
+            "  Step 3: Verifying the ordered lock implementation..."
+          ]
+        }
+      },
+      "verify_correct": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Z3 verified mutual exclusion and deadlock freedom",
+          "follow_up": [
+            "  No two flights can hold the same runway simultaneously.",
+            "  Ordered lock acquisition prevents circular wait.",
+            "",
+            "  Step 4: Agent validates generation task..."
+          ]
+        }
+      },
+      "forge_dryrun": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Agent forge dry-run validated"
+        }
+      }
+    }
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "detect_bug",
+        "name": "Z3 Bug Detection: unordered lock acquisition",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/aviation_control/buggy_code.mm",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": ["InvalidPreState"],
+        "artifacts": []
+      },
+      {
+        "id": "verify_correct",
+        "name": "Z3 Correct Runway Allocation Verification",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/aviation_control/correct_code.mm",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed", "allocate_runway"],
+        "artifacts": []
+      }
+    ]
+  },
+  "l2_agent": {
+    "steps": [
+      {
+        "id": "forge_dryrun",
+        "name": "Agent Aviation Control Forge Dry Run",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent forge --tasks-dir {mumei_agent_repo}/forge_tasks --task vstd_aviation_control.json --mumei-repo {mumei_repo} --dry-run",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [],
+        "artifacts": [],
+        "depends_on": ["verify_correct"]
+      }
+    ]
+  }
+}
