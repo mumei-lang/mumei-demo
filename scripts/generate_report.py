@@ -17,6 +17,7 @@ SCENARIO_ORDER = [
     "regtech_compliance",
     "nl_to_verified",
     "smart_contract_audit",
+    "medical_device",
     "aviation_control",
 ]
 LAYER_LABELS = {
