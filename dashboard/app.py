@@ -14,6 +14,8 @@ SCENARIO_ORDER = [
     "rtgs_settlement",
     "regtech_compliance",
     "nl_to_verified",
+    "smart_contract_audit",
+    "aviation_control",
 ]
 
 
