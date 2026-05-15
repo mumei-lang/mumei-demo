@@ -41,6 +41,59 @@ def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def render_spec_code_mapping(data: dict) -> None:
+    st.subheader("Specification-Code Mapping")
+    spec_code_mapping = data.get("spec_code_mapping", [])
+    if not spec_code_mapping:
+        for artifact in data.get("artifacts", []):
+            payload = data.get("artifact_payloads", {}).get(artifact)
+            if isinstance(payload, dict) and payload.get("spec_code_mapping"):
+                spec_code_mapping = payload["spec_code_mapping"]
+                break
+
+    if spec_code_mapping:
+        for mapping in spec_code_mapping:
+            if not isinstance(mapping, dict):
+                continue
+            status_icon = {
+                "passed": "✅",
+                "failed": "❌",
+                "unknown": "⚠️",
+            }.get(mapping.get("verification_status", "unknown"), "⚠️")
+            confidence = float(mapping.get("confidence", 0) or 0)
+            label = (
+                f"{status_icon} {mapping.get('spec_description', 'Unnamed specification')} "
+                f"(confidence: {confidence:.2f})"
+            )
+
+            with st.expander(label):
+                st.write(f"**Spec Item ID:** {mapping.get('spec_item_id', 'N/A')}")
+                if mapping.get("requires_clause"):
+                    st.code(
+                        f"requires: {mapping['requires_clause']}",
+                        language="mumei",
+                    )
+                if mapping.get("ensures_clause"):
+                    st.code(
+                        f"ensures: {mapping['ensures_clause']}",
+                        language="mumei",
+                    )
+
+                loc = mapping.get("code_location", {})
+                if not isinstance(loc, dict):
+                    loc = {}
+                if loc.get("line", 0) > 0:
+                    st.caption(
+                        f"Code location: Line {loc.get('line')}, Column {loc.get('col', '?')}"
+                    )
+                st.write(
+                    "**Verification Status:** "
+                    f"{mapping.get('verification_status', 'unknown')}"
+                )
+    else:
+        st.info("No specification-code mapping available.")
+
+
 def main() -> None:
     st.set_page_config(page_title="Mumei Demo Dashboard", layout="wide")
     st.title("Mumei Secure Verification Demo")
@@ -73,6 +126,8 @@ def main() -> None:
         f"{density.get('percentage', 0):g}%",
         f"{density.get('verified', 0)}/{density.get('total', 0)} atoms",
     )
+
+    render_spec_code_mapping(data)
 
     st.subheader("Step Details")
     report_dir = result_path.parent
