@@ -53,6 +53,23 @@ def density_values(data: dict) -> tuple[int, int, float]:
     return verified, total, percentage
 
 
+def layer_density_values(data: dict, layer: str) -> tuple[int, int, float]:
+    counted_statuses = {"PASS", "REJECTED", "CERTIFIED", "FAIL"}
+    verified_statuses = {"PASS", "REJECTED", "CERTIFIED"}
+    steps = data.get("layers", {}).get(layer, {}).get("steps", [])
+    counted = [step for step in steps if step.get("status") in counted_statuses]
+    total = len(counted)
+    verified = sum(1 for step in counted if step.get("status") in verified_statuses)
+    percentage = round((verified / total) * 100, 1) if total else 0.0
+    return verified, total, percentage
+
+
+def density_label(verified: int, total: int, percentage: float) -> str:
+    if total == 0:
+        return "N/A"
+    return f"{percentage:g}% ({verified}/{total})"
+
+
 def duration_seconds(step: dict) -> float:
     return float(step.get("duration_ms", 0)) / 1000
 
@@ -253,14 +270,20 @@ def bug_detection_moment(data: dict, root: Path, heading: str, subheading: str) 
 
 def render_proof_density_markdown(data: dict) -> str:
     verified, total, percentage = density_values(data)
-    return "\n".join([
+    lines = [
         "## Proof Density",
         "",
         f"- Verified atoms/steps: **{verified}**",
         f"- Total atoms/steps: **{total}**",
         f"- Percentage: **{percentage:g}%**",
         f"- Visual: `{proof_density_bar(percentage)}`",
-    ])
+    ]
+    if "l3_lean" in data.get("layers", {}):
+        lean_verified, lean_total, lean_percentage = layer_density_values(data, "l3_lean")
+        lines.append(
+            f"- Lean proof coverage: **{density_label(lean_verified, lean_total, lean_percentage)}**"
+        )
+    return "\n".join(lines)
 
 
 def render_layer_breakdown_markdown(data: dict) -> str:
@@ -348,7 +371,7 @@ def write_summary(
     scenarios: list[str],
     require_all: bool,
 ) -> int:
-    rows: list[tuple[str, str, int, int, float]] = []
+    rows: list[tuple[str, str, int, int, float, str]] = []
     missing: list[str] = []
     for scenario in scenarios:
         result_path = latest_result_path(reports_dir, scenario)
@@ -357,12 +380,16 @@ def write_summary(
             continue
         data = load_json(result_path)
         verified, total, percentage = density_values(data)
+        lean_density = "N/A"
+        if "l3_lean" in data.get("layers", {}):
+            lean_density = density_label(*layer_density_values(data, "l3_lean"))
         rows.append((
             scenario,
             str(data.get("overall_status", "UNKNOWN")),
             verified,
             total,
             percentage,
+            lean_density,
         ))
 
     lines = [
@@ -370,11 +397,13 @@ def write_summary(
         "",
         f"Generated: {generated_at()}",
         "",
-        "| Scenario | Overall status | Verified | Total | Proof density |",
-        "| --- | --- | ---: | ---: | ---: |",
+        "| Scenario | Overall status | Verified | Total | Proof density | Lean proof coverage |",
+        "| --- | --- | ---: | ---: | ---: | ---: |",
     ]
-    for scenario, status, verified, total, percentage in rows:
-        lines.append(f"| `{scenario}` | {status} | {verified} | {total} | {percentage:g}% |")
+    for scenario, status, verified, total, percentage, lean_density in rows:
+        lines.append(
+            f"| `{scenario}` | {status} | {verified} | {total} | {percentage:g}% | {lean_density} |"
+        )
     if missing:
         lines.extend(["", "## Missing results", ""])
         lines.extend(f"- `{scenario}`" for scenario in missing)
@@ -415,6 +444,10 @@ def write_highlights(
             f"- Scenario: `{scenario}`",
             f"- Overall status: {data.get('overall_status', 'UNKNOWN')}",
             f"- Proof density: {percentage:g}% ({verified}/{total} atoms)",
+        ])
+        if "l3_lean" in data.get("layers", {}):
+            lines.append(f"- Lean proof coverage: {density_label(*layer_density_values(data, 'l3_lean'))}")
+        lines.extend([
             "",
             bug_detection_moment(data, root, "### Bug Detection Moment", "####"),
             "",

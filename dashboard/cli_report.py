@@ -47,6 +47,17 @@ def proof_density_bar(percentage: float, width: int = 24) -> str:
     return "█" * filled + "░" * (width - filled)
 
 
+def layer_density_values(data: dict, layer: str) -> tuple[int, int, float]:
+    counted_statuses = {"PASS", "REJECTED", "CERTIFIED", "FAIL"}
+    verified_statuses = {"PASS", "REJECTED", "CERTIFIED"}
+    steps = data.get("layers", {}).get(layer, {}).get("steps", [])
+    counted = [step for step in steps if step.get("status") in counted_statuses]
+    total = len(counted)
+    verified = sum(1 for step in counted if step.get("status") in verified_statuses)
+    percentage = round((verified / total) * 100, 1) if total else 0.0
+    return verified, total, percentage
+
+
 def render(data: dict) -> str:
     title = f"  Mumei Verification Report: {data.get('scenario_name', data.get('scenario'))}"
     narrative = data.get("narrative", {})
@@ -74,6 +85,11 @@ def render(data: dict) -> str:
         "",
         f"  Proof Density: [{proof_density_bar(float(pct))}] {pct:g}%",
         f"                 {verified}/{total} atoms or layer steps verified",
+    ])
+    if "l3_lean" in data.get("layers", {}):
+        lean_verified, lean_total, lean_percentage = layer_density_values(data, "l3_lean")
+        table.append(f"  Lean Coverage: {lean_percentage:g}% ({lean_verified}/{lean_total} steps)")
+    table.extend([
         f"  Audit Status:  {audit_status}",
         "  Moment:        Proof failure → Bug found",
     ])
@@ -91,15 +107,15 @@ def latest_result(scenario_dir: Path) -> Path | None:
 
 def render_all() -> str:
     lines = [
-        "Scenario                  Status      Verification  Proof Density",
-        "────────────────────────  ──────────  ────────────  ─────────────",
+        "Scenario                  Status      Verification  Proof Density       Lean Coverage",
+        "────────────────────────  ──────────  ────────────  ──────────────────  ─────────────",
     ]
     for scenario_dir in sorted((ROOT / "scenarios").iterdir()):
         if not scenario_dir.is_dir() or scenario_dir.name == "_template":
             continue
         path = latest_result(scenario_dir)
         if path is None:
-            lines.append(f"{scenario_dir.name[:24]:<24}  MISSING     -             -")
+            lines.append(f"{scenario_dir.name[:24]:<24}  MISSING     -             -                   -")
             continue
         data = json.loads(path.read_text(encoding="utf-8"))
         layers = data.get("layers", {})
@@ -108,11 +124,17 @@ def render_all() -> str:
         pct = density.get("percentage", 0)
         verified = density.get("verified", 0)
         total = density.get("total", 0)
+        lean_density = "N/A"
+        if "l3_lean" in layers:
+            lean_verified, lean_total, lean_percentage = layer_density_values(data, "l3_lean")
+            lean_density = f"{lean_percentage:g}% ({lean_verified}/{lean_total})"
+        proof_density = f"{pct:g}% ({verified}/{total})"
         lines.append(
             f"{scenario_dir.name[:24]:<24}  "
             f"{data.get('overall_status', 'UNKNOWN'):<10}  "
             f"{verification:<12}  "
-            f"{pct:g}% ({verified}/{total})"
+            f"{proof_density[:18]:<18}  "
+            f"{lean_density}"
         )
     return "\n".join(lines)
 
