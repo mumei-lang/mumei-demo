@@ -73,17 +73,37 @@ the missing `PEP` match arm with `CustomerType::PEP (tag=3)`, then verifies
 Reports are written to `reports/regtech_compliance/<timestamp>/` and mirrored
 via `reports/regtech_compliance/latest/`.
 
+## Run the Medical Device Control scenario
+
+```bash
+make demo-medical
+```
+
+Medical Device Control is a 2-layer safety demo (`l1_z3` + `l3_lean`). It first
+verifies that a buggy insulin pump delivery path is rejected before bypassing the
+hourly safety gate, then verifies the corrected controller and runs the Lean
+proof step for cumulative dosage safety when `lake` is available.
+
+Reports are written to `reports/medical_device/<timestamp>/` and mirrored via
+`reports/medical_device/latest/`.
+
 ## Run all scenarios
 
 ```bash
 make demo-all
 ```
 
+`demo-all` currently runs `ownership_transfer`, `rtgs_settlement`,
+`regtech_compliance`, `nl_to_verified`, `smart_contract_audit`,
+`medical_device`, and `aviation_control`. `CI_FIXTURE_MODE=1 make demo-ci` runs
+the same scenario set with deterministic CI fixtures and summary generation.
+
 ## CLI dashboard
 
 ```bash
 python dashboard/cli_report.py reports/ownership_transfer/latest/result.json
 python dashboard/cli_report.py reports/regtech_compliance/latest/result.json
+python dashboard/cli_report.py reports/medical_device/latest/result.json
 ```
 
 Statuses:
@@ -108,6 +128,8 @@ Recorded walkthroughs are listed in
 [`docs/DEMO_SHOWCASE.md`](DEMO_SHOWCASE.md), including the RegTech dashboard
 recording at
 [`docs/assets/regtech-compliance-dashboard-demo.mp4`](assets/regtech-compliance-dashboard-demo.mp4).
+The Medical Device section describes the expected dashboard evidence even when a
+video artifact has not yet been captured.
 
 ## Troubleshooting
 
@@ -121,3 +143,7 @@ recording at
   Lean bridge steps.
 - `compliance.proof.json` missing: ensure `verify_correct` completed in the
   RegTech scenario before opening the dashboard.
+- `dosage.lean-cert.json` missing: ensure `lake` is installed and the
+  Medical Device `l3_lean` step was not skipped.
+- Medical Device shows `SKIPPED` for Lean: install Lean 4/Lake or rerun only the
+  Z3 steps; L1 safety evidence remains valid without the optional L3 proof.
