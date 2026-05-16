@@ -41,6 +41,17 @@ def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def layer_density_values(data: dict, layer: str) -> tuple[int, int, float]:
+    counted_statuses = {"PASS", "REJECTED", "CERTIFIED", "FAIL"}
+    verified_statuses = {"PASS", "REJECTED", "CERTIFIED"}
+    steps = data.get("layers", {}).get(layer, {}).get("steps", [])
+    counted = [step for step in steps if step.get("status") in counted_statuses]
+    total = len(counted)
+    verified = sum(1 for step in counted if step.get("status") in verified_statuses)
+    percentage = round((verified / total) * 100, 1) if total else 0.0
+    return verified, total, percentage
+
+
 def render_spec_code_mapping(data: dict) -> None:
     st.subheader("Specification-Code Mapping")
     spec_code_mapping = data.get("spec_code_mapping", [])
@@ -121,11 +132,19 @@ def main() -> None:
         col.metric(layer, payload.get("status", "UNKNOWN"))
 
     density = data.get("proof_density", {})
-    st.metric(
+    metric_cols = st.columns(2 if has_lean else 1)
+    metric_cols[0].metric(
         "Proof Density",
         f"{density.get('percentage', 0):g}%",
         f"{density.get('verified', 0)}/{density.get('total', 0)} atoms",
     )
+    if has_lean:
+        lean_verified, lean_total, lean_percentage = layer_density_values(data, "l3_lean")
+        metric_cols[1].metric(
+            "Lean Proof Coverage",
+            f"{lean_percentage:g}%" if lean_total else "N/A",
+            f"{lean_verified}/{lean_total} Lean steps",
+        )
 
     render_spec_code_mapping(data)
 
@@ -164,6 +183,27 @@ def main() -> None:
         })
     if chart_rows:
         st.bar_chart(chart_rows, x="scenario", y="density")
+
+    lean_chart_rows = []
+    for name in names:
+        path = latest_result(name)
+        if not path:
+            continue
+        item = load_json(path)
+        if "l3_lean" not in item.get("layers", {}):
+            continue
+        lean_verified, lean_total, lean_percentage = layer_density_values(item, "l3_lean")
+        if lean_total == 0:
+            continue
+        lean_chart_rows.append({
+            "scenario": name,
+            "density": lean_percentage,
+            "verified": lean_verified,
+            "total": lean_total,
+        })
+    if lean_chart_rows:
+        st.subheader("Cross-scenario Lean Proof Coverage")
+        st.bar_chart(lean_chart_rows, x="scenario", y="density")
 
 
 if __name__ == "__main__":
