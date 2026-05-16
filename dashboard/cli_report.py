@@ -88,7 +88,8 @@ def render(data: dict) -> str:
     ])
     if "l3_lean" in data.get("layers", {}):
         lean_verified, lean_total, lean_percentage = layer_density_values(data, "l3_lean")
-        table.append(f"  Lean Coverage: {lean_percentage:g}% ({lean_verified}/{lean_total} steps)")
+        lean_label = "N/A" if lean_total == 0 else f"{lean_percentage:g}% ({lean_verified}/{lean_total} steps)"
+        table.append(f"  Lean Coverage: {lean_label}")
     table.extend([
         f"  Audit Status:  {audit_status}",
         "  Moment:        Proof failure → Bug found",
@@ -127,7 +128,8 @@ def render_all() -> str:
         lean_density = "N/A"
         if "l3_lean" in layers:
             lean_verified, lean_total, lean_percentage = layer_density_values(data, "l3_lean")
-            lean_density = f"{lean_percentage:g}% ({lean_verified}/{lean_total})"
+            if lean_total > 0:
+                lean_density = f"{lean_percentage:g}% ({lean_verified}/{lean_total})"
         proof_density = f"{pct:g}% ({verified}/{total})"
         lines.append(
             f"{scenario_dir.name[:24]:<24}  "
