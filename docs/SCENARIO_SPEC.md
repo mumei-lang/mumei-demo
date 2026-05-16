@@ -118,6 +118,15 @@ python3 scripts/generate_report.py reports/regtech_policy/latest/result.json --f
 The standalone `--format markdown` command regenerates that report from any
 saved result file.
 
+## Medical Device CI scenario
+
+The existing schema supports `scenarios/medical_device/scenario.json` without
+new fields. The scenario uses `layers: ["l1_z3", "l3_lean"]`, expected-failure
+Z3 steps for unsafe insulin pump states, normal verification steps for the
+correct controller, `depends_on` to keep Lean behind successful L1 proof output,
+and `optional_toolchain: "lake"` so CI can report `SKIPPED` rather than failing
+when Lean is unavailable.
+
 ## Two-layer RegTech skeleton
 
 ```json

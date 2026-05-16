@@ -117,6 +117,11 @@ the same scenario as an execution log with each extraction, generation, and
 verification step:
 [`docs/assets/nl-to-verified-cli-demo.mp4`](docs/assets/nl-to-verified-cli-demo.mp4).
 
+The Medical Device Control scenario added in PR #28 demonstrates CI-ready
+`l1_z3` + `l3_lean` validation for insulin pump safety: Z3 rejects invalid pump
+states and Lean certifies cumulative dosage safety. Run it with `make demo-medical`
+and inspect `reports/medical_device/latest/`.
+
 ## Quick Start
 
 Prepare sibling checkouts and run every demo scenario:
@@ -126,7 +131,7 @@ make setup && make demo-all
 ```
 
 `make setup` clones or refreshes `mumei`, `mumei-agent`, and `mumei-lean` next
-to this repository. `make demo-all` then runs the complete four-scenario
+to this repository. `make demo-all` then runs the complete seven-scenario
 presentation sequence and writes reports under `reports/<scenario>/latest/`.
 
 For CI-equivalent validation with fixture mode and dashboard summaries:
@@ -160,7 +165,13 @@ for the Step 0 spec extraction and run:
 make demo-nl
 ```
 
-To run the complete four-scenario demo sequence:
+For the Medical Device Control scenario:
+
+```bash
+make demo-medical
+```
+
+To run the complete seven-scenario demo sequence:
 
 ```bash
 make demo-all
@@ -238,12 +249,15 @@ Proof Density: 100% (3/3 atoms)
 3. The corrected implementation verifies all five ownership atoms with Z3.
 4. Lean 4 certifies `no_transfer_without_accept` through the proof certificate chain (when available).
 
-`make demo-all` runs the complete four-scenario demo sequence:
+`make demo-all` runs the complete seven-scenario demo sequence:
 
 1. Phase 1 Ownership Transfer Protocol.
 2. Phase 2 RTGS Settlement Protocol.
 3. Phase 3 RegTech Compliance Protocol.
 4. P11 Natural Language to Verified Mumei.
+5. Smart Contract Audit.
+6. Medical Device Control.
+7. Aviation Control.
 
 `make demo-settlement` executes the Phase 2 RTGS Settlement Protocol scenario:
 
@@ -275,6 +289,14 @@ Proof Density: 100% (3/3 atoms)
 5. The CLI recording at
    [`docs/assets/nl-to-verified-cli-demo.mp4`](docs/assets/nl-to-verified-cli-demo.mp4)
    shows the developer-facing command flow and PASS log.
+
+`make demo-medical` executes the Medical Device Control scenario:
+
+1. A buggy insulin pump delivery path skips the hourly safety gate.
+2. `mumei verify` rejects the invalid delivery state before dosage is applied.
+3. The corrected controller verifies Z3 safety constraints for allowed pump states.
+4. The Lean layer certifies cumulative dosage safety when `lake` is available.
+5. The scenario is included in `make demo-all` and `CI_FIXTURE_MODE=1 make demo-ci`.
 
 ## What Mumei Adds to the Pipeline
 
