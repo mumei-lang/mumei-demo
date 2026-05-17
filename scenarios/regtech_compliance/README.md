@@ -73,12 +73,13 @@ non-zero exit code if any scenario does not produce `overall_status: PASS`.
     BUG DETECTED! Match exhaustiveness violation
     Match is not exhaustive:
     Counter-example: CustomerType::PEP (tag=3)
+    l1_z3/verify_negative_suite: REJECTED
     l1_z3/verify_correct: PASS
     All atoms verified
     forall quantifier proves limit compliance
     l1_z3/verify_e2e: PASS
     l2_agent/forge_dryrun: PASS
-    Proof Density: 100% (4/4 atoms or layer steps verified)
+    Proof Density: 100% (5/5 atoms or layer steps verified)
 
 The bug-detection expectation is recorded in `expected/verify_buggy.json` and
 the corrected implementation expectation is recorded in
@@ -97,11 +98,12 @@ After running the scenario, open the Streamlit dashboard and select
     docs/assets/regtech-compliance-dashboard-demo.mp4
 
 The recording shows the 2-layer report, the rejected non-exhaustive match with
-`CustomerType::PEP (tag=3)`, proof density `100% (4/4 atoms)`, and the
+`CustomerType::PEP (tag=3)`, proof density `100% (5/5 atoms)`, and the
 `compliance.proof.json` certificate.
 
 Expected story:
 1. LLM generates KYC/AML compliance code with a missing PEP match arm.
 2. `mumei verify` detects the match exhaustiveness violation.
-3. The corrected implementation imports `std/compliance.mm` and verifies the
+3. The negative test suite confirms the missing PEP arm remains covered.
+4. The corrected implementation imports `std/compliance.mm` and verifies the
    forall-based transaction-limit proof.

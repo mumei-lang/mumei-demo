@@ -33,7 +33,7 @@ demo-all:
 demo-ci:
 	@status=0; \
 	for scenario in ownership_transfer rtgs_settlement regtech_compliance nl_to_verified smart_contract_audit medical_device aviation_control; do \
-		./scripts/run_scenario.sh "$$scenario" || status=1; \
+		CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh "$$scenario" || status=1; \
 	done; \
 	$(MAKE) report || status=1; \
 	exit "$$status"

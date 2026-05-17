@@ -50,6 +50,16 @@
         "artifacts": []
       },
       {
+        "id": "verify_negative_suite",
+        "name": "Z3 Negative Test Suite: missing PEP arm",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {mumei_repo}/tests/test_compliance_negative.mm",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": ["Match is not exhaustive", "Counter-example", "CustomerType::PEP (tag=3)"],
+        "artifacts": []
+      },
+      {
         "id": "verify_correct",
         "name": "Z3 Correct Compliance Verification",
         "repo": "mumei",
