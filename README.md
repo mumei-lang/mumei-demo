@@ -137,7 +137,7 @@ presentation sequence and writes reports under `reports/<scenario>/latest/`.
 For CI-equivalent validation with fixture mode and dashboard summaries:
 
 ```bash
-CI_FIXTURE_MODE=1 make demo-ci
+make demo-ci
 ```
 
 ## Run Individual Scenarios
@@ -223,11 +223,14 @@ l1_z3/detect_bug: REJECTED
 ❌ BUG DETECTED!
   Match is not exhaustive:
   Counter-example: CustomerType::PEP (tag=3)
+l1_z3/verify_negative_suite: REJECTED
 l1_z3/verify_correct: PASS
 l1_z3/verify_e2e: PASS
 l2_agent/forge_dryrun: PASS
-Proof Density: 100% (4/4 atoms)
+Proof Density: 100% (5/5 atoms)
 ```
+
+✅ **Phase 3 Completed**: Z3-only 2層検証デモとして完成。forall 量化子と match 網羅性による規制遵守保証を実証。
 
 ### Natural Language → Verified Mumei
 
@@ -271,9 +274,10 @@ Proof Density: 100% (3/3 atoms)
 1. LLM-generated KYC code omits the `PEP` customer category from a `match`.
 2. `mumei verify` rejects it with `Match is not exhaustive` and
    `CustomerType::PEP (tag=3)`.
-3. The corrected implementation verifies all five compliance atoms with Z3,
+3. The negative test suite confirms the missing `PEP` match arm is rejected.
+4. The corrected implementation verifies all five compliance atoms with Z3,
    including `forall`-based transaction-limit checks.
-4. The Agent forge dry-run validates the RegTech generation task. This scenario
+5. The Agent forge dry-run validates the RegTech generation task. This scenario
    intentionally has no Lean layer because Z3 covers match exhaustiveness and
    quantifier checks for the demo.
 
@@ -296,7 +300,7 @@ Proof Density: 100% (3/3 atoms)
 2. `mumei verify` rejects the invalid delivery state before dosage is applied.
 3. The corrected controller verifies Z3 safety constraints for allowed pump states.
 4. The Lean layer certifies cumulative dosage safety when `lake` is available.
-5. The scenario is included in `make demo-all` and `CI_FIXTURE_MODE=1 make demo-ci`.
+5. The scenario is included in `make demo-all` and `make demo-ci`.
 
 ## What Mumei Adds to the Pipeline
 
