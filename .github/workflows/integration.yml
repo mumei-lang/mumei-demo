@@ -52,20 +52,18 @@ jobs:
           "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -r requirements.txt
           "$GITHUB_WORKSPACE/.venv/bin/python" -m pip show openai
         working-directory: repos/mumei-agent
-      - name: Run ownership_transfer scenario
-        run: |
-          set +e
-          ./scripts/run_scenario.sh ownership_transfer \
-            --mumei-repo "$GITHUB_WORKSPACE/repos/mumei" \
-            --mumei-lean-repo "$GITHUB_WORKSPACE/repos/mumei-lean" \
-            --mumei-agent-repo "$GITHUB_WORKSPACE/repos/mumei-agent" \
-            --mumei-agent-python "$GITHUB_WORKSPACE/.venv/bin/python" \
-            --mumei-bin "$GITHUB_WORKSPACE/repos/mumei/target/release/mumei"
-          scenario_status=$?
-          exit "$scenario_status"
+      - name: Run integrated demo scenarios
+        run: make demo-ci
+        env:
+          CI_FIXTURE_MODE: "1"
+          MUMEI_REPO: ${{ github.workspace }}/repos/mumei
+          MUMEI_LEAN_REPO: ${{ github.workspace }}/repos/mumei-lean
+          MUMEI_AGENT_REPO: ${{ github.workspace }}/repos/mumei-agent
+          MUMEI_AGENT_PYTHON: ${{ github.workspace }}/.venv/bin/python
+          MUMEI_BIN: ${{ github.workspace }}/repos/mumei/target/release/mumei
       - name: Generate report
         if: always()
-        run: python scripts/generate_report.py reports/ownership_transfer/latest/result.json
+        run: python scripts/generate_report.py --summary --highlights --require-all
       - uses: actions/upload-artifact@v4
         if: always()
         with:

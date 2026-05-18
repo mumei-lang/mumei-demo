@@ -18,4 +18,4 @@ The corrected implementation adds:
 
 ## Verification
 - Z3 verifies the dosage bounds
-- Lean proves cumulative dosage safety over time
+- Optional Lean proof certifies cumulative dosage safety over time when available

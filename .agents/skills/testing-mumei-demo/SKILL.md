@@ -7,7 +7,8 @@ description: Test mumei-demo scenarios end-to-end through make demo, CLI report 
 ## Devin Secrets Needed
 
 - `OPENAI_API_KEY`: required only for live scenarios that call `mumei-agent` LLM extraction/generation, such as direct non-fixture `nl_to_verified` runs.
-- Local demos and `make demo-ci` can run without API keys, browser login, or external service credentials because CI fixture mode is enabled by the target.
+- Individual demos and `make demo-ci` can run without API keys, browser login, or external service credentials when fixture mode is enabled by the target.
+- Live `make demo` runs the integrated all-scenario sequence and may require `OPENAI_API_KEY` for the non-fixture natural-language scenario.
 
 ## Prerequisites
 
@@ -193,7 +194,7 @@ Expected assertions:
 Run:
 
 ```bash
-MUMEI_BIN=/home/ubuntu/repos/mumei/target/debug/mumei make demo
+MUMEI_BIN=/home/ubuntu/repos/mumei/target/debug/mumei make demo-ownership
 ```
 
 Expected assertions:
@@ -238,7 +239,7 @@ Create a fake failing Lake executable and run the ownership scenario with it fir
 mkdir -p /home/ubuntu/fake-lake
 printf '#!/usr/bin/env bash\necho fake lake failure >&2\nexit 42\n' > /home/ubuntu/fake-lake/lake
 chmod +x /home/ubuntu/fake-lake/lake
-PATH=/home/ubuntu/fake-lake:$PATH MUMEI_BIN=/home/ubuntu/repos/mumei/target/debug/mumei make demo
+PATH=/home/ubuntu/fake-lake:$PATH MUMEI_BIN=/home/ubuntu/repos/mumei/target/debug/mumei make demo-ownership
 ```
 
 Expected assertions:

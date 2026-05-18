@@ -30,7 +30,23 @@ If LLVM is not discoverable:
 export LLVM_SYS_170_PREFIX=/usr/lib/llvm-17
 ```
 
+## Run the integrated demo
+
+```bash
+make demo
+```
+
+This runs every scenario in presentation order, including the Phase 1 Ownership
+Transfer, Phase 2 RTGS Settlement, and Phase 3 RegTech Compliance demos, then
+regenerates dashboard summaries.
+
 ## Run the Ownership Transfer scenario
+
+```bash
+make demo-ownership
+```
+
+Or invoke the scenario runner directly:
 
 ```bash
 ./scripts/run_scenario.sh ownership_transfer
@@ -82,7 +98,8 @@ make demo-medical
 Medical Device Control is a 2-layer safety demo (`l1_z3` + `l3_lean`). It first
 verifies that a buggy insulin pump delivery path is rejected before bypassing the
 hourly safety gate, then verifies the corrected controller and runs the Lean
-proof step for cumulative dosage safety when `lake` is available.
+proof step for cumulative dosage safety when `lake` and the proof module are
+available.
 
 Reports are written to `reports/medical_device/<timestamp>/` and mirrored via
 `reports/medical_device/latest/`.
@@ -90,13 +107,14 @@ Reports are written to `reports/medical_device/<timestamp>/` and mirrored via
 ## Run all scenarios
 
 ```bash
-make demo-all
+make demo
 ```
 
-`demo-all` currently runs `ownership_transfer`, `rtgs_settlement`,
-`regtech_compliance`, `nl_to_verified`, `smart_contract_audit`,
-`medical_device`, and `aviation_control`. `CI_FIXTURE_MODE=1 make demo-ci` runs
-the same scenario set with deterministic CI fixtures and summary generation.
+`demo` runs `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`,
+`nl_to_verified`, `smart_contract_audit`, `medical_device`, and
+`aviation_control` in order. `make demo-all` remains a compatibility alias.
+`CI_FIXTURE_MODE=1 make demo-ci` runs the same scenario set with deterministic
+CI fixtures and summary generation.
 
 ## CLI dashboard
 
@@ -111,7 +129,7 @@ Statuses:
 - `PASS`: expected successful command.
 - `REJECTED`: expected failing command failed with the expected diagnostic.
 - `CERTIFIED`: L3 Lean proof step succeeded.
-- `SKIPPED`: optional toolchain or dependency was unavailable.
+- `SKIPPED`: optional toolchain, proof module, or dependency was unavailable.
 - `FAIL`: exit code or expected output did not match.
 
 ## Streamlit dashboard
@@ -135,15 +153,17 @@ video artifact has not yet been captured.
 
 - `z3: command not found`: install Z3 or run `mumei setup`.
 - `LLVM_SYS_170_PREFIX is unset`: export `LLVM_SYS_170_PREFIX=/usr/lib/llvm-17`.
-- `lake` missing: L3 steps with `optional_toolchain: "lake"` are skipped; L1/L2
-  can still pass.
+- `lake` or an optional Lean proof module missing: matching L3 steps are skipped;
+  L1/L2 can still pass.
 - `python -m agent forge` import errors: install `mumei-agent` requirements in
   the agent repository.
 - `ownership.proof.json` missing: ensure `verify_pass` completed before running
   Lean bridge steps.
 - `compliance.proof.json` missing: ensure `verify_correct` completed in the
   RegTech scenario before opening the dashboard.
-- `dosage.lean-cert.json` missing: ensure `lake` is installed and the
-  Medical Device `l3_lean` step was not skipped.
-- Medical Device shows `SKIPPED` for Lean: install Lean 4/Lake or rerun only the
-  Z3 steps; L1 safety evidence remains valid without the optional L3 proof.
+- `dosage.lean-cert.json` missing: ensure `lake` is installed, the matching
+  proof module exists in `mumei-lean`, and the Medical Device `l3_lean` step was
+  not skipped.
+- Medical Device shows `SKIPPED` for Lean: install Lean 4/Lake and the proof
+  module, or rerun only the Z3 steps; L1 safety evidence remains valid without
+  the optional L3 proof.

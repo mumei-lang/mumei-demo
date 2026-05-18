@@ -1,7 +1,7 @@
 {
   "name": "Smart Contract Audit: Reentrancy Guard",
   "version": "1.0.0",
-  "description": "再入攻撃脆弱性を持つ withdraw 実装を Z3 が検出し、Checks-Effects-Interactions と Lean 証明で資金保存則を検証するデモ",
+  "description": "再入攻撃脆弱性を持つ withdraw 実装を Z3 が検出し、Checks-Effects-Interactions と任意の Lean 証明で資金保存則を検証するデモ",
   "layers": ["l1_z3", "l3_lean"],
   "narrative": {
     "intro": [
@@ -9,7 +9,7 @@
       "Step 2: mumei verifies state invariants and fund conservation..."
     ],
     "before": "withdraw 関数が external_call 前に再入ロックを取得せず、状態遷移不変条件に違反",
-    "after": "Checks-Effects-Interactions と ReentrancyGuard で修正し、残高更新の保存則を Lean で証明",
+    "after": "Checks-Effects-Interactions と ReentrancyGuard で修正し、残高更新の保存則を任意の Lean 証明で確認",
     "steps": {
       "detect_bug": {
         "rejected": {
@@ -31,7 +31,7 @@
             "  balance_after = balance_before - amount",
             "  external interaction occurs only while the guard is Locked.",
             "",
-            "  Step 4: Lean proves withdrawal balance preservation..."
+            "  Step 4: Optional Lean proof checks withdrawal balance preservation..."
           ]
         }
       },
@@ -77,7 +77,8 @@
         "expected_exit": 0,
         "expected_patterns": [],
         "artifacts": [],
-        "optional_toolchain": "lake"
+        "optional_toolchain": "lake",
+        "optional_path": "{mumei_lean_repo}/MumeiLean/SmartContract.lean"
       },
       {
         "id": "lean_bridge",

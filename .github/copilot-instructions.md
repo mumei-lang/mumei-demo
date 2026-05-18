@@ -24,6 +24,9 @@ Current scenarios:
 | `rtgs_settlement` | Settlement invariants, Z3 verification, optional Lean certification. |
 | `regtech_compliance` | Missing `PEP` match arm found by exhaustiveness checking. |
 | `nl_to_verified` | Natural-language requirements extracted to spec and generated into verified `.mm`. |
+| `smart_contract_audit` | Reentrancy guard and optional Lean certification. |
+| `medical_device` | Insulin pump dosage safety and optional Lean certification. |
+| `aviation_control` | Runway allocation locking and agent validation. |
 
 ## Setup and Commands
 
@@ -33,15 +36,25 @@ Prepare sibling repos:
 make setup
 ```
 
-Run demos:
+Run the integrated all-scenario demo:
 
 ```bash
 make demo
+```
+
+Run individual demos:
+
+```bash
+make demo-ownership
 make demo-settlement
 make demo-regtech
 make demo-nl
-make demo-all
+make demo-smart-contract
+make demo-medical
+make demo-aviation
 ```
+
+`make demo-all` remains a compatibility alias for `make demo`.
 
 Run CI-equivalent fixture mode:
 
@@ -112,6 +125,9 @@ python3 -m json.tool scenarios/_template/scenario.json >/dev/null
 python3 -m json.tool scenarios/rtgs_settlement/scenario.json >/dev/null
 python3 -m json.tool scenarios/regtech_compliance/scenario.json >/dev/null
 python3 -m json.tool scenarios/nl_to_verified/scenario.json >/dev/null
+python3 -m json.tool scenarios/smart_contract_audit/scenario.json >/dev/null
+python3 -m json.tool scenarios/medical_device/scenario.json >/dev/null
+python3 -m json.tool scenarios/aviation_control/scenario.json >/dev/null
 python3 -m json.tool scenarios/nl_to_verified/expected/extracted_spec.json >/dev/null
 ```
 

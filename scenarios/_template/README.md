@@ -30,7 +30,8 @@ Only layers listed in `layers` are executed and rendered in reports.
 
 Each step has an `id`, display `name`, target `repo`, shell `command`,
 `expected_exit`, optional `expected_patterns`, optional `artifacts`, optional
-`cwd`, optional `depends_on`, and optional `optional_toolchain`.
+`cwd`, optional `depends_on`, optional `optional_toolchain`, and optional
+`optional_path`.
 
 Available placeholders include `{mumei_repo}`, `{mumei_lean_repo}`,
 `{mumei_agent_repo}`, `{mumei_agent_python}`, `{mumei_bin}`, `{root_dir}`, and
@@ -47,7 +48,8 @@ Available placeholders include `{mumei_repo}`, `{mumei_lean_repo}`,
 4. Edit `correct_code.mm` so the second L1 step verifies and emits a proof
    certificate under `{output_dir}` when useful.
 5. Add or remove L2/L3 steps to match the scenario. Keep CI-safe agent steps
-   deterministic, and mark optional Lean tools with `optional_toolchain`.
+   deterministic, and mark optional Lean tools or modules with
+   `optional_toolchain` and `optional_path`.
 6. Run the scenario and inspect both outputs:
 
 ```bash

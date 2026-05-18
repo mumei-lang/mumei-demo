@@ -374,6 +374,12 @@ def main(argv: list[str]) -> int:
             start = time.monotonic()
 
             missing_tool = step.get("optional_toolchain") and shutil.which(step["optional_toolchain"]) is None
+            optional_path = step.get("optional_path")
+            missing_optional_path = None
+            if isinstance(optional_path, str):
+                resolved_optional_path = Path(substitute(optional_path, placeholders))
+                if not resolved_optional_path.exists():
+                    missing_optional_path = str(resolved_optional_path)
             blocked_by = [
                 dep for dep in step.get("depends_on", [])
                 if step_index.get(dep, {}).get("status") not in {"PASS", "REJECTED", "CERTIFIED"}
@@ -381,6 +387,14 @@ def main(argv: list[str]) -> int:
             if missing_tool:
                 duration_ms = int((time.monotonic() - start) * 1000)
                 message = f"SKIPPED: optional toolchain not found: {step['optional_toolchain']}\n"
+                log_path.write_text(message, encoding="utf-8")
+                status = "SKIPPED"
+                exit_code = None
+                stdout = message
+                stderr = ""
+            elif missing_optional_path:
+                duration_ms = int((time.monotonic() - start) * 1000)
+                message = f"SKIPPED: optional path not found: {missing_optional_path}\n"
                 log_path.write_text(message, encoding="utf-8")
                 status = "SKIPPED"
                 exit_code = None
@@ -476,7 +490,7 @@ def main(argv: list[str]) -> int:
             elif step_id == "lean_bridge" and status == "SKIPPED":
                 lean_build_status = step_index.get("lean_build", {}).get("status")
                 if lean_build_status == "SKIPPED":
-                    story_icon("⚠️", "Lean proof skipped: Lake toolchain unavailable")
+                    story_icon("⚠️", "Lean proof skipped: optional proof dependency unavailable")
                 elif lean_build_status == "FAIL":
                     story_icon("⚠️", "Lean bridge skipped: proof build failed")
 
