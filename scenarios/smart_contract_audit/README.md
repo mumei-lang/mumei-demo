@@ -7,7 +7,8 @@ effect is still `Unlocked`, so temporal verification rejects it with
 `InvalidPreState`. The corrected implementation follows
 Checks-Effects-Interactions: it locks the guard, updates the balance, performs
 the external interaction, unlocks, and returns the updated balance.
-The scenario also builds the Lean smart-contract proof module.
+The scenario also builds the optional Lean smart-contract proof module when it is
+available.
 
 Run:
 

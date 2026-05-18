@@ -1,7 +1,7 @@
 {
   "name": "Medical Device Control: Insulin Pump Safety",
   "version": "1.0.0",
-  "description": "インスリンポンプの投与量制御におけるオーバードーズ脆弱性をZ3が検出し、境界チェックとLean証明で安全性を検証するデモ",
+  "description": "インスリンポンプの投与量制御におけるオーバードーズ脆弱性をZ3が検出し、境界チェックと任意のLean証明で安全性を検証するデモ",
   "layers": ["l1_z3", "l3_lean"],
   "narrative": {
     "intro": [
@@ -9,7 +9,7 @@
       "Step 2: mumei verifies dosage bounds and safety invariants..."
     ],
     "before": "deliver_insulin 関数が血糖値に基づく上限チェックをスキップし、過剰投与の可能性",
-    "after": "境界チェックと単調性保存で修正し、投与量の安全性をLeanで証明",
+    "after": "境界チェックと単調性保存で修正し、投与量の安全性を任意のLean証明で確認",
     "steps": {
       "detect_bug": {
         "rejected": {
@@ -31,7 +31,7 @@
             "  delivered_amount <= max_dose_per_hour - current_hour_dosage",
             "  glucose_level check ensures hypoglycemia prevention.",
             "",
-            "  Step 4: Lean proves cumulative dosage safety..."
+            "  Step 4: Optional Lean proof checks cumulative dosage safety..."
           ]
         }
       },
@@ -77,7 +77,8 @@
         "expected_exit": 0,
         "expected_patterns": [],
         "artifacts": [],
-        "optional_toolchain": "lake"
+        "optional_toolchain": "lake",
+        "optional_path": "{mumei_lean_repo}/MumeiLean/MedicalDevice.lean"
       },
       {
         "id": "lean_bridge",

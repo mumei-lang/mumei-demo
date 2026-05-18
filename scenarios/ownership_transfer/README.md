@@ -42,8 +42,10 @@ valid `accept`.
 ## Run
 
 ```bash
-make demo
+make demo-ownership
 ```
+
+Use `make demo` for the integrated all-scenario sequence.
 
 Expected story:
 

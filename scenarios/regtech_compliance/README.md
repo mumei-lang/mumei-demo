@@ -51,17 +51,21 @@ the `verify_correct` step will fail with an import-resolution error.
     make demo-regtech
 
 From a checkout with sibling `mumei`, `mumei-agent`, and `mumei-lean` repos, run
-all four scenarios in sequence:
+the integrated all-scenario sequence:
 
-    make demo-all
+    make demo
+
+`make demo-all` is kept as a compatibility alias.
 
 For CI-equivalent validation with dashboard summaries:
 
     make demo-ci
 
-`demo-all` and `demo-ci` run `ownership_transfer`, `rtgs_settlement`,
-`regtech_compliance`, and `nl_to_verified` in order. `demo-ci` returns a
-non-zero exit code if any scenario does not produce `overall_status: PASS`.
+`demo`, `demo-all`, and `demo-ci` run `ownership_transfer`,
+`rtgs_settlement`, `regtech_compliance`, `nl_to_verified`,
+`smart_contract_audit`, `medical_device`, and `aviation_control` in order.
+`demo-ci` returns a non-zero exit code if any scenario does not produce
+`overall_status: PASS`.
 
 ## Expected output
 

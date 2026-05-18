@@ -16,7 +16,7 @@ Mumei's demo scenarios make those bugs concrete:
 | RTGS Settlement | A transfer flow can break balance conservation or settle before validation. | Z3 checks settlement contracts, then Lean certifies deeper invariants when available. |
 | RegTech Compliance | `PEP` customers are missing from a `match` expression. | Exhaustiveness checking reports `CustomerType::PEP (tag=3)` as a counter-example. |
 | NL → Verified | Requirements start as natural language instead of verified code. | The agent extracts a spec, generates `.mm`, and Z3 verifies the result automatically. |
-| Medical Device Control | An insulin pump skips hourly dosage safety checks. | Z3 catches the invalid delivery state, then Lean proves cumulative dosage safety. |
+| Medical Device Control | An insulin pump skips hourly dosage safety checks. | Z3 catches the invalid delivery state, then optional Lean proof certifies cumulative dosage safety. |
 | Aviation Control | Runway allocation has inconsistent lock ordering. | Z3 verifies ordered allocation, and the agent validates the generation task. |
 
 ## How It Works
@@ -124,15 +124,16 @@ and inspect `reports/medical_device/latest/`.
 
 ## Quick Start
 
-Prepare sibling checkouts and run every demo scenario:
+Prepare sibling checkouts and run the integrated demo sequence:
 
 ```bash
-make setup && make demo-all
+make setup && make demo
 ```
 
 `make setup` clones or refreshes `mumei`, `mumei-agent`, and `mumei-lean` next
-to this repository. `make demo-all` then runs the complete seven-scenario
-presentation sequence and writes reports under `reports/<scenario>/latest/`.
+to this repository. `make demo` then runs the complete seven-scenario
+presentation sequence, integrates the Phase 1-3 demos, and writes reports under
+`reports/<scenario>/latest/` plus dashboard summaries.
 
 For CI-equivalent validation with fixture mode and dashboard summaries:
 
@@ -142,8 +143,10 @@ make demo-ci
 
 ## Run Individual Scenarios
 
+For the Phase 1 Ownership Transfer scenario:
+
 ```bash
-make demo
+make demo-ownership
 ```
 
 For the RTGS Settlement scenario:
@@ -171,11 +174,13 @@ For the Medical Device Control scenario:
 make demo-medical
 ```
 
-To run the complete seven-scenario demo sequence:
+To run the complete seven-scenario integrated demo sequence:
 
 ```bash
-make demo-all
+make demo
 ```
+
+`make demo-all` remains as a compatibility alias for `make demo`.
 
 For CI-equivalent validation with a dashboard summary:
 
@@ -188,7 +193,7 @@ make demo-ci
 ### Ownership Transfer
 
 ```text
-$ make demo
+$ make demo-ownership
 l1_z3/detect_bug: REJECTED
 ❌ BUG DETECTED!
   InvalidPreState: 'accept' requires 'PendingTransfer'
@@ -245,14 +250,14 @@ Proof Density: 100% (3/3 atoms)
 
 ## What Runs
 
-`make demo` executes the Phase 1 Ownership Transfer Protocol scenario:
+`make demo-ownership` executes the Phase 1 Ownership Transfer Protocol scenario:
 
 1. LLM-generated `hostile_takeover` code tries to reach `Transferred` from `Idle`.
 2. `mumei verify` rejects it with `InvalidPreState` — Z3 proves the state violation.
 3. The corrected implementation verifies all five ownership atoms with Z3.
 4. Lean 4 certifies `no_transfer_without_accept` through the proof certificate chain (when available).
 
-`make demo-all` runs the complete seven-scenario demo sequence:
+`make demo` runs the complete seven-scenario integrated demo sequence:
 
 1. Phase 1 Ownership Transfer Protocol.
 2. Phase 2 RTGS Settlement Protocol.
@@ -261,6 +266,10 @@ Proof Density: 100% (3/3 atoms)
 5. Smart Contract Audit.
 6. Medical Device Control.
 7. Aviation Control.
+
+It also generates `dashboard/summary.md` and `dashboard/highlights.md` from the
+latest scenario outputs. `make demo-all` remains an alias for the same integrated
+sequence.
 
 `make demo-settlement` executes the Phase 2 RTGS Settlement Protocol scenario:
 
@@ -299,8 +308,9 @@ Proof Density: 100% (3/3 atoms)
 1. A buggy insulin pump delivery path skips the hourly safety gate.
 2. `mumei verify` rejects the invalid delivery state before dosage is applied.
 3. The corrected controller verifies Z3 safety constraints for allowed pump states.
-4. The Lean layer certifies cumulative dosage safety when `lake` is available.
-5. The scenario is included in `make demo-all` and `make demo-ci`.
+4. The Lean layer certifies cumulative dosage safety when `lake` and its proof
+   module are available.
+5. The scenario is included in `make demo`, `make demo-all`, and `make demo-ci`.
 
 ## What Mumei Adds to the Pipeline
 

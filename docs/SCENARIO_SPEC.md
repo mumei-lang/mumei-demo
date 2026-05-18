@@ -33,6 +33,7 @@ Each layer contains a `steps` array.
   "expected_patterns": ["Verification passed"],
   "artifacts": ["property.proof.json"],
   "optional_toolchain": "lake",
+  "optional_path": "{mumei_lean_repo}/MumeiLean/Example.lean",
   "depends_on": ["previous_step"]
 }
 ```
@@ -51,6 +52,7 @@ Each layer contains a `steps` array.
 - `artifacts`: files expected under `{output_dir}` after the step.
 - `optional_toolchain`: executable name. If missing from `PATH`, the step is
   `SKIPPED`.
+- `optional_path`: file or directory path. If missing, the step is `SKIPPED`.
 - `depends_on`: step IDs that must have `PASS`, `REJECTED`, or `CERTIFIED`
   status before this step runs.
 
@@ -120,12 +122,12 @@ saved result file.
 
 ## Medical Device CI scenario
 
-The existing schema supports `scenarios/medical_device/scenario.json` without
-new fields. The scenario uses `layers: ["l1_z3", "l3_lean"]`, expected-failure
-Z3 steps for unsafe insulin pump states, normal verification steps for the
-correct controller, `depends_on` to keep Lean behind successful L1 proof output,
-and `optional_toolchain: "lake"` so CI can report `SKIPPED` rather than failing
-when Lean is unavailable.
+The scenario uses `layers: ["l1_z3", "l3_lean"]`, expected-failure Z3 steps for
+unsafe insulin pump states, normal verification steps for the correct
+controller, `depends_on` to keep Lean behind successful L1 proof output,
+`optional_toolchain: "lake"`, and `optional_path` for the proof module so CI can
+report `SKIPPED` rather than failing when optional Lean proof assets are
+unavailable.
 
 ## Two-layer RegTech skeleton
 
