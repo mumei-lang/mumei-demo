@@ -18,6 +18,9 @@ Mumei's demo scenarios make those bugs concrete:
 | NL → Verified | Requirements start as natural language instead of verified code. | The agent extracts a spec, generates `.mm`, and Z3 verifies the result automatically. |
 | Medical Device Control | An insulin pump skips hourly dosage safety checks. | Z3 catches the invalid delivery state, then optional Lean proof certifies cumulative dosage safety. |
 | Aviation Control | Runway allocation has inconsistent lock ordering. | Z3 verifies ordered allocation, and the agent validates the generation task. |
+| Merkle Tree Verification | Assumes hash function integrity without proof | Z3 verifies `hash_function_secure` precondition, Lean certifies collision resistance |
+| DeFi Invariant | Integer overflow in ERC-20 transfer | Refinement types (`type Uint256 = i64 where v >= 0 && v <= MAX`) prevent overflow at compile time |
+| ArkLib-Style Audit | Complex implementation hides bugs | Top-level `requires`/`ensures` reviewed by humans, Lean proves implementation correctness |
 
 ## How It Works
 
@@ -131,7 +134,7 @@ make setup && make demo
 ```
 
 `make setup` clones or refreshes `mumei`, `mumei-agent`, and `mumei-lean` next
-to this repository. `make demo` then runs the complete seven-scenario
+to this repository. `make demo` then runs the complete ten-scenario
 presentation sequence, integrates the Phase 1-3 demos, and writes reports under
 `reports/<scenario>/latest/` plus dashboard summaries.
 
@@ -174,7 +177,25 @@ For the Medical Device Control scenario:
 make demo-medical
 ```
 
-To run the complete seven-scenario integrated demo sequence:
+For the Merkle Tree Verification scenario:
+
+```bash
+make demo-merkle
+```
+
+For the DeFi Invariant scenario:
+
+```bash
+make demo-defi
+```
+
+For the ArkLib-Style Audit scenario:
+
+```bash
+make demo-arklib
+```
+
+To run the complete ten-scenario integrated demo sequence:
 
 ```bash
 make demo
@@ -257,7 +278,7 @@ Proof Density: 100% (3/3 atoms)
 3. The corrected implementation verifies all five ownership atoms with Z3.
 4. Lean 4 certifies `no_transfer_without_accept` through the proof certificate chain (when available).
 
-`make demo` runs the complete seven-scenario integrated demo sequence:
+`make demo` runs the complete ten-scenario integrated demo sequence:
 
 1. Phase 1 Ownership Transfer Protocol.
 2. Phase 2 RTGS Settlement Protocol.
@@ -266,6 +287,9 @@ Proof Density: 100% (3/3 atoms)
 5. Smart Contract Audit.
 6. Medical Device Control.
 7. Aviation Control.
+8. Merkle Tree Verification.
+9. DeFi Invariant.
+10. ArkLib-Style Audit.
 
 It also generates `dashboard/summary.md` and `dashboard/highlights.md` from the
 latest scenario outputs. `make demo-all` remains an alias for the same integrated
