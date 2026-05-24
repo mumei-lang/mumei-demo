@@ -286,6 +286,51 @@ def render_proof_density_markdown(data: dict) -> str:
     return "\n".join(lines)
 
 
+def render_harness_contract_markdown(data: dict) -> str:
+    contract = data.get("harness_contract")
+    if not isinstance(contract, dict):
+        return ""
+
+    lines = [
+        "## Harness Contract",
+        "",
+        f"- Policy: `{contract.get('policy', 'unspecified')}`",
+        f"- Acceptance path: `{', '.join(str(item) for item in contract.get('acceptance_path', []))}`",
+        f"- State directory: `{contract.get('state_dir', 'unspecified')}`",
+        f"- Intent: {contract.get('intent', '_Not specified_')}",
+    ]
+    artifact_contracts = contract.get("artifact_contracts", [])
+    if isinstance(artifact_contracts, list) and artifact_contracts:
+        lines.extend(["", "### Artifact contracts"])
+        for item in artifact_contracts:
+            lines.append(f"- {item}")
+
+    stage_rows: list[str] = []
+    for layer, step in iter_steps(data):
+        if not any(key in step for key in ("harness_stage", "artifact_contract", "verifier_gate")):
+            continue
+        stage = str(step.get("harness_stage", ""))
+        gate = str(step.get("verifier_gate", "")).replace("|", "\\|")
+        artifacts = step.get("artifact_contract", step.get("artifacts", []))
+        if isinstance(artifacts, list):
+            artifact_text = ", ".join(str(item) for item in artifacts) or "-"
+        else:
+            artifact_text = str(artifacts)
+        stage_rows.append(
+            f"| {LAYER_LABELS.get(layer, layer)} | {stage} | {artifact_text} | {gate} |"
+        )
+    if stage_rows:
+        lines.extend([
+            "",
+            "### Stage gates",
+            "",
+            "| Layer | Harness stage | Artifact contract | Verifier gate |",
+            "| --- | --- | --- | --- |",
+            *stage_rows,
+        ])
+    return "\n".join(lines)
+
+
 def render_layer_breakdown_markdown(data: dict) -> str:
     lines = [
         "## Layer Breakdown",
@@ -348,6 +393,8 @@ def render_scenario_markdown(data: dict, root: Path) -> str:
         render_bug_detection_markdown(data, root),
         "",
         render_proof_density_markdown(data),
+        "",
+        render_harness_contract_markdown(data),
         "",
         render_layer_breakdown_markdown(data),
         "",

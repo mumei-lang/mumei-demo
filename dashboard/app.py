@@ -105,6 +105,30 @@ def render_spec_code_mapping(data: dict) -> None:
         st.info("No specification-code mapping available.")
 
 
+def render_harness_contract(data: dict) -> None:
+    contract = data.get("harness_contract")
+    if not isinstance(contract, dict):
+        return
+
+    st.subheader("Harness Contract")
+    st.json(contract)
+
+    rows = []
+    for layer, payload in data.get("layers", {}).items():
+        for step in payload.get("steps", []):
+            if not any(key in step for key in ("harness_stage", "artifact_contract", "verifier_gate")):
+                continue
+            rows.append({
+                "layer": layer,
+                "stage": step.get("harness_stage", ""),
+                "artifact_contract": step.get("artifact_contract", step.get("artifacts", [])),
+                "verifier_gate": step.get("verifier_gate", ""),
+                "failure_taxonomy": step.get("failure_taxonomy", ""),
+            })
+    if rows:
+        st.table(rows)
+
+
 def main() -> None:
     st.set_page_config(page_title="Mumei Demo Dashboard", layout="wide")
     st.title("Mumei Secure Verification Demo")
@@ -147,6 +171,7 @@ def main() -> None:
         )
 
     render_spec_code_mapping(data)
+    render_harness_contract(data)
 
     st.subheader("Step Details")
     report_dir = result_path.parent

@@ -9,7 +9,17 @@ Each scenario lives under `scenarios/<name>/` and is driven by `scenario.json`.
   "name": "Human readable name",
   "version": "1.0.0",
   "description": "What the scenario proves",
-  "layers": ["l1_z3", "l2_agent", "l3_lean"]
+  "layers": ["l1_z3", "l2_agent", "l3_lean"],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": ["l1_z3", "l2_agent", "l3_lean"],
+    "state_dir": "{output_dir}",
+    "intent": "Original scenario requirement or audit goal",
+    "artifact_contracts": [
+      "Every produced artifact is listed in the step artifacts array.",
+      "Every verifier gate is represented by expected_exit and expected_patterns."
+    ]
+  }
 }
 ```
 
@@ -55,6 +65,49 @@ Each layer contains a `steps` array.
 - `optional_path`: file or directory path. If missing, the step is `SKIPPED`.
 - `depends_on`: step IDs that must have `PASS`, `REJECTED`, or `CERTIFIED`
   status before this step runs.
+
+### Harness metadata (optional)
+
+NLAH-style scenario policies can attach harness metadata at the top level and
+per step. The runner treats these fields as pass-through report evidence: they
+do not change command execution, but they are copied into `result.json` so CLI
+reports, dashboards, and later ablation tooling can reason about artifact
+contracts without re-reading the source scenario.
+
+Top-level `harness_contract` fields:
+
+- `policy`: versioned contract name, e.g. `scenario-harness/v1`.
+- `acceptance_path`: layer order that must produce evidence for the scenario to
+  be considered complete.
+- `state_dir`: persistent state directory; normally `{output_dir}`.
+- `intent`: one sentence describing the user-facing proof/demo intent.
+- `artifact_contracts`: human-readable obligations that all steps must satisfy.
+
+Per-step fields:
+
+- `harness_stage`: stable stage label such as `S1_z3_rejection`,
+  `S2_agent_preview`, or `S3_lean_certification`.
+- `artifact_contract`: files or report keys this step must produce or preserve.
+- `verifier_gate`: concise statement of the acceptance gate represented by
+  `expected_exit`, `expected_patterns`, `expect_failure`, and `depends_on`.
+- `failure_taxonomy`: expected failure class when the step rejects or escalates.
+
+Example:
+
+```json
+{
+  "id": "verify_correct",
+  "name": "Z3 Correct Implementation Verification",
+  "repo": "mumei",
+  "command": "{mumei_bin} verify {root_dir}/scenarios/example/correct.mm --proof-cert --output {output_dir}/scenario.proof.json",
+  "expected_exit": 0,
+  "expected_patterns": ["Verification passed"],
+  "artifacts": ["scenario.proof.json"],
+  "harness_stage": "S1_z3_acceptance",
+  "artifact_contract": ["scenario.proof.json"],
+  "verifier_gate": "Mumei/Z3 accepts the corrected atom and writes a proof certificate."
+}
+```
 
 ## Narrative (optional)
 
