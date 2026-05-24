@@ -8,6 +8,17 @@
   "_description": "One sentence describing the invariant, bug class, and proof goal.",
   "layers": ["l1_z3", "l2_agent"],
   "_layers": "Execution order. Use l1_z3 for Mumei/Z3, l2_agent for agent workflows, and l3_lean for Lean certificates.",
+  "harness_contract": {
+    "_harness_contract": "Optional NLAH-style pass-through metadata copied into result.json.",
+    "policy": "scenario-harness/v1",
+    "acceptance_path": ["l1_z3", "l2_agent"],
+    "state_dir": "{output_dir}",
+    "intent": "Demonstrate that the scenario bug is rejected and the corrected path is verified.",
+    "artifact_contracts": [
+      "All expected files are listed in each step's artifacts array.",
+      "Every verifier gate is encoded by expected_exit, expected_patterns, expect_failure, and depends_on."
+    ]
+  },
   "narrative": {
     "_narrative": "Optional presentation text used by scripts/run_scenario.sh and dashboard/cli_report.py.",
     "intro": [
@@ -47,7 +58,11 @@
         "expected_exit": 1,
         "expect_failure": true,
         "expected_patterns": ["InvalidPreState"],
-        "artifacts": []
+        "artifacts": [],
+        "harness_stage": "S1_z3_rejection",
+        "artifact_contract": [],
+        "verifier_gate": "Mumei/Z3 rejects the intentionally buggy implementation.",
+        "failure_taxonomy": "temporal_state_violation"
       },
       {
         "_step": "Successful verification of the corrected implementation.",
@@ -57,7 +72,10 @@
         "command": "{mumei_bin} verify {root_dir}/scenarios/_template/correct_code.mm --proof-cert --output {output_dir}/scenario.proof.json",
         "expected_exit": 0,
         "expected_patterns": ["Verification passed"],
-        "artifacts": ["scenario.proof.json"]
+        "artifacts": ["scenario.proof.json"],
+        "harness_stage": "S1_z3_acceptance",
+        "artifact_contract": ["scenario.proof.json"],
+        "verifier_gate": "Mumei/Z3 accepts the corrected implementation and writes a proof certificate."
       }
     ]
   },
@@ -73,7 +91,10 @@
         "cwd": "{mumei_agent_repo}",
         "expected_exit": 0,
         "expected_patterns": [],
-        "artifacts": []
+        "artifacts": [],
+        "harness_stage": "S2_agent_preview",
+        "artifact_contract": [],
+        "verifier_gate": "Agent dry-run completes without mutating the demo repo."
       }
     ]
   },
@@ -90,7 +111,10 @@
         "expected_exit": 0,
         "expected_patterns": [],
         "artifacts": [],
-        "optional_toolchain": "lake"
+        "optional_toolchain": "lake",
+        "harness_stage": "S3_lean_certification",
+        "artifact_contract": [],
+        "verifier_gate": "Lean build succeeds when the optional toolchain is available."
       }
     ]
   }

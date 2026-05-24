@@ -479,6 +479,14 @@ def main(argv: list[str]) -> int:
                 "stderr": stderr,
                 "artifacts": step.get("artifacts", []),
             }
+            if "harness_stage" in step:
+                step_result["harness_stage"] = step["harness_stage"]
+            if "artifact_contract" in step:
+                step_result["artifact_contract"] = step["artifact_contract"]
+            if "verifier_gate" in step:
+                step_result["verifier_gate"] = step["verifier_gate"]
+            if "failure_taxonomy" in step:
+                step_result["failure_taxonomy"] = step["failure_taxonomy"]
             for artifact in step.get("artifacts", []):
                 if (output_dir / artifact).exists():
                     artifacts.append(artifact)
@@ -507,6 +515,7 @@ def main(argv: list[str]) -> int:
         "version": scenario.get("version"),
         "description": scenario.get("description"),
         "narrative": narrative,
+        "harness_contract": scenario.get("harness_contract"),
         "timestamp": iso_timestamp,
         "layers": results,
         "overall_status": overall_status,

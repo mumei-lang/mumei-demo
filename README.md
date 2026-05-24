@@ -371,6 +371,23 @@ L1 handles fast automatic verification. L3 extends the same contract pipeline
 through the proof certificate chain. Some scenarios, such as RegTech Compliance,
 intentionally stop at L1 + L2 when Z3 fully proves the relevant properties.
 
+## Scenario Harness Contracts
+
+Scenarios can now include NLAH-style `harness_contract` metadata and per-step
+`harness_stage`, `artifact_contract`, `verifier_gate`, and `failure_taxonomy`
+fields. The runner copies these fields into `result.json`, and reports render
+them as evidence without changing command execution.
+
+Use this to make each demo explicit about:
+
+- which layer sequence is the acceptance path,
+- which files are persistent artifacts,
+- which verifier gate accepts or rejects each step, and
+- which failure class is intentionally demonstrated.
+
+See `docs/SCENARIO_SPEC.md` and `scenarios/_template/scenario.json` for the
+schema and copyable defaults.
+
 ## Repositories
 
 - [mumei-lang/mumei](https://github.com/mumei-lang/mumei): Contract language + Z3 automatic verification.
