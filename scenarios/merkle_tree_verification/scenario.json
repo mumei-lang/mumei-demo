@@ -2,7 +2,10 @@
   "name": "Merkle Tree Verification",
   "version": "1.0.0",
   "description": "Vitalik/ArkLib-style Merkle tree proof: Z3 rejects proof acceptance without the hash_function_secure precondition, then verifies the collision-resistance contract and optional Lean certificate.",
-  "layers": ["l1_z3", "l3_lean"],
+  "layers": [
+    "l1_z3",
+    "l3_lean"
+  ],
   "narrative": {
     "intro": [
       "Step 1: LLM generates Merkle proof verification code...",
@@ -52,7 +55,9 @@
         "command": "{mumei_bin} verify {root_dir}/scenarios/merkle_tree_verification/buggy_code.mm",
         "expected_exit": 1,
         "expect_failure": true,
-        "expected_patterns": ["Postcondition (ensures) is not satisfied"],
+        "expected_patterns": [
+          "Postcondition (ensures) is not satisfied"
+        ],
         "artifacts": [],
         "harness_stage": "S1_z3_rejection",
         "artifact_contract": [],
@@ -65,10 +70,17 @@
         "repo": "mumei",
         "command": "{mumei_bin} verify {root_dir}/scenarios/merkle_tree_verification/correct_code.mm --proof-cert --output {output_dir}/merkle_tree.proof.json",
         "expected_exit": 0,
-        "expected_patterns": ["Verification passed", "verify_merkle_root"],
-        "artifacts": ["merkle_tree.proof.json"],
+        "expected_patterns": [
+          "Verification passed",
+          "verify_merkle_root"
+        ],
+        "artifacts": [
+          "merkle_tree.proof.json"
+        ],
         "harness_stage": "S1_z3_acceptance",
-        "artifact_contract": ["merkle_tree.proof.json"],
+        "artifact_contract": [
+          "merkle_tree.proof.json"
+        ],
         "verifier_gate": "Mumei/Z3 accepts the Merkle proof once hash_function_secure and root equality are required."
       }
     ]
@@ -96,14 +108,51 @@
         "repo": "mumei-lean",
         "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/merkle_tree.proof.json --lean-cert-out {output_dir}/merkle_tree.lean-cert.json --no-build",
         "expected_exit": 0,
-        "expected_patterns": ["dry run: skipping `lake build`"],
-        "artifacts": ["merkle_tree.lean-cert.json"],
-        "depends_on": ["verify_correct", "lean_build"],
+        "expected_patterns": [
+          "dry run: skipping `lake build`"
+        ],
+        "artifacts": [
+          "merkle_tree.lean-cert.json"
+        ],
+        "depends_on": [
+          "verify_correct",
+          "lean_build"
+        ],
         "optional_toolchain": "lake",
         "harness_stage": "S3_lean_bridge",
-        "artifact_contract": ["merkle_tree.lean-cert.json"],
+        "artifact_contract": [
+          "merkle_tree.lean-cert.json"
+        ],
         "verifier_gate": "The bridge converts the Z3 certificate into a Lean certificate dry run."
       }
     ]
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3",
+      "l3_lean"
+    ],
+    "state_dir": "{output_dir}",
+    "intent": "Prove Merkle proof acceptance requires hash-function security and root equality evidence.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/merkle_tree_verification/buggy_code.mm, scenarios/merkle_tree_verification/correct_code.mm, ../mumei-lean/MumeiLean/MerkleTree.lean.",
+      "Generate evidence: result.json and report.md in reports/{scenario}/latest/ plus per-step logs.",
+      "result.json records missing-hash-security rejection, Z3 proof acceptance, and optional Lean gates.",
+      "report.md explains the Merkle before/after proof evidence.",
+      "merkle_tree.proof.json is the L1 Z3 proof certificate for the corrected Merkle contract.",
+      "merkle_tree.lean-cert.json is the L3 bridge certificate when Lean assets are available.",
+      "dashboard/summary.md aggregates PASS and proof-density evidence for the scenario.",
+      "Gate order: l1_z3 -> l3_lean; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "Merkle root verification must require collision-resistance assumptions and bind computed root to expected root.",
+    "success_criteria": [
+      "buggy proof acceptance is rejected for missing postcondition evidence.",
+      "correct_code.mm verifies and emits merkle_tree.proof.json.",
+      "Optional Lean build/bridge certifies Merkle proof assets when available."
+    ],
+    "drift_risk": "Low: artifact gates preserve both rejection and proof-certificate evidence."
   }
 }

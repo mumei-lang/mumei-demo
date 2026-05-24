@@ -2,7 +2,11 @@
   "name": "RTGS Settlement Protocol",
   "version": "1.0.0",
   "description": "validate なしに Settled 状態へ到達不可能であること、および残高保存を3層で検証するデモ",
-  "layers": ["l1_z3", "l2_agent", "l3_lean"],
+  "layers": [
+    "l1_z3",
+    "l2_agent",
+    "l3_lean"
+  ],
   "narrative": {
     "intro": [
       "Step 1: LLM generates RTGS settlement code...",
@@ -50,8 +54,16 @@
         "command": "{mumei_bin} verify {root_dir}/scenarios/rtgs_settlement/buggy_code.mm",
         "expected_exit": 1,
         "expect_failure": true,
-        "expected_patterns": ["InvalidPreState"],
-        "artifacts": []
+        "expected_patterns": [
+          "InvalidPreState"
+        ],
+        "artifacts": [],
+        "harness_stage": "S1_z3_rejection_detect_bug",
+        "artifact_contract": [
+          "result.json step status and log capture the expected rejection diagnostic."
+        ],
+        "verifier_gate": "Command exits 1 and emits expected rejection evidence (InvalidPreState).",
+        "failure_taxonomy": "temporal_state_violation"
       },
       {
         "id": "verify_correct",
@@ -59,8 +71,17 @@
         "repo": "mumei",
         "command": "{mumei_bin} verify {root_dir}/scenarios/rtgs_settlement/correct_code.mm --proof-cert --output {output_dir}/settlement.proof.json",
         "expected_exit": 0,
-        "expected_patterns": ["Verification passed"],
-        "artifacts": ["settlement.proof.json"]
+        "expected_patterns": [
+          "Verification passed"
+        ],
+        "artifacts": [
+          "settlement.proof.json"
+        ],
+        "harness_stage": "S1_z3_acceptance_verify_correct",
+        "artifact_contract": [
+          "settlement.proof.json"
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (Verification passed)."
       },
       {
         "id": "verify_e2e",
@@ -68,8 +89,15 @@
         "repo": "mumei",
         "command": "{mumei_bin} verify {mumei_repo}/tests/test_settlement.mm",
         "expected_exit": 0,
-        "expected_patterns": ["Verification passed"],
-        "artifacts": []
+        "expected_patterns": [
+          "Verification passed"
+        ],
+        "artifacts": [],
+        "harness_stage": "S1_z3_regression_verify_e2e",
+        "artifact_contract": [
+          "result.json step status and log capture the verifier gate evidence."
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (Verification passed)."
       }
     ]
   },
@@ -82,8 +110,15 @@
         "command": "{mumei_agent_python} -m agent forge --tasks-dir {mumei_agent_repo}/forge_tasks --task vstd_settlement.json --mumei-repo {mumei_repo} --dry-run",
         "cwd": "{mumei_agent_repo}",
         "expected_exit": 0,
-        "expected_patterns": ["vstd-settlement"],
-        "artifacts": []
+        "expected_patterns": [
+          "vstd-settlement"
+        ],
+        "artifacts": [],
+        "harness_stage": "S2_agent_preview_forge_dryrun",
+        "artifact_contract": [
+          "result.json step status and log capture the agent gate evidence."
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (vstd-settlement)."
       }
     ]
   },
@@ -98,7 +133,12 @@
         "expected_exit": 0,
         "expected_patterns": [],
         "artifacts": [],
-        "optional_toolchain": "lake"
+        "optional_toolchain": "lake",
+        "harness_stage": "S3_lean_certification_lean_build",
+        "artifact_contract": [
+          "result.json step status and log capture the Lean proof gate evidence."
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (no required output marker)."
       },
       {
         "id": "lean_bridge",
@@ -106,11 +146,54 @@
         "repo": "mumei-lean",
         "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/settlement.proof.json --lean-cert-out {output_dir}/settlement.lean-cert.json",
         "expected_exit": 0,
-        "expected_patterns": ["ingested"],
-        "artifacts": ["settlement.lean-cert.json"],
-        "depends_on": ["verify_correct", "lean_build"],
-        "optional_toolchain": "lake"
+        "expected_patterns": [
+          "ingested"
+        ],
+        "artifacts": [
+          "settlement.lean-cert.json"
+        ],
+        "depends_on": [
+          "verify_correct",
+          "lean_build"
+        ],
+        "optional_toolchain": "lake",
+        "harness_stage": "S3_lean_bridge_lean_bridge",
+        "artifact_contract": [
+          "settlement.lean-cert.json"
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (ingested)."
       }
     ]
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3",
+      "l2_agent",
+      "l3_lean"
+    ],
+    "state_dir": "{output_dir}",
+    "intent": "Prove settlement cannot complete before validation and preserve RTGS balance-conservation evidence.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/rtgs_settlement/buggy_code.mm, scenarios/rtgs_settlement/correct_code.mm, ../mumei/tests/test_settlement.mm, ../mumei-agent/forge_tasks/vstd_settlement.json, ../mumei-lean/MumeiLean/Settlement.lean.",
+      "Generate evidence: result.json and report.md in reports/{scenario}/latest/ plus per-step logs.",
+      "result.json records InvalidPreState rejection, settlement Z3 acceptance, E2E verification, agent dry-run, and Lean status.",
+      "report.md explains the settlement before/after gate evidence.",
+      "settlement.proof.json is the L1 Z3 proof certificate for the corrected settlement atoms.",
+      "settlement.lean-cert.json is the L3 bridge certificate when Lean assets are available.",
+      "dashboard/summary.md aggregates PASS and proof-density evidence for the scenario.",
+      "Gate order: l1_z3 -> l2_agent -> l3_lean; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "RTGS settlement must validate before settle and maintain balance invariants.",
+    "success_criteria": [
+      "hostile_settlement is rejected with InvalidPreState.",
+      "correct_code.mm verifies and emits settlement.proof.json.",
+      "E2E settlement tests verify.",
+      "Agent dry-run validates vstd_settlement task.",
+      "Lean build/bridge certifies optional settlement invariants when available."
+    ],
+    "drift_risk": "Low: temporal pre-state and balance proof obligations are explicit verifier gates."
   }
 }

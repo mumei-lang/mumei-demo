@@ -19,6 +19,14 @@ Each scenario lives under `scenarios/<name>/` and is driven by `scenario.json`.
       "Every produced artifact is listed in the step artifacts array.",
       "Every verifier gate is represented by expected_exit and expected_patterns."
     ]
+  },
+  "intent_fidelity": {
+    "source_intent": "Original scenario requirement or audit claim.",
+    "success_criteria": [
+      "Unsafe path is rejected by its diagnostic gate.",
+      "Correct/generated path is accepted and emits declared evidence."
+    ],
+    "drift_risk": "Where generated artifacts could diverge from the source intent."
   }
 }
 ```
@@ -66,13 +74,15 @@ Each layer contains a `steps` array.
 - `depends_on`: step IDs that must have `PASS`, `REJECTED`, or `CERTIFIED`
   status before this step runs.
 
-### Harness metadata (optional)
+### Harness metadata (recommended)
 
 NLAH-style scenario policies can attach harness metadata at the top level and
 per step. The runner treats these fields as pass-through report evidence: they
 do not change command execution, but they are copied into `result.json` so CLI
 reports, dashboards, and later ablation tooling can reason about artifact
-contracts without re-reading the source scenario.
+contracts without re-reading the source scenario. See
+[`docs/HARNESS_CONTRACTS.md`](HARNESS_CONTRACTS.md) for the stage-contract
+definitions and scenario-to-evidence mapping.
 
 Top-level `harness_contract` fields:
 
@@ -81,7 +91,14 @@ Top-level `harness_contract` fields:
   be considered complete.
 - `state_dir`: persistent state directory; normally `{output_dir}`.
 - `intent`: one sentence describing the user-facing proof/demo intent.
-- `artifact_contracts`: human-readable obligations that all steps must satisfy.
+- `artifact_contracts`: human-readable obligations that all steps must satisfy,
+  including files read, files generated, verification evidence, dashboard
+  evidence, and downstream trust gates.
+- `intent_fidelity`: recommended top-level object that records:
+  - `source_intent`: the original requirement, bug class, or audit claim.
+  - `success_criteria`: checklist of evidence required to satisfy the intent.
+  - `drift_risk`: where generated code/spec/proof artifacts could diverge from
+    the original intent.
 
 Per-step fields:
 
@@ -91,6 +108,16 @@ Per-step fields:
 - `verifier_gate`: concise statement of the acceptance gate represented by
   `expected_exit`, `expected_patterns`, `expect_failure`, and `depends_on`.
 - `failure_taxonomy`: expected failure class when the step rejects or escalates.
+
+Recommended stage labels:
+
+- `S1_z3_rejection_*`, `S1_z3_acceptance_*`, and `S1_z3_regression_*` for
+  `l1_z3` bug-detection, proof-certificate, and E2E gates.
+- `S2_agent_extraction_*`, `S2_agent_generation_*`, and
+  `S2_agent_preview_*` for `l2_agent` natural-language, code-generation, and
+  dry-run gates.
+- `S3_lean_certification_*` and `S3_lean_bridge_*` for `l3_lean` proof-build
+  and certificate-bridge gates.
 
 Example:
 
@@ -172,6 +199,38 @@ python3 scripts/generate_report.py reports/regtech_policy/latest/result.json --f
 `run_scenario.sh` writes both `result.json` and a per-scenario `report.md`.
 The standalone `--format markdown` command regenerates that report from any
 saved result file.
+
+## NLAH-style harness contract guide
+
+Use a harness contract when a scenario needs explainable artifact flow across
+Z3, agent, Lean, reports, and dashboard summaries.
+
+1. Put the stage order in `harness_contract.acceptance_path`. This should match
+   `layers`, including non-standard orders such as `["l2_agent", "l1_z3"]` for
+   natural-language generation flows.
+2. List the files read by the scenario in `harness_contract.artifact_contracts`.
+   Include scenario `.mm` files, forge task JSON, natural-language text, sibling
+   Lean modules, and any generated input consumed by a later stage.
+3. List generated evidence in the same contract. At minimum, every scenario
+   should map `result.json`, `report.md`, per-step logs, proof certificates,
+   Lean certificates, and `dashboard/summary.md` when applicable.
+4. Add per-step `harness_stage`, `artifact_contract`, and `verifier_gate` so the
+   result report can explain which gate each artifact proves.
+5. Add `intent_fidelity` to state the original requirement, the evidence needed
+   to satisfy it, and any drift risk from generated intermediate artifacts.
+
+Gate semantics by stage:
+
+- `l1_z3` reads scenario code and accepts/rejects with Mumei/Z3 diagnostics;
+  proof-producing acceptance steps should write `*.proof.json`.
+- `l2_agent` reads natural-language or forge-task inputs and writes generated
+  artifacts (`extracted_spec.json`, `generated.mm`) or dry-run evidence.
+- `l3_lean` reads L1 proof certificates and Lean assets, then writes
+  `*.lean-cert.json` or records a `SKIPPED` optional-proof gate.
+
+Stop execution or block downstream trust when a command exits unexpectedly,
+required patterns are missing, required artifacts are absent, or a `depends_on`
+gate did not finish with `PASS`, `REJECTED`, or `CERTIFIED`.
 
 ## Medical Device CI scenario
 

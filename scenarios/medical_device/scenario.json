@@ -2,7 +2,10 @@
   "name": "Medical Device Control: Insulin Pump Safety",
   "version": "1.0.0",
   "description": "インスリンポンプの投与量制御におけるオーバードーズ脆弱性をZ3が検出し、境界チェックと任意のLean証明で安全性を検証するデモ",
-  "layers": ["l1_z3", "l3_lean"],
+  "layers": [
+    "l1_z3",
+    "l3_lean"
+  ],
   "narrative": {
     "intro": [
       "Step 1: LLM generates insulin pump dosage control code...",
@@ -52,8 +55,16 @@
         "command": "{mumei_bin} verify {root_dir}/scenarios/medical_device/buggy_code.mm",
         "expected_exit": 1,
         "expect_failure": true,
-        "expected_patterns": ["InvalidPreState"],
-        "artifacts": []
+        "expected_patterns": [
+          "InvalidPreState"
+        ],
+        "artifacts": [],
+        "harness_stage": "S1_z3_rejection_detect_bug",
+        "artifact_contract": [
+          "result.json step status and log capture the expected rejection diagnostic."
+        ],
+        "verifier_gate": "Command exits 1 and emits expected rejection evidence (InvalidPreState).",
+        "failure_taxonomy": "temporal_state_violation"
       },
       {
         "id": "verify_correct",
@@ -61,8 +72,18 @@
         "repo": "mumei",
         "command": "{mumei_bin} verify {root_dir}/scenarios/medical_device/correct_code.mm --proof-cert --output {output_dir}/medical_device.proof.json",
         "expected_exit": 0,
-        "expected_patterns": ["Verification passed", "deliver_insulin"],
-        "artifacts": ["medical_device.proof.json"]
+        "expected_patterns": [
+          "Verification passed",
+          "deliver_insulin"
+        ],
+        "artifacts": [
+          "medical_device.proof.json"
+        ],
+        "harness_stage": "S1_z3_acceptance_verify_correct",
+        "artifact_contract": [
+          "medical_device.proof.json"
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (Verification passed, deliver_insulin)."
       }
     ]
   },
@@ -78,7 +99,12 @@
         "expected_patterns": [],
         "artifacts": [],
         "optional_toolchain": "lake",
-        "optional_path": "{mumei_lean_repo}/MumeiLean/MedicalDevice.lean"
+        "optional_path": "{mumei_lean_repo}/MumeiLean/MedicalDevice.lean",
+        "harness_stage": "S3_lean_certification_lean_build",
+        "artifact_contract": [
+          "result.json step status and log capture the Lean proof gate evidence."
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (no required output marker)."
       },
       {
         "id": "lean_bridge",
@@ -86,11 +112,51 @@
         "repo": "mumei-lean",
         "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/medical_device.proof.json --lean-cert-out {output_dir}/medical_device.lean-cert.json --no-build",
         "expected_exit": 0,
-        "expected_patterns": ["dry run: skipping `lake build`"],
-        "artifacts": ["medical_device.lean-cert.json"],
-        "depends_on": ["verify_correct", "lean_build"],
-        "optional_toolchain": "lake"
+        "expected_patterns": [
+          "dry run: skipping `lake build`"
+        ],
+        "artifacts": [
+          "medical_device.lean-cert.json"
+        ],
+        "depends_on": [
+          "verify_correct",
+          "lean_build"
+        ],
+        "optional_toolchain": "lake",
+        "harness_stage": "S3_lean_bridge_lean_bridge",
+        "artifact_contract": [
+          "medical_device.lean-cert.json"
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (dry run: skipping `lake build`)."
       }
     ]
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3",
+      "l3_lean"
+    ],
+    "state_dir": "{output_dir}",
+    "intent": "Prove insulin delivery cannot bypass safety checks and dosage bounds are preserved.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/medical_device/buggy_code.mm, scenarios/medical_device/correct_code.mm, ../mumei-lean/MumeiLean/MedicalDevice.lean.",
+      "Generate evidence: result.json and report.md in reports/{scenario}/latest/ plus per-step logs.",
+      "result.json records dosage-state rejection, Z3 proof acceptance, and optional Lean gates.",
+      "report.md explains the medical-device safety before/after evidence.",
+      "medical_device.proof.json is the L1 Z3 proof certificate for guarded insulin delivery.",
+      "medical_device.lean-cert.json is the L3 bridge certificate when Lean assets are available.",
+      "dashboard/summary.md aggregates PASS and proof-density evidence for the scenario.",
+      "Gate order: l1_z3 -> l3_lean; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "Insulin delivery must pass safety checks and remain within hourly dosage limits.",
+    "success_criteria": [
+      "unguarded delivery is rejected with InvalidPreState.",
+      "correct_code.mm verifies and emits medical_device.proof.json.",
+      "Optional Lean build/bridge certifies dosage safety proof assets when available."
+    ],
+    "drift_risk": "Low: scenario gates directly encode safety-state and dosage-bound obligations."
   }
 }

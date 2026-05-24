@@ -2,7 +2,10 @@
   "name": "ArkLib-Style Audit: Top-Level Theorem Review",
   "version": "1.0.0",
   "description": "ArkLib-style audit demo: Z3 rejects an inconsistent top-level theorem for a complex implementation, then verifies the reviewed theorem and optional Lean proof stamp.",
-  "layers": ["l1_z3", "l3_lean"],
+  "layers": [
+    "l1_z3",
+    "l3_lean"
+  ],
   "narrative": {
     "intro": [
       "Step 1: LLM generates a complex implementation with a top-level theorem...",
@@ -52,7 +55,10 @@
         "command": "{mumei_bin} verify {root_dir}/scenarios/arklib_style_audit/buggy_code.mm",
         "expected_exit": 1,
         "expect_failure": true,
-        "expected_patterns": ["Spec contradiction", "requires_unsat"],
+        "expected_patterns": [
+          "Spec contradiction",
+          "requires_unsat"
+        ],
         "artifacts": [],
         "harness_stage": "S1_z3_rejection",
         "artifact_contract": [],
@@ -65,10 +71,17 @@
         "repo": "mumei",
         "command": "{mumei_bin} verify {root_dir}/scenarios/arklib_style_audit/correct_code.mm --proof-cert --output {output_dir}/arklib_audit.proof.json",
         "expected_exit": 0,
-        "expected_patterns": ["Verification passed", "review_top_level_theorem"],
-        "artifacts": ["arklib_audit.proof.json"],
+        "expected_patterns": [
+          "Verification passed",
+          "review_top_level_theorem"
+        ],
+        "artifacts": [
+          "arklib_audit.proof.json"
+        ],
         "harness_stage": "S1_z3_acceptance",
-        "artifact_contract": ["arklib_audit.proof.json"],
+        "artifact_contract": [
+          "arklib_audit.proof.json"
+        ],
         "verifier_gate": "Mumei/Z3 accepts the reviewed top-level theorem and writes an audit proof certificate."
       }
     ]
@@ -96,14 +109,51 @@
         "repo": "mumei-lean",
         "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/arklib_audit.proof.json --lean-cert-out {output_dir}/arklib_audit.lean-cert.json --no-build",
         "expected_exit": 0,
-        "expected_patterns": ["dry run: skipping `lake build`"],
-        "artifacts": ["arklib_audit.lean-cert.json"],
-        "depends_on": ["verify_correct", "lean_build"],
+        "expected_patterns": [
+          "dry run: skipping `lake build`"
+        ],
+        "artifacts": [
+          "arklib_audit.lean-cert.json"
+        ],
+        "depends_on": [
+          "verify_correct",
+          "lean_build"
+        ],
         "optional_toolchain": "lake",
         "harness_stage": "S3_lean_bridge",
-        "artifact_contract": ["arklib_audit.lean-cert.json"],
+        "artifact_contract": [
+          "arklib_audit.lean-cert.json"
+        ],
         "verifier_gate": "The bridge converts the audit Z3 certificate into a Lean certificate dry run."
       }
     ]
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3",
+      "l3_lean"
+    ],
+    "state_dir": "{output_dir}",
+    "intent": "Prove a reviewed top-level theorem is coherent before accepting ArkLib-style proof stamps.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/arklib_style_audit/buggy_code.mm, scenarios/arklib_style_audit/correct_code.mm, ../mumei-lean/MumeiLean/ArkLibAudit.lean.",
+      "Generate evidence: result.json and report.md in reports/{scenario}/latest/ plus per-step logs.",
+      "result.json records contradictory-theorem rejection, Z3 proof acceptance, and optional Lean gates.",
+      "report.md explains top-level theorem review before/after evidence.",
+      "arklib_audit.proof.json is the L1 Z3 proof certificate for the reviewed theorem.",
+      "arklib_audit.lean-cert.json is the L3 bridge certificate when Lean assets are available.",
+      "dashboard/summary.md aggregates PASS and proof-density evidence for the scenario.",
+      "Gate order: l1_z3 -> l3_lean; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "Audit-facing top-level theorem must have coherent pre/post/invariant commitments before Lean certification is trusted.",
+    "success_criteria": [
+      "inconsistent theorem is rejected with Spec contradiction/requires_unsat.",
+      "correct_code.mm verifies and emits arklib_audit.proof.json.",
+      "Optional Lean build/bridge certifies ArkLib audit proof assets when available."
+    ],
+    "drift_risk": "Low: contradiction and reviewed commitment are explicit in the L1 gates."
   }
 }
