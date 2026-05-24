@@ -1,0 +1,109 @@
+{
+  "name": "ArkLib-Style Audit: Top-Level Theorem Review",
+  "version": "1.0.0",
+  "description": "ArkLib-style audit demo: Z3 rejects an inconsistent top-level theorem for a complex implementation, then verifies the reviewed theorem and optional Lean proof stamp.",
+  "layers": ["l1_z3", "l3_lean"],
+  "narrative": {
+    "intro": [
+      "Step 1: LLM generates a complex implementation with a top-level theorem...",
+      "Step 2: mumei checks the reviewed requires/ensures contract..."
+    ],
+    "before": "review_top_level_theorem simultaneously requires equal and non-equal commitments.",
+    "after": "The corrected theorem explicitly commits to the reviewed pre/post/invariant hash and returns the matching implementation commitment.",
+    "steps": {
+      "detect_bug": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "BUG DETECTED! Top-level theorem is inconsistent",
+          "follow_up": [
+            "  Audit-facing contracts must be coherent before Lean proof stamps are trusted.",
+            "  Buggy implementation requires implementation_commitment == input_commitment and != input_commitment.",
+            "",
+            "  Step 3: Verifying the reviewed top-level theorem..."
+          ]
+        }
+      },
+      "verify_correct": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Z3 verified reviewed audit theorem",
+          "follow_up": [
+            "  expected_commitment binds precondition, postcondition, and invariant hashes.",
+            "  The implementation commitment matches the reviewed top-level theorem.",
+            "",
+            "  Step 4: Optional Lean proof stamp certifies the audit module..."
+          ]
+        }
+      },
+      "lean_build": {
+        "certified": {
+          "icon": "✅",
+          "headline": "CERTIFIED: MumeiLean.ArkLibAudit"
+        }
+      }
+    }
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "detect_bug",
+        "name": "Z3 Bug Detection: inconsistent audit theorem",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/arklib_style_audit/buggy_code.mm",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": ["Contradiction found"],
+        "artifacts": [],
+        "harness_stage": "S1_z3_rejection",
+        "artifact_contract": [],
+        "verifier_gate": "Mumei/Z3 rejects the top-level audit theorem because its requires clauses contradict.",
+        "failure_taxonomy": "top_level_theorem_contradiction"
+      },
+      {
+        "id": "verify_correct",
+        "name": "Z3 Correct ArkLib Audit Verification",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/arklib_style_audit/correct_code.mm --proof-cert --output {output_dir}/arklib_audit.proof.json",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed", "review_top_level_theorem"],
+        "artifacts": ["arklib_audit.proof.json"],
+        "harness_stage": "S1_z3_acceptance",
+        "artifact_contract": ["arklib_audit.proof.json"],
+        "verifier_gate": "Mumei/Z3 accepts the reviewed top-level theorem and writes an audit proof certificate."
+      }
+    ]
+  },
+  "l3_lean": {
+    "steps": [
+      {
+        "id": "lean_build",
+        "name": "Lean ArkLib Audit Proof Build",
+        "repo": "mumei-lean",
+        "command": "lake build MumeiLean.ArkLibAudit",
+        "cwd": "{mumei_lean_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [],
+        "artifacts": [],
+        "optional_toolchain": "lake",
+        "optional_path": "{mumei_lean_repo}/MumeiLean/ArkLibAudit.lean",
+        "harness_stage": "S3_lean_certification",
+        "artifact_contract": [],
+        "verifier_gate": "Lean certifies the ArkLib audit module when the optional proof file exists."
+      },
+      {
+        "id": "lean_bridge",
+        "name": "Lean Bridge Certificate",
+        "repo": "mumei-lean",
+        "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/arklib_audit.proof.json --lean-cert-out {output_dir}/arklib_audit.lean-cert.json --no-build",
+        "expected_exit": 0,
+        "expected_patterns": ["dry run: skipping `lake build`"],
+        "artifacts": ["arklib_audit.lean-cert.json"],
+        "depends_on": ["verify_correct", "lean_build"],
+        "optional_toolchain": "lake",
+        "harness_stage": "S3_lean_bridge",
+        "artifact_contract": ["arklib_audit.lean-cert.json"],
+        "verifier_gate": "The bridge converts the audit Z3 certificate into a Lean certificate dry run."
+      }
+    ]
+  }
+}

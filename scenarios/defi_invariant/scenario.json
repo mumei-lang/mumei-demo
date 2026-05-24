@@ -1,0 +1,109 @@
+{
+  "name": "DeFi Invariant: ERC-20 Uint256 Safety",
+  "version": "1.0.0",
+  "description": "ERC-20 transfer overflow prevention demo: Z3 rejects a receiver balance update without a Uint256 upper-bound proof, then verifies the refined safe_transfer invariant.",
+  "layers": ["l1_z3", "l3_lean"],
+  "narrative": {
+    "intro": [
+      "Step 1: LLM generates ERC-20 transfer code...",
+      "Step 2: mumei checks Uint256 bounds and transfer invariants..."
+    ],
+    "before": "safe_transfer increases the receiver balance without proving the Uint256 upper bound.",
+    "after": "The corrected transfer uses the Uint256 refinement and requires to_balance + amount <= MAX before committing.",
+    "steps": {
+      "detect_bug": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "BUG DETECTED! Receiver balance can exceed Uint256",
+          "follow_up": [
+            "  ERC-20 transfer must prove the receiver-side addition remains in range.",
+            "  Buggy implementation calls checked_uint256 without a sufficient upper-bound precondition.",
+            "",
+            "  Step 3: Verifying the refined safe_transfer implementation..."
+          ]
+        }
+      },
+      "verify_correct": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Z3 verified Uint256 transfer bounds",
+          "follow_up": [
+            "  type Uint256 = i64 where v >= 0 && v <= MAX.",
+            "  safe_transfer proves debit sufficiency and receiver overflow safety.",
+            "",
+            "  Step 4: Optional Lean proof checks DeFi balance invariants..."
+          ]
+        }
+      },
+      "lean_build": {
+        "certified": {
+          "icon": "✅",
+          "headline": "CERTIFIED: MumeiLean.DeFi"
+        }
+      }
+    }
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "detect_bug",
+        "name": "Z3 Bug Detection: Uint256 overflow",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/defi_invariant/buggy_code.mm",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": ["precondition (requires) not satisfied"],
+        "artifacts": [],
+        "harness_stage": "S1_z3_rejection",
+        "artifact_contract": [],
+        "verifier_gate": "Mumei/Z3 rejects the transfer because checked_uint256's upper-bound precondition is not proved.",
+        "failure_taxonomy": "uint256_overflow_boundary_violation"
+      },
+      {
+        "id": "verify_correct",
+        "name": "Z3 Correct DeFi Invariant Verification",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/defi_invariant/correct_code.mm --proof-cert --output {output_dir}/defi_invariant.proof.json",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed", "safe_transfer"],
+        "artifacts": ["defi_invariant.proof.json"],
+        "harness_stage": "S1_z3_acceptance",
+        "artifact_contract": ["defi_invariant.proof.json"],
+        "verifier_gate": "Mumei/Z3 accepts the transfer after Uint256 debit and credit bounds are required."
+      }
+    ]
+  },
+  "l3_lean": {
+    "steps": [
+      {
+        "id": "lean_build",
+        "name": "Lean DeFi Proof Build",
+        "repo": "mumei-lean",
+        "command": "lake build MumeiLean.DeFi",
+        "cwd": "{mumei_lean_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [],
+        "artifacts": [],
+        "optional_toolchain": "lake",
+        "optional_path": "{mumei_lean_repo}/MumeiLean/DeFi.lean",
+        "harness_stage": "S3_lean_certification",
+        "artifact_contract": [],
+        "verifier_gate": "Lean certifies the DeFi module when the optional proof file exists."
+      },
+      {
+        "id": "lean_bridge",
+        "name": "Lean Bridge Certificate",
+        "repo": "mumei-lean",
+        "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/defi_invariant.proof.json --lean-cert-out {output_dir}/defi_invariant.lean-cert.json --no-build",
+        "expected_exit": 0,
+        "expected_patterns": ["dry run: skipping `lake build`"],
+        "artifacts": ["defi_invariant.lean-cert.json"],
+        "depends_on": ["verify_correct", "lean_build"],
+        "optional_toolchain": "lake",
+        "harness_stage": "S3_lean_bridge",
+        "artifact_contract": ["defi_invariant.lean-cert.json"],
+        "verifier_gate": "The bridge converts the DeFi Z3 certificate into a Lean certificate dry run."
+      }
+    ]
+  }
+}

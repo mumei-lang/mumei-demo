@@ -1,0 +1,109 @@
+{
+  "name": "Merkle Tree Verification",
+  "version": "1.0.0",
+  "description": "Vitalik/ArkLib-style Merkle tree proof: Z3 rejects proof acceptance without the hash_function_secure precondition, then verifies the collision-resistance contract and optional Lean certificate.",
+  "layers": ["l1_z3", "l3_lean"],
+  "narrative": {
+    "intro": [
+      "Step 1: LLM generates Merkle proof verification code...",
+      "Step 2: mumei checks hash-function assumptions and root equality..."
+    ],
+    "before": "verify_merkle_root accepts a path computation without proving hash_function_secure or binding it to the expected root.",
+    "after": "The corrected contract requires hash_function_secure and the collision-resistance equality before accepting the Merkle root.",
+    "steps": {
+      "detect_bug": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "BUG DETECTED! Missing hash_function_secure assumption",
+          "follow_up": [
+            "  Merkle proof acceptance must bind the computed root to a collision-resistant hash.",
+            "  Buggy implementation returns leaf + sibling_hash without the security precondition.",
+            "",
+            "  Step 3: Verifying the collision-resistant contract..."
+          ]
+        }
+      },
+      "verify_correct": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Z3 verified Merkle root safety",
+          "follow_up": [
+            "  hash_function_secure == 1 is required before proof acceptance.",
+            "  leaf + sibling_hash == expected_root and root == expected_root discharge the path proof.",
+            "",
+            "  Step 4: Optional Lean proof certifies the Merkle collision-resistance module..."
+          ]
+        }
+      },
+      "lean_build": {
+        "certified": {
+          "icon": "✅",
+          "headline": "CERTIFIED: MumeiLean.MerkleTree"
+        }
+      }
+    }
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "detect_bug",
+        "name": "Z3 Bug Detection: missing hash security precondition",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/merkle_tree_verification/buggy_code.mm",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": ["Postcondition (ensures) is not satisfied"],
+        "artifacts": [],
+        "harness_stage": "S1_z3_rejection",
+        "artifact_contract": [],
+        "verifier_gate": "Mumei/Z3 rejects Merkle root acceptance when hash_function_secure is omitted.",
+        "failure_taxonomy": "missing_hash_security_precondition"
+      },
+      {
+        "id": "verify_correct",
+        "name": "Z3 Correct Merkle Verification",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/merkle_tree_verification/correct_code.mm --proof-cert --output {output_dir}/merkle_tree.proof.json",
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed", "verify_merkle_root"],
+        "artifacts": ["merkle_tree.proof.json"],
+        "harness_stage": "S1_z3_acceptance",
+        "artifact_contract": ["merkle_tree.proof.json"],
+        "verifier_gate": "Mumei/Z3 accepts the Merkle proof once hash_function_secure and root equality are required."
+      }
+    ]
+  },
+  "l3_lean": {
+    "steps": [
+      {
+        "id": "lean_build",
+        "name": "Lean Merkle Tree Proof Build",
+        "repo": "mumei-lean",
+        "command": "lake build MumeiLean.MerkleTree",
+        "cwd": "{mumei_lean_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [],
+        "artifacts": [],
+        "optional_toolchain": "lake",
+        "optional_path": "{mumei_lean_repo}/MumeiLean/MerkleTree.lean",
+        "harness_stage": "S3_lean_certification",
+        "artifact_contract": [],
+        "verifier_gate": "Lean certifies the Merkle tree module when the optional proof file exists."
+      },
+      {
+        "id": "lean_bridge",
+        "name": "Lean Bridge Certificate",
+        "repo": "mumei-lean",
+        "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/merkle_tree.proof.json --lean-cert-out {output_dir}/merkle_tree.lean-cert.json --no-build",
+        "expected_exit": 0,
+        "expected_patterns": ["dry run: skipping `lake build`"],
+        "artifacts": ["merkle_tree.lean-cert.json"],
+        "depends_on": ["verify_correct", "lean_build"],
+        "optional_toolchain": "lake",
+        "harness_stage": "S3_lean_bridge",
+        "artifact_contract": ["merkle_tree.lean-cert.json"],
+        "verifier_gate": "The bridge converts the Z3 certificate into a Lean certificate dry run."
+      }
+    ]
+  }
+}

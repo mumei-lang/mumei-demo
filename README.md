@@ -125,6 +125,16 @@ The Medical Device Control scenario added in PR #28 demonstrates CI-ready
 states and Lean certifies cumulative dosage safety. Run it with `make demo-medical`
 and inspect `reports/medical_device/latest/`.
 
+The Phase 4-6 scenarios are implemented as CI-ready `l1_z3` + `l3_lean`
+validations:
+
+- Phase 4 Merkle Tree Verification: Z3 rejects missing `hash_function_secure`
+  assumptions, then verifies the collision-resistance contract.
+- Phase 5 DeFi Invariant: Z3 rejects unchecked ERC-20 receiver overflow, then
+  verifies `Uint256` transfer bounds.
+- Phase 6 ArkLib-Style Audit: Z3 rejects contradictory top-level theorem
+  requirements, then verifies the reviewed audit theorem and proof certificate.
+
 ## Quick Start
 
 Prepare sibling checkouts and run the integrated demo sequence:
@@ -334,6 +344,36 @@ sequence.
 3. The corrected controller verifies Z3 safety constraints for allowed pump states.
 4. The Lean layer certifies cumulative dosage safety when `lake` and its proof
    module are available.
+5. The scenario is included in `make demo`, `make demo-all`, and `make demo-ci`.
+
+`make demo-merkle` executes the Merkle Tree Verification scenario:
+
+1. A buggy Merkle verifier accepts a path computation without requiring
+   `hash_function_secure`.
+2. `mumei verify` rejects the unbound root proof with an unsatisfied
+   postcondition.
+3. The corrected contract requires the security flag plus
+   `leaf + sibling_hash == expected_root` and verifies with Z3.
+4. The optional Lean layer targets `MumeiLean.MerkleTree` when available.
+5. The scenario is included in `make demo`, `make demo-all`, and `make demo-ci`.
+
+`make demo-defi` executes the DeFi Invariant scenario:
+
+1. A buggy ERC-20 transfer calls a `Uint256` checker without proving the
+   receiver-side upper bound.
+2. `mumei verify` rejects the missing precondition as a boundary violation.
+3. The corrected `safe_transfer` requires `to_balance + amount <= MAX` and
+   verifies the refined `Uint256` result with Z3.
+4. The optional Lean layer targets `MumeiLean.DeFi` when available.
+5. The scenario is included in `make demo`, `make demo-all`, and `make demo-ci`.
+
+`make demo-arklib` executes the ArkLib-Style Audit scenario:
+
+1. A buggy top-level theorem requires commitments to be both equal and unequal.
+2. `mumei verify` rejects the contradictory `requires` clauses.
+3. The corrected theorem binds the pre/post/invariant hash to the expected
+   implementation commitment and verifies with Z3.
+4. The optional Lean layer targets `MumeiLean.ArkLibAudit` when available.
 5. The scenario is included in `make demo`, `make demo-all`, and `make demo-ci`.
 
 ## What Mumei Adds to the Pipeline
