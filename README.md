@@ -135,6 +135,12 @@ validations:
 - Phase 6 ArkLib-Style Audit: Z3 rejects contradictory top-level theorem
   requirements, then verifies the reviewed audit theorem and proof certificate.
 
+The scenario harness is documented as an NLAH-style artifact contract in
+[`docs/HARNESS_CONTRACTS.md`](docs/HARNESS_CONTRACTS.md). Each
+`scenario.json` maps its Z3, agent, and Lean gates to the evidence written in
+`result.json`, `report.md`, proof certificates, Lean certificates, and dashboard
+summaries.
+
 ## Quick Start
 
 Prepare sibling checkouts and run the integrated demo sequence:
@@ -145,8 +151,9 @@ make setup && make demo
 
 `make setup` clones or refreshes `mumei`, `mumei-agent`, and `mumei-lean` next
 to this repository. `make demo` then runs the complete ten-scenario
-presentation sequence, integrates the Phase 1-3 demos, and writes reports under
-`reports/<scenario>/latest/` plus dashboard summaries.
+presentation sequence from `Makefile`'s `SCENARIOS` variable, integrates the
+Phase 1-6 demos, and writes reports under `reports/<scenario>/latest/` plus
+dashboard summaries.
 
 For CI-equivalent validation with fixture mode and dashboard summaries:
 
@@ -297,9 +304,9 @@ Proof Density: 100% (3/3 atoms)
 5. Smart Contract Audit.
 6. Medical Device Control.
 7. Aviation Control.
-8. Merkle Tree Verification.
-9. DeFi Invariant.
-10. ArkLib-Style Audit.
+8. Phase 4 Merkle Tree Verification.
+9. Phase 5 DeFi Invariant.
+10. Phase 6 ArkLib-Style Audit.
 
 It also generates `dashboard/summary.md` and `dashboard/highlights.md` from the
 latest scenario outputs. `make demo-all` remains an alias for the same integrated
@@ -413,20 +420,23 @@ intentionally stop at L1 + L2 when Z3 fully proves the relevant properties.
 
 ## Scenario Harness Contracts
 
-Scenarios can now include NLAH-style `harness_contract` metadata and per-step
-`harness_stage`, `artifact_contract`, `verifier_gate`, and `failure_taxonomy`
-fields. The runner copies these fields into `result.json`, and reports render
-them as evidence without changing command execution.
+Scenarios include NLAH-style `harness_contract` metadata, top-level
+`intent_fidelity`, and per-step `harness_stage`, `artifact_contract`,
+`verifier_gate`, and `failure_taxonomy` fields. The runner copies these fields
+into `result.json`, and reports render them as evidence without changing command
+execution.
 
 Use this to make each demo explicit about:
 
 - which layer sequence is the acceptance path,
 - which files are persistent artifacts,
 - which verifier gate accepts or rejects each step, and
-- which failure class is intentionally demonstrated.
+- which failure class is intentionally demonstrated,
+- how `result.json`, `report.md`, proof certificates, Lean certificates, and
+  dashboard summaries map back to the original scenario intent.
 
-See `docs/SCENARIO_SPEC.md` and `scenarios/_template/scenario.json` for the
-schema and copyable defaults.
+See `docs/HARNESS_CONTRACTS.md`, `docs/SCENARIO_SPEC.md`, and
+`scenarios/_template/scenario.json` for the schema and copyable defaults.
 
 ## Repositories
 

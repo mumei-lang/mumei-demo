@@ -2,7 +2,10 @@
   "name": "Smart Contract Audit: Reentrancy Guard",
   "version": "1.0.0",
   "description": "再入攻撃脆弱性を持つ withdraw 実装を Z3 が検出し、Checks-Effects-Interactions と任意の Lean 証明で資金保存則を検証するデモ",
-  "layers": ["l1_z3", "l3_lean"],
+  "layers": [
+    "l1_z3",
+    "l3_lean"
+  ],
   "narrative": {
     "intro": [
       "Step 1: LLM generates smart contract withdrawal code...",
@@ -52,8 +55,16 @@
         "command": "{mumei_bin} verify {root_dir}/scenarios/smart_contract_audit/buggy_code.mm",
         "expected_exit": 1,
         "expect_failure": true,
-        "expected_patterns": ["InvalidPreState"],
-        "artifacts": []
+        "expected_patterns": [
+          "InvalidPreState"
+        ],
+        "artifacts": [],
+        "harness_stage": "S1_z3_rejection_detect_bug",
+        "artifact_contract": [
+          "result.json step status and log capture the expected rejection diagnostic."
+        ],
+        "verifier_gate": "Command exits 1 and emits expected rejection evidence (InvalidPreState).",
+        "failure_taxonomy": "temporal_state_violation"
       },
       {
         "id": "verify_correct",
@@ -61,8 +72,18 @@
         "repo": "mumei",
         "command": "{mumei_bin} verify {root_dir}/scenarios/smart_contract_audit/correct_code.mm --proof-cert --output {output_dir}/smart_contract.proof.json",
         "expected_exit": 0,
-        "expected_patterns": ["Verification passed", "withdraw"],
-        "artifacts": ["smart_contract.proof.json"]
+        "expected_patterns": [
+          "Verification passed",
+          "withdraw"
+        ],
+        "artifacts": [
+          "smart_contract.proof.json"
+        ],
+        "harness_stage": "S1_z3_acceptance_verify_correct",
+        "artifact_contract": [
+          "smart_contract.proof.json"
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (Verification passed, withdraw)."
       }
     ]
   },
@@ -78,7 +99,12 @@
         "expected_patterns": [],
         "artifacts": [],
         "optional_toolchain": "lake",
-        "optional_path": "{mumei_lean_repo}/MumeiLean/SmartContract.lean"
+        "optional_path": "{mumei_lean_repo}/MumeiLean/SmartContract.lean",
+        "harness_stage": "S3_lean_certification_lean_build",
+        "artifact_contract": [
+          "result.json step status and log capture the Lean proof gate evidence."
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (no required output marker)."
       },
       {
         "id": "lean_bridge",
@@ -86,11 +112,51 @@
         "repo": "mumei-lean",
         "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/smart_contract.proof.json --lean-cert-out {output_dir}/smart_contract.lean-cert.json --no-build",
         "expected_exit": 0,
-        "expected_patterns": ["dry run: skipping `lake build`"],
-        "artifacts": ["smart_contract.lean-cert.json"],
-        "depends_on": ["verify_correct", "lean_build"],
-        "optional_toolchain": "lake"
+        "expected_patterns": [
+          "dry run: skipping `lake build`"
+        ],
+        "artifacts": [
+          "smart_contract.lean-cert.json"
+        ],
+        "depends_on": [
+          "verify_correct",
+          "lean_build"
+        ],
+        "optional_toolchain": "lake",
+        "harness_stage": "S3_lean_bridge_lean_bridge",
+        "artifact_contract": [
+          "smart_contract.lean-cert.json"
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (dry run: skipping `lake build`)."
       }
     ]
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3",
+      "l3_lean"
+    ],
+    "state_dir": "{output_dir}",
+    "intent": "Prove withdraw follows reentrancy-guard state order and preserves fund-update evidence.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/smart_contract_audit/buggy_code.mm, scenarios/smart_contract_audit/correct_code.mm, ../mumei-lean/MumeiLean/SmartContract.lean.",
+      "Generate evidence: result.json and report.md in reports/{scenario}/latest/ plus per-step logs.",
+      "result.json records reentrancy-state rejection, Z3 proof acceptance, and optional Lean gates.",
+      "report.md explains the Checks-Effects-Interactions before/after evidence.",
+      "smart_contract.proof.json is the L1 Z3 proof certificate for the guarded withdraw implementation.",
+      "smart_contract.lean-cert.json is the L3 bridge certificate when Lean assets are available.",
+      "dashboard/summary.md aggregates PASS and proof-density evidence for the scenario.",
+      "Gate order: l1_z3 -> l3_lean; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "Smart-contract withdraw must lock before external interaction and update balances safely.",
+    "success_criteria": [
+      "unguarded withdraw is rejected with InvalidPreState.",
+      "correct_code.mm verifies and emits smart_contract.proof.json.",
+      "Optional Lean build/bridge certifies smart-contract proof assets when available."
+    ],
+    "drift_risk": "Low: gate checks bind the exploit class to explicit state-transition diagnostics."
   }
 }

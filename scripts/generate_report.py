@@ -331,6 +331,21 @@ def render_harness_contract_markdown(data: dict) -> str:
             "| --- | --- | --- | --- |",
             *stage_rows,
         ])
+    intent_fidelity = data.get("intent_fidelity")
+    if isinstance(intent_fidelity, dict):
+        lines.extend([
+            "",
+            "### Intent fidelity",
+            "",
+            f"- Source intent: {intent_fidelity.get('source_intent', '_Not specified_')}",
+        ])
+        success_criteria = intent_fidelity.get("success_criteria", [])
+        if isinstance(success_criteria, list) and success_criteria:
+            lines.append("- Success criteria:")
+            for item in success_criteria:
+                lines.append(f"  - {item}")
+        if intent_fidelity.get("drift_risk"):
+            lines.append(f"- Drift risk: {intent_fidelity['drift_risk']}")
     return "\n".join(lines)
 
 

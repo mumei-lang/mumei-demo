@@ -516,6 +516,7 @@ def main(argv: list[str]) -> int:
         "description": scenario.get("description"),
         "narrative": narrative,
         "harness_contract": scenario.get("harness_contract"),
+        "intent_fidelity": scenario.get("intent_fidelity"),
         "timestamp": iso_timestamp,
         "layers": results,
         "overall_status": overall_status,

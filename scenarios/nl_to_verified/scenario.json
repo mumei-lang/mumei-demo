@@ -2,7 +2,10 @@
   "name": "Natural Language to Verified Mumei",
   "version": "1.0.0",
   "description": "自然言語の銀行送金要件から forge task spec JSON を抽出し、.mm コード生成と mumei verify までを2層で検証するデモ",
-  "layers": ["l2_agent", "l1_z3"],
+  "layers": [
+    "l2_agent",
+    "l1_z3"
+  ],
   "narrative": {
     "intro": [
       "Step 1: 自然言語の要件テキストから Mumei 仕様を抽出...",
@@ -26,8 +29,17 @@
         "command": "{mumei_agent_python} -m agent extract-spec --text-file {root_dir}/scenarios/nl_to_verified/{nl_requirements_file} --domain financial --output {output_dir}/extracted_spec.json",
         "cwd": "{mumei_agent_repo}",
         "expected_exit": 0,
-        "expected_patterns": ["Extracted spec written"],
-        "artifacts": ["extracted_spec.json"]
+        "expected_patterns": [
+          "Extracted spec written"
+        ],
+        "artifacts": [
+          "extracted_spec.json"
+        ],
+        "harness_stage": "S2_agent_extraction_extract_spec",
+        "artifact_contract": [
+          "extracted_spec.json"
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (Extracted spec written)."
       },
       {
         "id": "generate_code",
@@ -36,9 +48,20 @@
         "command": "{mumei_agent_python} -m agent generate --spec-file {output_dir}/extracted_spec.json --output {output_dir}/generated.mm",
         "cwd": "{mumei_agent_repo}",
         "expected_exit": 0,
-        "expected_patterns": ["Generated verified code written"],
-        "artifacts": ["generated.mm"],
-        "depends_on": ["extract_spec"]
+        "expected_patterns": [
+          "Generated verified code written"
+        ],
+        "artifacts": [
+          "generated.mm"
+        ],
+        "depends_on": [
+          "extract_spec"
+        ],
+        "harness_stage": "S2_agent_generation_generate_code",
+        "artifact_contract": [
+          "generated.mm"
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (Generated verified code written)."
       }
     ]
   },
@@ -50,10 +73,47 @@
         "repo": "mumei",
         "command": "{mumei_bin} verify {output_dir}/generated.mm",
         "expected_exit": 0,
-        "expected_patterns": ["Verification passed"],
+        "expected_patterns": [
+          "Verification passed"
+        ],
         "artifacts": [],
-        "depends_on": ["generate_code"]
+        "depends_on": [
+          "generate_code"
+        ],
+        "harness_stage": "S1_z3_acceptance_verify_code",
+        "artifact_contract": [
+          "result.json step status and log capture the verifier gate evidence."
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (Verification passed)."
       }
     ]
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l2_agent",
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "intent": "Trace natural-language transfer requirements through extracted spec, generated Mumei code, and final Z3 verification.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/nl_to_verified/spec_text.md, scenarios/nl_to_verified/expected/extracted_spec.json, ../mumei-agent extraction/generation commands, generated.mm from {output_dir}.",
+      "Generate evidence: result.json and report.md in reports/{scenario}/latest/ plus per-step logs.",
+      "result.json records extraction, generation, and final verification gates.",
+      "report.md explains the natural-language-to-verified flow.",
+      "extracted_spec.json is the L2 artifact proving requirements were converted to structured spec.",
+      "generated.mm is the L2 generated implementation consumed by L1.",
+      "dashboard/summary.md aggregates PASS and proof-density evidence for the scenario.",
+      "Gate order: l2_agent -> l1_z3; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "Natural-language banking requirements must map to a structured forge spec and verified Mumei implementation.",
+    "success_criteria": [
+      "extract_spec writes extracted_spec.json.",
+      "generate_code writes generated.mm from the extracted spec.",
+      "verify_code accepts generated.mm with Verification passed."
+    ],
+    "drift_risk": "Medium: intent fidelity depends on extraction quality, so extracted_spec.json is retained as review evidence."
   }
 }

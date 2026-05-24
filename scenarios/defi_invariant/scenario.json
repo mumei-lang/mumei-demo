@@ -2,7 +2,10 @@
   "name": "DeFi Invariant: ERC-20 Uint256 Safety",
   "version": "1.0.0",
   "description": "ERC-20 transfer overflow prevention demo: Z3 rejects a receiver balance update without a Uint256 upper-bound proof, then verifies the refined safe_transfer invariant.",
-  "layers": ["l1_z3", "l3_lean"],
+  "layers": [
+    "l1_z3",
+    "l3_lean"
+  ],
   "narrative": {
     "intro": [
       "Step 1: LLM generates ERC-20 transfer code...",
@@ -52,7 +55,9 @@
         "command": "{mumei_bin} verify {root_dir}/scenarios/defi_invariant/buggy_code.mm",
         "expected_exit": 1,
         "expect_failure": true,
-        "expected_patterns": ["precondition (requires) not satisfied"],
+        "expected_patterns": [
+          "precondition (requires) not satisfied"
+        ],
         "artifacts": [],
         "harness_stage": "S1_z3_rejection",
         "artifact_contract": [],
@@ -65,10 +70,17 @@
         "repo": "mumei",
         "command": "{mumei_bin} verify {root_dir}/scenarios/defi_invariant/correct_code.mm --proof-cert --output {output_dir}/defi_invariant.proof.json",
         "expected_exit": 0,
-        "expected_patterns": ["Verification passed", "safe_transfer"],
-        "artifacts": ["defi_invariant.proof.json"],
+        "expected_patterns": [
+          "Verification passed",
+          "safe_transfer"
+        ],
+        "artifacts": [
+          "defi_invariant.proof.json"
+        ],
         "harness_stage": "S1_z3_acceptance",
-        "artifact_contract": ["defi_invariant.proof.json"],
+        "artifact_contract": [
+          "defi_invariant.proof.json"
+        ],
         "verifier_gate": "Mumei/Z3 accepts the transfer after Uint256 debit and credit bounds are required."
       }
     ]
@@ -96,14 +108,51 @@
         "repo": "mumei-lean",
         "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/defi_invariant.proof.json --lean-cert-out {output_dir}/defi_invariant.lean-cert.json --no-build",
         "expected_exit": 0,
-        "expected_patterns": ["dry run: skipping `lake build`"],
-        "artifacts": ["defi_invariant.lean-cert.json"],
-        "depends_on": ["verify_correct", "lean_build"],
+        "expected_patterns": [
+          "dry run: skipping `lake build`"
+        ],
+        "artifacts": [
+          "defi_invariant.lean-cert.json"
+        ],
+        "depends_on": [
+          "verify_correct",
+          "lean_build"
+        ],
         "optional_toolchain": "lake",
         "harness_stage": "S3_lean_bridge",
-        "artifact_contract": ["defi_invariant.lean-cert.json"],
+        "artifact_contract": [
+          "defi_invariant.lean-cert.json"
+        ],
         "verifier_gate": "The bridge converts the DeFi Z3 certificate into a Lean certificate dry run."
       }
     ]
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3",
+      "l3_lean"
+    ],
+    "state_dir": "{output_dir}",
+    "intent": "Prove ERC-20 transfers cannot overflow Uint256 receiver balances and preserve debit/credit bounds.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/defi_invariant/buggy_code.mm, scenarios/defi_invariant/correct_code.mm, ../mumei-lean/MumeiLean/DeFi.lean.",
+      "Generate evidence: result.json and report.md in reports/{scenario}/latest/ plus per-step logs.",
+      "result.json records Uint256-bound rejection, Z3 proof acceptance, and optional Lean gates.",
+      "report.md explains the DeFi overflow before/after evidence.",
+      "defi_invariant.proof.json is the L1 Z3 proof certificate for safe_transfer.",
+      "defi_invariant.lean-cert.json is the L3 bridge certificate when Lean assets are available.",
+      "dashboard/summary.md aggregates PASS and proof-density evidence for the scenario.",
+      "Gate order: l1_z3 -> l3_lean; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "ERC-20 safe_transfer must prove debit sufficiency and receiver Uint256 upper-bound safety.",
+    "success_criteria": [
+      "buggy transfer is rejected for unsatisfied checked_uint256 precondition.",
+      "correct_code.mm verifies and emits defi_invariant.proof.json.",
+      "Optional Lean build/bridge certifies DeFi proof assets when available."
+    ],
+    "drift_risk": "Low: expected diagnostics bind the bug to the Uint256 boundary precondition."
   }
 }

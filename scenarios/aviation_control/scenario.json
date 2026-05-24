@@ -2,7 +2,10 @@
   "name": "Aviation Control: Runway Allocation Protocol",
   "version": "1.0.0",
   "description": "滑走路割り当てプロトコルにおける競合状態をZ3が検出し、ロック順序と不変条件で安全性を検証するデモ",
-  "layers": ["l1_z3", "l2_agent"],
+  "layers": [
+    "l1_z3",
+    "l2_agent"
+  ],
   "narrative": {
     "intro": [
       "Step 1: LLM generates runway allocation code...",
@@ -52,8 +55,16 @@
         "command": "{mumei_bin} verify {root_dir}/scenarios/aviation_control/buggy_code.mm",
         "expected_exit": 1,
         "expect_failure": true,
-        "expected_patterns": ["InvalidPreState"],
-        "artifacts": []
+        "expected_patterns": [
+          "InvalidPreState"
+        ],
+        "artifacts": [],
+        "harness_stage": "S1_z3_rejection_detect_bug",
+        "artifact_contract": [
+          "result.json step status and log capture the expected rejection diagnostic."
+        ],
+        "verifier_gate": "Command exits 1 and emits expected rejection evidence (InvalidPreState).",
+        "failure_taxonomy": "temporal_state_violation"
       },
       {
         "id": "verify_correct",
@@ -61,8 +72,16 @@
         "repo": "mumei",
         "command": "{mumei_bin} verify {root_dir}/scenarios/aviation_control/correct_code.mm",
         "expected_exit": 0,
-        "expected_patterns": ["Verification passed", "allocate_runway"],
-        "artifacts": []
+        "expected_patterns": [
+          "Verification passed",
+          "allocate_runway"
+        ],
+        "artifacts": [],
+        "harness_stage": "S1_z3_acceptance_verify_correct",
+        "artifact_contract": [
+          "result.json step status and log capture the verifier gate evidence."
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (Verification passed, allocate_runway)."
       }
     ]
   },
@@ -77,8 +96,42 @@
         "expected_exit": 0,
         "expected_patterns": [],
         "artifacts": [],
-        "depends_on": ["verify_correct"]
+        "depends_on": [
+          "verify_correct"
+        ],
+        "harness_stage": "S2_agent_preview_forge_dryrun",
+        "artifact_contract": [
+          "result.json step status and log capture the agent gate evidence."
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (no required output marker)."
       }
     ]
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3",
+      "l2_agent"
+    ],
+    "state_dir": "{output_dir}",
+    "intent": "Prove runway allocation uses ordered locking and preserves mutual exclusion/deadlock-freedom evidence.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/aviation_control/buggy_code.mm, scenarios/aviation_control/correct_code.mm, ../mumei-agent/forge_tasks/vstd_aviation_control.json.",
+      "Generate evidence: result.json and report.md in reports/{scenario}/latest/ plus per-step logs.",
+      "result.json records lock-order rejection, correct Z3 acceptance, and agent dry-run.",
+      "report.md explains the runway allocation before/after evidence.",
+      "The L1 gate has no standalone proof certificate; result.json and logs are the verification evidence.",
+      "dashboard/summary.md aggregates PASS and proof-density evidence for the scenario.",
+      "Gate order: l1_z3 -> l2_agent; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "Runway allocation must prevent circular wait and concurrent runway ownership.",
+    "success_criteria": [
+      "unordered allocation is rejected with InvalidPreState.",
+      "correct_code.mm verifies allocate_runway.",
+      "Agent dry-run validates vstd_aviation_control task after L1 acceptance."
+    ],
+    "drift_risk": "Medium: no separate proof certificate is emitted, so logs/result.json remain the primary evidence."
   }
 }
