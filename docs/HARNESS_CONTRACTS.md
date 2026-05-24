@@ -89,6 +89,19 @@ Each step can additionally declare:
 | `dashboard/summary.md` | Cross-scenario gate | Aggregates latest scenario status and proof density; `--require-all` makes missing scenario results fail the report target. |
 | `dashboard/highlights.md` | Cross-scenario explanation | Summarizes scenario outcomes for dashboard/review use. |
 
+## Harness contract compliance
+
+Each `result.json` includes `harness_contract_compliance`, a derived checklist
+that is rendered by `report.md`, the CLI dashboard, `dashboard/summary.md`, and
+the Streamlit dashboard. A scenario is `COMPLIANT` when:
+
+- top-level `harness_contract` metadata is present;
+- `policy`, `acceptance_path`, and `artifact_contracts` are declared;
+- `acceptance_path` matches the executed layer order;
+- top-level `intent_fidelity` is declared; and
+- every executed step exposes `harness_stage`, `artifact_contract`, and
+  `verifier_gate`.
+
 ## Scenario-to-gate mapping
 
 | Scenario | L1 evidence | L2 evidence | L3 evidence | Dashboard evidence |

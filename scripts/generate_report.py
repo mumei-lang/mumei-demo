@@ -289,19 +289,53 @@ def render_proof_density_markdown(data: dict) -> str:
     return "\n".join(lines)
 
 
+def compliance_values(data: dict) -> tuple[str, int, int]:
+    compliance = data.get("harness_contract_compliance", {})
+    if not isinstance(compliance, dict):
+        return "N/A", 0, 0
+    return (
+        str(compliance.get("status", "N/A")),
+        int(compliance.get("passed", 0)),
+        int(compliance.get("total", 0)),
+    )
+
+
+def compliance_label(data: dict) -> str:
+    status, passed, total = compliance_values(data)
+    if total == 0:
+        return status
+    return f"{status} ({passed}/{total})"
+
+
 def render_harness_contract_markdown(data: dict) -> str:
     contract = data.get("harness_contract")
     if not isinstance(contract, dict):
         return ""
 
+    compliance = data.get("harness_contract_compliance", {})
     lines = [
         "## Harness Contract",
         "",
+        f"- Compliance: **{compliance_label(data)}**",
         f"- Policy: `{contract.get('policy', 'unspecified')}`",
         f"- Acceptance path: `{', '.join(str(item) for item in contract.get('acceptance_path', []))}`",
         f"- State directory: `{contract.get('state_dir', 'unspecified')}`",
         f"- Intent: {contract.get('intent', '_Not specified_')}",
     ]
+    if isinstance(compliance, dict) and isinstance(compliance.get("checks"), list):
+        lines.extend([
+            "",
+            "### Compliance checks",
+            "",
+            "| Check | Result |",
+            "| --- | --- |",
+        ])
+        for check in compliance["checks"]:
+            if not isinstance(check, dict):
+                continue
+            result = "PASS" if check.get("passed") else "ATTENTION"
+            name = str(check.get("name", "")).replace("|", "\\|")
+            lines.append(f"| {name} | {result} |")
     artifact_contracts = contract.get("artifact_contracts", [])
     if isinstance(artifact_contracts, list) and artifact_contracts:
         lines.extend(["", "### Artifact contracts"])
@@ -436,7 +470,7 @@ def write_summary(
     scenarios: list[str],
     require_all: bool,
 ) -> int:
-    rows: list[tuple[str, str, int, int, float, str]] = []
+    rows: list[tuple[str, str, int, int, float, str, str]] = []
     missing: list[str] = []
     for scenario in scenarios:
         result_path = latest_result_path(reports_dir, scenario)
@@ -455,6 +489,7 @@ def write_summary(
             total,
             percentage,
             lean_density,
+            compliance_label(data),
         ))
 
     lines = [
@@ -462,12 +497,12 @@ def write_summary(
         "",
         f"Generated: {generated_at()}",
         "",
-        "| Scenario | Overall status | Verified | Total | Proof density | Lean proof coverage |",
-        "| --- | --- | ---: | ---: | ---: | ---: |",
+        "| Scenario | Overall status | Verified | Total | Proof density | Lean proof coverage | Harness contract compliance |",
+        "| --- | --- | ---: | ---: | ---: | ---: | --- |",
     ]
-    for scenario, status, verified, total, percentage, lean_density in rows:
+    for scenario, status, verified, total, percentage, lean_density, compliance in rows:
         lines.append(
-            f"| `{scenario}` | {status} | {verified} | {total} | {percentage:g}% | {lean_density} |"
+            f"| `{scenario}` | {status} | {verified} | {total} | {percentage:g}% | {lean_density} | {compliance} |"
         )
     if missing:
         lines.extend(["", "## Missing results", ""])
@@ -512,6 +547,7 @@ def write_highlights(
         ])
         if "l3_lean" in data.get("layers", {}):
             lines.append(f"- Lean proof coverage: {density_label(*layer_density_values(data, 'l3_lean'))}")
+        lines.append(f"- Harness contract compliance: {compliance_label(data)}")
         lines.extend([
             "",
             bug_detection_moment(data, root, "### Bug Detection Moment", "####"),
