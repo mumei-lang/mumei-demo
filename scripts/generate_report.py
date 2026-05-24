@@ -19,6 +19,9 @@ SCENARIO_ORDER = [
     "smart_contract_audit",
     "medical_device",
     "aviation_control",
+    "merkle_tree_verification",
+    "defi_invariant",
+    "arklib_style_audit",
 ]
 LAYER_LABELS = {
     "l1_z3": "L1 / Z3",
