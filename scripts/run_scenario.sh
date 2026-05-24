@@ -265,6 +265,66 @@ def proof_density(step_results: dict[str, dict]) -> dict[str, float | int]:
     return {"verified": verified, "total": total, "percentage": percentage}
 
 
+def harness_contract_compliance(result: dict) -> dict[str, object]:
+    contract = result.get("harness_contract")
+    intent_fidelity = result.get("intent_fidelity")
+    layers = result.get("layers", {})
+    steps = [
+        step
+        for payload in layers.values()
+        for step in payload.get("steps", [])
+    ]
+    checks = [
+        {
+            "name": "top-level harness_contract present",
+            "passed": isinstance(contract, Mapping),
+        },
+        {
+            "name": "policy declared",
+            "passed": isinstance(contract, Mapping) and bool(contract.get("policy")),
+        },
+        {
+            "name": "acceptance_path matches executed layers",
+            "passed": (
+                isinstance(contract, Mapping)
+                and list(contract.get("acceptance_path", [])) == list(layers.keys())
+            ),
+        },
+        {
+            "name": "artifact_contracts declared",
+            "passed": (
+                isinstance(contract, Mapping)
+                and isinstance(contract.get("artifact_contracts"), list)
+                and bool(contract.get("artifact_contracts"))
+            ),
+        },
+        {
+            "name": "intent_fidelity declared",
+            "passed": isinstance(intent_fidelity, Mapping)
+            and bool(intent_fidelity.get("source_intent"))
+            and bool(intent_fidelity.get("success_criteria")),
+        },
+        {
+            "name": "all steps expose harness stage gates",
+            "passed": bool(steps)
+            and all(
+                step.get("harness_stage")
+                and "artifact_contract" in step
+                and step.get("verifier_gate")
+                for step in steps
+            ),
+        },
+    ]
+    passed = sum(1 for check in checks if check["passed"])
+    total = len(checks)
+    return {
+        "status": "COMPLIANT" if passed == total else "ATTENTION",
+        "passed": passed,
+        "total": total,
+        "checks": checks,
+    }
+
+
 def main(argv: list[str]) -> int:
     values = parse_args(argv)
     root = Path(str(values["root_dir"]))
@@ -523,6 +583,7 @@ def main(argv: list[str]) -> int:
         "proof_density": proof_density(step_index),
         "artifacts": artifacts,
     }
+    result["harness_contract_compliance"] = harness_contract_compliance(result)
     (output_dir / "result.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     latest = root / "reports" / scenario_name / "latest"
@@ -556,10 +617,20 @@ def main(argv: list[str]) -> int:
     )
     if overall_status == "PASS":
         story()
+        compliance = result["harness_contract_compliance"]
+        story(
+            "  Harness contract compliance: "
+            f"{compliance['status']} ({compliance['passed']}/{compliance['total']} checks)"
+        )
         story("  Result: Bug caught. Correct code proven. Zero human review.")
         print("╚" + "═" * (box_width - 2) + "╝")
     else:
         story()
+        compliance = result["harness_contract_compliance"]
+        story(
+            "  Harness contract compliance: "
+            f"{compliance['status']} ({compliance['passed']}/{compliance['total']} checks)"
+        )
         story("  Result: Demo failed. Inspect result.json for details.")
         print("╚" + "═" * (box_width - 2) + "╝")
     return 0 if overall_status == "PASS" else 1

@@ -58,6 +58,17 @@ def layer_density_values(data: dict, layer: str) -> tuple[int, int, float]:
     return verified, total, percentage
 
 
+def compliance_label(data: dict) -> str:
+    compliance = data.get("harness_contract_compliance", {})
+    if not isinstance(compliance, dict):
+        return "N/A"
+    total = int(compliance.get("total", 0) or 0)
+    status = str(compliance.get("status", "N/A"))
+    if total == 0:
+        return status
+    return f"{status} ({int(compliance.get('passed', 0) or 0)}/{total})"
+
+
 def render(data: dict) -> str:
     title = f"  Mumei Verification Report: {data.get('scenario_name', data.get('scenario'))}"
     narrative = data.get("narrative", {})
@@ -90,6 +101,7 @@ def render(data: dict) -> str:
         lean_verified, lean_total, lean_percentage = layer_density_values(data, "l3_lean")
         lean_label = "N/A" if lean_total == 0 else f"{lean_percentage:g}% ({lean_verified}/{lean_total} steps)"
         table.append(f"  Lean Coverage: {lean_label}")
+    table.append(f"  Harness Contract: {compliance_label(data)}")
     table.extend([
         f"  Audit Status:  {audit_status}",
         "  Moment:        Proof failure → Bug found",
@@ -108,8 +120,8 @@ def latest_result(scenario_dir: Path) -> Path | None:
 
 def render_all() -> str:
     lines = [
-        "Scenario                  Status      Verification  Proof Density       Lean Coverage",
-        "────────────────────────  ──────────  ────────────  ──────────────────  ─────────────",
+        "Scenario                  Status      Verification  Proof Density       Lean Coverage  Harness Contract",
+        "────────────────────────  ──────────  ────────────  ──────────────────  ─────────────  ─────────────────",
     ]
     for scenario_dir in sorted((ROOT / "scenarios").iterdir()):
         if not scenario_dir.is_dir() or scenario_dir.name == "_template":
@@ -136,7 +148,8 @@ def render_all() -> str:
             f"{data.get('overall_status', 'UNKNOWN'):<10}  "
             f"{verification:<12}  "
             f"{proof_density[:18]:<18}  "
-            f"{lean_density}"
+            f"{lean_density:<13}  "
+            f"{compliance_label(data)}"
         )
     return "\n".join(lines)
 

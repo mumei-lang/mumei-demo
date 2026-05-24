@@ -226,6 +226,11 @@ For CI-equivalent validation with a dashboard summary:
 make demo-ci
 ```
 
+Each scenario run writes `harness_contract_compliance` into
+`reports/<scenario>/latest/result.json`. `make demo-nl` prints the compliance
+status, `report.md` renders the checklist, and the dashboard summary shows the
+same compliance value across scenarios.
+
 ## Scenario Examples
 
 ### Ownership Transfer

@@ -52,6 +52,17 @@ def layer_density_values(data: dict, layer: str) -> tuple[int, int, float]:
     return verified, total, percentage
 
 
+def compliance_label(data: dict) -> str:
+    compliance = data.get("harness_contract_compliance", {})
+    if not isinstance(compliance, dict):
+        return "N/A"
+    total = int(compliance.get("total", 0) or 0)
+    status = str(compliance.get("status", "N/A"))
+    if total == 0:
+        return status
+    return f"{status} ({int(compliance.get('passed', 0) or 0)}/{total})"
+
+
 def render_spec_code_mapping(data: dict) -> None:
     st.subheader("Specification-Code Mapping")
     spec_code_mapping = data.get("spec_code_mapping", [])
@@ -111,12 +122,42 @@ def render_harness_contract(data: dict) -> None:
         return
 
     st.subheader("Harness Contract")
-    st.json(contract)
+    compliance = data.get("harness_contract_compliance", {})
+    status = compliance.get("status", "N/A") if isinstance(compliance, dict) else "N/A"
+    st.metric("Harness Contract Compliance", compliance_label(data))
+    st.markdown(f"**Policy:** `{contract.get('policy', 'unspecified')}`")
+    st.markdown(f"**Acceptance path:** `{', '.join(str(item) for item in contract.get('acceptance_path', []))}`")
+    st.markdown(f"**Intent:** {contract.get('intent', '_Not specified_')}")
+
+    if status != "COMPLIANT":
+        st.warning("Harness contract metadata needs attention.")
+    if isinstance(compliance, dict) and isinstance(compliance.get("checks"), list):
+        st.table([
+            {
+                "check": check.get("name", ""),
+                "result": "PASS" if check.get("passed") else "ATTENTION",
+            }
+            for check in compliance["checks"]
+            if isinstance(check, dict)
+        ])
+
+    artifact_contracts = contract.get("artifact_contracts", [])
+    if isinstance(artifact_contracts, list) and artifact_contracts:
+        with st.expander("Artifact Contracts", expanded=True):
+            for item in artifact_contracts:
+                st.markdown(f"- {item}")
 
     intent_fidelity = data.get("intent_fidelity")
     if isinstance(intent_fidelity, dict):
-        st.markdown("#### Intent Fidelity")
-        st.json(intent_fidelity)
+        with st.expander("Intent Fidelity", expanded=True):
+            st.markdown(f"**Source intent:** {intent_fidelity.get('source_intent', 'N/A')}")
+            criteria = intent_fidelity.get("success_criteria", [])
+            if isinstance(criteria, list) and criteria:
+                st.markdown("**Success criteria:**")
+                for item in criteria:
+                    st.markdown(f"- {item}")
+            if intent_fidelity.get("drift_risk"):
+                st.markdown(f"**Drift risk:** {intent_fidelity['drift_risk']}")
 
     rows = []
     for layer, payload in data.get("layers", {}).items():
@@ -131,6 +172,7 @@ def render_harness_contract(data: dict) -> None:
                 "failure_taxonomy": step.get("failure_taxonomy", ""),
             })
     if rows:
+        st.markdown("#### Stage Gates")
         st.table(rows)
 
 
@@ -161,15 +203,16 @@ def main() -> None:
         col.metric(layer, payload.get("status", "UNKNOWN"))
 
     density = data.get("proof_density", {})
-    metric_cols = st.columns(2 if has_lean else 1)
+    metric_cols = st.columns(3 if has_lean else 2)
     metric_cols[0].metric(
         "Proof Density",
         f"{density.get('percentage', 0):g}%",
         f"{density.get('verified', 0)}/{density.get('total', 0)} atoms",
     )
+    metric_cols[1].metric("Harness Contract", compliance_label(data))
     if has_lean:
         lean_verified, lean_total, lean_percentage = layer_density_values(data, "l3_lean")
-        metric_cols[1].metric(
+        metric_cols[2].metric(
             "Lean Proof Coverage",
             f"{lean_percentage:g}%" if lean_total else "N/A",
             f"{lean_verified}/{lean_total} Lean steps",
