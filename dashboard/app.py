@@ -113,6 +113,11 @@ def render_harness_contract(data: dict) -> None:
     st.subheader("Harness Contract")
     st.json(contract)
 
+    intent_fidelity = data.get("intent_fidelity")
+    if isinstance(intent_fidelity, dict):
+        st.markdown("#### Intent Fidelity")
+        st.json(intent_fidelity)
+
     rows = []
     for layer, payload in data.get("layers", {}).items():
         for step in payload.get("steps", []):
