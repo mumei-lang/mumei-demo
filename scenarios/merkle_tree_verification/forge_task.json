@@ -1,0 +1,16 @@
+{
+  "task_id": "merkle-tree-verification",
+  "description": "Preview task for a Merkle root verifier that requires hash-function security and root equality evidence.",
+  "target_file": "std/merkle_tree.mm",
+  "mode": "create",
+  "atoms": [
+    {
+      "name": "verify_merkle_root",
+      "description": "Accept a Merkle proof only when the hash function is marked secure and the computed path equals the expected root.",
+      "requires": "root >= 0 && leaf >= 0 && sibling_hash >= 0 && expected_root >= 0 && hash_function_secure == 1 && leaf + sibling_hash == expected_root && root == expected_root",
+      "ensures": "result == expected_root"
+    }
+  ],
+  "max_retries": 3,
+  "difficulty": "medium"
+}

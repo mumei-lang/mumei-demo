@@ -45,7 +45,7 @@ python3 -m json.tool scenarios/nl_to_verified/expected/extracted_spec.json >/dev
 
 ## Full CI-equivalent validation (`make demo-ci`)
 
-This is the fastest way to validate the complete pipeline without live LLM credentials. It runs all seven scenarios with fixture mode enabled by the Makefile target, then generates a cross-scenario summary.
+This is the fastest way to validate the complete pipeline without live LLM credentials. It runs all configured scenarios with fixture mode enabled by the Makefile target, then generates a cross-scenario summary.
 
 ```bash
 # Clean stale reports first
@@ -58,10 +58,10 @@ make demo-ci
 Expected assertions:
 
 - Command exits `0`.
-- `reports/{scenario}/latest/result.json` exists for all seven scenarios: `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`, `nl_to_verified`, `smart_contract_audit`, `medical_device`, and `aviation_control`.
+- `reports/{scenario}/latest/result.json` exists for all configured scenarios: `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`, `nl_to_verified`, `smart_contract_audit`, `medical_device`, `aviation_control`, `merkle_tree_verification`, `defi_invariant`, and `arklib_style_audit`.
 - Each `result.json` has `overall_status == "PASS"`.
-- Each `result.json` has `proof_density.percentage == 100` with these densities: ownership_transfer 6/6, rtgs_settlement 6/6, regtech_compliance 5/5, nl_to_verified 3/3, smart_contract_audit 4/4, medical_device 4/4, aviation_control 3/3.
-- `dashboard/summary.md` exists with a markdown table containing all seven scenario rows.
+- Each `result.json` has `proof_density.percentage == 100` with these densities: ownership_transfer 6/6, rtgs_settlement 6/6, regtech_compliance 5/5, nl_to_verified 3/3, smart_contract_audit 4/4, medical_device 4/4, aviation_control 3/3, merkle_tree_verification 5/5, defi_invariant 2/2, arklib_style_audit 4/4.
+- `dashboard/summary.md` exists with a markdown table containing all configured scenario rows.
 - `dashboard/summary.md` has no "Missing results" section.
 
 ### Cross-scenario summary validation
@@ -82,6 +82,9 @@ Expected table rows:
 | `smart_contract_audit` | PASS | 4 | 4 | 100% |
 | `medical_device` | PASS | 4 | 4 | 100% |
 | `aviation_control` | PASS | 3 | 3 | 100% |
+| `merkle_tree_verification` | PASS | 5 | 5 | 100% |
+| `defi_invariant` | PASS | 2 | 2 | 100% |
+| `arklib_style_audit` | PASS | 4 | 4 | 100% |
 ```
 
 You can also generate the summary standalone:
@@ -99,7 +102,7 @@ rm -rf reports/ dashboard/summary.md
 MUMEI_BIN=/nonexistent/mumei make demo-ci; echo "EXIT_CODE=$?"
 ```
 
-Expected: exit code is non-zero. All seven scenarios still run with continue-on-failure behavior and `dashboard/summary.md` is still generated.
+Expected: exit code is non-zero. All configured scenarios still run with continue-on-failure behavior and `dashboard/summary.md` is still generated.
 
 Tip: Corrupting `.mm` source files may not trigger a failure because `mumei verify` can report "0 item(s) verified" with exit code 0 when the file contains no atoms. Use a missing binary or missing scenario config to force a definitive failure instead.
 
