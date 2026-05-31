@@ -60,7 +60,9 @@
         ],
         "artifacts": [],
         "harness_stage": "S1_z3_rejection",
-        "artifact_contract": [],
+        "artifact_contract": [
+          "detect_bug.log records the expected checked_uint256 precondition rejection."
+        ],
         "verifier_gate": "Mumei/Z3 rejects the transfer because checked_uint256's upper-bound precondition is not proved.",
         "failure_taxonomy": "uint256_overflow_boundary_violation"
       },
@@ -99,7 +101,9 @@
         "optional_toolchain": "lake",
         "optional_path": "{mumei_lean_repo}/MumeiLean/DeFi.lean",
         "harness_stage": "S3_lean_certification",
-        "artifact_contract": [],
+        "artifact_contract": [
+          "lean_build.log records the optional DeFi Lean module certification gate."
+        ],
         "verifier_gate": "Lean certifies the DeFi module when the optional proof file exists."
       },
       {
@@ -134,11 +138,13 @@
       "l3_lean"
     ],
     "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
     "intent": "Prove ERC-20 transfers cannot overflow Uint256 receiver balances and preserve debit/credit bounds.",
     "artifact_contracts": [
       "Read inputs: scenarios/defi_invariant/buggy_code.mm, scenarios/defi_invariant/correct_code.mm, ../mumei-lean/MumeiLean/DeFi.lean.",
-      "Generate evidence: result.json and report.md in reports/{scenario}/latest/ plus per-step logs.",
-      "result.json records Uint256-bound rejection, Z3 proof acceptance, and optional Lean gates.",
+      "Generate evidence: defi_invariant.proof.json, optional defi_invariant.lean-cert.json, harness_state.json, result.json, report.md, and per-step logs.",
+      "harness_state.json persists policy, compliance, intent fidelity, artifact inventory, and verification evidence for dashboard replay.",
+      "result.json records Uint256-bound rejection, Z3 proof acceptance, optional Lean gates, artifact payload previews, and verification_evidence rows.",
       "report.md explains the DeFi overflow before/after evidence.",
       "defi_invariant.proof.json is the L1 Z3 proof certificate for safe_transfer.",
       "defi_invariant.lean-cert.json is the L3 bridge certificate when Lean assets are available.",

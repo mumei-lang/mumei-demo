@@ -63,6 +63,45 @@ def compliance_label(data: dict) -> str:
     return f"{status} ({int(compliance.get('passed', 0) or 0)}/{total})"
 
 
+def intent_fidelity_label(data: dict) -> str:
+    summary = data.get("intent_fidelity_summary", {})
+    if not isinstance(summary, dict):
+        return "N/A"
+    status = str(summary.get("status", "N/A"))
+    score = summary.get("score")
+    criteria_total = int(summary.get("criteria_total", 0) or 0)
+    criteria_passed = int(summary.get("criteria_passed", 0) or 0)
+    parts = [status]
+    if score is not None:
+        try:
+            parts.append(f"score {float(score):.2f}")
+        except (TypeError, ValueError):
+            parts.append(f"score {score}")
+    if criteria_total:
+        parts.append(f"{criteria_passed}/{criteria_total} criteria")
+    return " · ".join(parts)
+
+
+def artifact_payload_summary(payload: object) -> str:
+    if not isinstance(payload, dict):
+        return "captured"
+    if "error" in payload:
+        return f"error: {payload['error']}"
+    if "certificate_hash" in payload:
+        return f"proof certificate {payload['certificate_hash']}"
+    if "all_verified" in payload:
+        return f"proof certificate all_verified={payload['all_verified']}"
+    if payload.get("scenario"):
+        return f"harness state for {payload.get('scenario')}"
+    if payload.get("type") == "text":
+        return "text preview captured"
+    if "atoms" in payload:
+        atoms = payload.get("atoms")
+        count = len(atoms) if isinstance(atoms, list) else "unknown"
+        return f"structured spec with {count} atom(s)"
+    return "captured"
+
+
 def render_spec_code_mapping(data: dict) -> None:
     st.subheader("Specification-Code Mapping")
     spec_code_mapping = data.get("spec_code_mapping", [])
@@ -127,6 +166,8 @@ def render_harness_contract(data: dict) -> None:
     st.metric("Harness Contract Compliance", compliance_label(data))
     st.markdown(f"**Policy:** `{contract.get('policy', 'unspecified')}`")
     st.markdown(f"**Acceptance path:** `{', '.join(str(item) for item in contract.get('acceptance_path', []))}`")
+    st.markdown(f"**State directory:** `{contract.get('state_dir', 'unspecified')}`")
+    st.markdown(f"**State file:** `{contract.get('state_file', data.get('harness_state_file', 'unspecified'))}`")
     st.markdown(f"**Intent:** {contract.get('intent', '_Not specified_')}")
 
     if status != "COMPLIANT":
@@ -150,6 +191,7 @@ def render_harness_contract(data: dict) -> None:
     intent_fidelity = data.get("intent_fidelity")
     if isinstance(intent_fidelity, dict):
         with st.expander("Intent Fidelity", expanded=True):
+            st.metric("Intent Fidelity", intent_fidelity_label(data))
             st.markdown(f"**Source intent:** {intent_fidelity.get('source_intent', 'N/A')}")
             criteria = intent_fidelity.get("success_criteria", [])
             if isinstance(criteria, list) and criteria:
@@ -174,6 +216,34 @@ def render_harness_contract(data: dict) -> None:
     if rows:
         st.markdown("#### Stage Gates")
         st.table(rows)
+
+    evidence = data.get("verification_evidence", [])
+    if isinstance(evidence, list) and evidence:
+        st.markdown("#### Verification Evidence")
+        st.table(evidence)
+
+    payloads = data.get("artifact_payloads", {})
+    if isinstance(payloads, dict) and payloads:
+        st.markdown("#### Artifact Contract Visualization")
+        artifact_rows = [
+            {
+                "artifact": artifact,
+                "contract_evidence": artifact_payload_summary(payloads.get(artifact)),
+            }
+            for artifact in data.get("artifacts", [])
+            if artifact in payloads
+        ]
+        if artifact_rows:
+            st.table(artifact_rows)
+        for artifact in data.get("artifacts", []):
+            payload = payloads.get(artifact)
+            if payload is None:
+                continue
+            with st.expander(f"Artifact: {artifact}"):
+                if isinstance(payload, dict) and payload.get("type") == "text":
+                    st.code(payload.get("preview", ""), language="text")
+                else:
+                    st.json(payload)
 
 
 def main() -> None:
@@ -203,16 +273,17 @@ def main() -> None:
         col.metric(layer, payload.get("status", "UNKNOWN"))
 
     density = data.get("proof_density", {})
-    metric_cols = st.columns(3 if has_lean else 2)
+    metric_cols = st.columns(4 if has_lean else 3)
     metric_cols[0].metric(
         "Proof Density",
         f"{density.get('percentage', 0):g}%",
         f"{density.get('verified', 0)}/{density.get('total', 0)} atoms",
     )
     metric_cols[1].metric("Harness Contract", compliance_label(data))
+    metric_cols[2].metric("Intent Fidelity", intent_fidelity_label(data))
     if has_lean:
         lean_verified, lean_total, lean_percentage = layer_density_values(data, "l3_lean")
-        metric_cols[2].metric(
+        metric_cols[3].metric(
             "Lean Proof Coverage",
             f"{lean_percentage:g}%" if lean_total else "N/A",
             f"{lean_verified}/{lean_total} Lean steps",

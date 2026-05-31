@@ -307,6 +307,60 @@ def compliance_label(data: dict) -> str:
     return f"{status} ({passed}/{total})"
 
 
+def intent_fidelity_label(data: dict) -> str:
+    summary = data.get("intent_fidelity_summary", {})
+    if not isinstance(summary, dict):
+        return "N/A"
+    status = str(summary.get("status", "N/A"))
+    score = summary.get("score")
+    criteria_total = int(summary.get("criteria_total", 0) or 0)
+    criteria_passed = int(summary.get("criteria_passed", 0) or 0)
+    parts = [status]
+    if score is not None:
+        try:
+            parts.append(f"score {float(score):.2f}")
+        except (TypeError, ValueError):
+            parts.append(f"score {score}")
+    if criteria_total:
+        parts.append(f"{criteria_passed}/{criteria_total} criteria")
+    return " · ".join(parts)
+
+
+def render_artifact_contract_payloads(data: dict) -> str:
+    payloads = data.get("artifact_payloads", {})
+    if not isinstance(payloads, dict) or not payloads:
+        return ""
+    lines = [
+        "### Artifact payloads",
+        "",
+        "| Artifact | Contract evidence |",
+        "| --- | --- |",
+    ]
+    for artifact in data.get("artifacts", []):
+        payload = payloads.get(artifact)
+        if payload is None:
+            continue
+        evidence = "captured"
+        if isinstance(payload, dict):
+            if "error" in payload:
+                evidence = f"error: {payload['error']}"
+            elif "certificate_hash" in payload:
+                evidence = f"proof certificate `{payload.get('certificate_hash')}`"
+            elif "all_verified" in payload:
+                evidence = f"proof certificate all_verified={payload.get('all_verified')}"
+            elif payload.get("scenario"):
+                evidence = f"harness state for `{payload.get('scenario')}`"
+            elif payload.get("type") == "text":
+                evidence = "text preview captured"
+            elif "atoms" in payload:
+                atoms = payload.get("atoms")
+                count = len(atoms) if isinstance(atoms, list) else "unknown"
+                evidence = f"structured spec with {count} atom(s)"
+        evidence_text = str(evidence).replace("|", "\\|")
+        lines.append(f"| `{artifact}` | {evidence_text} |")
+    return "\n".join(lines)
+
+
 def render_harness_contract_markdown(data: dict) -> str:
     contract = data.get("harness_contract")
     if not isinstance(contract, dict):
@@ -320,6 +374,7 @@ def render_harness_contract_markdown(data: dict) -> str:
         f"- Policy: `{contract.get('policy', 'unspecified')}`",
         f"- Acceptance path: `{', '.join(str(item) for item in contract.get('acceptance_path', []))}`",
         f"- State directory: `{contract.get('state_dir', 'unspecified')}`",
+        f"- State file: `{contract.get('state_file', data.get('harness_state_file', 'unspecified'))}`",
         f"- Intent: {contract.get('intent', '_Not specified_')}",
     ]
     if isinstance(compliance, dict) and isinstance(compliance.get("checks"), list):
@@ -371,6 +426,7 @@ def render_harness_contract_markdown(data: dict) -> str:
             "",
             "### Intent fidelity",
             "",
+            f"- Summary: **{intent_fidelity_label(data)}**",
             f"- Source intent: {intent_fidelity.get('source_intent', '_Not specified_')}",
         ])
         success_criteria = intent_fidelity.get("success_criteria", [])
@@ -380,6 +436,27 @@ def render_harness_contract_markdown(data: dict) -> str:
                 lines.append(f"  - {item}")
         if intent_fidelity.get("drift_risk"):
             lines.append(f"- Drift risk: {intent_fidelity['drift_risk']}")
+    evidence = data.get("verification_evidence", [])
+    if isinstance(evidence, list) and evidence:
+        lines.extend([
+            "",
+            "### Verification evidence",
+            "",
+            "| Layer | Step | Status | Harness stage | Artifacts | Log |",
+            "| --- | --- | --- | --- | --- | --- |",
+        ])
+        for item in evidence:
+            if not isinstance(item, dict):
+                continue
+            artifacts = item.get("artifacts", [])
+            artifact_text = ", ".join(str(artifact) for artifact in artifacts) if isinstance(artifacts, list) else str(artifacts)
+            lines.append(
+                f"| {item.get('layer', '')} | {item.get('step', '')} | {item.get('status', '')} | "
+                f"{item.get('harness_stage', '')} | {artifact_text or '-'} | `{item.get('log_file', '')}` |"
+            )
+    artifact_payload_markdown = render_artifact_contract_payloads(data)
+    if artifact_payload_markdown:
+        lines.extend(["", artifact_payload_markdown])
     return "\n".join(lines)
 
 
@@ -470,7 +547,7 @@ def write_summary(
     scenarios: list[str],
     require_all: bool,
 ) -> int:
-    rows: list[tuple[str, str, int, int, float, str, str]] = []
+    rows: list[tuple[str, str, int, int, float, str, str, str]] = []
     missing: list[str] = []
     for scenario in scenarios:
         result_path = latest_result_path(reports_dir, scenario)
@@ -490,6 +567,7 @@ def write_summary(
             percentage,
             lean_density,
             compliance_label(data),
+            intent_fidelity_label(data),
         ))
 
     lines = [
@@ -497,12 +575,12 @@ def write_summary(
         "",
         f"Generated: {generated_at()}",
         "",
-        "| Scenario | Overall status | Verified | Total | Proof density | Lean proof coverage | Harness contract compliance |",
-        "| --- | --- | ---: | ---: | ---: | ---: | --- |",
+        "| Scenario | Overall status | Verified | Total | Proof density | Lean proof coverage | Harness contract compliance | Intent fidelity |",
+        "| --- | --- | ---: | ---: | ---: | ---: | --- | --- |",
     ]
-    for scenario, status, verified, total, percentage, lean_density, compliance in rows:
+    for scenario, status, verified, total, percentage, lean_density, compliance, intent_fidelity in rows:
         lines.append(
-            f"| `{scenario}` | {status} | {verified} | {total} | {percentage:g}% | {lean_density} | {compliance} |"
+            f"| `{scenario}` | {status} | {verified} | {total} | {percentage:g}% | {lean_density} | {compliance} | {intent_fidelity} |"
         )
     if missing:
         lines.extend(["", "## Missing results", ""])
@@ -548,6 +626,7 @@ def write_highlights(
         if "l3_lean" in data.get("layers", {}):
             lines.append(f"- Lean proof coverage: {density_label(*layer_density_values(data, 'l3_lean'))}")
         lines.append(f"- Harness contract compliance: {compliance_label(data)}")
+        lines.append(f"- Intent fidelity: {intent_fidelity_label(data)}")
         lines.extend([
             "",
             bug_detection_moment(data, root, "### Bug Detection Moment", "####"),

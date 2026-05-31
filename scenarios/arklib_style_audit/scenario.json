@@ -61,7 +61,9 @@
         ],
         "artifacts": [],
         "harness_stage": "S1_z3_rejection",
-        "artifact_contract": [],
+        "artifact_contract": [
+          "detect_bug.log records the expected inconsistent theorem rejection."
+        ],
         "verifier_gate": "Mumei/Z3 rejects the top-level audit theorem because its requires clauses contradict.",
         "failure_taxonomy": "top_level_theorem_contradiction"
       },
@@ -100,7 +102,9 @@
         "optional_toolchain": "lake",
         "optional_path": "{mumei_lean_repo}/MumeiLean/ArkLibAudit.lean",
         "harness_stage": "S3_lean_certification",
-        "artifact_contract": [],
+        "artifact_contract": [
+          "lean_build.log records the optional ArkLib audit Lean module certification gate."
+        ],
         "verifier_gate": "Lean certifies the ArkLib audit module when the optional proof file exists."
       },
       {
@@ -135,11 +139,13 @@
       "l3_lean"
     ],
     "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
     "intent": "Prove a reviewed top-level theorem is coherent before accepting ArkLib-style proof stamps.",
     "artifact_contracts": [
       "Read inputs: scenarios/arklib_style_audit/buggy_code.mm, scenarios/arklib_style_audit/correct_code.mm, ../mumei-lean/MumeiLean/ArkLibAudit.lean.",
-      "Generate evidence: result.json and report.md in reports/{scenario}/latest/ plus per-step logs.",
-      "result.json records contradictory-theorem rejection, Z3 proof acceptance, and optional Lean gates.",
+      "Generate evidence: arklib_audit.proof.json, optional arklib_audit.lean-cert.json, harness_state.json, result.json, report.md, and per-step logs.",
+      "harness_state.json persists policy, compliance, intent fidelity, artifact inventory, and verification evidence for dashboard replay.",
+      "result.json records contradictory-theorem rejection, Z3 proof acceptance, optional Lean gates, artifact payload previews, and verification_evidence rows.",
       "report.md explains top-level theorem review before/after evidence.",
       "arklib_audit.proof.json is the L1 Z3 proof certificate for the reviewed theorem.",
       "arklib_audit.lean-cert.json is the L3 bridge certificate when Lean assets are available.",

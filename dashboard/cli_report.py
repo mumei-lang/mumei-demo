@@ -69,6 +69,18 @@ def compliance_label(data: dict) -> str:
     return f"{status} ({int(compliance.get('passed', 0) or 0)}/{total})"
 
 
+def intent_fidelity_label(data: dict) -> str:
+    summary = data.get("intent_fidelity_summary", {})
+    if not isinstance(summary, dict):
+        return "N/A"
+    status = str(summary.get("status", "N/A"))
+    criteria_total = int(summary.get("criteria_total", 0) or 0)
+    criteria_passed = int(summary.get("criteria_passed", 0) or 0)
+    if criteria_total:
+        return f"{status} ({criteria_passed}/{criteria_total})"
+    return status
+
+
 def render(data: dict) -> str:
     title = f"  Mumei Verification Report: {data.get('scenario_name', data.get('scenario'))}"
     narrative = data.get("narrative", {})
@@ -102,6 +114,8 @@ def render(data: dict) -> str:
         lean_label = "N/A" if lean_total == 0 else f"{lean_percentage:g}% ({lean_verified}/{lean_total} steps)"
         table.append(f"  Lean Coverage: {lean_label}")
     table.append(f"  Harness Contract: {compliance_label(data)}")
+    table.append(f"  Intent Fidelity:  {intent_fidelity_label(data)}")
+    table.append(f"  Harness State:    {data.get('harness_state_file', 'N/A')}")
     table.extend([
         f"  Audit Status:  {audit_status}",
         "  Moment:        Proof failure → Bug found",
@@ -120,8 +134,8 @@ def latest_result(scenario_dir: Path) -> Path | None:
 
 def render_all() -> str:
     lines = [
-        "Scenario                  Status      Verification  Proof Density       Lean Coverage  Harness Contract",
-        "────────────────────────  ──────────  ────────────  ──────────────────  ─────────────  ─────────────────",
+        "Scenario                  Status      Verification  Proof Density       Lean Coverage  Harness Contract  Intent Fidelity",
+        "────────────────────────  ──────────  ────────────  ──────────────────  ─────────────  ─────────────────  ───────────────",
     ]
     for scenario_dir in sorted((ROOT / "scenarios").iterdir()):
         if not scenario_dir.is_dir() or scenario_dir.name == "_template":
@@ -149,7 +163,8 @@ def render_all() -> str:
             f"{verification:<12}  "
             f"{proof_density[:18]:<18}  "
             f"{lean_density:<13}  "
-            f"{compliance_label(data)}"
+            f"{compliance_label(data):<18}  "
+            f"{intent_fidelity_label(data)}"
         )
     return "\n".join(lines)
 

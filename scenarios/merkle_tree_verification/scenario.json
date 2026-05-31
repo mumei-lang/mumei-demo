@@ -60,7 +60,9 @@
         ],
         "artifacts": [],
         "harness_stage": "S1_z3_rejection",
-        "artifact_contract": [],
+        "artifact_contract": [
+          "detect_bug.log records the expected missing hash_function_secure rejection."
+        ],
         "verifier_gate": "Mumei/Z3 rejects Merkle root acceptance when hash_function_secure is omitted.",
         "failure_taxonomy": "missing_hash_security_precondition"
       },
@@ -99,7 +101,9 @@
         "optional_toolchain": "lake",
         "optional_path": "{mumei_lean_repo}/MumeiLean/MerkleTree.lean",
         "harness_stage": "S3_lean_certification",
-        "artifact_contract": [],
+        "artifact_contract": [
+          "lean_build.log records the optional Merkle Lean module certification gate."
+        ],
         "verifier_gate": "Lean certifies the Merkle tree module when the optional proof file exists."
       },
       {
@@ -134,11 +138,13 @@
       "l3_lean"
     ],
     "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
     "intent": "Prove Merkle proof acceptance requires hash-function security and root equality evidence.",
     "artifact_contracts": [
       "Read inputs: scenarios/merkle_tree_verification/buggy_code.mm, scenarios/merkle_tree_verification/correct_code.mm, ../mumei-lean/MumeiLean/MerkleTree.lean.",
-      "Generate evidence: result.json and report.md in reports/{scenario}/latest/ plus per-step logs.",
-      "result.json records missing-hash-security rejection, Z3 proof acceptance, and optional Lean gates.",
+      "Generate evidence: merkle_tree.proof.json, optional merkle_tree.lean-cert.json, harness_state.json, result.json, report.md, and per-step logs.",
+      "harness_state.json persists policy, compliance, intent fidelity, artifact inventory, and verification evidence for dashboard replay.",
+      "result.json records missing-hash-security rejection, Z3 proof acceptance, optional Lean gates, artifact payload previews, and verification_evidence rows.",
       "report.md explains the Merkle before/after proof evidence.",
       "merkle_tree.proof.json is the L1 Z3 proof certificate for the corrected Merkle contract.",
       "merkle_tree.lean-cert.json is the L3 bridge certificate when Lean assets are available.",

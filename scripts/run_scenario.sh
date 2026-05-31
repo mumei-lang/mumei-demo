@@ -139,6 +139,19 @@ def substitute(value: str, placeholders: dict[str, str]) -> str:
     return result
 
 
+def substitute_object(value: object, placeholders: dict[str, str]) -> object:
+    if isinstance(value, str):
+        return substitute(value, placeholders)
+    if isinstance(value, list):
+        return [substitute_object(item, placeholders) for item in value]
+    if isinstance(value, Mapping):
+        return {
+            str(key): substitute_object(item, placeholders)
+            for key, item in value.items()
+        }
+    return value
+
+
 def shell_placeholders(placeholders: dict[str, str]) -> dict[str, str]:
     return {key: shlex.quote(value) for key, value in placeholders.items()}
 
@@ -265,6 +278,61 @@ def proof_density(step_results: dict[str, dict]) -> dict[str, float | int]:
     return {"verified": verified, "total": total, "percentage": percentage}
 
 
+def artifact_payloads(output_dir: Path, artifacts: list[str]) -> dict[str, object]:
+    payloads: dict[str, object] = {}
+    for artifact in artifacts:
+        path = output_dir / artifact
+        if not path.exists() or not path.is_file():
+            continue
+        try:
+            if path.suffix == ".json":
+                payloads[artifact] = json.loads(path.read_text(encoding="utf-8"))
+            elif path.suffix in {".mm", ".md", ".txt", ".log"}:
+                text = path.read_text(encoding="utf-8")
+                payloads[artifact] = {
+                    "type": "text",
+                    "preview": text[:4000],
+                    "truncated": len(text) > 4000,
+                }
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError) as err:
+            payloads[artifact] = {"error": str(err)}
+    return payloads
+
+
+def verification_evidence(layers: dict[str, dict]) -> list[dict[str, object]]:
+    evidence = []
+    for layer, payload in layers.items():
+        for step in payload.get("steps", []):
+            evidence.append({
+                "layer": layer,
+                "step": step.get("id"),
+                "status": step.get("status"),
+                "harness_stage": step.get("harness_stage"),
+                "verifier_gate": step.get("verifier_gate"),
+                "artifacts": step.get("artifacts", []),
+                "log_file": step.get("output_file"),
+                "exit_code": step.get("exit_code"),
+                "expected_exit": step.get("expected_exit"),
+            })
+    return evidence
+
+
+def intent_fidelity_summary(intent_fidelity: object) -> dict[str, object]:
+    if not isinstance(intent_fidelity, Mapping):
+        return {"status": "N/A", "criteria_passed": 0, "criteria_total": 0}
+    criteria = intent_fidelity.get("success_criteria", [])
+    criteria_total = len(criteria) if isinstance(criteria, list) else 0
+    score = intent_fidelity.get("score", intent_fidelity.get("spec_traceability_score"))
+    status = str(intent_fidelity.get("status", "TRACEABLE" if criteria_total else "N/A"))
+    return {
+        "status": status,
+        "score": score,
+        "criteria_passed": criteria_total,
+        "criteria_total": criteria_total,
+        "drift_risk": intent_fidelity.get("drift_risk"),
+    }
+
+
 def harness_contract_compliance(result: dict) -> dict[str, object]:
     contract = result.get("harness_contract")
     intent_fidelity = result.get("intent_fidelity")
@@ -313,6 +381,14 @@ def harness_contract_compliance(result: dict) -> dict[str, object]:
                 and step.get("verifier_gate")
                 for step in steps
             ),
+        },
+        {
+            "name": "state file recorded",
+            "passed": bool(result.get("harness_state_file")),
+        },
+        {
+            "name": "verification evidence recorded",
+            "passed": bool(result.get("verification_evidence")),
         },
     ]
     passed = sum(1 for check in checks if check["passed"])
@@ -575,7 +651,7 @@ def main(argv: list[str]) -> int:
         "version": scenario.get("version"),
         "description": scenario.get("description"),
         "narrative": narrative,
-        "harness_contract": scenario.get("harness_contract"),
+        "harness_contract": substitute_object(scenario.get("harness_contract"), placeholders),
         "intent_fidelity": scenario.get("intent_fidelity"),
         "timestamp": iso_timestamp,
         "layers": results,
@@ -583,7 +659,26 @@ def main(argv: list[str]) -> int:
         "proof_density": proof_density(step_index),
         "artifacts": artifacts,
     }
+    result["artifact_payloads"] = artifact_payloads(output_dir, artifacts)
+    result["verification_evidence"] = verification_evidence(results)
+    state_file = output_dir / "harness_state.json"
+    result["harness_state_file"] = str(state_file)
+    result["intent_fidelity_summary"] = intent_fidelity_summary(result.get("intent_fidelity"))
     result["harness_contract_compliance"] = harness_contract_compliance(result)
+    state_payload = {
+        "scenario": scenario_name,
+        "timestamp": iso_timestamp,
+        "overall_status": overall_status,
+        "harness_contract": result["harness_contract"],
+        "harness_contract_compliance": result["harness_contract_compliance"],
+        "intent_fidelity": result.get("intent_fidelity"),
+        "intent_fidelity_summary": result["intent_fidelity_summary"],
+        "artifacts": artifacts,
+        "verification_evidence": result["verification_evidence"],
+    }
+    state_file.write_text(json.dumps(state_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    result["artifacts"].append("harness_state.json")
+    result["artifact_payloads"]["harness_state.json"] = state_payload
     (output_dir / "result.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     latest = root / "reports" / scenario_name / "latest"
