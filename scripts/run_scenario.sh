@@ -665,6 +665,8 @@ def main(argv: list[str]) -> int:
     result["harness_state_file"] = str(state_file)
     result["intent_fidelity_summary"] = intent_fidelity_summary(result.get("intent_fidelity"))
     result["harness_contract_compliance"] = harness_contract_compliance(result)
+    if "harness_state.json" not in result["artifacts"]:
+        result["artifacts"].append("harness_state.json")
     state_payload = {
         "scenario": scenario_name,
         "timestamp": iso_timestamp,
@@ -673,11 +675,10 @@ def main(argv: list[str]) -> int:
         "harness_contract_compliance": result["harness_contract_compliance"],
         "intent_fidelity": result.get("intent_fidelity"),
         "intent_fidelity_summary": result["intent_fidelity_summary"],
-        "artifacts": artifacts,
+        "artifacts": result["artifacts"],
         "verification_evidence": result["verification_evidence"],
     }
     state_file.write_text(json.dumps(state_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    result["artifacts"].append("harness_state.json")
     result["artifact_payloads"]["harness_state.json"] = state_payload
     (output_dir / "result.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
