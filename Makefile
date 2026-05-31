@@ -21,7 +21,14 @@ demo-regtech:
 	@./scripts/run_scenario.sh regtech_compliance
 
 demo-nl:
-	@./scripts/run_scenario.sh nl_to_verified
+	@mode="$${CI_FIXTURE_MODE:-1}"; \
+	if [ "$$mode" = "1" ]; then \
+		CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh nl_to_verified; \
+	else \
+		./scripts/run_scenario.sh nl_to_verified; \
+	fi
+	@python3 scripts/generate_report.py reports/nl_to_verified/latest/result.json --format markdown --report-output reports/nl_to_verified/latest/report.md
+	@python3 dashboard/cli_report.py reports/nl_to_verified/latest/result.json
 
 demo-smart-contract:
 	@./scripts/run_scenario.sh smart_contract_audit

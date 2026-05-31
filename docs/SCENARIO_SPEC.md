@@ -90,15 +90,25 @@ Top-level `harness_contract` fields:
 - `acceptance_path`: layer order that must produce evidence for the scenario to
   be considered complete.
 - `state_dir`: persistent state directory; normally `{output_dir}`.
+- `state_file`: optional harness state path. The runner always writes
+  `harness_state.json` under the scenario report directory and records that path
+  in `result.json`.
 - `intent`: one sentence describing the user-facing proof/demo intent.
 - `artifact_contracts`: human-readable obligations that all steps must satisfy,
   including files read, files generated, verification evidence, dashboard
   evidence, and downstream trust gates.
 - `intent_fidelity`: recommended top-level object that records:
+  - `status`: traceability label, e.g. `TRACEABLE`.
+  - `score`: optional numeric alignment score.
   - `source_intent`: the original requirement, bug class, or audit claim.
   - `success_criteria`: checklist of evidence required to satisfy the intent.
   - `drift_risk`: where generated code/spec/proof artifacts could diverge from
     the original intent.
+
+The runner also enriches every `result.json` with `harness_state_file`,
+`verification_evidence`, `artifact_payloads`, and `intent_fidelity_summary` so
+dashboards can render contract compliance, intent traceability, and artifact
+previews without shelling out to per-step logs.
 
 Per-step fields:
 

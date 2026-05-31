@@ -37,7 +37,8 @@
         ],
         "harness_stage": "S2_agent_extraction_extract_spec",
         "artifact_contract": [
-          "extracted_spec.json"
+          "extracted_spec.json",
+          "spec_text.md natural-language requirements trace into atoms[].requires/ensures."
         ],
         "verifier_gate": "Command exits 0 and emits expected acceptance evidence (Extracted spec written)."
       },
@@ -59,7 +60,8 @@
         ],
         "harness_stage": "S2_agent_generation_generate_code",
         "artifact_contract": [
-          "generated.mm"
+          "generated.mm",
+          "generated.mm must be derived from extracted_spec.json and retain transfer pre/postconditions."
         ],
         "verifier_gate": "Command exits 0 and emits expected acceptance evidence (Generated verified code written)."
       }
@@ -82,7 +84,8 @@
         ],
         "harness_stage": "S1_z3_acceptance_verify_code",
         "artifact_contract": [
-          "result.json step status and log capture the verifier gate evidence."
+          "result.json step status and log capture the verifier gate evidence.",
+          "verify_code.log records the Z3 acceptance marker for generated.mm."
         ],
         "verifier_gate": "Command exits 0 and emits expected acceptance evidence (Verification passed)."
       }
@@ -95,24 +98,31 @@
       "l1_z3"
     ],
     "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
     "intent": "Trace natural-language transfer requirements through extracted spec, generated Mumei code, and final Z3 verification.",
     "artifact_contracts": [
-      "Read inputs: scenarios/nl_to_verified/spec_text.md, scenarios/nl_to_verified/expected/extracted_spec.json, ../mumei-agent extraction/generation commands, generated.mm from {output_dir}.",
-      "Generate evidence: result.json and report.md in reports/{scenario}/latest/ plus per-step logs.",
-      "result.json records extraction, generation, and final verification gates.",
+      "Read inputs: scenarios/nl_to_verified/spec_text.md or requirements_en.txt, scenarios/nl_to_verified/expected/extracted_spec.json in fixture mode, and ../mumei-agent extraction/generation commands in live mode.",
+      "Generate evidence: extracted_spec.json, generated.mm, harness_state.json, result.json, report.md, and per-step logs in reports/{scenario}/latest/.",
+      "harness_state.json persists policy, compliance, intent fidelity, artifact inventory, and verification evidence for dashboard replay.",
+      "result.json records extraction, generation, final verification gates, artifact payload previews, and verification_evidence rows.",
       "report.md explains the natural-language-to-verified flow.",
       "extracted_spec.json is the L2 artifact proving requirements were converted to structured spec.",
       "generated.mm is the L2 generated implementation consumed by L1.",
+      "verify_code.log is the L1 Z3 evidence that generated.mm satisfies the extracted transfer contract.",
       "dashboard/summary.md aggregates PASS and proof-density evidence for the scenario.",
       "Gate order: l2_agent -> l1_z3; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
     ]
   },
   "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
     "source_intent": "Natural-language banking requirements must map to a structured forge spec and verified Mumei implementation.",
     "success_criteria": [
-      "extract_spec writes extracted_spec.json.",
-      "generate_code writes generated.mm from the extracted spec.",
-      "verify_code accepts generated.mm with Verification passed."
+      "Requirement 1 maps to requires: from_balance >= amount.",
+      "Requirement 2 maps to requires: amount > 0.",
+      "Requirement 3 maps to ensures: result == from_balance - amount.",
+      "Requirement 4 maps to ensures: result >= 0.",
+      "extract_spec writes extracted_spec.json, generate_code writes generated.mm, and verify_code accepts generated.mm with Verification passed."
     ],
     "drift_risk": "Medium: intent fidelity depends on extraction quality, so extracted_spec.json is retained as review evidence."
   }
