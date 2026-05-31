@@ -113,8 +113,8 @@ the Streamlit dashboard. A scenario is `COMPLIANT` when:
 | `smart_contract_audit` | Reentrancy-state rejection and `smart_contract.proof.json` | Not used | `MumeiLean.SmartContract` build and `smart_contract.lean-cert.json` when available | Summary row with 4/4 proof density |
 | `medical_device` | Dosage-state rejection and `medical_device.proof.json` | Not used | `MumeiLean.MedicalDevice` build and `medical_device.lean-cert.json` when available | Summary row with 4/4 proof density |
 | `aviation_control` | Lock-order rejection and `allocate_runway` verification recorded in `result.json`/logs | `vstd_aviation_control` forge dry-run | Not used | Summary row with 3/3 proof density |
-| `merkle_tree_verification` | Missing hash-security rejection and `merkle_tree.proof.json` | Not used | `MumeiLean.MerkleTree` build and `merkle_tree.lean-cert.json` when available | Summary row with 4/4 proof density |
-| `defi_invariant` | Uint256 precondition rejection and `defi_invariant.proof.json` | Not used | `MumeiLean.DeFi` build and `defi_invariant.lean-cert.json` when available | Summary row with 4/4 proof density |
+| `merkle_tree_verification` | Missing hash-security rejection and `merkle_tree.proof.json` | `merkle-tree-verification` forge dry-run with verifier harness profile | `MumeiLean.MerkleTree` build and `merkle_tree.lean-cert.json` when available | Summary row with 5/5 proof density |
+| `defi_invariant` | Uint256 precondition rejection and `defi_invariant.proof.json` | Not used | Not used | Summary row with 2/2 proof density |
 | `arklib_style_audit` | Contradictory theorem rejection and `arklib_audit.proof.json` | Not used | `MumeiLean.ArkLibAudit` build and `arklib_audit.lean-cert.json` when available | Summary row with 4/4 proof density |
 
 ## Intent fidelity

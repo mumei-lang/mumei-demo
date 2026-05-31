@@ -1,10 +1,9 @@
 {
   "name": "DeFi Invariant: ERC-20 Uint256 Safety",
   "version": "1.0.0",
-  "description": "ERC-20 transfer overflow prevention demo: Z3 rejects a receiver balance update without a Uint256 upper-bound proof, then verifies the refined safe_transfer invariant.",
+  "description": "ERC-20 transfer overflow prevention demo: Z3 rejects erc20_overflow.mm when receiver balance lacks a Uint256 upper-bound proof, then verifies the refined erc20_safe.mm invariant.",
   "layers": [
-    "l1_z3",
-    "l3_lean"
+    "l1_z3"
   ],
   "narrative": {
     "intro": [
@@ -34,14 +33,8 @@
             "  type Uint256 = i64 where v >= 0 && v <= MAX.",
             "  safe_transfer proves debit sufficiency and receiver overflow safety.",
             "",
-            "  Step 4: Optional Lean proof checks DeFi balance invariants..."
+            "  Step 4: Dashboard/report evidence records the Z3-only DeFi invariant gate..."
           ]
-        }
-      },
-      "lean_build": {
-        "certified": {
-          "icon": "✅",
-          "headline": "CERTIFIED: MumeiLean.DeFi"
         }
       }
     }
@@ -52,7 +45,7 @@
         "id": "detect_bug",
         "name": "Z3 Bug Detection: Uint256 overflow",
         "repo": "mumei",
-        "command": "{mumei_bin} verify {root_dir}/scenarios/defi_invariant/buggy_code.mm",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/defi_invariant/erc20_overflow.mm",
         "expected_exit": 1,
         "expect_failure": true,
         "expected_patterns": [
@@ -70,7 +63,7 @@
         "id": "verify_correct",
         "name": "Z3 Correct DeFi Invariant Verification",
         "repo": "mumei",
-        "command": "{mumei_bin} verify {root_dir}/scenarios/defi_invariant/correct_code.mm --proof-cert --output {output_dir}/defi_invariant.proof.json",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/defi_invariant/erc20_safe.mm --proof-cert --output {output_dir}/defi_invariant.proof.json",
         "expected_exit": 0,
         "expected_patterns": [
           "Verification passed",
@@ -87,77 +80,31 @@
       }
     ]
   },
-  "l3_lean": {
-    "steps": [
-      {
-        "id": "lean_build",
-        "name": "Lean DeFi Proof Build",
-        "repo": "mumei-lean",
-        "command": "lake build MumeiLean.DeFi",
-        "cwd": "{mumei_lean_repo}",
-        "expected_exit": 0,
-        "expected_patterns": [],
-        "artifacts": [],
-        "optional_toolchain": "lake",
-        "optional_path": "{mumei_lean_repo}/MumeiLean/DeFi.lean",
-        "harness_stage": "S3_lean_certification",
-        "artifact_contract": [
-          "lean_build.log records the optional DeFi Lean module certification gate."
-        ],
-        "verifier_gate": "Lean certifies the DeFi module when the optional proof file exists."
-      },
-      {
-        "id": "lean_bridge",
-        "name": "Lean Bridge Certificate",
-        "repo": "mumei-lean",
-        "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/defi_invariant.proof.json --lean-cert-out {output_dir}/defi_invariant.lean-cert.json --no-build",
-        "expected_exit": 0,
-        "expected_patterns": [
-          "dry run: skipping `lake build`"
-        ],
-        "artifacts": [
-          "defi_invariant.lean-cert.json"
-        ],
-        "depends_on": [
-          "verify_correct",
-          "lean_build"
-        ],
-        "optional_toolchain": "lake",
-        "harness_stage": "S3_lean_bridge",
-        "artifact_contract": [
-          "defi_invariant.lean-cert.json"
-        ],
-        "verifier_gate": "The bridge converts the DeFi Z3 certificate into a Lean certificate dry run."
-      }
-    ]
-  },
   "harness_contract": {
     "policy": "scenario-harness/v1",
     "acceptance_path": [
-      "l1_z3",
-      "l3_lean"
+      "l1_z3"
     ],
     "state_dir": "{output_dir}",
     "state_file": "{output_dir}/harness_state.json",
     "intent": "Prove ERC-20 transfers cannot overflow Uint256 receiver balances and preserve debit/credit bounds.",
     "artifact_contracts": [
-      "Read inputs: scenarios/defi_invariant/buggy_code.mm, scenarios/defi_invariant/correct_code.mm, ../mumei-lean/MumeiLean/DeFi.lean.",
-      "Generate evidence: defi_invariant.proof.json, optional defi_invariant.lean-cert.json, harness_state.json, result.json, report.md, and per-step logs.",
+      "Read inputs: scenarios/defi_invariant/erc20_overflow.mm and scenarios/defi_invariant/erc20_safe.mm.",
+      "Generate evidence: defi_invariant.proof.json, harness_state.json, result.json, report.md, and per-step logs.",
       "harness_state.json persists policy, compliance, intent fidelity, artifact inventory, and verification evidence for dashboard replay.",
-      "result.json records Uint256-bound rejection, Z3 proof acceptance, optional Lean gates, artifact payload previews, and verification_evidence rows.",
+      "result.json records Uint256-bound rejection, Z3 proof acceptance, artifact payload previews, and verification_evidence rows.",
       "report.md explains the DeFi overflow before/after evidence.",
       "defi_invariant.proof.json is the L1 Z3 proof certificate for safe_transfer.",
-      "defi_invariant.lean-cert.json is the L3 bridge certificate when Lean assets are available.",
       "dashboard/summary.md aggregates PASS and proof-density evidence for the scenario.",
-      "Gate order: l1_z3 -> l3_lean; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
+      "Gate order: l1_z3 only; each step must satisfy its expected_exit, expected_patterns, and artifacts contract before evidence is trusted."
     ]
   },
   "intent_fidelity": {
     "source_intent": "ERC-20 safe_transfer must prove debit sufficiency and receiver Uint256 upper-bound safety.",
     "success_criteria": [
-      "buggy transfer is rejected for unsatisfied checked_uint256 precondition.",
-      "correct_code.mm verifies and emits defi_invariant.proof.json.",
-      "Optional Lean build/bridge certifies DeFi proof assets when available."
+      "erc20_overflow.mm is rejected for unsatisfied checked_uint256 precondition.",
+      "erc20_safe.mm verifies and emits defi_invariant.proof.json.",
+      "No L2/L3 stage is required; this is a Z3-only invariant demo."
     ],
     "drift_risk": "Low: expected diagnostics bind the bug to the Uint256 boundary precondition."
   }

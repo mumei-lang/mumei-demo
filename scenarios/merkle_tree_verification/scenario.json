@@ -4,6 +4,7 @@
   "description": "Vitalik/ArkLib-style Merkle tree proof: Z3 rejects proof acceptance without the hash_function_secure precondition, then verifies the collision-resistance contract and optional Lean certificate.",
   "layers": [
     "l1_z3",
+    "l2_agent",
     "l3_lean"
   ],
   "narrative": {
@@ -87,6 +88,31 @@
       }
     ]
   },
+  "l2_agent": {
+    "steps": [
+      {
+        "id": "forge_dryrun",
+        "name": "Agent Harness Preview: Merkle task contract",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent forge --tasks-dir {root_dir}/scenarios/merkle_tree_verification --task forge_task.json --mumei-repo {mumei_repo} --dry-run --harness-profile verifier",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "merkle-tree-verification",
+          "Harness profile: verifier"
+        ],
+        "artifacts": [],
+        "depends_on": [
+          "verify_correct"
+        ],
+        "harness_stage": "S2_agent_preview_forge_dryrun",
+        "artifact_contract": [
+          "forge_dryrun.log records the L2 harness profile and task preview evidence."
+        ],
+        "verifier_gate": "Agent forge dry-run accepts the Merkle task contract without invoking an LLM."
+      }
+    ]
+  },
   "l3_lean": {
     "steps": [
       {
@@ -135,13 +161,14 @@
     "policy": "scenario-harness/v1",
     "acceptance_path": [
       "l1_z3",
+      "l2_agent",
       "l3_lean"
     ],
     "state_dir": "{output_dir}",
     "state_file": "{output_dir}/harness_state.json",
     "intent": "Prove Merkle proof acceptance requires hash-function security and root equality evidence.",
     "artifact_contracts": [
-      "Read inputs: scenarios/merkle_tree_verification/buggy_code.mm, scenarios/merkle_tree_verification/correct_code.mm, ../mumei-lean/MumeiLean/MerkleTree.lean.",
+      "Read inputs: scenarios/merkle_tree_verification/buggy_code.mm, scenarios/merkle_tree_verification/correct_code.mm, scenarios/merkle_tree_verification/forge_task.json, ../mumei-lean/MumeiLean/MerkleTree.lean.",
       "Generate evidence: merkle_tree.proof.json, optional merkle_tree.lean-cert.json, harness_state.json, result.json, report.md, and per-step logs.",
       "harness_state.json persists policy, compliance, intent fidelity, artifact inventory, and verification evidence for dashboard replay.",
       "result.json records missing-hash-security rejection, Z3 proof acceptance, optional Lean gates, artifact payload previews, and verification_evidence rows.",
@@ -149,7 +176,8 @@
       "merkle_tree.proof.json is the L1 Z3 proof certificate for the corrected Merkle contract.",
       "merkle_tree.lean-cert.json is the L3 bridge certificate when Lean assets are available.",
       "dashboard/summary.md aggregates PASS and proof-density evidence for the scenario.",
-      "Gate order: l1_z3 -> l3_lean; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
+      "forge_dryrun.log is the L2 agent evidence that the Merkle task can be represented as a harness-profiled forge spec.",
+      "Gate order: l1_z3 -> l2_agent -> l3_lean; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
     ]
   },
   "intent_fidelity": {
