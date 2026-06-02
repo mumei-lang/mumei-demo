@@ -1,0 +1,197 @@
+{
+  "name": "Blockchain Audit: Smart Contract Vulnerability Suite",
+  "version": "1.0.0",
+  "description": "Smart-contract audit demo: Z3 rejects reentrancy, Uint256 overflow, and access-control vulnerabilities, then verifies the corrected contract and optional Lean blockchain proof module.",
+  "layers": [
+    "l1_z3",
+    "l2_agent",
+    "l3_lean"
+  ],
+  "narrative": {
+    "intro": [
+      "Step 1: LLM generates a smart-contract audit candidate...",
+      "Step 2: mumei checks reentrancy, bounded arithmetic, and access-control contracts..."
+    ],
+    "before": "The buggy contract calls externally while Unlocked, credits balances without proving Uint256 bounds, and transfers ownership without caller authorization.",
+    "after": "The corrected contract locks before external calls, requires receiver overflow bounds, and gates ownership transfer on caller == owner.",
+    "steps": {
+      "detect_bug": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "BUG DETECTED! Blockchain audit vulnerabilities rejected",
+          "follow_up": [
+            "  Reentrancy, overflow, and access-control checks are bound to explicit contracts.",
+            "  Buggy smart-contract logic fails before proof certificates are trusted.",
+            "",
+            "  Step 3: Verifying the corrected smart-contract implementation..."
+          ]
+        }
+      },
+      "verify_correct": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Z3 verified blockchain audit fixes",
+          "follow_up": [
+            "  withdraw follows Checks-Effects-Interactions.",
+            "  safe_credit proves the Uint256 receiver bound.",
+            "  transfer_ownership requires caller == owner.",
+            "",
+            "  Step 4: Agent preview and optional Lean proof certify the audit evidence..."
+          ]
+        }
+      },
+      "lean_build": {
+        "certified": {
+          "icon": "✅",
+          "headline": "CERTIFIED: MumeiLean.Blockchain"
+        }
+      }
+    }
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "detect_bug",
+        "name": "Z3 Bug Detection: blockchain audit vulnerabilities",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/blockchain_audit/buggy_contract.mm",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": [
+          "InvalidPreState",
+          "credit_without_overflow_proof",
+          "require_owner",
+          "precondition (requires) not satisfied"
+        ],
+        "artifacts": [],
+        "harness_stage": "S1_z3_rejection_detect_bug",
+        "artifact_contract": [
+          "detect_bug.log records the expected blockchain audit rejection diagnostic."
+        ],
+        "verifier_gate": "Mumei/Z3 rejects the intentional reentrancy, overflow, and access-control vulnerabilities before proof artifacts are trusted.",
+        "failure_taxonomy": "smart_contract_audit_vulnerability"
+      },
+      {
+        "id": "verify_correct",
+        "name": "Z3 Correct Blockchain Contract Verification",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/blockchain_audit/correct_contract.mm --proof-cert --output {output_dir}/blockchain_audit.proof.json",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Verification passed",
+          "withdraw",
+          "safe_credit",
+          "transfer_ownership"
+        ],
+        "artifacts": [
+          "blockchain_audit.proof.json"
+        ],
+        "harness_stage": "S1_z3_acceptance_verify_correct",
+        "artifact_contract": [
+          "blockchain_audit.proof.json"
+        ],
+        "verifier_gate": "Mumei/Z3 accepts the corrected contract and writes a blockchain audit proof certificate."
+      }
+    ]
+  },
+  "l2_agent": {
+    "steps": [
+      {
+        "id": "agent_preview",
+        "name": "Agent Harness Preview: blockchain audit taxonomy",
+        "repo": "mumei-agent",
+        "command": "python3 - <<'PY'\nimport json\nfrom pathlib import Path\nscenario = json.loads((Path('{root_dir}') / 'scenarios/blockchain_audit/scenario.json').read_text())\nprint('blockchain-audit')\nprint('agent review: deterministic harness contract accepted')\nprint('vulnerabilities: reentrancy, integer overflow, access control')\nprint('layers:', ','.join(scenario['layers']))\nPY",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "blockchain-audit",
+          "reentrancy",
+          "integer overflow",
+          "access control",
+          "l1_z3,l2_agent,l3_lean"
+        ],
+        "artifacts": [],
+        "depends_on": [
+          "verify_correct"
+        ],
+        "harness_stage": "S2_agent_preview_blockchain_taxonomy",
+        "artifact_contract": [
+          "agent_preview.log records the deterministic audit taxonomy and harness layer contract."
+        ],
+        "verifier_gate": "The L2 preview accepts the scenario contract and vulnerability taxonomy without invoking an external LLM."
+      }
+    ]
+  },
+  "l3_lean": {
+    "steps": [
+      {
+        "id": "lean_build",
+        "name": "Lean Blockchain Audit Proof Build",
+        "repo": "mumei-lean",
+        "command": "lake build MumeiLean.Blockchain",
+        "cwd": "{mumei_lean_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [],
+        "artifacts": [],
+        "optional_toolchain": "lake",
+        "optional_path": "{mumei_lean_repo}/MumeiLean/Blockchain.lean",
+        "harness_stage": "S3_lean_certification_lean_build",
+        "artifact_contract": [
+          "lean_build.log records the optional Blockchain Lean module certification gate."
+        ],
+        "verifier_gate": "Lean certifies the Blockchain audit module when the optional proof file exists."
+      },
+      {
+        "id": "lean_bridge",
+        "name": "Lean Bridge Certificate",
+        "repo": "mumei-lean",
+        "command": "python3 {mumei_lean_repo}/scripts/bridge.py --cert {output_dir}/blockchain_audit.proof.json --lean-cert-out {output_dir}/blockchain_audit.lean-cert.json --no-build",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "dry run: skipping `lake build`"
+        ],
+        "artifacts": [
+          "blockchain_audit.lean-cert.json"
+        ],
+        "depends_on": [
+          "verify_correct",
+          "lean_build"
+        ],
+        "optional_toolchain": "lake",
+        "harness_stage": "S3_lean_bridge_blockchain_audit",
+        "artifact_contract": [
+          "blockchain_audit.lean-cert.json"
+        ],
+        "verifier_gate": "The bridge converts the blockchain Z3 certificate into a Lean certificate dry run."
+      }
+    ]
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3",
+      "l2_agent",
+      "l3_lean"
+    ],
+    "state_dir": "{output_dir}",
+    "intent": "Prove a smart-contract audit flow catches reentrancy, arithmetic overflow, and access-control vulnerabilities before certifying corrected code.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/blockchain_audit/buggy_contract.mm, scenarios/blockchain_audit/correct_contract.mm, ../mumei-lean/MumeiLean/Blockchain.lean.",
+      "Generate evidence: blockchain_audit.proof.json, blockchain_audit.lean-cert.json when Lean assets are available, result.json, report.md, and per-step logs.",
+      "result.json records vulnerability rejection, Z3 proof acceptance, L2 audit taxonomy, and optional Lean gates.",
+      "report.md explains the blockchain audit before/after evidence.",
+      "blockchain_audit.proof.json is the L1 Z3 proof certificate for the corrected contract.",
+      "dashboard/summary.md aggregates PASS and proof-density evidence for the scenario.",
+      "Gate order: l1_z3 -> l2_agent -> l3_lean; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "Blockchain smart-contract audit must detect reentrancy, overflow, and access-control flaws while proving corrected code.",
+    "success_criteria": [
+      "buggy_contract.mm is rejected by Z3 for intentional smart-contract vulnerabilities.",
+      "correct_contract.mm verifies and emits blockchain_audit.proof.json.",
+      "L2 records the audit taxonomy without relying on live LLM credentials.",
+      "Optional Lean build/bridge certifies blockchain proof assets when available."
+    ],
+    "drift_risk": "Low: expected diagnostics and artifact contracts bind the audit classes to explicit verification gates."
+  }
+}

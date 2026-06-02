@@ -89,6 +89,21 @@ the missing `PEP` match arm with `CustomerType::PEP (tag=3)`, then verifies
 Reports are written to `reports/regtech_compliance/<timestamp>/` and mirrored
 via `reports/regtech_compliance/latest/`.
 
+## Run the Blockchain Audit scenario
+
+```bash
+make demo-blockchain
+```
+
+Blockchain Audit is a 3-layer smart-contract demo (`l1_z3` + `l2_agent` +
+`l3_lean`). It first rejects a contract with reentrancy, Uint256 overflow, and
+access-control vulnerabilities, then verifies the corrected implementation and
+runs the optional `MumeiLean.Blockchain` proof/bridge gates when Lean assets are
+available.
+
+Reports are written to `reports/blockchain_audit/<timestamp>/` and mirrored via
+`reports/blockchain_audit/latest/`.
+
 ## Run the Medical Device Control scenario
 
 ```bash
@@ -111,8 +126,9 @@ make demo
 ```
 
 `demo` runs `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`,
-`nl_to_verified`, `smart_contract_audit`, `medical_device`, and
-`aviation_control` in order. `make demo-all` remains a compatibility alias.
+`nl_to_verified`, `smart_contract_audit`, `blockchain_audit`, `medical_device`,
+`aviation_control`, `merkle_tree_verification`, `defi_invariant`, and
+`arklib_style_audit` in order. `make demo-all` remains a compatibility alias.
 `CI_FIXTURE_MODE=1 make demo-ci` runs the same scenario set with deterministic
 CI fixtures and summary generation.
 

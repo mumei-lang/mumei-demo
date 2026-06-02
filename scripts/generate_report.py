@@ -17,6 +17,7 @@ SCENARIO_ORDER = [
     "regtech_compliance",
     "nl_to_verified",
     "smart_contract_audit",
+    "blockchain_audit",
     "medical_device",
     "aviation_control",
     "merkle_tree_verification",
@@ -210,6 +211,8 @@ def code_fence(content: str, language: str = "text") -> str:
 
 def scenario_code_paths(root: Path, scenario: str) -> tuple[Path, Path]:
     scenario_dir = root / "scenarios" / scenario
+    if scenario == "blockchain_audit":
+        return scenario_dir / "buggy_contract.mm", scenario_dir / "correct_contract.mm"
     return scenario_dir / "buggy_code.mm", scenario_dir / "correct_code.mm"
 
 
