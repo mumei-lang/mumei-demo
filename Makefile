@@ -1,6 +1,6 @@
-SCENARIOS := ownership_transfer rtgs_settlement regtech_compliance nl_to_verified smart_contract_audit blockchain_audit medical_device aviation_control merkle_tree_verification defi_invariant arklib_style_audit
+SCENARIOS := ownership_transfer rtgs_settlement regtech_compliance nl_to_verified smart_contract_audit blockchain_audit medical_device aviation_control merkle_tree_verification defi_invariant arklib_style_audit self_correction_demo
 
-.PHONY: demo demo-ownership demo-settlement demo-regtech demo-nl demo-smart-contract demo-blockchain demo-medical demo-aviation demo-merkle demo-defi demo-arklib demo-all demo-ci report setup
+.PHONY: demo demo-ownership demo-settlement demo-regtech demo-nl demo-smart-contract demo-blockchain demo-medical demo-aviation demo-merkle demo-defi demo-arklib demo-self-correction demo-all demo-ci report setup
 
 demo:
 	@status=0; \
@@ -50,6 +50,9 @@ demo-defi:
 
 demo-arklib:
 	@./scripts/run_scenario.sh arklib_style_audit
+
+demo-self-correction:
+	@./scripts/run_scenario.sh self_correction_demo
 
 demo-all: demo
 

@@ -23,6 +23,7 @@ SCENARIO_ORDER = [
     "merkle_tree_verification",
     "defi_invariant",
     "arklib_style_audit",
+    "self_correction_demo",
 ]
 LAYER_LABELS = {
     "l1_z3": "L1 / Z3",
