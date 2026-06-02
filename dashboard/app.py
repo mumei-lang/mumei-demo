@@ -18,6 +18,10 @@ SCENARIO_ORDER = [
     "blockchain_audit",
     "medical_device",
     "aviation_control",
+    "merkle_tree_verification",
+    "defi_invariant",
+    "arklib_style_audit",
+    "self_correction_demo",
 ]
 
 

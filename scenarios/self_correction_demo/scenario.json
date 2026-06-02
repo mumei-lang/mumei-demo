@@ -1,0 +1,101 @@
+{
+  "name": "P9-F Self-Correction Protocol",
+  "version": "1.0.0",
+  "description": "Self-correction loop convergence demo with reconstruction-loss and token-efficiency thresholds.",
+  "layers": [
+    "l1_z3",
+    "l2_agent"
+  ],
+  "narrative": {
+    "intro": [
+      "Step 1: Verify an intentionally buggy atom with a counterexample.",
+      "Step 2: Verify the repaired atom and evaluate convergence metrics."
+    ],
+    "before": "abs_nonnegative returns 0 - x for all inputs, violating result >= 0 when x > 0.",
+    "after": "The corrected atom branches on x and converges with zero reconstruction loss.",
+    "steps": {
+      "detect_bug": {
+        "rejected": {
+          "headline": "SELF-CORRECTION INPUT BUG DETECTED",
+          "follow_up": [
+            "  Counterexample-driven repair metadata is expected for this failure.",
+            "",
+            "  Step 3: Verify the corrected implementation..."
+          ]
+        }
+      },
+      "verify_correct": {
+        "pass": {
+          "headline": "Correct implementation verified"
+        }
+      },
+      "benchmark_self_correction": {
+        "pass": {
+          "headline": "Convergence benchmark thresholds satisfied"
+        }
+      }
+    }
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "detect_bug",
+        "name": "Z3 Counterexample Detection",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/self_correction_demo/buggy_code.mm",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": [
+          "Postcondition"
+        ],
+        "artifacts": [],
+        "harness_stage": "S1_z3_counterexample_detect_bug",
+        "artifact_contract": [
+          "result.json captures the expected verifier rejection."
+        ],
+        "verifier_gate": "Mumei/Z3 rejects the intentionally buggy implementation.",
+        "failure_taxonomy": "postcondition_violation"
+      },
+      {
+        "id": "verify_correct",
+        "name": "Z3 Correct Implementation Verification",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/self_correction_demo/correct_code.mm --proof-cert --output {output_dir}/self_correction.proof.json",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Verification passed"
+        ],
+        "artifacts": [
+          "self_correction.proof.json"
+        ],
+        "harness_stage": "S1_z3_acceptance_verify_correct",
+        "artifact_contract": [
+          "self_correction.proof.json"
+        ],
+        "verifier_gate": "Mumei/Z3 accepts the corrected implementation and writes a proof certificate."
+      }
+    ]
+  },
+  "l2_agent": {
+    "steps": [
+      {
+        "id": "benchmark_self_correction",
+        "name": "Self-Correction Benchmark",
+        "repo": "mumei-agent",
+        "command": "python3 {root_dir}/scenarios/self_correction_demo/benchmark_suite.py --output {output_dir}/self_correction_benchmark.json",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "\"passed\": true"
+        ],
+        "artifacts": [
+          "self_correction_benchmark.json"
+        ],
+        "harness_stage": "S2_agent_convergence_benchmark",
+        "artifact_contract": [
+          "self_correction_benchmark.json"
+        ],
+        "verifier_gate": "Benchmark metrics satisfy convergence >= 70%, average repairs <= 5, and token efficiency >= 20%."
+      }
+    ]
+  }
+}
