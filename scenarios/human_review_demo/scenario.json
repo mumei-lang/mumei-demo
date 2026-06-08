@@ -1,0 +1,75 @@
+{
+  "name": "Human Review Queue Workflow",
+  "version": "1.0.0",
+  "description": "Demonstrates generation, MCP approval, and re-verification of a trusted-atom human review queue.",
+  "layers": [
+    "l1_z3",
+    "l2_agent"
+  ],
+  "narrative": {
+    "intro": [
+      "Step 1: mumei emits a human-review queue for a trusted atom.",
+      "Step 2: mumei-agent records human approval through MCP tooling.",
+      "Step 3: The reviewed specification is verified again."
+    ],
+    "before": "external_risk_score is trusted and therefore requires explicit human approval.",
+    "after": "The queue records approval metadata before downstream automation relies on the trusted atom.",
+    "steps": {
+      "review_workflow": {
+        "pass": {
+          "headline": "Human review queue approved"
+        }
+      }
+    }
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "emit_review_queue",
+        "name": "Emit Human Review Queue",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/human_review_demo/trusted_atom_review.mm --emit human-review-queue --report-dir {output_dir}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Human review queue written"
+        ],
+        "artifacts": [
+          "human_review_queue.json"
+        ],
+        "harness_stage": "S1_emit_human_review_queue",
+        "artifact_contract": [
+          "human_review_queue.json contains trusted atoms that require human approval."
+        ],
+        "verifier_gate": "Mumei emits a human-review queue for trusted/manual/unknown atoms."
+      }
+    ]
+  },
+  "l2_agent": {
+    "steps": [
+      {
+        "id": "review_workflow",
+        "name": "Approve Review via MCP and Reverify",
+        "repo": "mumei-agent",
+        "command": "python3 {root_dir}/scenarios/human_review_demo/run_review_demo.py --mumei-bin {mumei_bin} --mumei-agent-repo {mumei_agent_repo} --output-dir {output_dir}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "human-review-queue generated",
+          "approved external_risk_score",
+          "reverification passed"
+        ],
+        "artifacts": [
+          "review_demo_result.json",
+          "human_review_queue.json"
+        ],
+        "depends_on": [
+          "emit_review_queue"
+        ],
+        "harness_stage": "S2_mcp_human_approval",
+        "artifact_contract": [
+          "review_demo_result.json records MCP queue loading, approval metadata, and re-verification output."
+        ],
+        "verifier_gate": "mumei-agent MCP tools approve the queued atom and the reviewed spec verifies."
+      }
+    ]
+  }
+}
