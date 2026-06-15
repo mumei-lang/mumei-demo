@@ -49,7 +49,11 @@ jobs:
         run: |
           python -m venv "$GITHUB_WORKSPACE/.venv"
           "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install --upgrade pip
-          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -r requirements.txt
+          if [ -f requirements.txt ]; then
+            "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -r requirements.txt
+          else
+            "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -e ".[test]"
+          fi
           "$GITHUB_WORKSPACE/.venv/bin/python" -m pip show openai
         working-directory: repos/mumei-agent
       - name: Run integrated demo scenarios
