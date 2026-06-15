@@ -74,7 +74,11 @@ jobs:
         run: |
           python -m venv "$GITHUB_WORKSPACE/.venv"
           "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install --upgrade pip
-          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -r requirements.txt
+          if [ -f requirements.txt ]; then
+            "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -r requirements.txt
+          else
+            "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -e ".[test]"
+          fi
         working-directory: mumei-agent
 
       - name: Run all demo scenarios
@@ -102,6 +106,7 @@ jobs:
               "rtgs_settlement",
               "regtech_compliance",
               "nl_to_verified",
+              "no_mm_audit",
               "smart_contract_audit",
               "medical_device",
               "aviation_control",

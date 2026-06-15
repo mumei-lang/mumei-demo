@@ -16,6 +16,7 @@ SCENARIO_ORDER = [
     "rtgs_settlement",
     "regtech_compliance",
     "nl_to_verified",
+    "no_mm_audit",
     "smart_contract_audit",
     "blockchain_audit",
     "medical_device",

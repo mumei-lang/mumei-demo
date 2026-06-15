@@ -16,6 +16,7 @@ Current scenarios:
 | `rtgs_settlement` | Shows settlement invariants with Z3 and optional Lean certification. |
 | `regtech_compliance` | Shows exhaustiveness checking catching a missing `PEP` match arm. |
 | `nl_to_verified` | Shows natural-language requirements flowing through mumei-agent extraction/generation into verified `.mm`. |
+| `no_mm_audit` | Shows `mumei-agent audit` finding a bug in existing Python code before generating a `.mm` skeleton. |
 | `smart_contract_audit` | Shows reentrancy guard verification and optional Lean certification. |
 | `medical_device` | Shows insulin pump dosage safety with Z3 and optional Lean certification. |
 | `aviation_control` | Shows runway allocation locking and agent validation. |
@@ -57,6 +58,7 @@ make demo-ownership
 make demo-settlement
 make demo-regtech
 make demo-nl
+make demo-no-mm
 make demo-smart-contract
 make demo-medical
 make demo-aviation
@@ -123,6 +125,7 @@ python3 -m json.tool scenarios/ownership_transfer/scenario.json >/dev/null
 python3 -m json.tool scenarios/rtgs_settlement/scenario.json >/dev/null
 python3 -m json.tool scenarios/regtech_compliance/scenario.json >/dev/null
 python3 -m json.tool scenarios/nl_to_verified/scenario.json >/dev/null
+python3 -m json.tool scenarios/no_mm_audit/scenario.json >/dev/null
 python3 -m json.tool scenarios/smart_contract_audit/scenario.json >/dev/null
 python3 -m json.tool scenarios/medical_device/scenario.json >/dev/null
 python3 -m json.tool scenarios/aviation_control/scenario.json >/dev/null
