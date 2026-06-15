@@ -1,0 +1,107 @@
+{
+  "name": "No-.mm Entry: Audit Existing Python Code",
+  "description": "mumei-agent audit が既存 Python コードのバグを指摘し、.mm スケルトンを生成するデモ",
+  "layers": [
+    "l1_audit",
+    "l2_migrate"
+  ],
+  "narrative": {
+    "intro": [
+      "Step 1: 既存 Python コードを mumei-agent audit で検査...",
+      "Step 2: .mm スケルトンへの移行候補を生成..."
+    ],
+    "before": ".mm を書かず、既存コードだけを入口にして検証違反を探す",
+    "after": "mumei-agent が残高マイナス化の可能性を指摘し、withdraw 用 .mm スケルトンを生成する",
+    "steps": {
+      "detect_bug": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Audit detected existing-code verification violation",
+          "follow_up": [
+            "  Python withdraw allows balance to go negative.",
+            "  Step 2: Generating a .mm skeleton for migration..."
+          ]
+        }
+      },
+      "generate_skeleton": {
+        "pass": {
+          "icon": "✅",
+          "headline": ".mm migration skeleton generated"
+        }
+      }
+    }
+  },
+  "l1_audit": {
+    "steps": [
+      {
+        "id": "detect_bug",
+        "name": "Audit: detect verification violation",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_payment.py\",\n    \"language\": \"python\",\n    \"spec_extracted\": True,\n    \"spec_health_issues\": [],\n    \"verification_violations\": [\"balance can go negative (Z3 counterexample: amount=150, balance=100)\"],\n    \"counterexample_values\": [{\"balance\": 100, \"amount\": 150}],\n    \"cross_validation_gaps\": [\"spec requires balance >= amount, but code allows negative balance\"],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"verification_violations: balance can go negative\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_payment.py --language python --json; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "verification_violations",
+          "balance can go negative"
+        ],
+        "harness_stage": "S1_audit_detect_existing_code_bug",
+        "artifact_contract": [
+          "detect_bug.log records verification_violations for the existing Python withdraw implementation."
+        ],
+        "verifier_gate": "mumei-agent audit exits 0 and emits structured violation evidence without requiring a .mm input file."
+      }
+    ]
+  },
+  "l2_migrate": {
+    "steps": [
+      {
+        "id": "generate_skeleton",
+        "name": "Migrate: generate .mm skeleton",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent migrate-suggest --code-file {root_dir}/scenarios/no_mm_audit/buggy_payment.py --language python --issues-json '[{\"function\":\"withdraw\",\"message\":\"balance can go negative\"}]' --output {output_dir}/mm",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "withdraw",
+          "atom"
+        ],
+        "artifacts": [
+          "mm/withdraw.mm"
+        ],
+        "depends_on": [
+          "detect_bug"
+        ],
+        "harness_stage": "S2_migrate_generate_mm_skeleton",
+        "artifact_contract": [
+          "mm/withdraw.mm contains the generated Mumei skeleton for the audited withdraw function."
+        ],
+        "verifier_gate": "mumei-agent migrate-suggest exits 0 and emits a withdraw atom skeleton."
+      }
+    ]
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_audit",
+      "l2_migrate"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the no-.mm entry path: audit existing Python, surface verification violations, then generate a Mumei skeleton.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/no_mm_audit/buggy_payment.py and sibling mumei-agent audit/migrate-suggest commands.",
+      "Generate evidence: detect_bug.log, generate_skeleton.log, mm/withdraw.mm, harness_state.json, result.json, report.md, and dashboard summary rows.",
+      "Gate order: l1_audit -> l2_migrate; migration evidence is trusted only after the audit command emits the expected violation markers."
+    ]
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Existing Python withdraw code should be auditable before any hand-written .mm contract exists.",
+    "success_criteria": [
+      "Scenario input is existing Python code, not a hand-written .mm file.",
+      "Audit output includes verification_violations and balance can go negative.",
+      "migrate-suggest writes a withdraw .mm skeleton under the scenario output directory."
+    ]
+  }
+}
