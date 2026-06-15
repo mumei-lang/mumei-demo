@@ -21,10 +21,14 @@ def withdraw(balance: int, amount: int) -> int:
 make demo-no-mm
 ```
 
-Or invoke the runner directly:
+`make demo-no-mm` defaults to fixture mode so it can run in CI without live LLM
+credentials. To exercise the live `mumei-agent audit` command, set
+`CI_FIXTURE_MODE=0` and provide the agent’s configured LLM credentials.
+
+Invoke the runner directly in fixture mode:
 
 ```bash
-./scripts/run_scenario.sh no_mm_audit \
+CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh no_mm_audit \
   --mumei-repo ../mumei \
   --mumei-agent-repo ../mumei-agent
 ```
