@@ -21,6 +21,7 @@ Mumei's demo scenarios make those bugs concrete:
 | Merkle Tree Verification | Assumes hash function integrity without proof | Z3 verifies `hash_function_secure` precondition, Lean certifies collision resistance |
 | DeFi Invariant | Integer overflow in ERC-20 transfer | Refinement types (`type Uint256 = i64 where v >= 0 && v <= MAX`) prevent overflow at compile time |
 | ArkLib-Style Audit | Complex implementation hides bugs | Top-level `requires`/`ensures` reviewed by humans, Lean proves implementation correctness |
+| P9-G NLAE Integration | A generated vault withdrawal violates a postcondition | `mumei verify --emit loss-vector` feeds mumei-agent self-correction, then mumei-lean checks fidelity |
 
 ## How It Works
 
@@ -141,6 +142,41 @@ The scenario harness is documented as an NLAH-style artifact contract in
 `result.json`, `report.md`, proof certificates, Lean certificates, and dashboard
 summaries.
 
+## P9-G NLAE Integration Demo
+
+The P9-G demo connects all four repositories as NLAE components:
+
+```mermaid
+flowchart TD
+    A["mumei-agent\nModule A (AV)\nNLAEPipeline"] --> B["mumei\nModule B (AR)\nverify --emit loss-vector"]
+    B --> C["Loss Vector JSON\nreconstruction_loss + counterexample"]
+    C --> D["mumei-agent\nself-correct"]
+    D --> E["mumei-lean\nFidelity Checker\nlean_verified export"]
+    E --> F["mumei-demo\nEvaluation Loop\nexpected_output.json"]
+```
+
+Run it from this repository after placing sibling checkouts at `../mumei`,
+`../mumei-agent`, and `../mumei-lean`:
+
+```bash
+./demos/nlae_integration/run_demo.sh
+```
+
+Or provide explicit paths:
+
+```bash
+MUMEI_REPO=../mumei \
+MUMEI_AGENT_REPO=../mumei-agent \
+MUMEI_LEAN_REPO=../mumei-lean \
+./demos/nlae_integration/run_demo.sh
+```
+
+The harness is deterministic by default: fixture clients exercise
+`NLAEPipeline`, Loss Vector routing, self-correction, and Lean fidelity checking
+without requiring live LLM credentials or a live Lean build. If
+`$MUMEI_REPO/target/debug/mumei` exists, the script also captures the live
+`--emit loss-vector` output under `demos/nlae_integration/.work/`.
+
 ## Quick Start
 
 Prepare sibling checkouts and run the integrated demo sequence:
@@ -210,6 +246,12 @@ For the ArkLib-Style Audit scenario:
 
 ```bash
 make demo-arklib
+```
+
+For the P9-G NLAE Integration demo:
+
+```bash
+./demos/nlae_integration/run_demo.sh
 ```
 
 To run the complete ten-scenario integrated demo sequence:
