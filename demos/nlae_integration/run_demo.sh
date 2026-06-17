@@ -28,7 +28,10 @@ fi
 
 MUMEI_BIN=${MUMEI_BIN:-"$MUMEI_REPO/target/debug/mumei"}
 if [[ -x "$MUMEI_BIN" ]]; then
-  "$MUMEI_BIN" verify --emit loss-vector "$DEMO_MM" >"$LOSS_VECTOR_JSON" 2>"$WORK_DIR/mumei-verify.stderr" || true
+  (
+    cd "$WORK_DIR"
+    "$MUMEI_BIN" verify --emit loss-vector "$DEMO_MM" >"$LOSS_VECTOR_JSON" 2>"$WORK_DIR/mumei-verify.stderr" || true
+  )
 fi
 
 PYTHON_CMD=(python3)
