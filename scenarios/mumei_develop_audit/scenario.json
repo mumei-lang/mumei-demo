@@ -1,0 +1,184 @@
+{
+  "name": "Mumei Develop Checkout Audit",
+  "description": "Audit a target file from the mumei develop checkout, preserve verification_violations and cross_validation_gaps, and generate migrate-suggest guidance without requiring OPENAI_API_KEY in fixture mode.",
+  "layers": [
+    "l1_inventory",
+    "l2_audit",
+    "l3_migrate"
+  ],
+  "narrative": {
+    "intro": [
+      "Step 1: record the mumei develop checkout target file.",
+      "Step 2: audit the target in live mode, or emit deterministic fixture audit evidence.",
+      "Step 3: require verification_violations and cross_validation_gaps.",
+      "Step 4: run migrate-suggest to create .mm skeleton guidance."
+    ],
+    "before": "The scenario starts from an existing file in the mumei develop checkout, not a hand-written .mm file.",
+    "after": "The report records target inventory, audit/validation evidence, migration hints, generated skeletons, and dashboard-visible harness compliance.",
+    "steps": {
+      "record_targets": {
+        "pass": {
+          "headline": "Recorded mumei develop checkout target"
+        }
+      },
+      "audit_develop_target": {
+        "pass": {
+          "headline": "Audit evidence preserved verification_violations and cross_validation_gaps",
+          "follow_up": [
+            "  Fixture mode does not read OPENAI_API_KEY.",
+            "  Live mode requires OPENAI_API_KEY before mumei-agent audit runs.",
+            "  Next: migrate-suggest generates .mm skeleton guidance."
+          ]
+        }
+      },
+      "generate_migration_guidance": {
+        "pass": {
+          "headline": "migrate-suggest generated develop-target skeletons"
+        }
+      }
+    }
+  },
+  "l1_inventory": {
+    "steps": [
+      {
+        "id": "record_targets",
+        "name": "Inventory: record mumei develop checkout target",
+        "repo": "mumei-demo",
+        "command": "{mumei_agent_python} {root_dir}/scenarios/mumei_develop_audit/inventory.py --mumei-repo {mumei_repo} --output-dir {output_dir}",
+        "cwd": "{root_dir}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "target_files",
+          "scripts/generate_stdlib_metrics.py",
+          "develop"
+        ],
+        "artifacts": [
+          "target_files.json"
+        ],
+        "harness_stage": "S1_inventory_record_develop_checkout_target",
+        "artifact_contract": [
+          "target_files.json records the sibling mumei checkout, expected develop ref, commit, and audited target file.",
+          "target_files.json declares the fixture and live branches and all generated artifacts expected from the scenario."
+        ],
+        "verifier_gate": "The mumei develop checkout target file exists before audit or validate-code evidence can be trusted."
+      }
+    ]
+  },
+  "l2_audit": {
+    "steps": [
+      {
+        "id": "audit_develop_target",
+        "name": "Audit: validate mumei develop target file",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} {root_dir}/scenarios/mumei_develop_audit/fixture_audit.py --mumei-repo {mumei_repo} --output-dir {output_dir}; else : \"${OPENAI_API_KEY:?OPENAI_API_KEY is required only for live audit mode; fixture mode does not use it}\"; export LLM_API_KEY=\"${LLM_API_KEY:-$OPENAI_API_KEY}\"; mkdir -p {output_dir}/audit {output_dir}/mm; raw={output_dir}/audit/mumei_develop_audit.raw.json; {mumei_agent_python} -m agent audit --code-file {mumei_repo}/scripts/generate_stdlib_metrics.py --language python --json --auto-migrate --heal-output-dir {output_dir}/mm > \"$raw\"; {mumei_agent_python} - \"$raw\" {output_dir}/audit/mumei_develop_audit.json <<'PY'\nimport json\nimport sys\nfrom pathlib import Path\nraw = Path(sys.argv[1])\nout = Path(sys.argv[2])\npayload = json.loads(raw.read_text(encoding='utf-8'))\npayload.setdefault('tool', 'audit')\npayload['openai_api_key_used'] = True\npayload['fixture_live_branch'] = {\n    'fixture': 'CI_FIXTURE_MODE=1; no OPENAI_API_KEY is read.',\n    'live': 'CI_FIXTURE_MODE=0; OPENAI_API_KEY is required before running mumei-agent audit.',\n}\npayload['generated_artifacts'] = [\n    'target_files.json',\n    'audit/mumei_develop_audit.json',\n    'mm/*.mm',\n]\nout.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\\n', encoding='utf-8')\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nprint('credential_boundary: OPENAI_API_KEY live mode acknowledged (secret value not logged)')\nPY\nfi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "verification_violations",
+          "cross_validation_gaps",
+          "spec_health_issues",
+          "migration_hints",
+          "OPENAI_API_KEY"
+        ],
+        "artifacts": [
+          "audit/mumei_develop_audit.json"
+        ],
+        "depends_on": [
+          "record_targets"
+        ],
+        "harness_stage": "S2_audit_validate_develop_checkout_target",
+        "artifact_contract": [
+          "audit/mumei_develop_audit.json records verification_violations for the develop checkout target.",
+          "audit/mumei_develop_audit.json records cross_validation_gaps for scenario contract drift versus implementation behavior.",
+          "audit/mumei_develop_audit.json preserves spec_health_issues, migration_hints, and generated_artifacts as stable keys.",
+          "Fixture mode records openai_api_key_used=false and does not require OPENAI_API_KEY; live mode requires OPENAI_API_KEY before running audit."
+        ],
+        "verifier_gate": "audit exits 0 and emits verification_violations, cross_validation_gaps, spec_health_issues, migration_hints, generated_artifacts, and a documented fixture/live branch."
+      }
+    ]
+  },
+  "l3_migrate": {
+    "steps": [
+      {
+        "id": "generate_migration_guidance",
+        "name": "Migrate: generate .mm guidance for the audited develop target",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent migrate-suggest --code-file {mumei_repo}/scripts/generate_stdlib_metrics.py --language python --issues-json '[{\"function\":\"_scan_std\",\"message\":\"std directory traversal requires explicit target inventory and report artifact validation\"}]' --output {output_dir}/mm",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "migration_hints",
+          "scan_std",
+          "atom"
+        ],
+        "artifacts": [
+          "mm/scan_std.mm",
+          "mm/render_markdown.mm",
+          "mm/compute_health.mm"
+        ],
+        "depends_on": [
+          "audit_develop_target"
+        ],
+        "harness_stage": "S3_migrate_suggest_develop_target_guidance",
+        "artifact_contract": [
+          "mm/scan_std.mm contains generated Mumei skeleton guidance for the audited std scan function.",
+          "mm/render_markdown.mm and mm/compute_health.mm preserve additional generated guidance from the same target file."
+        ],
+        "verifier_gate": "migrate-suggest exits 0 and emits migration_hints plus .mm skeleton artifacts for the audited develop target."
+      }
+    ]
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_inventory",
+      "l2_audit",
+      "l3_migrate"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate that a file from the mumei develop checkout can be audited or validated without writing .mm first, while preserving violations, cross-validation gaps, generated artifacts, and fixture/live mode boundaries.",
+    "artifact_contracts": [
+      "Read inputs: sibling mumei develop checkout and scripts/generate_stdlib_metrics.py.",
+      "Generate evidence: target_files.json, record_targets.log, audit_develop_target.log, audit/mumei_develop_audit.json, generate_migration_guidance.log, mm/*.mm skeletons, harness_state.json, result.json, report.md, and dashboard summary rows.",
+      "Gate order: l1_inventory -> l2_audit -> l3_migrate; migration guidance is trusted only after target inventory and audit evidence are present.",
+      "Credential boundary: OPENAI_API_KEY is required only for live mode and is not read in CI fixture mode."
+    ],
+    "gate_order": [
+      "l1_inventory",
+      "l2_audit",
+      "l3_migrate"
+    ],
+    "notes": [
+      "Fixture mode must stay deterministic for CI and dashboard generation.",
+      "Live mode may use audit, with validate-code reserved as the equivalent no-.mm validation path if the audit command is replaced later.",
+      "The generated docs/AUDIT_LOG_2026-06-21.md file records the initial audit contract for future fixes."
+    ]
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Add a scenario that audits or validates target files from the mumei develop checkout and records enough dated evidence to fix issues later.",
+    "success_criteria": [
+      "Scenario input is a target file from the sibling mumei develop checkout.",
+      "Fixture mode runs without OPENAI_API_KEY.",
+      "Audit evidence includes verification_violations and cross_validation_gaps.",
+      "Generated artifacts include audit JSON, command logs, result/report files, and .mm skeleton guidance.",
+      "CI and dashboard ordering include mumei_develop_audit."
+    ],
+    "expected_user_observable_behavior": [
+      "make demo-ci runs mumei_develop_audit in fixture mode.",
+      "reports/mumei_develop_audit/latest/result.json has overall_status PASS.",
+      "dashboard/summary.md includes a mumei_develop_audit row.",
+      "AUDIT_LOG_2026-06-21.md records the detailed audit contract and result fields."
+    ],
+    "drift_risk": "Live audit output can differ as mumei-agent develops; fixture mode pins the contract fields that CI and the dashboard must preserve."
+  },
+  "success_criteria": [
+    "mumei develop checkout target is inventoried.",
+    "verification_violations are recorded.",
+    "cross_validation_gaps are recorded.",
+    "fixture mode does not require OPENAI_API_KEY.",
+    "migrate-suggest writes .mm skeleton guidance."
+  ]
+}

@@ -126,7 +126,8 @@ make demo
 ```
 
 `demo` runs `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`,
-`nl_to_verified`, `smart_contract_audit`, `blockchain_audit`, `medical_device`,
+`nl_to_verified`, `no_mm_audit`, `mumei_develop_audit`,
+`smart_contract_audit`, `blockchain_audit`, `medical_device`,
 `aviation_control`, `merkle_tree_verification`, `defi_invariant`, and
 `arklib_style_audit` in order. `make demo-all` remains a compatibility alias.
 `CI_FIXTURE_MODE=1 make demo-ci` runs the same scenario set with deterministic
