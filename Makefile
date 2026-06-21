@@ -1,8 +1,8 @@
-SCENARIOS := ownership_transfer rtgs_settlement regtech_compliance nl_to_verified no_mm_audit smart_contract_audit blockchain_audit medical_device aviation_control merkle_tree_verification defi_invariant arklib_style_audit self_correction_demo
+SCENARIOS := ownership_transfer rtgs_settlement regtech_compliance nl_to_verified no_mm_audit mumei_develop_audit smart_contract_audit blockchain_audit medical_device aviation_control merkle_tree_verification defi_invariant arklib_style_audit self_correction_demo
 MUMEI_REPO ?= ../mumei
 MUMEI_AGENT_REPO ?= ../mumei-agent
 
-.PHONY: demo demo-ownership demo-settlement demo-regtech demo-nl demo-no-mm demo-smart-contract demo-blockchain demo-medical demo-aviation demo-merkle demo-defi demo-arklib demo-self-correction demo-human-review demo-all demo-ci report setup
+.PHONY: demo demo-ownership demo-settlement demo-regtech demo-nl demo-no-mm demo-mumei-develop-audit demo-smart-contract demo-blockchain demo-medical demo-aviation demo-merkle demo-defi demo-arklib demo-self-correction demo-human-review demo-all demo-ci report setup
 
 demo:
 	@status=0; \
@@ -40,6 +40,18 @@ demo-no-mm:
 			--mumei-agent-repo "$(MUMEI_AGENT_REPO)"; \
 	else \
 		./scripts/run_scenario.sh no_mm_audit \
+			--mumei-repo "$(MUMEI_REPO)" \
+			--mumei-agent-repo "$(MUMEI_AGENT_REPO)"; \
+	fi
+
+demo-mumei-develop-audit:
+	@mode="$${CI_FIXTURE_MODE:-1}"; \
+	if [ "$$mode" = "1" ]; then \
+		CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh mumei_develop_audit \
+			--mumei-repo "$(MUMEI_REPO)" \
+			--mumei-agent-repo "$(MUMEI_AGENT_REPO)"; \
+	else \
+		./scripts/run_scenario.sh mumei_develop_audit \
 			--mumei-repo "$(MUMEI_REPO)" \
 			--mumei-agent-repo "$(MUMEI_AGENT_REPO)"; \
 	fi
