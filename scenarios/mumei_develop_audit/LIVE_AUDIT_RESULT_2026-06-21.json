@@ -1,0 +1,106 @@
+{
+  "success": false,
+  "source_file": "/home/ubuntu/repos/mumei/scripts/generate_stdlib_metrics.py",
+  "language": "python",
+  "spec_extracted": true,
+  "spec_health_issues": [
+    "contradiction: analyze_metrics: spec_lowering_failed: failed to lower requires clause 'directory_path != null && directory_path.endsWith(' / std / ')': Verification Error: Unknown function: directory_path.endsWith (constraints: [\"directory_path != null && directory_path.endsWith(' / std / ')\"])",
+    "contradiction: generate_markdown_report: spec_lowering_failed: failed to lower ensures clause 'result == true': Verification Error: Expected bool for == (constraints: [\"result == true\"])"
+  ],
+  "verification_violations": [],
+  "counterexample_values": [],
+  "cross_validation_gaps": [
+    "spec atom has no matching implementation: analyze_metrics",
+    "spec atom has no matching implementation: generate_markdown_report"
+  ],
+  "migration_hints": [
+    {
+      "function_name": "count_metrics",
+      "priority": "high",
+      "reason": "spec atom has no matching implementation: analyze_metrics; spec atom has no matching implementation: generate_markdown_report",
+      "skeleton": "atom count_metrics(path: i64) -> i64 {\n    requires: true;\n    ensures: true;\n    body: {\n        0\n    }\n}",
+      "next_step": "Save this skeleton as a .mm atom, then run uv run python -m agent generate --spec-file <extracted_spec.json>"
+    },
+    {
+      "function_name": "run_verify",
+      "priority": "high",
+      "reason": "spec atom has no matching implementation: analyze_metrics; spec atom has no matching implementation: generate_markdown_report",
+      "skeleton": "atom run_verify(mumei_bin: i64, mm_path: i64) -> string {\n    requires: true;\n    ensures: true;\n    body: {\n        \"\"\n    }\n}",
+      "next_step": "Save this skeleton as a .mm atom, then run uv run python -m agent generate --spec-file <extracted_spec.json>"
+    },
+    {
+      "function_name": "compute_health",
+      "priority": "high",
+      "reason": "spec atom has no matching implementation: analyze_metrics; spec atom has no matching implementation: generate_markdown_report",
+      "skeleton": "atom compute_health(atoms: i64, trusted: i64, todos: i64, verified: string) -> f64 {\n    requires: true;\n    ensures: true;\n    body: {\n        0.0\n    }\n}",
+      "next_step": "Save this skeleton as a .mm atom, then run uv run python -m agent generate --spec-file <extracted_spec.json>"
+    },
+    {
+      "function_name": "scan_std",
+      "priority": "high",
+      "reason": "spec atom has no matching implementation: analyze_metrics; spec atom has no matching implementation: generate_markdown_report",
+      "skeleton": "atom scan_std(std_dir: i64, mumei_bin: i64) -> i64 {\n    requires: true;\n    ensures: true;\n    body: {\n        0\n    }\n}",
+      "next_step": "Save this skeleton as a .mm atom, then run uv run python -m agent generate --spec-file <extracted_spec.json>"
+    },
+    {
+      "function_name": "parse_summary",
+      "priority": "high",
+      "reason": "spec atom has no matching implementation: analyze_metrics; spec atom has no matching implementation: generate_markdown_report",
+      "skeleton": "atom parse_summary(md_text: string, date: string) -> i64 {\n    requires: true;\n    ensures: true;\n    body: {\n        0\n    }\n}",
+      "next_step": "Save this skeleton as a .mm atom, then run uv run python -m agent generate --spec-file <extracted_spec.json>"
+    },
+    {
+      "function_name": "collect_history",
+      "priority": "high",
+      "reason": "spec atom has no matching implementation: analyze_metrics; spec atom has no matching implementation: generate_markdown_report",
+      "skeleton": "atom collect_history(repo_root: i64, metrics_file: string, max_entries: i64) -> i64 {\n    requires: true;\n    ensures: true;\n    body: {\n        0\n    }\n}",
+      "next_step": "Save this skeleton as a .mm atom, then run uv run python -m agent generate --spec-file <extracted_spec.json>"
+    },
+    {
+      "function_name": "render_markdown",
+      "priority": "high",
+      "reason": "spec atom has no matching implementation: analyze_metrics; spec atom has no matching implementation: generate_markdown_report",
+      "skeleton": "atom render_markdown(rows: i64, history: i64) -> string {\n    requires: true;\n    ensures: true;\n    body: {\n        \"\"\n    }\n}",
+      "next_step": "Save this skeleton as a .mm atom, then run uv run python -m agent generate --spec-file <extracted_spec.json>"
+    },
+    {
+      "function_name": "main",
+      "priority": "high",
+      "reason": "spec atom has no matching implementation: analyze_metrics; spec atom has no matching implementation: generate_markdown_report",
+      "skeleton": "atom main(argv: i64) -> i64 {\n    requires: true;\n    ensures: true;\n    body: {\n        0\n    }\n}",
+      "next_step": "Save this skeleton as a .mm atom, then run uv run python -m agent generate --spec-file <extracted_spec.json>"
+    }
+  ],
+  "healed_files": [],
+  "heal_errors": [],
+  "next_steps": [
+    {
+      "priority": "high",
+      "action": "validate-spec-to-code で制約の対応を確認",
+      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file>"
+    },
+    {
+      "priority": "medium",
+      "action": "validate-spec で仕様の矛盾を修正",
+      "command": "mumei-agent validate-spec --input <spec>"
+    },
+    {
+      "priority": "medium",
+      "action": "heal で .mm スケルトンを自動修正",
+      "command": "mumei-agent heal <mm_file>"
+    }
+  ],
+  "report": "Audit found issues: /home/ubuntu/repos/mumei/scripts/generate_stdlib_metrics.py\nlanguage: python\nspec_extracted: True\nspec_health_issues: ['contradiction: analyze_metrics: spec_lowering_failed: failed to lower requires clause \\'directory_path != null && directory_path.endsWith(\\' / std / \\')\\': Verification Error: Unknown function: directory_path.endsWith (constraints: [\"directory_path != null && directory_path.endsWith(\\' / std / \\')\"])', 'contradiction: generate_markdown_report: spec_lowering_failed: failed to lower ensures clause \\'result == true\\': Verification Error: Expected bool for == (constraints: [\"result == true\"])']\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec atom has no matching implementation: analyze_metrics', 'spec atom has no matching implementation: generate_markdown_report']\nmigration_hints:\n  - function_name: count_metrics\n    priority: high\n    skeleton:\n      atom count_metrics(path: i64) -> i64 {\n          requires: true;\n          ensures: true;\n  - function_name: run_verify\n    priority: high\n    skeleton:\n      atom run_verify(mumei_bin: i64, mm_path: i64) -> string {\n          requires: true;\n          ensures: true;\n  - function_name: compute_health\n    priority: high\n    skeleton:\n      atom compute_health(atoms: i64, trusted: i64, todos: i64, verified: string) -> f64 {\n          requires: true;\n          ensures: true;\n  - function_name: scan_std\n    priority: high\n    skeleton:\n      atom scan_std(std_dir: i64, mumei_bin: i64) -> i64 {\n          requires: true;\n          ensures: true;\n  - function_name: parse_summary\n    priority: high\n    skeleton:\n      atom parse_summary(md_text: string, date: string) -> i64 {\n          requires: true;\n          ensures: true;\n  - function_name: collect_history\n    priority: high\n    skeleton:\n      atom collect_history(repo_root: i64, metrics_file: string, max_entries: i64) -> i64 {\n          requires: true;\n          ensures: true;\n  - function_name: render_markdown\n    priority: high\n    skeleton:\n      atom render_markdown(rows: i64, history: i64) -> string {\n          requires: true;\n          ensures: true;\n  - function_name: main\n    priority: high\n    skeleton:\n      atom main(argv: i64) -> i64 {\n          requires: true;\n          ensures: true;\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file>\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec>\n  - priority: medium\n    action: heal で .mm スケルトンを自動修正\n    command: mumei-agent heal <mm_file>",
+  "errors": [],
+  "tool": "audit",
+  "openai_api_key_used": true,
+  "fixture_live_branch": {
+    "fixture": "CI_FIXTURE_MODE=1; no OPENAI_API_KEY is read.",
+    "live": "CI_FIXTURE_MODE=0; OPENAI_API_KEY is required before running mumei-agent audit."
+  },
+  "generated_artifacts": [
+    "target_files.json",
+    "audit/mumei_develop_audit.json",
+    "mm/*.mm"
+  ]
+}
