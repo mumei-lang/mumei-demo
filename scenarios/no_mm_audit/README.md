@@ -1,9 +1,17 @@
 # No-.mm Entry: Audit Existing Python Code
 
 This scenario demonstrates the first “write no `.mm` by hand” entry path.
+The demo vocabulary is intentionally identical to the CLI output:
+
+1. 既存コードを渡すだけでバグ箇所を指摘
+2. 仕様から既存コードとの差分を指摘
+3. 仕様単独でおかしい場合を指摘
+
 `mumei-agent audit` inspects an existing Python `withdraw` implementation,
-reports that the balance can go negative, then `migrate-suggest` generates a
-Mumei skeleton that can become the formal contract.
+emits `spec_health_issues`, `verification_violations`,
+`cross_validation_gaps`, `next_steps`, `migration_hints`, `healed_files`, and
+`heal_errors`, then `migrate-suggest` generates a Mumei skeleton that can
+become the formal contract.
 
 ## Input
 
@@ -38,9 +46,13 @@ CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh no_mm_audit \
 - `l1_audit/detect_bug: PASS`
 - `detect_bug.log` contains `verification_violations` and
   `balance can go negative`
+- `detect_bug.log` contains `cross_validation_gaps` for the spec/code
+  difference and preserves `spec_health_issues` for spec-only issues
 - `l2_migrate/generate_skeleton: PASS`
 - `reports/no_mm_audit/latest/mm/withdraw.mm` contains a generated `withdraw`
   `atom` skeleton
 
-The scenario’s purpose is to show that existing code can be audited first, then
-migrated toward `.mm` contracts after a concrete bug has been found.
+The scenario’s purpose is to show that existing code can be audited first, the
+spec/code difference can be explained second, spec-only contradictions can use
+the same vocabulary third, and migration toward `.mm` contracts can happen only
+after a concrete bug has been found.

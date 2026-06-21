@@ -1,32 +1,35 @@
 {
   "name": "No-.mm Entry: Audit Existing Python Code",
-  "description": "mumei-agent audit が既存 Python コードのバグを指摘し、.mm スケルトンを生成するデモ",
+  "description": "既存コードを渡すだけでバグ箇所を指摘 / 仕様から既存コードとの差分を指摘 / 仕様単独でおかしい場合を指摘し、audit から migrate-suggest の .mm skeleton 生成へ進むデモ",
   "layers": [
     "l1_audit",
     "l2_migrate"
   ],
   "narrative": {
     "intro": [
-      "Step 1: 既存 Python コードを mumei-agent audit で検査...",
-      "Step 2: .mm スケルトンへの移行候補を生成..."
+      "Step 1: 既存コードを渡すだけでバグ箇所を指摘 (mumei-agent audit)",
+      "Step 2: 仕様から既存コードとの差分を指摘 (cross_validation_gaps / validate-spec-to-code)",
+      "Step 3: 仕様単独でおかしい場合を指摘 (spec_health_issues / contradiction_type)",
+      "Step 4: migrate-suggest で .mm skeleton を生成"
     ],
-    "before": ".mm を書かず、既存コードだけを入口にして検証違反を探す",
-    "after": "mumei-agent が残高マイナス化の可能性を指摘し、withdraw 用 .mm スケルトンを生成する",
+    "before": ".mm を書かず、既存コードだけを入口にして verification_violations / cross_validation_gaps / spec_health_issues を読む",
+    "after": "audit で既存コードのバグ箇所を指摘し、migrate-suggest が withdraw 用 .mm skeleton を生成する",
     "steps": {
       "detect_bug": {
         "pass": {
           "icon": "✅",
-          "headline": "Audit detected existing-code verification violation",
+          "headline": "既存コードを渡すだけでバグ箇所を指摘",
           "follow_up": [
-            "  Python withdraw allows balance to go negative.",
-            "  Step 2: Generating a .mm skeleton for migration..."
+            "  仕様から既存コードとの差分を指摘: cross_validation_gaps に spec/code 差分を記録。",
+            "  仕様単独でおかしい場合を指摘: spec_health_issues と contradiction_type で分類。",
+            "  Next: migrate-suggest で .mm skeleton を生成。"
           ]
         }
       },
       "generate_skeleton": {
         "pass": {
           "icon": "✅",
-          "headline": ".mm migration skeleton generated"
+          "headline": "migrate-suggest generated .mm skeleton"
         }
       }
     }
@@ -37,18 +40,22 @@
         "id": "detect_bug",
         "name": "Audit: detect verification violation",
         "repo": "mumei-agent",
-        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_payment.py\",\n    \"language\": \"python\",\n    \"spec_extracted\": True,\n    \"spec_health_issues\": [],\n    \"verification_violations\": [\"balance can go negative (Z3 counterexample: amount=150, balance=100)\"],\n    \"counterexample_values\": [{\"balance\": 100, \"amount\": 150}],\n    \"cross_validation_gaps\": [\"spec requires balance >= amount, but code allows negative balance\"],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"verification_violations: balance can go negative\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_payment.py --language python --json; fi",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_payment.py\",\n    \"language\": \"python\",\n    \"spec_extracted\": True,\n    \"spec_health_issues\": [],\n    \"verification_violations\": [\"balance can go negative (Z3 counterexample: amount=150, balance=100)\"],\n    \"counterexample_values\": [{\"balance\": 100, \"amount\": 150}],\n    \"cross_validation_gaps\": [\"spec requires balance >= amount, but code allows negative balance\"],\n    \"next_steps\": [\n        {\"priority\": \"high\", \"action\": \"migrate-suggest で .mm skeleton 生成\", \"command\": \"mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\"},\n        {\"priority\": \"high\", \"action\": \"validate-spec-to-code で仕様/コード差分を確認\", \"command\": \"mumei-agent validate-spec-to-code --spec <spec> --code <file>\"}\n    ],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"verification_violations: balance can go negative; cross_validation_gaps: spec/code difference\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_payment.py --language python --json; fi",
         "cwd": "{mumei_agent_repo}",
         "expected_exit": 0,
         "expected_patterns": [
           "verification_violations",
-          "balance can go negative"
+          "balance can go negative",
+          "cross_validation_gaps",
+          "spec_health_issues"
         ],
         "harness_stage": "S1_audit_detect_existing_code_bug",
         "artifact_contract": [
-          "detect_bug.log records verification_violations for the existing Python withdraw implementation."
+          "detect_bug.log records verification_violations for the existing Python withdraw implementation.",
+          "detect_bug.log records cross_validation_gaps for the spec/code difference.",
+          "detect_bug.log preserves spec_health_issues even when no spec-only issue is found."
         ],
-        "verifier_gate": "mumei-agent audit exits 0 and emits structured violation evidence without requiring a .mm input file."
+        "verifier_gate": "mumei-agent audit exits 0 and emits spec_health_issues, verification_violations, cross_validation_gaps, next_steps, migration_hints, healed_files, and heal_errors without requiring a .mm input file."
       }
     ]
   },
@@ -103,5 +110,10 @@
       "Audit output includes verification_violations and balance can go negative.",
       "migrate-suggest writes a withdraw .mm skeleton under the scenario output directory."
     ]
-  }
+  },
+  "success_criteria": [
+    "既存コードを渡すだけでバグ箇所を指摘",
+    "仕様から既存コードとの差分を指摘",
+    "仕様単独でおかしい場合を指摘"
+  ]
 }
