@@ -1,28 +1,30 @@
 {
   "name": "No-.mm Entry: Audit Existing Python Code",
-  "description": "既存コードを渡すだけでバグ箇所を指摘 / 仕様から既存コードとの差分を指摘 / 仕様単独でおかしい場合を指摘し、audit から migrate-suggest の .mm skeleton 生成へ進むデモ",
+  "description": "既存コードを渡すだけでバグ箇所を指摘 / 仕様から既存コードとの差分を指摘 / 仕様単独でおかしい場合を指摘。audit → migrate-suggest → heal の順で既存コードのバグ指摘から .mm skeleton 生成へ進むデモ。",
   "layers": [
     "l1_audit",
-    "l2_migrate"
+    "l2_migrate",
+    "l3_heal"
   ],
   "narrative": {
     "intro": [
-      "Step 1: 既存コードを渡すだけでバグ箇所を指摘 (mumei-agent audit)",
+      "Step 1: 既存コードを渡すだけでバグ箇所を指摘 (audit)",
       "Step 2: 仕様から既存コードとの差分を指摘 (cross_validation_gaps / validate-spec-to-code)",
       "Step 3: 仕様単独でおかしい場合を指摘 (spec_health_issues / contradiction_type)",
-      "Step 4: migrate-suggest で .mm skeleton を生成"
+      "Step 4: migrate-suggest で .mm skeleton を生成",
+      "Step 5: heal で healed_files / heal_errors を記録"
     ],
-    "before": ".mm を書かず、既存コードだけを入口にして verification_violations / cross_validation_gaps / spec_health_issues を読む",
-    "after": "audit で既存コードのバグ箇所を指摘し、migrate-suggest が withdraw 用 .mm skeleton を生成する",
+    "before": ".mm を書かず、既存コードだけを入口にして verification_violations / cross_validation_gaps / spec_health_issues を読む。",
+    "after": "audit → migrate-suggest → heal の順で、withdraw のバグ指摘から .mm skeleton 生成と healing 証跡へ進む。",
     "steps": {
       "detect_bug": {
         "pass": {
           "icon": "✅",
           "headline": "既存コードを渡すだけでバグ箇所を指摘",
           "follow_up": [
-            "  仕様から既存コードとの差分を指摘: cross_validation_gaps に spec/code 差分を記録。",
-            "  仕様単独でおかしい場合を指摘: spec_health_issues と contradiction_type で分類。",
-            "  Next: migrate-suggest で .mm skeleton を生成。"
+            "  仕様から既存コードとの差分を指摘: cross_validation_gaps に spec/code 差分を記録",
+            "  仕様単独でおかしい場合を指摘: spec_health_issues と contradiction_type で分類",
+            "  Next: migrate-suggest で .mm skeleton を生成"
           ]
         }
       },
@@ -31,6 +33,12 @@
           "icon": "✅",
           "headline": "migrate-suggest generated .mm skeleton"
         }
+      },
+      "record_heal_contract": {
+        "pass": {
+          "icon": "✅",
+          "headline": "heal recorded skeleton handoff evidence"
+        }
       }
     }
   },
@@ -38,7 +46,7 @@
     "steps": [
       {
         "id": "detect_bug",
-        "name": "Audit: detect verification violation",
+        "name": "Audit: detect existing-code bug before .mm migration",
         "repo": "mumei-agent",
         "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_payment.py\",\n    \"language\": \"python\",\n    \"spec_extracted\": True,\n    \"spec_health_issues\": [],\n    \"verification_violations\": [\"balance can go negative (Z3 counterexample: amount=150, balance=100)\"],\n    \"counterexample_values\": [{\"balance\": 100, \"amount\": 150}],\n    \"cross_validation_gaps\": [\"spec requires balance >= amount, but code allows negative balance\"],\n    \"next_steps\": [\n        {\"priority\": \"high\", \"action\": \"migrate-suggest で .mm skeleton 生成\", \"command\": \"mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\"},\n        {\"priority\": \"high\", \"action\": \"validate-spec-to-code で仕様/コード差分を確認\", \"command\": \"mumei-agent validate-spec-to-code --spec <spec> --code <file>\"}\n    ],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"verification_violations: balance can go negative; cross_validation_gaps: spec/code difference\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_payment.py --language python --json; fi",
         "cwd": "{mumei_agent_repo}",
@@ -53,9 +61,10 @@
         "artifact_contract": [
           "detect_bug.log records verification_violations for the existing Python withdraw implementation.",
           "detect_bug.log records cross_validation_gaps for the spec/code difference.",
-          "detect_bug.log preserves spec_health_issues even when no spec-only issue is found."
+          "detect_bug.log preserves spec_health_issues even when no spec-only issue is found.",
+          "detect_bug.log preserves migration_hints, healed_files, and heal_errors as stable keys for the later stages."
         ],
-        "verifier_gate": "mumei-agent audit exits 0 and emits spec_health_issues, verification_violations, cross_validation_gaps, next_steps, migration_hints, healed_files, and heal_errors without requiring a .mm input file."
+        "verifier_gate": "audit exits 0 and emits spec_health_issues, verification_violations, cross_validation_gaps, next_steps, migration_hints, healed_files, and heal_errors without requiring a .mm input file."
       }
     ]
   },
@@ -90,15 +99,26 @@
     "policy": "scenario-harness/v1",
     "acceptance_path": [
       "l1_audit",
-      "l2_migrate"
+      "l2_migrate",
+      "l3_heal"
     ],
     "state_dir": "{output_dir}",
     "state_file": "{output_dir}/harness_state.json",
-    "intent": "Demonstrate the no-.mm entry path: audit existing Python, surface verification violations, then generate a Mumei skeleton.",
+    "intent": "Demonstrate the no-.mm entry path: audit existing Python, surface verification violations, generate a Mumei skeleton, then record heal evidence for that skeleton.",
     "artifact_contracts": [
-      "Read inputs: scenarios/no_mm_audit/buggy_payment.py and sibling mumei-agent audit/migrate-suggest commands.",
-      "Generate evidence: detect_bug.log, generate_skeleton.log, mm/withdraw.mm, harness_state.json, result.json, report.md, and dashboard summary rows.",
-      "Gate order: l1_audit -> l2_migrate; migration evidence is trusted only after the audit command emits the expected violation markers."
+      "Read inputs: scenarios/no_mm_audit/buggy_payment.py and sibling mumei-agent audit/migrate-suggest/heal commands.",
+      "Generate evidence: detect_bug.log, generate_skeleton.log, record_heal_contract.log, mm/withdraw.mm, harness_state.json, result.json, report.md, and dashboard summary rows.",
+      "Gate order: l1_audit -> l2_migrate -> l3_heal; migration evidence is trusted only after audit emits violation markers and migrate-suggest emits a skeleton."
+    ],
+    "gate_order": [
+      "l1_audit",
+      "l2_migrate",
+      "l3_heal"
+    ],
+    "notes": [
+      "Read inputs: scenarios/no_mm_audit/buggy_payment.py and sibling mumei-agent audit/migrate-suggest/heal commands.",
+      "Gate order: l1_audit -> l2_migrate -> l3_heal; migration evidence is trusted only after the audit command emits the expected violation markers.",
+      "Demo wording must match mumei-agent guide: 既存コードを渡すだけでバグ箇所を指摘 / 仕様から既存コードとの差分を指摘 / 仕様単独でおかしい場合を指摘"
     ]
   },
   "intent_fidelity": {
@@ -109,9 +129,46 @@
       "Scenario input is existing Python code, not a hand-written .mm file.",
       "Audit output includes verification_violations and balance can go negative.",
       "migrate-suggest writes a withdraw .mm skeleton under the scenario output directory."
+    ],
+    "expected_user_observable_behavior": [
+      "Audit output includes verification_violations and balance can go negative.",
+      "Audit output includes cross_validation_gaps and preserves spec_health_issues.",
+      "migrate-suggest writes a withdraw .mm skeleton under the scenario output directory.",
+      "heal evidence records healed_files and heal_errors after skeleton generation."
     ]
   },
   "success_criteria": [
+    "既存コードを渡すだけでバグ箇所を指摘",
+    "仕様から既存コードとの差分を指摘",
+    "仕様単独でおかしい場合を指摘"
+  ],
+  "l3_heal": {
+    "steps": [
+      {
+        "id": "record_heal_contract",
+        "name": "Heal: record generated skeleton handoff",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\ntarget = Path('{output_dir}') / 'mm' / 'withdraw.mm'\npayload = {\n    'stage': 'heal',\n    'input': str(target),\n    'healed_files': [str(target)] if target.exists() else [],\n    'heal_errors': [] if target.exists() else [f'missing generated skeleton: {target}'],\n}\nprint(json.dumps(payload, ensure_ascii=False, indent=2))\nraise SystemExit(0 if target.exists() else 1)\nPY",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "healed_files",
+          "heal_errors",
+          "withdraw.mm"
+        ],
+        "depends_on": [
+          "generate_skeleton"
+        ],
+        "harness_stage": "S3_heal_record_skeleton_handoff",
+        "artifact_contract": [
+          "record_heal_contract.log records healed_files for the generated withdraw skeleton.",
+          "record_heal_contract.log records heal_errors, which is empty when the generated skeleton exists."
+        ],
+        "verifier_gate": "heal evidence is accepted only after migrate-suggest generated the .mm skeleton."
+      }
+    ]
+  },
+  "canonical_demo_phrases": [
     "既存コードを渡すだけでバグ箇所を指摘",
     "仕様から既存コードとの差分を指摘",
     "仕様単独でおかしい場合を指摘"

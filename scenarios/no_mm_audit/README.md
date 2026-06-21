@@ -1,17 +1,17 @@
 # No-.mm Entry: Audit Existing Python Code
 
-This scenario demonstrates the first “write no `.mm` by hand” entry path.
-The demo vocabulary is intentionally identical to the CLI output:
+This scenario follows the same contract as `mumei-agent audit --code-file ... --auto-migrate --auto-heal` and MCP `scan_and_fix`.
+The demo vocabulary is intentionally identical to the mumei-agent guide:
 
 1. 既存コードを渡すだけでバグ箇所を指摘
 2. 仕様から既存コードとの差分を指摘
 3. 仕様単独でおかしい場合を指摘
 
-`mumei-agent audit` inspects an existing Python `withdraw` implementation,
-emits `spec_health_issues`, `verification_violations`,
-`cross_validation_gaps`, `next_steps`, `migration_hints`, `healed_files`, and
-`heal_errors`, then `migrate-suggest` generates a Mumei skeleton that can
-become the formal contract.
+The execution order is fixed as `audit` → `migrate-suggest` → `heal`:
+
+- `audit` accepts existing Python code, extracts candidate contracts, and emits `spec_health_issues`, `verification_violations`, and `cross_validation_gaps`.
+- `migrate-suggest` turns the audited violation/gap into `.mm` skeleton guidance under `migration_hints`.
+- `heal` operates only on generated skeletons and records `healed_files` or `heal_errors`.
 
 ## Input
 
@@ -29,9 +29,8 @@ def withdraw(balance: int, amount: int) -> int:
 make demo-no-mm
 ```
 
-`make demo-no-mm` defaults to fixture mode so it can run in CI without live LLM
-credentials. To exercise the live `mumei-agent audit` command, set
-`CI_FIXTURE_MODE=0` and provide the agent’s configured LLM credentials.
+`make demo-no-mm` defaults to fixture mode so it can run in CI without live LLM credentials.
+To exercise live mumei-agent commands, set `CI_FIXTURE_MODE=0` and provide the agent’s configured LLM credentials.
 
 Invoke the runner directly in fixture mode:
 
@@ -44,15 +43,11 @@ CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh no_mm_audit \
 ## Expected output
 
 - `l1_audit/detect_bug: PASS`
-- `detect_bug.log` contains `verification_violations` and
-  `balance can go negative`
-- `detect_bug.log` contains `cross_validation_gaps` for the spec/code
-  difference and preserves `spec_health_issues` for spec-only issues
+- `detect_bug.log` contains `verification_violations` and `balance can go negative`
+- `detect_bug.log` contains `cross_validation_gaps` for the spec/code difference and preserves `spec_health_issues` for spec-only issues
 - `l2_migrate/generate_skeleton: PASS`
-- `reports/no_mm_audit/latest/mm/withdraw.mm` contains a generated `withdraw`
-  `atom` skeleton
+- `reports/no_mm_audit/latest/mm/withdraw.mm` contains a generated `withdraw` `atom` skeleton
+- `l3_heal/record_heal_contract: PASS`
+- `record_heal_contract.log` contains `healed_files` and `heal_errors`
 
-The scenario’s purpose is to show that existing code can be audited first, the
-spec/code difference can be explained second, spec-only contradictions can use
-the same vocabulary third, and migration toward `.mm` contracts can happen only
-after a concrete bug has been found.
+The scenario shows that existing code can be audited first, the spec/code difference can be explained second, spec-only contradictions can use the same vocabulary third, and migration toward `.mm` contracts happens through skeleton generation before any healing evidence is accepted.
