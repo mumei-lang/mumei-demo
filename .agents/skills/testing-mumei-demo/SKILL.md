@@ -37,10 +37,40 @@ python3 -m json.tool scenarios/ownership_transfer/scenario.json >/dev/null
 python3 -m json.tool scenarios/rtgs_settlement/scenario.json >/dev/null
 python3 -m json.tool scenarios/regtech_compliance/scenario.json >/dev/null
 python3 -m json.tool scenarios/nl_to_verified/scenario.json >/dev/null
+python3 -m json.tool scenarios/no_mm_audit/scenario.json >/dev/null
 python3 -m json.tool scenarios/smart_contract_audit/scenario.json >/dev/null
 python3 -m json.tool scenarios/medical_device/scenario.json >/dev/null
 python3 -m json.tool scenarios/aviation_control/scenario.json >/dev/null
 python3 -m json.tool scenarios/nl_to_verified/expected/extracted_spec.json >/dev/null
+```
+
+
+## No-.mm audit scenario validation
+
+Use this focused fixture run when changes touch `scenarios/no_mm_audit/*`, mumei-agent no-`.mm` audit vocabulary, or cross-repo `audit -> migrate-suggest -> heal` contract docs. It requires no browser session or API secrets.
+
+```bash
+cd /home/ubuntu/repos/mumei-demo
+rm -rf reports/no_mm_audit
+CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh no_mm_audit \
+  --mumei-repo ../mumei \
+  --mumei-agent-repo ../mumei-agent
+```
+
+Expected assertions:
+
+- Command exits `0`.
+- Output includes `l1_audit/detect_bug: PASS`, `l2_migrate/generate_skeleton: PASS`, and `l3_heal/record_heal_contract: PASS`.
+- Output includes `Harness Contract: COMPLIANT (8/8)`.
+- `reports/no_mm_audit/latest/result.json` has `overall_status == "PASS"`.
+- `reports/no_mm_audit/latest/result.json` has `harness_contract.acceptance_path == ["l1_audit", "l2_migrate", "l3_heal"]`.
+- `reports/no_mm_audit/latest/mm/withdraw.mm` exists and contains both `atom` and `withdraw`.
+- `reports/no_mm_audit/latest/record_heal_contract.log` contains `healed_files`, `heal_errors`, and `withdraw.mm`.
+
+Clean up generated reports after collecting evidence if you are going to commit repo changes:
+
+```bash
+rm -rf reports/no_mm_audit
 ```
 
 ## Full CI-equivalent validation (`make demo-ci`)
