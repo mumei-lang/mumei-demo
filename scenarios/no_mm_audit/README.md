@@ -17,7 +17,7 @@ The execution order is fixed as `audit` → `migrate-suggest` → `heal`:
 | `migrate-suggest` | `.mm` skeleton 生成へ進む | `migration_hints` |
 | `heal` | skeleton の修復証跡を記録する | `healed_files`, `heal_errors` |
 
-The first three rows are still the `audit` gate; migration and healing evidence must not appear before those audit findings and `next_steps` are available.
+The first three rows are still the `audit` gate; migration and healing evidence must not appear before those audit findings and `next_steps` are available. The scenario result uses `harness_contract`, `intent_fidelity`, `artifact_paths`, and `budget_policy_fingerprint` with the same meanings as the cross-project roadmap; no `lean_verified` artifact is expected because this no-`.mm` demo stops before Lean escalation.
 
 - `audit` accepts existing Python code, extracts candidate contracts, and emits `spec_health_issues`, `verification_violations`, and `cross_validation_gaps`.
 - `migrate-suggest` turns the audited violation/gap into `.mm` skeleton guidance under `migration_hints`.

@@ -110,7 +110,8 @@
     "artifact_contracts": [
       "Read inputs: scenarios/no_mm_audit/buggy_payment.py and sibling mumei-agent audit/migrate-suggest/heal commands.",
       "Generate evidence: detect_bug.log, generate_skeleton.log, record_heal_contract.log, mm/withdraw.mm, harness_state.json, result.json, report.md, and dashboard summary rows.",
-      "Gate order: l1_audit -> l2_migrate -> l3_heal; migration evidence is trusted only after audit emits violation markers and migrate-suggest emits a skeleton."
+      "Gate order: l1_audit -> l2_migrate -> l3_heal; migration evidence is trusted only after audit emits violation markers and migrate-suggest emits a skeleton.",
+      "artifact_paths lists the ordered evidence paths collected by CI and dashboard reports."
     ],
     "gate_order": [
       "l1_audit",
@@ -120,7 +121,8 @@
     "notes": [
       "Read inputs: scenarios/no_mm_audit/buggy_payment.py and sibling mumei-agent audit/migrate-suggest/heal commands.",
       "Gate order: l1_audit -> l2_migrate -> l3_heal; migration evidence is trusted only after the audit command emits the expected violation markers.",
-      "Demo wording must match mumei-agent guide: 既存コードを渡すだけでバグ箇所を指摘 / 仕様から既存コードとの差分を指摘 / 仕様単独でおかしい場合を指摘"
+      "Demo wording must match mumei-agent guide: 既存コードを渡すだけでバグ箇所を指摘 / 仕様から既存コードとの差分を指摘 / 仕様単独でおかしい場合を指摘",
+      "budget_policy_fingerprint is fixture-no-mm-audit-v1 for deterministic fixture runs."
     ]
   },
   "intent_fidelity": {
@@ -209,5 +211,14 @@
         "heal_errors"
       ]
     }
-  ]
+  ],
+  "artifact_paths": [
+    "{output_dir}/detect_bug.log",
+    "{output_dir}/generate_skeleton.log",
+    "{output_dir}/record_heal_contract.log",
+    "{output_dir}/mm/withdraw.mm",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "fixture-no-mm-audit-v1"
 }
