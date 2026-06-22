@@ -1,6 +1,6 @@
 {
   "name": "No-.mm Entry: Audit Existing Python Code",
-  "description": "既存コードを渡すだけでバグ箇所を指摘 / 仕様から既存コードとの差分を指摘 / 仕様単独でおかしい場合を指摘。audit → migrate-suggest → heal の順で既存コードのバグ指摘から .mm skeleton 生成へ進むデモ。",
+  "description": "既存コードを渡すだけでバグ箇所を指摘 / 仕様から既存コードとの差分を指摘 / 仕様単独でおかしい場合を指摘。audit → migrate-suggest → heal のゲート順で、既存コードの監査結果と next_steps から .mm skeleton 生成と healing 証跡へ進むデモ。",
   "layers": [
     "l1_audit",
     "l2_migrate",
@@ -8,14 +8,15 @@
   ],
   "narrative": {
     "intro": [
-      "Step 1: 既存コードを渡すだけでバグ箇所を指摘 (audit)",
-      "Step 2: 仕様から既存コードとの差分を指摘 (cross_validation_gaps / validate-spec-to-code)",
-      "Step 3: 仕様単独でおかしい場合を指摘 (spec_health_issues / contradiction_type)",
-      "Step 4: migrate-suggest で .mm skeleton を生成",
-      "Step 5: heal で healed_files / heal_errors を記録"
+      "Step 1: 既存コードを渡すだけでバグ箇所を指摘 (audit / verification_violations)",
+      "Step 2: 仕様から既存コードとの差分を指摘 (audit / cross_validation_gaps)",
+      "Step 3: 仕様単独でおかしい場合を指摘 (audit / spec_health_issues)",
+      "Step 4: next_steps を human review の入口として確認",
+      "Step 5: migrate-suggest で migration_hints と .mm skeleton を生成",
+      "Step 6: heal で healed_files / heal_errors を記録"
     ],
-    "before": ".mm を書かず、既存コードだけを入口にして verification_violations / cross_validation_gaps / spec_health_issues を読む。",
-    "after": "audit → migrate-suggest → heal の順で、withdraw のバグ指摘から .mm skeleton 生成と healing 証跡へ進む。",
+    "before": ".mm を書かず、既存コードだけを入口にして audit で verification_violations / cross_validation_gaps / spec_health_issues / next_steps を読む。",
+    "after": "audit → migrate-suggest → heal の順で、withdraw のバグ指摘から migration_hints、.mm skeleton 生成、healing 証跡へ進む。",
     "steps": {
       "detect_bug": {
         "pass": {
@@ -24,20 +25,21 @@
           "follow_up": [
             "  仕様から既存コードとの差分を指摘: cross_validation_gaps に spec/code 差分を記録",
             "  仕様単独でおかしい場合を指摘: spec_health_issues と contradiction_type で分類",
-            "  Next: migrate-suggest で .mm skeleton を生成"
+            "  next_steps: human review の入口として migrate-suggest / validate-spec-to-code の次アクションを提示",
+            "  Next gate: migrate-suggest で migration_hints と .mm skeleton を生成"
           ]
         }
       },
       "generate_skeleton": {
         "pass": {
           "icon": "✅",
-          "headline": "migrate-suggest generated .mm skeleton"
+          "headline": "migrate-suggest generated migration_hints and .mm skeleton"
         }
       },
       "record_heal_contract": {
         "pass": {
           "icon": "✅",
-          "headline": "heal recorded skeleton handoff evidence"
+          "headline": "heal recorded healed_files / heal_errors evidence"
         }
       }
     }
@@ -172,5 +174,40 @@
     "既存コードを渡すだけでバグ箇所を指摘",
     "仕様から既存コードとの差分を指摘",
     "仕様単独でおかしい場合を指摘"
+  ],
+  "gate_order": [
+    {
+      "gate": "audit",
+      "user_wording": [
+        "既存コードを渡すだけでバグ箇所を指摘",
+        "仕様から既存コードとの差分を指摘",
+        "仕様単独でおかしい場合を指摘"
+      ],
+      "artifact_keys": [
+        "spec_health_issues",
+        "verification_violations",
+        "cross_validation_gaps",
+        "next_steps"
+      ]
+    },
+    {
+      "gate": "migrate-suggest",
+      "user_wording": [
+        ".mm skeleton 生成へ進む"
+      ],
+      "artifact_keys": [
+        "migration_hints"
+      ]
+    },
+    {
+      "gate": "heal",
+      "user_wording": [
+        "skeleton の修復証跡を記録する"
+      ],
+      "artifact_keys": [
+        "healed_files",
+        "heal_errors"
+      ]
+    }
   ]
 }

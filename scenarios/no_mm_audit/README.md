@@ -9,6 +9,16 @@ The demo vocabulary is intentionally identical to the mumei-agent guide:
 
 The execution order is fixed as `audit` → `migrate-suggest` → `heal`:
 
+| Gate | User-facing wording | Required artifact keys |
+| --- | --- | --- |
+| `audit` | 既存コードを渡すだけでバグ箇所を指摘 | `verification_violations`, `next_steps` |
+| `audit` | 仕様から既存コードとの差分を指摘 | `cross_validation_gaps`, `next_steps` |
+| `audit` | 仕様単独でおかしい場合を指摘 | `spec_health_issues`, `contradiction_type`, `next_steps` |
+| `migrate-suggest` | `.mm` skeleton 生成へ進む | `migration_hints` |
+| `heal` | skeleton の修復証跡を記録する | `healed_files`, `heal_errors` |
+
+The first three rows are still the `audit` gate; migration and healing evidence must not appear before those audit findings and `next_steps` are available.
+
 - `audit` accepts existing Python code, extracts candidate contracts, and emits `spec_health_issues`, `verification_violations`, and `cross_validation_gaps`.
 - `migrate-suggest` turns the audited violation/gap into `.mm` skeleton guidance under `migration_hints`.
 - `heal` operates only on generated skeletons and records `healed_files` or `heal_errors`.
