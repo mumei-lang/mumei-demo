@@ -1,28 +1,28 @@
 # No-.mm Entry: Audit Existing Python Code
 
-This scenario follows the same contract as `mumei-agent audit --code-file ... --auto-migrate --auto-heal` and MCP `scan_and_fix`.
-The demo vocabulary is intentionally identical to the mumei-agent guide and appears in this order:
+This scenario mirrors the V1-E no-`.mm` user-facing flow in `mumei-agent` and the MCP `scan_and_fix` contract. The demo keeps the Phase 7 path fixed as `audit -> migrate-suggest -> heal`: existing code is audited first, the human report surfaces `next_steps` first, migration guidance is generated second, and healing evidence is accepted only after the audit review gate is present.
+
+The canonical demo vocabulary remains aligned with the mumei-agent guide and appears in this order:
 
 1. 既存コードを渡すだけでバグ箇所を指摘
 2. 仕様から既存コードとの差分を指摘
 3. 仕様単独でおかしい場合を指摘
 4. `next_steps` as the only human-review entrypoint
-5. `artifact_keys`
-6. `harness_contract`
+5. V1-E human report fields: `--format human|json|markdown`, `V1-E-1` importance, auto Japanese/English display, copy-pasteable fix suggestions
+6. `artifact_keys`
+7. `harness_contract`
 
-The execution order is fixed as `audit -> migrate-suggest -> heal`:
+| Gate | User-facing wording | Required artifact keys | Human report expectation |
+| --- | --- | --- | --- |
+| `audit` | 既存コードを渡すだけでバグ箇所を指摘 | `verification_violations`, `next_steps` | `next_steps` is printed before findings and carries `V1-E-1` priority |
+| `audit` | 仕様から既存コードとの差分を指摘 | `cross_validation_gaps`, `next_steps` | `cross_validation_gaps` remains a human-review entrypoint |
+| `audit` | 仕様単独でおかしい場合を指摘 | `spec_health_issues`, `contradiction_type`, `next_steps` | copy-pasteable validation commands are shown in fenced blocks |
+| `migrate-suggest` | `.mm` skeleton 生成へ進む | `migration_hints` | migration evidence appears only after audit `next_steps` |
+| `heal` | skeleton の修復証跡を記録する | `healed_files`, `heal_errors` | healing evidence appears only after migration evidence |
 
-| Gate | User-facing wording | Required artifact keys |
-| --- | --- | --- |
-| `audit` | 既存コードを渡すだけでバグ箇所を指摘 | `verification_violations`, `next_steps` |
-| `audit` | 仕様から既存コードとの差分を指摘 | `cross_validation_gaps`, `next_steps` |
-| `audit` | 仕様単独でおかしい場合を指摘 | `spec_health_issues`, `contradiction_type`, `next_steps` |
-| `migrate-suggest` | `.mm` skeleton 生成へ進む | `migration_hints` |
-| `heal` | skeleton の復旧証跡を記録する | `healed_files`, `heal_errors` |
+The first three rows are still the `audit` gate. Migration and healing evidence must not appear before audit findings and `next_steps` are available. The scenario JSON records `canonical_demo_phrases`, `next_steps`, `artifact_keys`, and `harness_contract` in the same review order. The result uses `harness_contract`, `intent_fidelity`, `artifact_paths`, and `budget_policy_fingerprint` with the same meanings as the cross-project roadmap; no `lean_verified` artifact is expected because this no-`.mm` demo stops before Lean escalation.
 
-The first three rows are still the `audit` gate; migration and healing evidence must not appear before those audit findings and `next_steps` are available. The scenario JSON records `canonical_demo_phrases`, `next_steps`, `artifact_keys`, and `harness_contract` in that review order. The scenario result uses `harness_contract`, `intent_fidelity`, `artifact_paths`, and `budget_policy_fingerprint` with the same meanings as the cross-project roadmap; no `lean_verified` artifact is expected because this no-`.mm` demo stops before Lean escalation.
-
-- `audit` accepts existing Python code, extracts candidate contracts, and emits `spec_health_issues`, `verification_violations`, and `cross_validation_gaps`.
+- `audit` accepts existing Python code, extracts candidate contracts, and emits `spec_health_issues`, `verification_violations`, `cross_validation_gaps`, and a V1-E human report whose first actionable section is `next_steps`.
 - `migrate-suggest` turns the audited violation/gap into `.mm` skeleton guidance under `migration_hints`.
 - `heal` operates only on generated skeletons and records `healed_files` or `heal_errors`.
 
@@ -42,8 +42,7 @@ def withdraw(balance: int, amount: int) -> int:
 make demo-no-mm
 ```
 
-`make demo-no-mm` defaults to fixture mode so it can run in CI without live LLM credentials.
-To exercise live mumei-agent commands, set `CI_FIXTURE_MODE=0` and provide the agent’s configured LLM credentials.
+`make demo-no-mm` defaults to fixture mode so it can run in CI without live LLM credentials. To exercise live mumei-agent commands, set `CI_FIXTURE_MODE=0` and provide the agent’s configured LLM credentials.
 
 Invoke the runner directly in fixture mode:
 
@@ -58,9 +57,10 @@ CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh no_mm_audit \
 - `l1_audit/detect_bug: PASS`
 - `detect_bug.log` contains `verification_violations` and `balance can go negative`
 - `detect_bug.log` contains `cross_validation_gaps` for the spec/code difference and preserves `spec_health_issues` for spec-only issues
+- `detect_bug.log` contains a human report where `next_steps (V1-E-1)` appears before findings and includes copy-pasteable commands
 - `l2_migrate/generate_skeleton: PASS`
 - `reports/no_mm_audit/latest/mm/withdraw.mm` contains a generated `withdraw` `atom` skeleton
 - `l3_heal/record_heal_contract: PASS`
 - `record_heal_contract.log` contains `healed_files` and `heal_errors`
 
-The scenario shows that existing code can be audited first, the spec/code difference can be explained second, spec-only contradictions can use the same vocabulary third, and migration toward `.mm` contracts happens through skeleton generation before any healing evidence is accepted.
+The scenario shows that existing code can be audited first, spec/code differences can be reviewed through `cross_validation_gaps` and `next_steps`, spec-only contradictions can use the same vocabulary, and migration toward `.mm` contracts happens through skeleton generation before any healing evidence is accepted.
