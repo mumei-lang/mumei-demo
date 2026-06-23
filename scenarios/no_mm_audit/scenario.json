@@ -1,6 +1,6 @@
 {
   "name": "No-.mm Entry: Audit Existing Python Code",
-  "description": "既存コードを渡すだけでバグ箇所を指摘 / 仕様から既存コードとの差分を指摘 / 仕様単独でおかしい場合を指摘。audit -> migrate-suggest -> heal のゲート順で、既存コードの監査結果と next_steps から .mm skeleton 生成と healing 証跡へ進むデモ。",
+  "description": "V1-E human report demo for the no-.mm entry path. The fixed Phase 7 gate order is audit -> migrate-suggest -> heal: audit existing Python, surface next_steps first with V1-E-1 importance and copy-pasteable commands, then generate .mm skeleton migration hints and record healing evidence.",
   "canonical_demo_phrases": [
     "既存コードを渡すだけでバグ箇所を指摘",
     "仕様から既存コードとの差分を指摘",
@@ -9,13 +9,15 @@
   "next_steps": [
     {
       "priority": "high",
-      "action": "migrate-suggest で.mm skeleton 生成",
-      "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
+      "action": "migrate-suggest で .mm skeleton を生成する",
+      "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm",
+      "v1_e_1": "important"
     },
     {
       "priority": "high",
-      "action": "validate-spec-to-code で仕様/コード差分確認",
-      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file>"
+      "action": "validate-spec-to-code で仕様とコードの差分を確認する",
+      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human",
+      "v1_e_1": "important"
     }
   ],
   "artifact_keys": [
@@ -36,11 +38,12 @@
     ],
     "state_dir": "{output_dir}",
     "state_file": "{output_dir}/harness_state.json",
-    "intent": "Demonstrate the no-.mm entry path: audit existing Python, surface verification violations, generate a Mumei skeleton, then record heal evidence for that skeleton.",
+    "intent": "Demonstrate the no-.mm Phase 7 path: audit existing Python, show a V1-E human report with next_steps first, generate a Mumei skeleton, then record heal evidence for that skeleton.",
     "artifact_contracts": [
       "Read inputs: scenarios/no_mm_audit/buggy_payment.py and sibling mumei-agent audit/migrate-suggest/heal commands.",
       "Generate evidence: detect_bug.log, generate_skeleton.log, record_heal_contract.log, mm/withdraw.mm, harness_state.json, result.json, report.md, and dashboard summary rows.",
       "Gate order: audit -> migrate-suggest -> heal; migration evidence is trusted only after audit emits spec_health_issues, verification_violations, cross_validation_gaps, and next_steps.",
+      "Human report: --format human|json|markdown keeps next_steps first, displays V1-E-1 importance, auto-selects Japanese/English copy, and prints copy-pasteable commands.",
       "artifact_paths lists ordered evidence files; artifact_keys lists the ordered audit/migration/heal result keys."
     ],
     "gate_order": [
@@ -52,6 +55,7 @@
       "Read inputs: scenarios/no_mm_audit/buggy_payment.py and sibling mumei-agent audit/migrate-suggest/heal commands.",
       "Gate order: audit -> migrate-suggest -> heal; migration evidence is trusted only after audit emits spec_health_issues, verification_violations, cross_validation_gaps, and next_steps.",
       "next_steps is the only human review entrypoint before migration_hints or heal evidence is accepted.",
+      "V1-E human report copy must keep next_steps (V1-E-1) before findings and provide fenced commands for reviewer copy/paste.",
       "Demo wording must match mumei-agent guide: 既存コードを渡すだけでバグ箇所を指摘 / 仕様から既存コードとの差分を指摘 / 仕様単独でおかしい場合を指摘",
       "budget_policy_fingerprint is fixture-no-mm-audit-v1 for deterministic fixture runs."
     ],
@@ -75,34 +79,34 @@
       "Step 1: 既存コードを渡すだけでバグ箇所を指摘 (audit / verification_violations)",
       "Step 2: 仕様から既存コードとの差分を指摘 (audit / cross_validation_gaps)",
       "Step 3: 仕様単独でおかしい場合を指摘 (audit / spec_health_issues)",
-      "Step 4: next_steps を唯一の human review 入口として確認",
-      "Step 5: migrate-suggest で migration_hints と .mm skeleton を生成",
-      "Step 6: heal で healed_files / heal_errors を記録"
+      "Step 4: next_steps (V1-E-1) is reviewed first with copy-pasteable commands",
+      "Step 5: migrate-suggest emits migration_hints and a .mm skeleton",
+      "Step 6: heal records healed_files / heal_errors evidence"
     ],
-    "before": ".mm を書かず、既存コードだけを入口にして audit で spec_health_issues / verification_violations / cross_validation_gaps / next_steps を読む",
-    "after": "audit -> migrate-suggest -> heal の順で withdraw のバグ指摘から migration_hints、.mm skeleton 生成、healing 証跡へ進む",
+    "before": "No .mm source exists yet; existing Python enters through audit and must produce spec_health_issues / verification_violations / cross_validation_gaps / next_steps before migration.",
+    "after": "audit -> migrate-suggest -> heal explains the withdraw bug, surfaces human next_steps first, generates migration_hints and a .mm skeleton, then records healing evidence.",
     "steps": {
       "detect_bug": {
         "pass": {
-          "icon": "✅",
+          "icon": "PASS",
           "headline": "既存コードを渡すだけでバグ箇所を指摘",
           "follow_up": [
-            "  仕様から既存コードとの差分を指摘: cross_validation_gaps に spec/code 差分を記録",
-            "  仕様単独でおかしい場合を指摘: spec_health_issues と contradiction_type で分類",
-            "  next_steps: human review の入口として migrate-suggest / validate-spec-to-code の次アクションを提示",
-            "  Next gate: migrate-suggest で migration_hints と .mm skeleton を生成"
+            "  仕様から既存コードとの差分を指摘: cross_validation_gaps records the spec/code delta",
+            "  仕様単独でおかしい場合を指摘: spec_health_issues and contradiction_type classify spec-only issues",
+            "  next_steps (V1-E-1): human review entrypoint with copy-pasteable migrate/validate commands",
+            "  Next gate: migrate-suggest generates migration_hints and a .mm skeleton"
           ]
         }
       },
       "generate_skeleton": {
         "pass": {
-          "icon": "✅",
-          "headline": "migrate-suggest generated migration_hints and .mm skeleton"
+          "icon": "PASS",
+          "headline": "migrate-suggest generated migration_hints and a .mm skeleton"
         }
       },
       "record_heal_contract": {
         "pass": {
-          "icon": "✅",
+          "icon": "PASS",
           "headline": "heal recorded healed_files / heal_errors evidence"
         }
       }
@@ -185,23 +189,25 @@
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,
-    "source_intent": "Existing Python withdraw code should be auditable before any hand-written .mm contract exists.",
+    "source_intent": "Phase 7 no-.mm audit demo with V1-E human report and audit -> migrate-suggest -> heal gate order.",
     "success_criteria": [
-      "Scenario input is existing Python code, not a hand-written .mm file.",
-      "Audit output includes verification_violations and balance can go negative.",
-      "migrate-suggest writes a withdraw .mm skeleton under the scenario output directory."
+      "既存コードを渡すだけでバグ箇所を指摘",
+      "仕様から既存コードとの差分を指摘",
+      "仕様単独でおかしい場合を指摘",
+      "detect_bug.log shows next_steps (V1-E-1) before findings and includes copy-pasteable commands"
     ],
     "expected_user_observable_behavior": [
-      "Audit output includes verification_violations and balance can go negative.",
-      "Audit output includes cross_validation_gaps and preserves spec_health_issues.",
-      "migrate-suggest writes a withdraw .mm skeleton under the scenario output directory.",
-      "heal evidence records healed_files and heal_errors after skeleton generation."
+      "The demo reports the existing Python bug without requiring a .mm input.",
+      "The audit report puts next_steps first and marks V1-E-1 importance.",
+      "cross_validation_gaps and drift-like issues remain human-review entrypoints.",
+      "migrate-suggest and heal evidence only appear after the audit review gate."
     ]
   },
   "success_criteria": [
     "既存コードを渡すだけでバグ箇所を指摘",
     "仕様から既存コードとの差分を指摘",
-    "仕様単独でおかしい場合を指摘"
+    "仕様単独でおかしい場合を指摘",
+    "detect_bug.log shows next_steps (V1-E-1) before findings and includes copy-pasteable commands"
   ],
   "gate_order": [
     {
@@ -246,5 +252,16 @@
     "{output_dir}/harness_state.json",
     "{output_dir}/result.json"
   ],
-  "budget_policy_fingerprint": "fixture-no-mm-audit-v1"
+  "budget_policy_fingerprint": "fixture-no-mm-audit-v1",
+  "v1_e_human_report": {
+    "formats": [
+      "human",
+      "json",
+      "markdown"
+    ],
+    "language_policy": "auto Japanese/English display based on report content or explicit --lang",
+    "priority_contract": "V1-E-1 importance is displayed on each next_steps item before findings.",
+    "copy_paste_contract": "Commands and fix suggestions are emitted as fenced blocks so reviewers can paste them directly.",
+    "human_review_entrypoint": "next_steps appears before findings and remains the only review gate before migration_hints, healed_files, or heal_errors."
+  }
 }
