@@ -38,6 +38,7 @@ python3 -m json.tool scenarios/rtgs_settlement/scenario.json >/dev/null
 python3 -m json.tool scenarios/regtech_compliance/scenario.json >/dev/null
 python3 -m json.tool scenarios/nl_to_verified/scenario.json >/dev/null
 python3 -m json.tool scenarios/no_mm_audit/scenario.json >/dev/null
+python3 -m json.tool scenarios/spec_code_verification_suite/scenario.json >/dev/null
 python3 -m json.tool scenarios/smart_contract_audit/scenario.json >/dev/null
 python3 -m json.tool scenarios/medical_device/scenario.json >/dev/null
 python3 -m json.tool scenarios/aviation_control/scenario.json >/dev/null
@@ -71,6 +72,36 @@ Clean up generated reports after collecting evidence if you are going to commit 
 
 ```bash
 rm -rf reports/no_mm_audit
+```
+
+
+## Phase 7 Spec-Code Verification Suite validation
+
+Use this focused fixture run when changes touch `scenarios/spec_code_verification_suite/*`, no-`.mm` spec/code verification docs, or V1-A through V1-D mode mapping. It requires no browser session or API secrets.
+
+```bash
+cd /home/ubuntu/repos/mumei-demo
+rm -rf reports/spec_code_verification_suite
+CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh spec_code_verification_suite \
+  --mumei-repo ../mumei \
+  --mumei-agent-repo ../mumei-agent
+python3 dashboard/cli_report.py reports/spec_code_verification_suite/latest/result.json
+```
+
+Expected assertions:
+
+- Command exits `0`.
+- Output includes `mode_a/validate_spec_health: PASS`, `mode_b/verify_existing_code: PASS`, `mode_c/verify_spec_to_code_conformance: PASS`, and `mode_d/validate_code_to_spec_traceability: PASS`.
+- Output includes `Harness Contract: COMPLIANT (8/8)`.
+- `reports/spec_code_verification_suite/latest/result.json` has `overall_status == "PASS"`.
+- `reports/spec_code_verification_suite/latest/result.json` has `harness_contract.acceptance_path == ["mode_a", "mode_b", "mode_c", "mode_d"]`.
+- `reports/spec_code_verification_suite/latest/result.json` has `proof_density.percentage == 100`.
+- `dashboard/cli_report.py reports/spec_code_verification_suite/latest/result.json` renders the four mode rows and 100% proof density.
+
+Clean up generated reports after collecting evidence if you are going to commit repo changes:
+
+```bash
+rm -rf reports/spec_code_verification_suite
 ```
 
 ## Full CI-equivalent validation (`make demo-ci`)
