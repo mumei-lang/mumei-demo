@@ -8,8 +8,8 @@ The story is "仕様のバグを証明で潰す": prove the specification is int
 
 | Gate | V1 mode | mumei-agent CLI correspondence | Required evidence |
 | --- | --- | --- | --- |
-| `mode_a` | V1-A spec-only health | `mumei-agent verify-spec` / current CLI `validate-spec --input spec.txt --format human` | `spec_health_issues`, `contradiction_type`, `next_steps` |
-| `mode_b` | V1-B existing-code audit | `mumei-agent verify-code` / current CLI `validate-code --input buggy_payment.py --language python` | `verification_violations`, `next_steps` |
+| `mode_a` | V1-A spec-only health | `mumei-agent validate-spec --input spec.txt --format human` (V1-A verify-spec role) | `spec_health_issues`, `contradiction_type`, `next_steps` |
+| `mode_b` | V1-B existing-code audit | `mumei-agent validate-code --input buggy_payment.py --language python` (V1-B verify-code role) | `verification_violations`, `next_steps` |
 | `mode_c` | V1-C spec→code conformance | `mumei-agent verify-conformance --spec spec.txt --code buggy_payment.py --format human` | `unimplemented_conditions`, `hidden_specifications`, `traceability_matrix`, `cross_validation_gaps`, `next_steps` |
 | `mode_d` | V1-D code→spec drift | `mumei-agent validate-code-to-spec` / `verify-traceability --code buggy_payment.py --spec spec.txt --format human` | `spec_gaps`, `drift_issues`, `drift_score`, `cross_validation_gaps`, `next_steps` |
 

@@ -718,7 +718,10 @@ def main(argv: list[str]) -> int:
             "  Harness contract compliance: "
             f"{compliance['status']} ({compliance['passed']}/{compliance['total']} checks)"
         )
-        story("  Result: Bug caught. Correct code proven. Zero human review.")
+        result_message = scenario.get(
+            "result_message", "Result: Bug caught. Correct code proven. Zero human review."
+        )
+        story(f"  {result_message}")
         print("╚" + "═" * (box_width - 2) + "╝")
     else:
         story()

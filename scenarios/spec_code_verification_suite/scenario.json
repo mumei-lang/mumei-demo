@@ -1,14 +1,15 @@
 {
   "name": "Phase 7 Spec-Code Verification Suite",
   "description": "V1-E-4 demo scenario that bundles V1-A through V1-D into one no-.mm-first review flow: spec-only health, existing-code audit, spec-to-code conformance, and code-to-spec drift are shown in fixed mode_a -> mode_b -> mode_c -> mode_d order with next_steps as the only human-review entrypoint.",
+  "result_message": "Result: Phase 7 evidence ready; review next_steps.",
   "canonical_demo_phrases": [
     "既存コードを渡すだけでバグ箇所を指摘",
     "仕様から既存コードとの差分を指摘",
     "仕様単独でおかしい場合を指摘"
   ],
   "cli_mapping": {
-    "mode_a": "mumei-agent verify-spec / validate-spec --input spec.txt --format human",
-    "mode_b": "mumei-agent verify-code / validate-code --input buggy_payment.py --language python",
+    "mode_a": "mumei-agent validate-spec --input spec.txt --format human (V1-A verify-spec role)",
+    "mode_b": "mumei-agent validate-code --input buggy_payment.py --language python (V1-B verify-code role)",
     "mode_c": "mumei-agent verify-conformance --spec spec.txt --code buggy_payment.py --format human",
     "mode_d": "mumei-agent validate-code-to-spec / verify-traceability --code buggy_payment.py --spec spec.txt --format human"
   },
