@@ -16,6 +16,7 @@ Mumei's demo scenarios make those bugs concrete:
 | RTGS Settlement | A transfer flow can break balance conservation or settle before validation. | Z3 checks settlement contracts, then Lean certifies deeper invariants when available. |
 | RegTech Compliance | `PEP` customers are missing from a `match` expression. | Exhaustiveness checking reports `CustomerType::PEP (tag=3)` as a counter-example. |
 | NL → Verified | Requirements start as natural language instead of verified code. | The agent extracts a spec, generates `.mm`, and Z3 verifies the result automatically. |
+| Phase 7 Spec-Code Verification Suite | A reviewer has only `spec.txt` and existing Python code, with no `.mm` entry yet. | V1-A through V1-D run in one flow: `spec_health_issues`, `verification_violations`, `traceability_matrix`, `drift_score`, and `next_steps`. |
 | Medical Device Control | An insulin pump skips hourly dosage safety checks. | Z3 catches the invalid delivery state, then optional Lean proof certifies cumulative dosage safety. |
 | Aviation Control | Runway allocation has inconsistent lock ordering. | Z3 verifies ordered allocation, and the agent validates the generation task. |
 | Merkle Tree Verification | Assumes hash function integrity without proof | Z3 verifies `hash_function_secure` precondition, Lean certifies collision resistance |
@@ -136,6 +137,8 @@ validations:
 - Phase 6 ArkLib-Style Audit: Z3 rejects contradictory top-level theorem
   requirements, then verifies the reviewed audit theorem and proof certificate.
 
+The Phase 7 Spec-Code Verification Suite is the V1-E-4 no-`.mm` front-door demo. It bundles the four V1 verification modes into one fixture-safe flow: `mode_a` (V1-A spec health), `mode_b` (V1-B existing-code audit), `mode_c` (V1-C spec→code conformance), and `mode_d` (V1-D code→spec drift). Run it with `make demo-spec-code`; fixture mode is the default and writes `reports/spec_code_verification_suite/latest/`. `next_steps` remains the only human-review entrypoint, while `migration_hints`, `healed_files`, and `heal_errors` stay reserved for the later `audit -> migrate-suggest -> heal` path.
+
 The scenario harness is documented as an NLAH-style artifact contract in
 [`docs/HARNESS_CONTRACTS.md`](docs/HARNESS_CONTRACTS.md). Each
 `scenario.json` maps its Z3, agent, and Lean gates to the evidence written in
@@ -186,9 +189,9 @@ make setup && make demo
 ```
 
 `make setup` clones or refreshes `mumei`, `mumei-agent`, and `mumei-lean` next
-to this repository. `make demo` then runs the complete ten-scenario
+to this repository. `make demo` then runs the complete scenario
 presentation sequence from `Makefile`'s `SCENARIOS` variable, integrates the
-Phase 1-6 demos, and writes reports under `reports/<scenario>/latest/` plus
+Phase 1-7 demos, and writes reports under `reports/<scenario>/latest/` plus
 dashboard summaries.
 
 For CI-equivalent validation with fixture mode and dashboard summaries:
@@ -248,13 +251,21 @@ For the ArkLib-Style Audit scenario:
 make demo-arklib
 ```
 
+For the Phase 7 Spec-Code Verification Suite:
+
+```bash
+make demo-spec-code
+```
+
+This defaults to `CI_FIXTURE_MODE=1` and runs the four no-`.mm` verification modes in order: V1-A spec health, V1-B existing-code audit, V1-C spec→code conformance, and V1-D code→spec drift.
+
 For the P9-G NLAE Integration demo:
 
 ```bash
 ./demos/nlae_integration/run_demo.sh
 ```
 
-To run the complete ten-scenario integrated demo sequence:
+To run the complete integrated demo sequence:
 
 ```bash
 make demo
@@ -342,18 +353,23 @@ Proof Density: 100% (3/3 atoms)
 3. The corrected implementation verifies all five ownership atoms with Z3.
 4. Lean 4 certifies `no_transfer_without_accept` through the proof certificate chain (when available).
 
-`make demo` runs the complete ten-scenario integrated demo sequence:
+`make demo` runs the complete integrated demo sequence from `SCENARIOS`:
 
 1. Phase 1 Ownership Transfer Protocol.
 2. Phase 2 RTGS Settlement Protocol.
 3. Phase 3 RegTech Compliance Protocol.
 4. P11 Natural Language to Verified Mumei.
-5. Smart Contract Audit.
-6. Medical Device Control.
-7. Aviation Control.
-8. Phase 4 Merkle Tree Verification.
-9. Phase 5 DeFi Invariant.
-10. Phase 6 ArkLib-Style Audit.
+5. No-.mm Audit.
+6. Phase 7 Spec-Code Verification Suite.
+7. Mumei Develop Audit.
+8. Smart Contract Audit.
+9. Blockchain Audit.
+10. Medical Device Control.
+11. Aviation Control.
+12. Phase 4 Merkle Tree Verification.
+13. Phase 5 DeFi Invariant.
+14. Phase 6 ArkLib-Style Audit.
+15. Self-Correction Demo.
 
 It also generates `dashboard/summary.md` and `dashboard/highlights.md` from the
 latest scenario outputs. `make demo-all` remains an alias for the same integrated

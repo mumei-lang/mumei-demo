@@ -37,8 +37,8 @@ make demo
 ```
 
 This runs every scenario in presentation order, including the Phase 1 Ownership
-Transfer, Phase 2 RTGS Settlement, and Phase 3 RegTech Compliance demos, then
-regenerates dashboard summaries.
+Transfer, Phase 2 RTGS Settlement, Phase 3 RegTech Compliance, and Phase 7
+Spec-Code Verification Suite demos, then regenerates dashboard summaries.
 
 ## Run the Ownership Transfer scenario
 
@@ -89,6 +89,31 @@ the missing `PEP` match arm with `CustomerType::PEP (tag=3)`, then verifies
 Reports are written to `reports/regtech_compliance/<timestamp>/` and mirrored
 via `reports/regtech_compliance/latest/`.
 
+
+## Run the Phase 7 Spec-Code Verification Suite
+
+```bash
+make demo-spec-code
+```
+
+This V1-E-4 scenario starts from no-`.mm` inputs (`spec.txt` and `buggy_payment.py`) and runs four fixed gates:
+
+1. `mode_a` / V1-A: spec-only health via `spec_health_issues` and `contradiction_type`.
+2. `mode_b` / V1-B: existing-code audit via `verification_violations`.
+3. `mode_c` / V1-C: spec→code conformance via `unimplemented_conditions`, `hidden_specifications`, and `traceability_matrix`.
+4. `mode_d` / V1-D: code→spec drift via `spec_gaps`, `drift_issues`, and `drift_score`.
+
+Every mode surfaces `next_steps` as the only human-review entrypoint. `make demo-spec-code` defaults to `CI_FIXTURE_MODE=1`, so no LLM credentials are required:
+
+```bash
+CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh spec_code_verification_suite \
+  --mumei-repo ../mumei \
+  --mumei-agent-repo ../mumei-agent
+python dashboard/cli_report.py reports/spec_code_verification_suite/latest/result.json
+```
+
+Reports are written to `reports/spec_code_verification_suite/<timestamp>/` and mirrored via `reports/spec_code_verification_suite/latest/`.
+
 ## Run the Blockchain Audit scenario
 
 ```bash
@@ -126,12 +151,12 @@ make demo
 ```
 
 `demo` runs `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`,
-`nl_to_verified`, `no_mm_audit`, `mumei_develop_audit`,
-`smart_contract_audit`, `blockchain_audit`, `medical_device`,
-`aviation_control`, `merkle_tree_verification`, `defi_invariant`, and
-`arklib_style_audit` in order. `make demo-all` remains a compatibility alias.
-`CI_FIXTURE_MODE=1 make demo-ci` runs the same scenario set with deterministic
-CI fixtures and summary generation.
+`nl_to_verified`, `no_mm_audit`, `spec_code_verification_suite`,
+`mumei_develop_audit`, `smart_contract_audit`, `blockchain_audit`,
+`medical_device`, `aviation_control`, `merkle_tree_verification`,
+`defi_invariant`, `arklib_style_audit`, and `self_correction_demo` in order.
+`make demo-all` remains a compatibility alias. `CI_FIXTURE_MODE=1 make demo-ci`
+runs the same scenario set with deterministic CI fixtures and summary generation.
 
 ## CLI dashboard
 
