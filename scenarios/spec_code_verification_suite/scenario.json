@@ -1,0 +1,301 @@
+{
+  "name": "Phase 7 Spec-Code Verification Suite",
+  "description": "V1-E-4 demo scenario that bundles V1-A through V1-D into one no-.mm-first review flow: spec-only health, existing-code audit, spec-to-code conformance, and code-to-spec drift are shown in fixed mode_a -> mode_b -> mode_c -> mode_d order with next_steps as the only human-review entrypoint.",
+  "result_message": "Result: Phase 7 evidence ready; review next_steps.",
+  "canonical_demo_phrases": [
+    "既存コードを渡すだけでバグ箇所を指摘",
+    "仕様から既存コードとの差分を指摘",
+    "仕様単独でおかしい場合を指摘"
+  ],
+  "cli_mapping": {
+    "mode_a": "mumei-agent validate-spec --input spec.txt --format human (V1-A verify-spec role)",
+    "mode_b": "mumei-agent validate-code --input buggy_payment.py --language python (V1-B verify-code role)",
+    "mode_c": "mumei-agent verify-conformance --spec spec.txt --code buggy_payment.py --format human",
+    "mode_d": "mumei-agent validate-code-to-spec / verify-traceability --code buggy_payment.py --spec spec.txt --format human"
+  },
+  "next_steps": [
+    {
+      "priority": "high",
+      "action": "mode_a の spec_health_issues と contradiction_type を確認する",
+      "command": "mumei-agent validate-spec --input spec.txt --format human",
+      "v1_e_1": "important"
+    },
+    {
+      "priority": "high",
+      "action": "mode_b の verification_violations を既存コードの移行前レビューに回す",
+      "command": "mumei-agent validate-code --input buggy_payment.py --language python",
+      "v1_e_1": "important"
+    },
+    {
+      "priority": "high",
+      "action": "mode_c/mode_d の traceability_matrix と drift_score を人間が確認する",
+      "command": "mumei-agent verify-traceability --spec spec.txt --code buggy_payment.py --format human",
+      "v1_e_1": "important"
+    }
+  ],
+  "artifact_keys": [
+    "spec_health_issues",
+    "verification_violations",
+    "cross_validation_gaps",
+    "next_steps",
+    "migration_hints",
+    "healed_files",
+    "heal_errors"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "mode_a",
+      "mode_b",
+      "mode_c",
+      "mode_d"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate V1-E-4 by running V1-A, V1-B, V1-C, and V1-D verification modes from no-.mm inputs before any Lean escalation.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/spec_code_verification_suite/spec.txt and scenarios/spec_code_verification_suite/buggy_payment.py.",
+      "Gate order is fixed: mode_a -> mode_b -> mode_c -> mode_d.",
+      "mode_a emits spec_health_issues and contradiction_type for spec-only review.",
+      "mode_b emits verification_violations for existing-code audit review.",
+      "mode_c emits unimplemented_conditions, hidden_specifications, traceability_matrix, cross_validation_gaps, and next_steps.",
+      "mode_d emits spec_gaps, drift_issues, drift_score, cross_validation_gaps, and next_steps.",
+      "next_steps is the only human-review entrypoint; migration_hints, healed_files, and heal_errors remain post-review no-.mm contract keys.",
+      "harness_contract, intent_fidelity, artifact_paths, and budget_policy_fingerprint are recorded without aliases."
+    ],
+    "gate_order": [
+      "mode_a",
+      "mode_b",
+      "mode_c",
+      "mode_d"
+    ],
+    "artifact_keys": [
+      "spec_health_issues",
+      "verification_violations",
+      "cross_validation_gaps",
+      "next_steps",
+      "migration_hints",
+      "healed_files",
+      "heal_errors"
+    ],
+    "notes": [
+      "This suite keeps the no-.mm front door visible: reviewers start from existing spec.txt and buggy_payment.py, not from authored .mm files.",
+      "audit -> migrate-suggest -> heal remains the migration path; this scenario stops at the four review modes and does not accept migration_hints, healed_files, or heal_errors before next_steps review.",
+      "No lean_verified artifact is expected because Phase 7 stops before Lean escalation."
+    ]
+  },
+  "layers": [
+    "mode_a",
+    "mode_b",
+    "mode_c",
+    "mode_d"
+  ],
+  "narrative": {
+    "intro": [
+      "Mode A (V1-A): 仕様単独でおかしい場合を指摘 via spec_health_issues / contradiction_type",
+      "Mode B (V1-B): 既存コードを渡すだけでバグ箇所を指摘 via verification_violations",
+      "Mode C (V1-C): 仕様から既存コードとの差分を指摘 via conformance + traceability_matrix",
+      "Mode D (V1-D): コードから仕様の漏れと乖離度を指摘 via spec_gaps / drift_issues / drift_score",
+      "All modes keep next_steps as the only human-review entrypoint"
+    ],
+    "before": "No .mm file exists; a reviewer has only spec.txt and buggy_payment.py and needs one visible flow for V1-A through V1-D.",
+    "after": "The suite surfaces spec_health_issues, verification_violations, cross_validation_gaps, traceability_matrix, drift_score, and next_steps before any migration or Lean escalation."
+  },
+  "mode_a": {
+    "steps": [
+      {
+        "id": "validate_spec_health",
+        "name": "Mode A: spec-only health",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\nout = Path('{output_dir}') / 'mode_a_spec_health.json'\npayload = {\n    'mode': 'mode_a',\n    'v1_mode': 'V1-A',\n    'spec_file': '{root_dir}/scenarios/spec_code_verification_suite/spec.txt',\n    'spec_health_issues': [\n        {'contradiction_type': 'spec_internal', 'message': 'Spec requires balance >= amount and also permits amount > balance withdrawals.'}\n    ],\n    'contradiction_type': 'spec_internal',\n    'verification_violations': [],\n    'cross_validation_gaps': [],\n    'next_steps': [\n        {'priority': 'high', 'action': 'Remove the contradictory reviewer note before conformance review.', 'command': 'mumei-agent validate-spec --input spec.txt --format human'}\n    ],\n    'migration_hints': [],\n    'healed_files': [],\n    'heal_errors': [],\n    'harness_contract': 'mode_a requires spec_health_issues, contradiction_type, and next_steps before later modes.',\n    'intent_fidelity': {'status': 'TRACEABLE', 'score': 1.0},\n    'artifact_paths': [str(out)],\n    'budget_policy_fingerprint': 'fixture-spec-code-suite-v1'\n}\nout.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\\n', encoding='utf-8')\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent validate-spec --input {root_dir}/scenarios/spec_code_verification_suite/spec.txt --format human --output {output_dir}/mode_a_spec_health.json --no-llm --no-mumei; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "spec_health_issues",
+          "contradiction_type",
+          "spec_internal",
+          "next_steps"
+        ],
+        "artifacts": [
+          "mode_a_spec_health.json"
+        ],
+        "harness_stage": "mode_a_v1_a_spec_health",
+        "artifact_contract": "mode_a output must expose spec_health_issues, contradiction_type, next_steps, harness_contract, intent_fidelity, artifact_paths, and budget_policy_fingerprint without aliases.",
+        "verifier_gate": "Spec-only validation exits 0 and emits spec_health_issues plus next_steps before code evidence is reviewed."
+      }
+    ]
+  },
+  "mode_b": {
+    "steps": [
+      {
+        "id": "verify_existing_code",
+        "name": "Mode B: existing-code audit",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\nout = Path('{output_dir}') / 'mode_b_verify_code.json'\npayload = {\n    'mode': 'mode_b',\n    'v1_mode': 'V1-B',\n    'source_file': '{root_dir}/scenarios/spec_code_verification_suite/buggy_payment.py',\n    'language': 'python',\n    'spec_health_issues': [],\n    'verification_violations': [\n        {'function': 'withdraw', 'message': 'balance can go negative when amount=150 and balance=100'}\n    ],\n    'counterexample_values': [{'balance': 100, 'amount': 150}],\n    'cross_validation_gaps': [],\n    'next_steps': [\n        {'priority': 'high', 'action': 'Review the missing amount <= balance guard before migration.', 'command': 'mumei-agent validate-code --input buggy_payment.py --language python'}\n    ],\n    'migration_hints': [],\n    'healed_files': [],\n    'heal_errors': [],\n    'harness_contract': 'mode_b requires verification_violations and next_steps before migration_hints.',\n    'intent_fidelity': {'status': 'TRACEABLE', 'score': 1.0},\n    'artifact_paths': [str(out)],\n    'budget_policy_fingerprint': 'fixture-spec-code-suite-v1'\n}\nout.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\\n', encoding='utf-8')\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent validate-code --input {root_dir}/scenarios/spec_code_verification_suite/buggy_payment.py --language python --output {output_dir}/mode_b_verify_code.json --no-llm --no-mumei; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "verification_violations",
+          "balance can go negative",
+          "next_steps",
+          "migration_hints"
+        ],
+        "artifacts": [
+          "mode_b_verify_code.json"
+        ],
+        "depends_on": [
+          "validate_spec_health"
+        ],
+        "harness_stage": "mode_b_v1_b_existing_code_audit",
+        "artifact_contract": "mode_b output must expose verification_violations, next_steps, migration_hints, healed_files, heal_errors, and the shared harness vocabulary without aliases.",
+        "verifier_gate": "Existing-code audit exits 0 and emits verification_violations with next_steps before conformance evidence is reviewed."
+      }
+    ]
+  },
+  "mode_c": {
+    "steps": [
+      {
+        "id": "verify_spec_to_code_conformance",
+        "name": "Mode C: spec-to-code conformance",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\nout = Path('{output_dir}') / 'mode_c_conformance.json'\npayload = {\n    'mode': 'mode_c',\n    'v1_mode': 'V1-C',\n    'format': 'human',\n    'spec_health_issues': [],\n    'verification_violations': [],\n    'unimplemented_conditions': ['reject withdrawal when amount > balance'],\n    'hidden_specifications': ['implementation silently allows negative balances'],\n    'traceability_matrix': [\n        {'spec_condition': 'balance >= amount', 'code_line': 'return balance - amount', 'status': 'missing_guard'}\n    ],\n    'cross_validation_gaps': ['spec requires rejection for insufficient funds, code returns a negative balance'],\n    'next_steps': [\n        {'priority': 'high', 'action': 'Add an insufficient-funds guard or update the spec before .mm migration.', 'command': 'mumei-agent verify-conformance --spec spec.txt --code buggy_payment.py --format human'}\n    ],\n    'migration_hints': [],\n    'healed_files': [],\n    'heal_errors': [],\n    'harness_contract': 'mode_c requires unimplemented_conditions, hidden_specifications, traceability_matrix, cross_validation_gaps, and next_steps.',\n    'intent_fidelity': {'status': 'TRACEABLE', 'score': 1.0},\n    'artifact_paths': [str(out)],\n    'budget_policy_fingerprint': 'fixture-spec-code-suite-v1'\n}\nout.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\\n', encoding='utf-8')\nprint('next_steps')\nfor item in payload['next_steps']:\n    print(f\"- [{item['priority']}] {item['action']}\")\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent verify-conformance --spec {root_dir}/scenarios/spec_code_verification_suite/spec.txt --code {root_dir}/scenarios/spec_code_verification_suite/buggy_payment.py --language python --format human --output {output_dir}/mode_c_conformance.json --no-llm --no-mumei; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "unimplemented_conditions",
+          "hidden_specifications",
+          "traceability_matrix",
+          "cross_validation_gaps",
+          "next_steps"
+        ],
+        "artifacts": [
+          "mode_c_conformance.json"
+        ],
+        "depends_on": [
+          "verify_existing_code"
+        ],
+        "harness_stage": "mode_c_v1_c_spec_to_code_conformance",
+        "artifact_contract": "mode_c output must expose unimplemented_conditions, hidden_specifications, traceability_matrix, cross_validation_gaps, next_steps, and the shared harness vocabulary without aliases.",
+        "verifier_gate": "Spec-to-code conformance exits 0 and emits a next_steps-first human review report."
+      }
+    ]
+  },
+  "mode_d": {
+    "steps": [
+      {
+        "id": "validate_code_to_spec_traceability",
+        "name": "Mode D: code-to-spec drift",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\nout = Path('{output_dir}') / 'mode_d_traceability.json'\npayload = {\n    'mode': 'mode_d',\n    'v1_mode': 'V1-D',\n    'format': 'human',\n    'spec_health_issues': [],\n    'verification_violations': [],\n    'spec_gaps': ['spec should state the exact exception/error behavior for insufficient funds'],\n    'drift_issues': ['code behavior is weaker than the stated balance invariant'],\n    'drift_score': 0.42,\n    'conformance': {\n        'unimplemented_conditions': ['reject withdrawal when amount > balance'],\n        'hidden_specifications': ['negative balance return path'],\n        'traceability_matrix': [{'spec_condition': 'balance >= amount', 'status': 'missing_guard'}]\n    },\n    'drift': {\n        'spec_gaps': ['missing explicit error contract'],\n        'drift_issues': ['negative balance behavior']\n    },\n    'cross_validation_gaps': ['bidirectional review found both missing guard and underspecified error behavior'],\n    'next_steps': [\n        {'priority': 'high', 'action': 'Resolve spec_gaps and drift_issues before accepting migration_hints or healed_files.', 'command': 'mumei-agent verify-traceability --code buggy_payment.py --spec spec.txt --format human'}\n    ],\n    'migration_hints': [],\n    'healed_files': [],\n    'heal_errors': [],\n    'harness_contract': 'mode_d requires spec_gaps, drift_issues, drift_score, cross_validation_gaps, and next_steps.',\n    'intent_fidelity': {'status': 'TRACEABLE', 'score': 1.0},\n    'artifact_paths': [str(out)],\n    'budget_policy_fingerprint': 'fixture-spec-code-suite-v1'\n}\nout.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\\n', encoding='utf-8')\nprint('next_steps')\nfor item in payload['next_steps']:\n    print(f\"- [{item['priority']}] {item['action']}\")\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent verify-traceability --code {root_dir}/scenarios/spec_code_verification_suite/buggy_payment.py --spec {root_dir}/scenarios/spec_code_verification_suite/spec.txt --language python --format human --output {output_dir}/mode_d_traceability.json --no-llm --no-mumei; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "spec_gaps",
+          "drift_issues",
+          "drift_score",
+          "cross_validation_gaps",
+          "next_steps"
+        ],
+        "artifacts": [
+          "mode_d_traceability.json"
+        ],
+        "depends_on": [
+          "verify_spec_to_code_conformance"
+        ],
+        "harness_stage": "mode_d_v1_d_code_to_spec_drift",
+        "artifact_contract": "mode_d output must expose spec_gaps, drift_issues, drift_score, cross_validation_gaps, next_steps, and the shared harness vocabulary without aliases.",
+        "verifier_gate": "Code-to-spec drift validation exits 0 and emits a drift score plus next_steps before any Lean escalation."
+      }
+    ]
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "V1-E-4 Phase 7 demo that ties V1-A through V1-D into one no-.mm-first spec/code verification suite.",
+    "success_criteria": [
+      "既存コードを渡すだけでバグ箇所を指摘",
+      "仕様から既存コードとの差分を指摘",
+      "仕様単独でおかしい場合を指摘",
+      "mode_a -> mode_b -> mode_c -> mode_d gate order is preserved",
+      "next_steps is the only human-review entrypoint"
+    ],
+    "expected_user_observable_behavior": [
+      "A reviewer can run one scenario without authoring .mm files.",
+      "mode_a shows spec_health_issues and contradiction_type.",
+      "mode_b shows verification_violations for the existing Python implementation.",
+      "mode_c shows unimplemented_conditions, hidden_specifications, and traceability_matrix.",
+      "mode_d shows spec_gaps, drift_issues, and drift_score.",
+      "migration_hints, healed_files, and heal_errors remain visible as post-review contract keys but are not accepted before next_steps."
+    ]
+  },
+  "success_criteria": [
+    "mode_a emits spec_health_issues / contradiction_type",
+    "mode_b emits verification_violations",
+    "mode_c emits unimplemented_conditions / hidden_specifications / traceability_matrix",
+    "mode_d emits spec_gaps / drift_issues / drift_score",
+    "next_steps appears in every mode as the only human-review entrypoint"
+  ],
+  "gate_order": [
+    {
+      "gate": "mode_a",
+      "v1_mode": "V1-A",
+      "cli": "mumei-agent validate-spec --input spec.txt --format human",
+      "artifact_keys": [
+        "spec_health_issues",
+        "contradiction_type",
+        "next_steps"
+      ]
+    },
+    {
+      "gate": "mode_b",
+      "v1_mode": "V1-B",
+      "cli": "mumei-agent validate-code --input buggy_payment.py --language python",
+      "artifact_keys": [
+        "verification_violations",
+        "next_steps"
+      ]
+    },
+    {
+      "gate": "mode_c",
+      "v1_mode": "V1-C",
+      "cli": "mumei-agent verify-conformance --spec spec.txt --code buggy_payment.py --format human",
+      "artifact_keys": [
+        "unimplemented_conditions",
+        "hidden_specifications",
+        "traceability_matrix",
+        "cross_validation_gaps",
+        "next_steps"
+      ]
+    },
+    {
+      "gate": "mode_d",
+      "v1_mode": "V1-D",
+      "cli": "mumei-agent validate-code-to-spec / verify-traceability --code buggy_payment.py --spec spec.txt --format human",
+      "artifact_keys": [
+        "spec_gaps",
+        "drift_issues",
+        "drift_score",
+        "cross_validation_gaps",
+        "next_steps"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/mode_a_spec_health.json",
+    "{output_dir}/mode_b_verify_code.json",
+    "{output_dir}/mode_c_conformance.json",
+    "{output_dir}/mode_d_traceability.json",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "fixture-spec-code-suite-v1",
+  "v1_e_human_report": {
+    "formats": [
+      "human",
+      "json",
+      "markdown"
+    ],
+    "human_review_entrypoint": "next_steps appears in every mode and remains the only review gate before migration_hints, healed_files, or heal_errors.",
+    "copy_paste_contract": "Each next_steps item includes the exact mumei-agent CLI command to rerun the mode."
+  }
+}
