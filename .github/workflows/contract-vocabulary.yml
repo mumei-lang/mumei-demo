@@ -1,0 +1,22 @@
+name: Contract Vocabulary
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scenarios/spec_code_verification_suite/scenario.json'
+      - 'scenarios/no_mm_audit/scenario.json'
+      - 'README.md'
+      - 'docs/HARNESS_CONTRACTS.md'
+      - 'scripts/check_scenario_contracts.py'
+      - '.github/workflows/contract-vocabulary.yml'
+  workflow_dispatch:
+
+jobs:
+  scenario-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check scenario JSON contracts
+        run: python3 scripts/check_scenario_contracts.py
