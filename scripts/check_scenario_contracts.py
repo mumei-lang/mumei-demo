@@ -14,6 +14,10 @@ SCENARIO_FILES = [
     REPO_ROOT / "scenarios" / "no_mm_audit" / "scenario.json",
 ]
 NO_MM_LANGUAGE_FIXTURES = {
+    "python": {
+        "file": REPO_ROOT / "scenarios" / "no_mm_audit" / "buggy_payment.py",
+        "step_id": "detect_bug",
+    },
     "rust": {
         "file": REPO_ROOT / "scenarios" / "no_mm_audit" / "buggy_add.rs",
         "step_id": "audit_rust_overflow",
