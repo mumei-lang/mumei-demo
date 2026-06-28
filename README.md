@@ -16,6 +16,7 @@ Mumei's demo scenarios make those bugs concrete:
 | RTGS Settlement | A transfer flow can break balance conservation or settle before validation. | Z3 checks settlement contracts, then Lean certifies deeper invariants when available. |
 | RegTech Compliance | `PEP` customers are missing from a `match` expression. | Exhaustiveness checking reports `CustomerType::PEP (tag=3)` as a counter-example. |
 | NL → Verified | Requirements start as natural language instead of verified code. | The agent extracts a spec, generates `.mm`, and Z3 verifies the result automatically. |
+| No-.mm Multi-language Audit | Existing Python/Rust/TypeScript/Go code enters before any `.mm` file exists. | The audit gate reports Python negative balance, Rust `a + b` i64 overflow, TypeScript `name!.length` null/undefined, and Go `values[idx]` bounds as `verification_violations` with Z3 counterexamples and `next_steps`. |
 | Phase 7 Spec-Code Verification Suite | A reviewer has only `spec.txt` and existing Python code, with no `.mm` entry yet. | V1-A through V1-D run in one flow: `spec_health_issues`, `verification_violations`, `traceability_matrix`, `drift_score`, and `next_steps`. |
 | Medical Device Control | An insulin pump skips hourly dosage safety checks. | Z3 catches the invalid delivery state, then optional Lean proof certifies cumulative dosage safety. |
 | Aviation Control | Runway allocation has inconsistent lock ordering. | Z3 verifies ordered allocation, and the agent validates the generation task. |
@@ -138,6 +139,13 @@ validations:
   requirements, then verifies the reviewed audit theorem and proof certificate.
 
 The Phase 7 Spec-Code Verification Suite is the V1-E-4 no-`.mm` front-door demo. It bundles the four V1 verification modes into one fixture-safe flow: `mode_a` (V1-A spec health), `mode_b` (V1-B existing-code audit), `mode_c` (V1-C spec→code conformance), and `mode_d` (V1-D code→spec drift). Run it with `make demo-spec-code`; fixture mode is the default and writes `reports/spec_code_verification_suite/latest/`. `next_steps` remains the only human-review entrypoint, while `migration_hints`, `healed_files`, and `heal_errors` stay reserved for the later `audit -> migrate-suggest -> heal` path.
+
+The no-`.mm` audit demo now also fixes the merged four-language audit contract.
+Run `make demo-no-mm` (or `make demo-no-mm-multilang`) to exercise Python, Rust,
+TypeScript, and Go in `CI_FIXTURE_MODE=1` without LLM credentials. All four
+languages keep the same `spec_health_issues` / `verification_violations` /
+`cross_validation_gaps` / `next_steps` / `migration_hints` / `healed_files` /
+`heal_errors` keys; language selection only changes the parser route.
 
 The scenario harness is documented as an NLAH-style artifact contract in
 [`docs/HARNESS_CONTRACTS.md`](docs/HARNESS_CONTRACTS.md). Each

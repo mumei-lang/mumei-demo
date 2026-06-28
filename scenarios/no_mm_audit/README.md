@@ -1,6 +1,12 @@
-# No-.mm Entry: Audit Existing Python Code
+# No-.mm Entry: Audit Existing Python/Rust/TypeScript/Go Code
 
 This scenario mirrors the V1-E no-`.mm` user-facing flow in `mumei-agent` and the MCP `scan_and_fix` contract. The demo keeps the Phase 7 path fixed as `audit -> migrate-suggest -> heal`: existing code is audited first, the human report surfaces `next_steps` first, migration guidance is generated second, and healing evidence is accepted only after the audit review gate is present.
+
+The audit gate covers Python, Rust, TypeScript, and Go with the same seven-key
+contract. The language only changes the parser path: Rust `a + b` i64 overflow,
+TypeScript `name!.length` null/undefined access, and Go `values[idx]` bounds
+access all surface as `verification_violations` with Z3 counterexample evidence
+and keep `next_steps` as the only human-review entrypoint.
 
 The canonical demo vocabulary remains aligned with the mumei-agent guide and appears in this order:
 
@@ -15,7 +21,7 @@ The canonical demo vocabulary remains aligned with the mumei-agent guide and app
 | Gate | User-facing wording | Required artifact keys | Human report expectation |
 | --- | --- | --- | --- |
 | `audit` | 既存コードを渡すだけでバグ箇所を指摘 | `verification_violations`, `next_steps` | `next_steps` is printed before findings and carries `V1-E-1` priority |
-| `audit` | 仕様から既存コードとの差分を指摘 | `cross_validation_gaps`, `next_steps` | `cross_validation_gaps` remains a human-review entrypoint |
+| `audit` | 仕様から既存コードとの差分を指摘 | `cross_validation_gaps`, `next_steps` | `next_steps` remains the only human-review entrypoint |
 | `audit` | 仕様単独でおかしい場合を指摘 | `spec_health_issues`, `contradiction_type`, `next_steps` | copy-pasteable validation commands are shown in fenced blocks |
 | `migrate-suggest` | `.mm` skeleton 生成へ進む | `migration_hints` | migration evidence appears only after audit `next_steps` |
 | `heal` | skeleton の修復証跡を記録する | `healed_files`, `heal_errors` | healing evidence appears only after migration evidence |
@@ -36,6 +42,13 @@ def withdraw(balance: int, amount: int) -> int:
     return balance - amount  # Bug: no check for amount > balance
 ```
 
+The same audit gate also reads deterministic fixture files for the merged
+multi-language no-`.mm` coverage:
+
+- `buggy_add.rs`: `a + b` on `i64` can overflow.
+- `buggy_name_length.ts`: `name!.length` lacks a null/undefined guard.
+- `buggy_nth.go`: `values[idx]` lacks a bounds guard.
+
 ## Run
 
 ```bash
@@ -55,7 +68,13 @@ CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh no_mm_audit \
 ## Expected output
 
 - `l1_audit/detect_bug: PASS`
+- `l1_audit/audit_rust_overflow: PASS`
+- `l1_audit/audit_typescript_null_undefined: PASS`
+- `l1_audit/audit_go_bounds: PASS`
 - `detect_bug.log` contains `verification_violations` and `balance can go negative`
+- `audit_rust_overflow.log`, `audit_typescript_null_undefined.log`, and
+  `audit_go_bounds.log` contain `verification_violations`, Z3 counterexample
+  evidence, and `next_steps`
 - `detect_bug.log` contains `cross_validation_gaps` for the spec/code difference and preserves `spec_health_issues` for spec-only issues
 - `detect_bug.log` contains a human report where `next_steps (V1-E-1)` appears before findings and includes copy-pasteable commands
 - `l2_migrate/generate_skeleton: PASS`

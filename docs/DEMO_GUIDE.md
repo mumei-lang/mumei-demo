@@ -90,6 +90,33 @@ Reports are written to `reports/regtech_compliance/<timestamp>/` and mirrored
 via `reports/regtech_compliance/latest/`.
 
 
+## Run the no-.mm multi-language audit scenario
+
+```bash
+make demo-no-mm
+```
+
+`make demo-no-mm-multilang` is an alias for the same scenario. In fixture mode,
+the audit gate reads Python, Rust, TypeScript, and Go inputs without requiring
+LLM credentials:
+
+```bash
+CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh no_mm_audit \
+  --mumei-repo ../mumei \
+  --mumei-agent-repo ../mumei-agent
+```
+
+The fixture output fixes the merged four-language contract: Python negative
+balance, Rust `a + b` i64 overflow, TypeScript `name!.length` null/undefined,
+and Go `values[idx]` bounds all produce `verification_violations` with Z3
+counterexample evidence. The artifact vocabulary remains the same seven keys
+(`spec_health_issues`, `verification_violations`, `cross_validation_gaps`,
+`next_steps`, `migration_hints`, `healed_files`, `heal_errors`), and
+`next_steps` is the only human-review entrypoint before migration/heal evidence.
+
+Reports are written to `reports/no_mm_audit/<timestamp>/` and mirrored via
+`reports/no_mm_audit/latest/`.
+
 ## Run the Phase 7 Spec-Code Verification Suite
 
 ```bash

@@ -1,8 +1,9 @@
 SCENARIOS := ownership_transfer rtgs_settlement regtech_compliance nl_to_verified no_mm_audit spec_code_verification_suite mumei_develop_audit smart_contract_audit blockchain_audit medical_device aviation_control merkle_tree_verification defi_invariant arklib_style_audit self_correction_demo
+NO_MM_AUDIT_LANGUAGES := python rust typescript go
 MUMEI_REPO ?= ../mumei
 MUMEI_AGENT_REPO ?= ../mumei-agent
 
-.PHONY: demo demo-ownership demo-settlement demo-regtech demo-nl demo-no-mm demo-spec-code demo-mumei-develop-audit demo-smart-contract demo-blockchain demo-medical demo-aviation demo-merkle demo-defi demo-arklib demo-self-correction demo-human-review demo-all demo-ci report setup
+.PHONY: demo demo-ownership demo-settlement demo-regtech demo-nl demo-no-mm demo-no-mm-multilang demo-spec-code demo-mumei-develop-audit demo-smart-contract demo-blockchain demo-medical demo-aviation demo-merkle demo-defi demo-arklib demo-self-correction demo-human-review demo-all demo-ci report setup
 
 demo:
 	@status=0; \
@@ -43,6 +44,9 @@ demo-no-mm:
 			--mumei-repo "$(MUMEI_REPO)" \
 			--mumei-agent-repo "$(MUMEI_AGENT_REPO)"; \
 	fi
+	@echo "no_mm_audit languages: $(NO_MM_AUDIT_LANGUAGES)"
+
+demo-no-mm-multilang: demo-no-mm
 
 demo-spec-code:
 	@mode="$${CI_FIXTURE_MODE:-1}"; \

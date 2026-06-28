@@ -13,6 +13,24 @@ SCENARIO_FILES = [
     REPO_ROOT / "scenarios" / "spec_code_verification_suite" / "scenario.json",
     REPO_ROOT / "scenarios" / "no_mm_audit" / "scenario.json",
 ]
+NO_MM_LANGUAGE_FIXTURES = {
+    "python": {
+        "file": REPO_ROOT / "scenarios" / "no_mm_audit" / "buggy_payment.py",
+        "step_id": "detect_bug",
+    },
+    "rust": {
+        "file": REPO_ROOT / "scenarios" / "no_mm_audit" / "buggy_add.rs",
+        "step_id": "audit_rust_overflow",
+    },
+    "typescript": {
+        "file": REPO_ROOT / "scenarios" / "no_mm_audit" / "buggy_name_length.ts",
+        "step_id": "audit_typescript_null_undefined",
+    },
+    "go": {
+        "file": REPO_ROOT / "scenarios" / "no_mm_audit" / "buggy_nth.go",
+        "step_id": "audit_go_bounds",
+    },
+}
 FIXED_ARTIFACT_KEYS = [
     "spec_health_issues",
     "verification_violations",
@@ -102,6 +120,35 @@ def _check_file(path: Path) -> list[str]:
             for alias in FORBIDDEN_ALIASES:
                 if alias in value:
                     failures.append(f"{rel}: {json_path} contains forbidden alias `{alias}`")
+
+    if rel.as_posix() == "scenarios/no_mm_audit/scenario.json":
+        audit_steps = {
+            step.get("id"): step
+            for step in data.get("l1_audit", {}).get("steps", [])
+            if isinstance(step, dict)
+        }
+        for language, fixture in NO_MM_LANGUAGE_FIXTURES.items():
+            fixture_path = fixture["file"]
+            if not fixture_path.exists():
+                failures.append(
+                    f"{rel}: missing {language} no-.mm audit fixture {fixture_path.relative_to(REPO_ROOT)}"
+                )
+                continue
+            step = audit_steps.get(str(fixture["step_id"]))
+            if step is None:
+                failures.append(f"{rel}: missing {language} audit fixture step `{fixture['step_id']}`")
+                continue
+            command = str(step.get("command", ""))
+            if f"--language {language}" not in command or "--code-file" not in command:
+                failures.append(f"{rel}: `{fixture['step_id']}` must audit with --code-file and --language {language}")
+            patterns = step.get("expected_patterns")
+            required_patterns = {"verification_violations", "Z3 counterexample", "next_steps"}
+            if not isinstance(patterns, list) or not required_patterns.issubset(set(patterns)):
+                failures.append(
+                    f"{rel}: `{fixture['step_id']}` expected_patterns must include verification_violations, Z3 counterexample, and next_steps"
+                )
+        if data.get("harness_contract", {}).get("acceptance_path") != ["l1_audit", "l2_migrate", "l3_heal"]:
+            failures.append(f"{rel}: no-.mm acceptance path must stay audit -> migrate-suggest -> heal")
     return failures
 
 
