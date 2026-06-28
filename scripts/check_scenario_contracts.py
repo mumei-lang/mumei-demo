@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -35,6 +36,10 @@ FORBIDDEN_ALIASES = [
     "review_actions",
     "human_review",
 ]
+FORBIDDEN_ALIAS_PATTERNS = {
+    alias: re.compile(rf"(?<![A-Za-z0-9_]){re.escape(alias)}(?![A-Za-z0-9_])")
+    for alias in FORBIDDEN_ALIASES
+}
 
 
 def _walk(value: Any, path: str = "$") -> list[tuple[str, Any]]:
@@ -83,8 +88,8 @@ def _check_file(path: Path) -> list[str]:
             failures.append(f"{rel}: {key_path} must be a list of strings")
             continue
         for item in value:
-            for alias in FORBIDDEN_ALIASES:
-                if alias in item:
+            for alias, pattern in FORBIDDEN_ALIAS_PATTERNS.items():
+                if pattern.search(item):
                     failures.append(f"{rel}: {key_path} contains forbidden alias `{alias}`")
 
     for json_path, value in _walk(data):
