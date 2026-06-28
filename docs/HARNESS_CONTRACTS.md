@@ -1,5 +1,7 @@
 # NLAH-Style Harness Contracts
 
+`scenarios/spec_code_verification_suite/scenario.json` and `scenarios/no_mm_audit/scenario.json` keep `artifact_keys` and `canonical_demo_phrases` fixed through `scripts/check_scenario_contracts.py`.
+
 This document explains the scenario runner as an artifact-contract harness:
 every stage declares what it reads, what it writes, which verifier gate accepts
 the evidence, and when execution must stop.
