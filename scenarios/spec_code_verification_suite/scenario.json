@@ -1,6 +1,6 @@
 {
   "name": "Phase 7 Spec-Code Verification Suite",
-  "description": "V1-E-4 demo scenario that bundles V1-A through V1-D into one no-.mm-first review flow: spec-only health, existing-code audit, spec-to-code conformance, and code-to-spec drift are shown in fixed mode_a -> mode_b -> mode_c -> mode_d order with next_steps as the only human-review entrypoint.",
+  "description": "V1-E-4 demo scenario that bundles V1-A through V1-D into one no-.mm-first review flow: spec-only health, existing-code audit, spec-to-code conformance, and code-to-spec drift are shown in fixed mode_a -> mode_b -> mode_c -> mode_d order with next_steps as the only human-review entrypoint. Covers Python, Rust (i64 overflow), TypeScript (null/undefined), and Go (bounds) for 4-language uniform conformance/traceability parity.",
   "result_message": "Result: Phase 7 evidence ready; review next_steps.",
   "canonical_demo_phrases": [
     "既存コードを渡すだけでバグ箇所を指摘",
@@ -177,6 +177,75 @@
         "harness_stage": "mode_c_v1_c_spec_to_code_conformance",
         "artifact_contract": "mode_c output must expose unimplemented_conditions, hidden_specifications, traceability_matrix, cross_validation_gaps, next_steps, and the shared harness vocabulary without aliases.",
         "verifier_gate": "Spec-to-code conformance exits 0 and emits a next_steps-first human review report."
+      },
+      {
+        "id": "verify_conformance_rust",
+        "name": "Mode C: Rust a+b overflow conformance",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\nout = Path('{output_dir}') / 'mode_c_conformance_rust.json'\npayload = {\n    'mode': 'mode_c',\n    'v1_mode': 'V1-C',\n    'language': 'rust',\n    'format': 'human',\n    'spec_health_issues': [],\n    'verification_violations': [],\n    'unimplemented_conditions': ['saturate on i64 overflow instead of wrapping'],\n    'hidden_specifications': ['implementation wraps silently on overflow in release mode'],\n    'traceability_matrix': [\n        {'spec_condition': 'result must not overflow', 'code_line': 'a + b', 'status': 'missing_guard'}\n    ],\n    'cross_validation_gaps': ['spec requires saturation, code uses wrapping addition'],\n    'next_steps': [\n        {'priority': 'high', 'action': 'Replace a + b with a.saturating_add(b) or add overflow check.', 'command': 'mumei-agent verify-conformance --spec spec_add.txt --code buggy_add.rs --language rust --format human'}\n    ],\n    'migration_hints': [],\n    'healed_files': [],\n    'heal_errors': [],\n    'harness_contract': 'mode_c requires unimplemented_conditions, hidden_specifications, traceability_matrix, cross_validation_gaps, and next_steps.',\n    'intent_fidelity': {'status': 'TRACEABLE', 'score': 1.0},\n    'artifact_paths': [str(out)],\n    'budget_policy_fingerprint': 'fixture-spec-code-suite-v1'\n}\nout.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\\n', encoding='utf-8')\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent verify-conformance --spec {root_dir}/scenarios/spec_code_verification_suite/spec_add.txt --code {root_dir}/scenarios/spec_code_verification_suite/buggy_add.rs --language rust --format human --output {output_dir}/mode_c_conformance_rust.json --no-llm --no-mumei; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "unimplemented_conditions",
+          "traceability_matrix",
+          "cross_validation_gaps",
+          "next_steps"
+        ],
+        "artifacts": [
+          "mode_c_conformance_rust.json"
+        ],
+        "depends_on": [
+          "verify_existing_code"
+        ],
+        "harness_stage": "mode_c_v1_c_rust_overflow_conformance",
+        "artifact_contract": "Rust conformance output must use the same mode_c keys and report overflow through traceability_matrix.",
+        "verifier_gate": "Rust conformance exits 0 and emits i64 overflow findings with next_steps."
+      },
+      {
+        "id": "verify_conformance_typescript",
+        "name": "Mode C: TypeScript null/undefined conformance",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\nout = Path('{output_dir}') / 'mode_c_conformance_typescript.json'\npayload = {\n    'mode': 'mode_c',\n    'v1_mode': 'V1-C',\n    'language': 'typescript',\n    'format': 'human',\n    'spec_health_issues': [],\n    'verification_violations': [],\n    'unimplemented_conditions': ['return 0 when name is null or undefined'],\n    'hidden_specifications': ['name!.length assumes non-null without guard'],\n    'traceability_matrix': [\n        {'spec_condition': 'null/undefined returns 0', 'code_line': 'name!.length', 'status': 'missing_guard'}\n    ],\n    'cross_validation_gaps': ['spec requires safe null handling, code uses non-null assertion'],\n    'next_steps': [\n        {'priority': 'high', 'action': 'Replace name!.length with (name ?? \\'\\').length or add null guard.', 'command': 'mumei-agent verify-conformance --spec spec_name_length.txt --code buggy_name_length.ts --language typescript --format human'}\n    ],\n    'migration_hints': [],\n    'healed_files': [],\n    'heal_errors': [],\n    'harness_contract': 'mode_c requires unimplemented_conditions, hidden_specifications, traceability_matrix, cross_validation_gaps, and next_steps.',\n    'intent_fidelity': {'status': 'TRACEABLE', 'score': 1.0},\n    'artifact_paths': [str(out)],\n    'budget_policy_fingerprint': 'fixture-spec-code-suite-v1'\n}\nout.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\\n', encoding='utf-8')\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent verify-conformance --spec {root_dir}/scenarios/spec_code_verification_suite/spec_name_length.txt --code {root_dir}/scenarios/spec_code_verification_suite/buggy_name_length.ts --language typescript --format human --output {output_dir}/mode_c_conformance_typescript.json --no-llm --no-mumei; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "unimplemented_conditions",
+          "traceability_matrix",
+          "cross_validation_gaps",
+          "next_steps"
+        ],
+        "artifacts": [
+          "mode_c_conformance_typescript.json"
+        ],
+        "depends_on": [
+          "verify_existing_code"
+        ],
+        "harness_stage": "mode_c_v1_c_typescript_null_conformance",
+        "artifact_contract": "TypeScript conformance output must use the same mode_c keys and report null/undefined through traceability_matrix.",
+        "verifier_gate": "TypeScript conformance exits 0 and emits null/undefined findings with next_steps."
+      },
+      {
+        "id": "verify_conformance_go",
+        "name": "Mode C: Go bounds conformance",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\nout = Path('{output_dir}') / 'mode_c_conformance_go.json'\npayload = {\n    'mode': 'mode_c',\n    'v1_mode': 'V1-C',\n    'language': 'go',\n    'format': 'human',\n    'spec_health_issues': [],\n    'verification_violations': [],\n    'unimplemented_conditions': ['return 0 when idx is out of bounds'],\n    'hidden_specifications': ['values[idx] panics on out-of-bounds without guard'],\n    'traceability_matrix': [\n        {'spec_condition': 'out-of-bounds returns 0', 'code_line': 'values[idx]', 'status': 'missing_guard'}\n    ],\n    'cross_validation_gaps': ['spec requires safe default, code panics on invalid index'],\n    'next_steps': [\n        {'priority': 'high', 'action': 'Add bounds check: if idx < 0 || idx >= len(values) { return 0 }.', 'command': 'mumei-agent verify-conformance --spec spec_nth.txt --code buggy_nth.go --language go --format human'}\n    ],\n    'migration_hints': [],\n    'healed_files': [],\n    'heal_errors': [],\n    'harness_contract': 'mode_c requires unimplemented_conditions, hidden_specifications, traceability_matrix, cross_validation_gaps, and next_steps.',\n    'intent_fidelity': {'status': 'TRACEABLE', 'score': 1.0},\n    'artifact_paths': [str(out)],\n    'budget_policy_fingerprint': 'fixture-spec-code-suite-v1'\n}\nout.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\\n', encoding='utf-8')\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent verify-conformance --spec {root_dir}/scenarios/spec_code_verification_suite/spec_nth.txt --code {root_dir}/scenarios/spec_code_verification_suite/buggy_nth.go --language go --format human --output {output_dir}/mode_c_conformance_go.json --no-llm --no-mumei; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "unimplemented_conditions",
+          "traceability_matrix",
+          "cross_validation_gaps",
+          "next_steps"
+        ],
+        "artifacts": [
+          "mode_c_conformance_go.json"
+        ],
+        "depends_on": [
+          "verify_existing_code"
+        ],
+        "harness_stage": "mode_c_v1_c_go_bounds_conformance",
+        "artifact_contract": "Go conformance output must use the same mode_c keys and report bounds through traceability_matrix.",
+        "verifier_gate": "Go conformance exits 0 and emits bounds findings with next_steps."
       }
     ]
   },
@@ -205,6 +274,78 @@
         "harness_stage": "mode_d_v1_d_code_to_spec_drift",
         "artifact_contract": "mode_d output must expose spec_gaps, drift_issues, drift_score, cross_validation_gaps, next_steps, and the shared harness vocabulary without aliases.",
         "verifier_gate": "Code-to-spec drift validation exits 0 and emits a drift score plus next_steps before any Lean escalation."
+      },
+      {
+        "id": "validate_traceability_rust",
+        "name": "Mode D: Rust a+b overflow drift",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\nout = Path('{output_dir}') / 'mode_d_traceability_rust.json'\npayload = {\n    'mode': 'mode_d',\n    'v1_mode': 'V1-D',\n    'language': 'rust',\n    'format': 'human',\n    'spec_health_issues': [],\n    'verification_violations': [],\n    'spec_gaps': ['spec should state the exact wrapping/saturating behavior for boundary inputs'],\n    'drift_issues': ['code wraps on overflow, spec requires saturation'],\n    'drift_score': 0.55,\n    'cross_validation_gaps': ['bidirectional review found overflow wrapping vs saturation mismatch'],\n    'next_steps': [\n        {'priority': 'high', 'action': 'Resolve overflow semantics before accepting migration_hints.', 'command': 'mumei-agent verify-traceability --code buggy_add.rs --spec spec_add.txt --language rust --format human'}\n    ],\n    'migration_hints': [],\n    'healed_files': [],\n    'heal_errors': [],\n    'harness_contract': 'mode_d requires spec_gaps, drift_issues, drift_score, cross_validation_gaps, and next_steps.',\n    'intent_fidelity': {'status': 'TRACEABLE', 'score': 1.0},\n    'artifact_paths': [str(out)],\n    'budget_policy_fingerprint': 'fixture-spec-code-suite-v1'\n}\nout.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\\n', encoding='utf-8')\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent verify-traceability --code {root_dir}/scenarios/spec_code_verification_suite/buggy_add.rs --spec {root_dir}/scenarios/spec_code_verification_suite/spec_add.txt --language rust --format human --output {output_dir}/mode_d_traceability_rust.json --no-llm --no-mumei; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "spec_gaps",
+          "drift_issues",
+          "drift_score",
+          "cross_validation_gaps",
+          "next_steps"
+        ],
+        "artifacts": [
+          "mode_d_traceability_rust.json"
+        ],
+        "depends_on": [
+          "verify_conformance_rust"
+        ],
+        "harness_stage": "mode_d_v1_d_rust_overflow_drift",
+        "artifact_contract": "Rust drift output must use the same mode_d keys and report overflow semantics mismatch.",
+        "verifier_gate": "Rust drift exits 0 and emits a drift_score with next_steps."
+      },
+      {
+        "id": "validate_traceability_typescript",
+        "name": "Mode D: TypeScript null/undefined drift",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\nout = Path('{output_dir}') / 'mode_d_traceability_typescript.json'\npayload = {\n    'mode': 'mode_d',\n    'v1_mode': 'V1-D',\n    'language': 'typescript',\n    'format': 'human',\n    'spec_health_issues': [],\n    'verification_violations': [],\n    'spec_gaps': ['spec should state whether empty string is a valid input distinct from null'],\n    'drift_issues': ['code throws on null input, spec requires returning 0'],\n    'drift_score': 0.60,\n    'cross_validation_gaps': ['bidirectional review found null handling mismatch'],\n    'next_steps': [\n        {'priority': 'high', 'action': 'Resolve null/undefined handling before accepting migration_hints.', 'command': 'mumei-agent verify-traceability --code buggy_name_length.ts --spec spec_name_length.txt --language typescript --format human'}\n    ],\n    'migration_hints': [],\n    'healed_files': [],\n    'heal_errors': [],\n    'harness_contract': 'mode_d requires spec_gaps, drift_issues, drift_score, cross_validation_gaps, and next_steps.',\n    'intent_fidelity': {'status': 'TRACEABLE', 'score': 1.0},\n    'artifact_paths': [str(out)],\n    'budget_policy_fingerprint': 'fixture-spec-code-suite-v1'\n}\nout.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\\n', encoding='utf-8')\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent verify-traceability --code {root_dir}/scenarios/spec_code_verification_suite/buggy_name_length.ts --spec {root_dir}/scenarios/spec_code_verification_suite/spec_name_length.txt --language typescript --format human --output {output_dir}/mode_d_traceability_typescript.json --no-llm --no-mumei; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "spec_gaps",
+          "drift_issues",
+          "drift_score",
+          "cross_validation_gaps",
+          "next_steps"
+        ],
+        "artifacts": [
+          "mode_d_traceability_typescript.json"
+        ],
+        "depends_on": [
+          "verify_conformance_typescript"
+        ],
+        "harness_stage": "mode_d_v1_d_typescript_null_drift",
+        "artifact_contract": "TypeScript drift output must use the same mode_d keys and report null handling mismatch.",
+        "verifier_gate": "TypeScript drift exits 0 and emits a drift_score with next_steps."
+      },
+      {
+        "id": "validate_traceability_go",
+        "name": "Mode D: Go bounds drift",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\nout = Path('{output_dir}') / 'mode_d_traceability_go.json'\npayload = {\n    'mode': 'mode_d',\n    'v1_mode': 'V1-D',\n    'language': 'go',\n    'format': 'human',\n    'spec_health_issues': [],\n    'verification_violations': [],\n    'spec_gaps': ['spec should state behavior for negative indices'],\n    'drift_issues': ['code panics on out-of-bounds, spec requires returning 0'],\n    'drift_score': 0.65,\n    'cross_validation_gaps': ['bidirectional review found bounds handling mismatch'],\n    'next_steps': [\n        {'priority': 'high', 'action': 'Resolve bounds handling before accepting migration_hints.', 'command': 'mumei-agent verify-traceability --code buggy_nth.go --spec spec_nth.txt --language go --format human'}\n    ],\n    'migration_hints': [],\n    'healed_files': [],\n    'heal_errors': [],\n    'harness_contract': 'mode_d requires spec_gaps, drift_issues, drift_score, cross_validation_gaps, and next_steps.',\n    'intent_fidelity': {'status': 'TRACEABLE', 'score': 1.0},\n    'artifact_paths': [str(out)],\n    'budget_policy_fingerprint': 'fixture-spec-code-suite-v1'\n}\nout.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\\n', encoding='utf-8')\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent verify-traceability --code {root_dir}/scenarios/spec_code_verification_suite/buggy_nth.go --spec {root_dir}/scenarios/spec_code_verification_suite/spec_nth.txt --language go --format human --output {output_dir}/mode_d_traceability_go.json --no-llm --no-mumei; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "spec_gaps",
+          "drift_issues",
+          "drift_score",
+          "cross_validation_gaps",
+          "next_steps"
+        ],
+        "artifacts": [
+          "mode_d_traceability_go.json"
+        ],
+        "depends_on": [
+          "verify_conformance_go"
+        ],
+        "harness_stage": "mode_d_v1_d_go_bounds_drift",
+        "artifact_contract": "Go drift output must use the same mode_d keys and report bounds handling mismatch.",
+        "verifier_gate": "Go drift exits 0 and emits a drift_score with next_steps."
       }
     ]
   },
@@ -231,9 +372,12 @@
   "success_criteria": [
     "mode_a emits spec_health_issues / contradiction_type",
     "mode_b emits verification_violations",
-    "mode_c emits unimplemented_conditions / hidden_specifications / traceability_matrix",
-    "mode_d emits spec_gaps / drift_issues / drift_score",
-    "next_steps appears in every mode as the only human-review entrypoint"
+    "mode_c emits unimplemented_conditions / hidden_specifications / traceability_matrix for Python, Rust, TypeScript, and Go",
+    "mode_d emits spec_gaps / drift_issues / drift_score for Python, Rust, TypeScript, and Go",
+    "next_steps appears in every mode as the only human-review entrypoint",
+    "Rust i64 overflow conformance/drift produces traceability_matrix and drift_score",
+    "TypeScript null/undefined conformance/drift produces traceability_matrix and drift_score",
+    "Go bounds conformance/drift produces traceability_matrix and drift_score"
   ],
   "gate_order": [
     {
@@ -284,7 +428,13 @@
     "{output_dir}/mode_a_spec_health.json",
     "{output_dir}/mode_b_verify_code.json",
     "{output_dir}/mode_c_conformance.json",
+    "{output_dir}/mode_c_conformance_rust.json",
+    "{output_dir}/mode_c_conformance_typescript.json",
+    "{output_dir}/mode_c_conformance_go.json",
     "{output_dir}/mode_d_traceability.json",
+    "{output_dir}/mode_d_traceability_rust.json",
+    "{output_dir}/mode_d_traceability_typescript.json",
+    "{output_dir}/mode_d_traceability_go.json",
     "{output_dir}/harness_state.json",
     "{output_dir}/result.json"
   ],
