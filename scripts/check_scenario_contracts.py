@@ -200,6 +200,8 @@ def _check_docs_forbidden_aliases() -> list[str]:
     failures: list[str] = []
     for path in DOCS_UNDER_CONTRACT:
         if not path.exists():
+            rel = path.relative_to(REPO_ROOT)
+            failures.append(f"{rel}: contract-covered doc file is missing")
             continue
         rel = path.relative_to(REPO_ROOT)
         text = path.read_text(encoding="utf-8")
