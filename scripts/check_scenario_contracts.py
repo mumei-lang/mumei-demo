@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Validate scenario JSON contract vocabulary."""
+"""Validate scenario JSON and docs/README contract vocabulary.
+
+Checks scenario.json files for forbidden aliases and fixed artifact keys,
+and docs/README files for forbidden aliases appearing in key-like contexts
+(backtick-quoted, code-fenced, or JSON-key style) to avoid false positives
+on regular English prose.
+"""
 from __future__ import annotations
 
 import json
@@ -12,6 +18,13 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 SCENARIO_FILES = [
     REPO_ROOT / "scenarios" / "spec_code_verification_suite" / "scenario.json",
     REPO_ROOT / "scenarios" / "no_mm_audit" / "scenario.json",
+]
+DOCS_UNDER_CONTRACT = [
+    REPO_ROOT / "docs" / "HARNESS_CONTRACTS.md",
+    REPO_ROOT / "docs" / "ROADMAP.md",
+    REPO_ROOT / "docs" / "SCENARIO_SPEC.md",
+    REPO_ROOT / "scenarios" / "no_mm_audit" / "README.md",
+    REPO_ROOT / "scenarios" / "spec_code_verification_suite" / "README.md",
 ]
 NO_MM_LANGUAGE_FIXTURES = {
     "python": {
@@ -152,17 +165,83 @@ def _check_file(path: Path) -> list[str]:
     return failures
 
 
+def _in_code_fence(lines: list[str], line_idx: int) -> bool:
+    """Return True if line_idx is inside a fenced code block."""
+    fence_open = False
+    for i in range(line_idx):
+        stripped = lines[i].strip()
+        if stripped.startswith("```") or stripped.startswith("~~~"):
+            fence_open = not fence_open
+    return fence_open
+
+
+def _is_key_context(line: str, alias: str) -> bool:
+    """Return True if alias appears in a key-like context on this line.
+
+    Key-like contexts:
+    - backtick-quoted: `alias`
+    - JSON key style: "alias": or 'alias':
+    - YAML/list key style: - alias: or * alias:
+    - bare key: alias:
+    """
+    escaped = re.escape(alias)
+    key_patterns = [
+        re.compile(rf"`{escaped}(?:\[\])?`"),
+        re.compile(rf'"\s*{escaped}(?:\[\])?\s*"\s*:'),
+        re.compile(rf"'\s*{escaped}(?:\[\])?\s*'\s*:"),
+        re.compile(rf"(?m)^\s*[-*]?\s*{escaped}(?:\[\])?\s*:"),
+        re.compile(rf"\b{escaped}\[\]"),
+    ]
+    return any(p.search(line) for p in key_patterns)
+
+
+def _check_docs_forbidden_aliases() -> list[str]:
+    """Check docs/README files for forbidden aliases in key-like contexts."""
+    failures: list[str] = []
+    for path in DOCS_UNDER_CONTRACT:
+        if not path.exists():
+            rel = path.relative_to(REPO_ROOT)
+            failures.append(f"{rel}: contract-covered doc file is missing")
+            continue
+        rel = path.relative_to(REPO_ROOT)
+        text = path.read_text(encoding="utf-8")
+        lines = text.splitlines()
+        for alias, pattern in FORBIDDEN_ALIAS_PATTERNS.items():
+            for line_idx, line in enumerate(lines):
+                if not pattern.search(line):
+                    continue
+                in_fence = _in_code_fence(lines, line_idx)
+                if in_fence or _is_key_context(line, alias):
+                    failures.append(
+                        f"{rel}:{line_idx + 1}: "
+                        f"forbidden alias `{alias}` in key-like context"
+                    )
+                    break  # one violation per alias per file
+    return failures
+
+
 def main() -> int:
     failures: list[str] = []
     for path in SCENARIO_FILES:
         failures.extend(_check_file(path))
+    failures.extend(_check_docs_forbidden_aliases())
     if failures:
         print("Scenario contract check failed:", file=sys.stderr)
         for failure in failures:
             print(f"- {failure}", file=sys.stderr)
         return 1
-    checked = ", ".join(path.relative_to(REPO_ROOT).as_posix() for path in SCENARIO_FILES)
-    print(f"Scenario contract check passed: {checked}")
+    checked_scenarios = ", ".join(
+        path.relative_to(REPO_ROOT).as_posix() for path in SCENARIO_FILES
+    )
+    checked_docs = ", ".join(
+        path.relative_to(REPO_ROOT).as_posix()
+        for path in DOCS_UNDER_CONTRACT
+        if path.exists()
+    )
+    print(
+        f"Scenario contract check passed: {checked_scenarios}"
+        f" + docs: {checked_docs}"
+    )
     return 0
 
 
