@@ -27,4 +27,6 @@ jobs:
         run: python3 scripts/check_scenario_contracts.py
 
       - name: Run docs alias check tests
-        run: python3 -m pytest tests/test_check_scenario_contracts.py -v
+        run: |
+          pip install --quiet pytest
+          python3 -m pytest tests/test_check_scenario_contracts.py -v
