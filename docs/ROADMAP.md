@@ -6,6 +6,12 @@
 
 For `scenarios/no_mm_audit`, the user-facing copy stays in this order: 既存コードを渡すだけでバグ箇所を指摘 / 仕様から既存コードとの差分を指摘 / 仕様単独でおかしい場合を指摘, then `next_steps`, `artifact_keys`, and `harness_contract`. `next_steps` is the only human-review entrypoint before `migration_hints`, `healed_files`, or `heal_errors` evidence is accepted.
 
+## Contract vocabulary regression — docs/README coverage
+
+`scripts/check_scenario_contracts.py` validates both scenario JSON files and docs/README files against the canonical forbidden-alias list. The docs check targets key-like contexts (backtick-quoted, code-fenced, or JSON-key style) to avoid false positives on regular English prose while catching contract-key drift.
+
+Covered docs: `docs/HARNESS_CONTRACTS.md`, `docs/ROADMAP.md`, `docs/SCENARIO_SPEC.md`, `scenarios/no_mm_audit/README.md`, `scenarios/spec_code_verification_suite/README.md`.
+
 ## P9-G: Ecosystem Integration — ✅ Implemented
 
 `mumei-lang/mumei-demo` は P9-G NLAE pipeline の Evaluation Loop を担当する。

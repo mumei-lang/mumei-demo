@@ -6,9 +6,14 @@ on:
     paths:
       - 'scenarios/spec_code_verification_suite/scenario.json'
       - 'scenarios/no_mm_audit/scenario.json'
+      - 'scenarios/no_mm_audit/README.md'
+      - 'scenarios/spec_code_verification_suite/README.md'
       - 'README.md'
       - 'docs/HARNESS_CONTRACTS.md'
+      - 'docs/ROADMAP.md'
+      - 'docs/SCENARIO_SPEC.md'
       - 'scripts/check_scenario_contracts.py'
+      - 'tests/test_check_scenario_contracts.py'
       - '.github/workflows/contract-vocabulary.yml'
   workflow_dispatch:
 
@@ -18,5 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check scenario JSON contracts
+      - name: Check scenario and docs contracts
         run: python3 scripts/check_scenario_contracts.py
+
+      - name: Run docs alias check tests
+        run: python3 -m pytest tests/test_check_scenario_contracts.py -v
