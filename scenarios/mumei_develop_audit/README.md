@@ -60,3 +60,25 @@ mode never reads either variable.
 Generated reports live under `reports/mumei_develop_audit/latest/` and include
 `result.json`, `report.md`, `harness_state.json`, command logs, the audit JSON,
 and generated `.mm` skeletons.
+
+## Audit logs and quality-gate conclusions
+
+Dated audit logs record what each live run found and how it was remediated:
+
+- [`AUDIT_LOG_2026-06-21.md`](./AUDIT_LOG_2026-06-21.md) — initial findings
+  (2 `cross_validation_gaps`, 2 encoding-gap `spec_health_issues`) and the
+  recommended follow-up PR split.
+- [`AUDIT_LOG_2026-07-17.md`](./AUDIT_LOG_2026-07-17.md) — follow-up live re-run
+  after the code fixes landed; all four findings resolved (`0/0/0`).
+
+Two conclusions from this audit line are operational guidance rather than code
+fixes and are treated as standing quality gates:
+
+- **Spec health and cross-validation drift are first-class quality gates.** The
+  actionable signal here was `spec_health_issues` and `cross_validation_gaps`,
+  not direct Z3 counterexamples. Prioritize drift/health findings, not only
+  postcondition refutations.
+- **Scenario PASS does not mean the audited target is clean.** A green scenario
+  pins the contract/report shape for CI and the dashboard, but any recorded
+  `cross_validation_gaps` / `spec_health_issues` still require follow-up. Do not
+  read `overall_status: PASS` as "no work remaining".
