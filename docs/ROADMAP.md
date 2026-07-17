@@ -12,6 +12,15 @@ For `scenarios/no_mm_audit`, the user-facing copy stays in this order: 既存コ
 
 Covered docs: `docs/HARNESS_CONTRACTS.md`, `docs/ROADMAP.md`, `docs/SCENARIO_SPEC.md`, `scenarios/no_mm_audit/README.md`, `scenarios/spec_code_verification_suite/README.md`.
 
+Run the local scenario/docs contract gate before opening a PR that touches those scenario JSON files or docs:
+
+```bash
+python3 scripts/check_scenario_contracts.py
+python3 -m pytest tests/test_check_scenario_contracts.py -q
+```
+
+CI enforces the same gate through `.github/workflows/contract-vocabulary.yml` on pull requests into `main`. This is the mumei-demo complement to the canonical `mumei/scripts/check_contract_vocabulary.py` gate.
+
 ## P9-G: Ecosystem Integration — ✅ Implemented
 
 `mumei-lang/mumei-demo` は P9-G NLAE pipeline の Evaluation Loop を担当する。
