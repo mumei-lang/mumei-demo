@@ -236,3 +236,30 @@ video artifact has not yet been captured.
 - Medical Device shows `SKIPPED` for Lean: install Lean 4/Lake and the proof
   module, or rerun only the Z3 steps; L1 safety evidence remains valid without
   the optional L3 proof.
+
+## README exhaustive scenario reference
+
+## Running scenarios
+
+Each scenario has a `make` target, e.g.:
+
+```bash
+make demo-ownership   # Phase 1 Ownership Transfer
+make demo-settlement  # Phase 2 RTGS Settlement
+make demo-regtech     # Phase 3 RegTech Compliance
+make demo-nl          # P11 Natural Language → Verified (needs OPENAI_API_KEY)
+make demo-medical     # Medical Device Control
+make demo-merkle      # Merkle Tree Verification
+make demo-defi        # DeFi Invariant
+make demo-arklib      # ArkLib-Style Audit
+make demo-spec-code   # Phase 7 Spec-Code Verification Suite (fixture default)
+make demo-no-mm       # No-.mm multi-language audit (fixture default)
+make demo             # full integrated sequence (alias: make demo-all)
+```
+
+The P9-G NLAE integration demo runs via
+`./demos/nlae_integration/run_demo.sh`. See
+[`docs/DEMO_GUIDE.md`](./DEMO_GUIDE.md) for setup, explicit repo paths,
+per-scenario notes, and the CLI/Streamlit dashboards, and
+[`docs/SCENARIO_CATALOG.md`](./SCENARIO_CATALOG.md) for step-by-step
+breakdowns and example output.
