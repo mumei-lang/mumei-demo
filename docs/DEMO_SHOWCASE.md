@@ -182,8 +182,6 @@ The recording highlights:
 - The hostile takeover step rejected with `Temporal effect violation (InvalidPreState)`.
 - `ownership.proof.json` displayed with verified atom data.
 
-## README dogfooding audit reference
-
 ## Verification demo: dogfooding audit
 
 The `mumei_develop_audit` scenario points Mumei's own audit tooling at
@@ -199,36 +197,7 @@ audit findings resolved:
   `mm/generate_markdown_report.mm`.
 
 Recording and result screenshot:
-[`docs/DEMO_SHOWCASE.md#mumei-develop-audit-dogfooding-verification`](./DEMO_SHOWCASE.md#mumei-develop-audit-dogfooding-verification)
-— video [`docs/assets/mumei-develop-audit-cli-demo.mp4`](assets/mumei-develop-audit-cli-demo.mp4),
-image [`docs/assets/mumei-develop-audit-result.png`](assets/mumei-develop-audit-result.png).
-
-![Mumei Develop Audit live re-run — 0/0 findings, scenario PASS](assets/mumei-develop-audit-result.png)
-
-Before/after audit fields:
-[`scenarios/mumei_develop_audit/AUDIT_LOG_2026-07-17.md`](../scenarios/mumei_develop_audit/AUDIT_LOG_2026-07-17.md).
-This scenario also illustrates the quality-gate principle documented in the
-scenario README: spec health and cross-validation drift are first-class gates,
-and a passing scenario does not by itself mean there is no audit follow-up.
-
-## README dogfooding audit reference
-
-## Verification demo: dogfooding audit
-
-The `mumei_develop_audit` scenario points Mumei's own audit tooling at
-`mumei/scripts/generate_stdlib_metrics.py`. After the dogfooding fixes (mumei
-#432, mumei-agent #377, mumei-demo #66), a live re-run shows all four original
-audit findings resolved:
-
-- all three layers PASS (`record_targets`, `audit_develop_target`,
-  `generate_migration_guidance`);
-- `success = True`, `verification_status = verified`;
-- `cross_validation_gaps` `2 → 0` and `spec_health_issues` `2 → 0`;
-- `migrate-suggest` emits `mm/analyze_metrics.mm` and
-  `mm/generate_markdown_report.mm`.
-
-Recording and result screenshot:
-[`docs/DEMO_SHOWCASE.md#mumei-develop-audit-dogfooding-verification`](./DEMO_SHOWCASE.md#mumei-develop-audit-dogfooding-verification)
+[`docs/DEMO_SHOWCASE.md#mumei-develop-audit-dogfooding-verification`](#mumei-develop-audit-dogfooding-verification)
 — video [`docs/assets/mumei-develop-audit-cli-demo.mp4`](assets/mumei-develop-audit-cli-demo.mp4),
 image [`docs/assets/mumei-develop-audit-result.png`](assets/mumei-develop-audit-result.png).
 
