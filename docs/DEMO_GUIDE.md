@@ -237,8 +237,6 @@ video artifact has not yet been captured.
   module, or rerun only the Z3 steps; L1 safety evidence remains valid without
   the optional L3 proof.
 
-## README exhaustive scenario reference
-
 ## Running scenarios
 
 Each scenario has a `make` target, e.g.:
@@ -258,8 +256,8 @@ make demo             # full integrated sequence (alias: make demo-all)
 ```
 
 The P9-G NLAE integration demo runs via
-`./demos/nlae_integration/run_demo.sh`. See
-[`docs/DEMO_GUIDE.md`](./DEMO_GUIDE.md) for setup, explicit repo paths,
-per-scenario notes, and the CLI/Streamlit dashboards, and
+`./demos/nlae_integration/run_demo.sh`. Setup, explicit repo paths,
+per-scenario notes, and the CLI/Streamlit dashboards are covered in the
+sections above; see
 [`docs/SCENARIO_CATALOG.md`](./SCENARIO_CATALOG.md) for step-by-step
 breakdowns and example output.

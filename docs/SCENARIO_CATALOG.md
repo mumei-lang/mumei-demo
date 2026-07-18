@@ -239,35 +239,14 @@ without live LLM credentials or a live Lean build. If
 `report.md` renders the checklist and the dashboard summary shows the same
 compliance value across scenarios.
 
-## README full scenario reference
+## Scenario summary table
 
 > **Mumei proves that LLM-generated code has bugs — mathematically.**
 
 LLMs write code that looks correct but hides subtle bugs. Mumei runs formal
 verification over **every possible case** before a bug becomes a production
 incident. Each scenario below makes one of those bugs concrete and shows Mumei
-catching it.
-
-| Scenario | Bug an LLM can miss | How Mumei catches it |
-| --- | --- | --- |
-| Ownership Transfer | `hostile_takeover` skips `accept` and tries `Idle → Transferred`. | The effect checker rejects the invalid pre-state with `InvalidPreState`. |
-| RTGS Settlement | A transfer flow can break balance conservation or settle before validation. | Z3 checks settlement contracts, then Lean certifies deeper invariants when available. |
-| RegTech Compliance | `PEP` customers are missing from a `match` expression. | Exhaustiveness checking reports `CustomerType::PEP (tag=3)` as a counter-example. |
-| NL → Verified | Requirements start as natural language instead of verified code. | The agent extracts a spec, generates `.mm`, and Z3 verifies the result automatically. |
-| No-.mm Multi-language Audit | Existing Python/Rust/TypeScript/Go code enters before any `.mm` file exists. | The audit gate reports each language's violations as `verification_violations` with Z3 counterexamples and `next_steps`. |
-| Phase 7 Spec-Code Verification Suite | A reviewer has only `spec.txt` and existing Python code, with no `.mm` entry yet. | V1-A through V1-D run in one flow: `spec_health_issues`, `verification_violations`, `traceability_matrix`, `drift_score`, and `next_steps`. |
-| Mumei Develop Audit | The project's own tooling drifts from its spec. | Dogfooding: `mumei-agent audit` runs on `mumei/scripts/generate_stdlib_metrics.py`. |
-| Medical Device Control | An insulin pump skips hourly dosage safety checks. | Z3 catches the invalid delivery state, then optional Lean proof certifies cumulative dosage safety. |
-| Aviation Control | Runway allocation has inconsistent lock ordering. | Z3 verifies ordered allocation, and the agent validates the generation task. |
-| Merkle Tree Verification | Assumes hash function integrity without proof. | Z3 verifies the `hash_function_secure` precondition, Lean certifies collision resistance. |
-| DeFi Invariant | Integer overflow in ERC-20 transfer. | Refinement types (`type Uint256 = i64 where v >= 0 && v <= MAX`) prevent overflow at compile time. |
-| ArkLib-Style Audit | Complex implementation hides bugs. | Top-level `requires`/`ensures` reviewed by humans, Lean proves implementation correctness. |
-| P9-G NLAE Integration | A generated vault withdrawal violates a postcondition. | `mumei verify --emit loss-vector` feeds mumei-agent self-correction, then mumei-lean checks fidelity. |
-
-Full descriptions and per-scenario output examples live in
-[`docs/SCENARIO_CATALOG.md`](./SCENARIO_CATALOG.md).
-
-## README full scenario reference
+catching it; per-scenario breakdowns follow in the sections above.
 
 | Scenario | Bug an LLM can miss | How Mumei catches it |
 | --- | --- | --- |
