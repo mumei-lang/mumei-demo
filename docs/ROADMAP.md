@@ -21,6 +21,27 @@ python3 -m pytest tests/test_check_scenario_contracts.py -q
 
 CI enforces the same gate through `.github/workflows/contract-vocabulary.yml` on pull requests into `main`. This is the mumei-demo complement to the canonical `mumei/scripts/check_contract_vocabulary.py` gate.
 
+## Priority 16: 大規模ケースでの atom-local proof obligation 合成性検証 — ✅ Implemented
+
+canonical 上位ロードマップは `mumei-lang/mumei/docs/CROSS_PROJECT_ROADMAP.md` の
+"Priority 16"、compiler 側 local checkpoint は `mumei/docs/ROADMAP.md` の P20。
+本節は demo harness 側の checkpoint。
+
+- ✅ `scenarios/{medical_device,rtgs_settlement,regtech_compliance,defi_invariant,ownership_transfer}_scale/`
+  を追加（172 atoms / 依存深さ 5–7 / 各 8 状態の effect 状態機械）。既存シナリオの
+  一桁増しで、いずれも Z3 で全 atom 検証済み。
+- ✅ 既存の決定的 fixture モードは不変: scale ケースは `SCENARIOS` に入れず
+  `SCALE_SCENARIOS` の**別 target**（`make demo-scale` ほか）として実行する。
+  `make demo` / `make demo-all` / `make demo-ci` の対象は変わらない。
+- ✅ 各 scale シナリオは `verify_scale`（`--proof-cert`）→ `verify_cert_strict`
+  （`mumei verify-cert --strict`）→ `trust_surface` → `composability` →
+  `agent_scale_report` の順で証拠を積み上げる。
+- ✅ 合成の破れは既存の `verification_status` / `verification_violations` /
+  `next_steps` でのみ報告する（`mumei-agent scale-report`）。新しい verdict 分類や
+  別名 alias は追加しない。
+- ✅ 測定値は各シナリオ README の "Measured" 表に記録（closure ratio、composition
+  break のパターン別内訳、trust surface、Z3 solver 時間、`budget_policy_fingerprint`）。
+
 ## P9-G: Ecosystem Integration — ✅ Implemented
 
 `mumei-lang/mumei-demo` は P9-G NLAE pipeline の Evaluation Loop を担当する。

@@ -41,6 +41,13 @@ Detailed descriptions of every demo scenario. For run commands see
   verifies the reviewed audit theorem and proof certificate.
 - **Aviation Control** — Z3 verifies ordered runway allocation and the agent
   validates the generation task.
+- **Large-scale composability targets (`*_scale`)** — `medical_device_scale`,
+  `rtgs_settlement_scale`, `regtech_compliance_scale`, `defi_invariant_scale`,
+  and `ownership_transfer_scale` take the corresponding scenario an order of
+  magnitude further (30–41 atoms, dependency depth 5–7, 8-state effect
+  machines) and measure whether atom-local proof obligations still compose into
+  the whole-system invariant. They are separate targets and never run in
+  `make demo-ci`. See each scenario README for measured numbers.
 - **P9-G NLAE Integration** — connects all four repos: a generated vault
   withdrawal that violates a postcondition drives `mumei verify --emit
   loss-vector` → mumei-agent self-correction → mumei-lean fidelity check.

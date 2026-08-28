@@ -1,0 +1,182 @@
+{
+  "name": "Ownership Transfer at Scale: Authority and Escrow Chains",
+  "version": "1.0.0",
+  "description": "権限・エスクロー・係争処理まで多段化した所有権移転のスケールケース",
+  "scale_target": {
+    "baseline_scenario": "ownership_transfer",
+    "baseline_atoms": 5,
+    "scale_atoms": 35,
+    "max_dependency_depth": 6,
+    "effect_state_machine": "Idle → Proposed → Acknowledged → Escrowed → Approved → Transferred → Recorded → Disputed",
+    "note": "Separate target: this scenario is not part of the deterministic fixture-mode scenario list and never runs in `make demo-ci`."
+  },
+  "layers": [
+    "l1_z3",
+    "l2_agent"
+  ],
+  "narrative": {
+    "intro": [
+      "Step 1: mumei verifies the 35-atom Ownership pipeline...",
+      "Step 2: the proof certificate is re-checked with verify-cert --strict..."
+    ],
+    "before": "ownership_transfer verifies 5 atoms in a shallow chain.",
+    "after": "ownership_transfer_scale verifies 35 atoms at dependency depth 6 with a certificate for every atom.",
+    "steps": {
+      "verify_scale": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Z3 verified 35 atoms at scale",
+          "follow_up": [
+            "  Idle → Proposed → Acknowledged → Escrowed → Approved → Transferred → Recorded → Disputed",
+            "",
+            "  Next: verify-cert --strict re-checks the certificate."
+          ]
+        }
+      },
+      "verify_cert_strict": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Certificate re-checked in strict mode"
+        }
+      }
+    }
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "verify_scale",
+        "name": "Z3 Scale Verification: Ownership pipeline",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify {root_dir}/scenarios/ownership_transfer_scale/correct_code.mm --proof-cert --output {output_dir}/ownership_transfer_scale.proof-cert.json",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Verification passed"
+        ],
+        "artifacts": [
+          "ownership_transfer_scale.proof-cert.json"
+        ],
+        "harness_stage": "S1_z3_acceptance_verify_scale",
+        "artifact_contract": [
+          "ownership_transfer_scale.proof-cert.json"
+        ],
+        "verifier_gate": "Command exits 0 and emits expected acceptance evidence (Verification passed) for every atom in the scale case."
+      },
+      {
+        "id": "verify_cert_strict",
+        "name": "Proof Certificate Strict Re-check",
+        "repo": "mumei",
+        "command": "{mumei_bin} verify-cert --strict {output_dir}/ownership_transfer_scale.proof-cert.json {root_dir}/scenarios/ownership_transfer_scale/correct_code.mm",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "All verified: true"
+        ],
+        "artifacts": [],
+        "depends_on": [
+          "verify_scale"
+        ],
+        "harness_stage": "S1_z3_certificate_strict",
+        "artifact_contract": [
+          "result.json step status and log capture the strict certificate gate evidence."
+        ],
+        "verifier_gate": "Command exits 0 and reports 0 changed / 0 unproven / 0 missing atoms."
+      },
+      {
+        "id": "trust_surface",
+        "name": "Trust Surface and Solver Metrics",
+        "repo": "mumei",
+        "command": "python3 {mumei_repo}/scripts/scale_trust_surface.py {root_dir}/scenarios/ownership_transfer_scale/correct_code.mm --mumei-bin {mumei_bin} --cert-dir {output_dir}/certs --std-dir {mumei_repo}/std --budget-policy-fingerprint sha256:scale-default --output {output_dir}/ownership_transfer_scale.trust-surface.json",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "scale trust surface written"
+        ],
+        "artifacts": [
+          "ownership_transfer_scale.trust-surface.json"
+        ],
+        "depends_on": [
+          "verify_scale"
+        ],
+        "harness_stage": "S1_z3_trust_surface",
+        "artifact_contract": [
+          "ownership_transfer_scale.trust-surface.json"
+        ],
+        "verifier_gate": "Command exits 0, keeps std/ trusted atoms at 0, and records application trusted atoms, FFI boundaries, Z3 solver time, Lean escalation counts, and budget_policy_fingerprint."
+      },
+      {
+        "id": "composability",
+        "name": "Atom-Local Composability Measurement",
+        "repo": "mumei",
+        "command": "python3 {mumei_repo}/scripts/measure_composability.py {root_dir}/scenarios/ownership_transfer_scale/correct_code.mm --mumei-bin {mumei_bin} --jobs 2 --clause-kinds all --budget-policy-fingerprint sha256:scale-default --output {output_dir}/ownership_transfer_scale.composability.json",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "composability report written"
+        ],
+        "artifacts": [
+          "ownership_transfer_scale.composability.json"
+        ],
+        "depends_on": [
+          "verify_scale"
+        ],
+        "harness_stage": "S1_z3_composability",
+        "artifact_contract": [
+          "ownership_transfer_scale.composability.json"
+        ],
+        "verifier_gate": "Command exits 0 and records atom_local_closure_ratio, composition breaks, and modular_verification_inputs."
+      }
+    ]
+  },
+  "l2_agent": {
+    "steps": [
+      {
+        "id": "agent_scale_report",
+        "name": "Agent Scale Report (verification_violations / next_steps)",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent scale-report --composability {output_dir}/ownership_transfer_scale.composability.json --trust-surface {output_dir}/ownership_transfer_scale.trust-surface.json --json --output {output_dir}/ownership_transfer_scale.scale-report.json",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "verification_violations"
+        ],
+        "artifacts": [
+          "ownership_transfer_scale.scale-report.json"
+        ],
+        "depends_on": [
+          "composability",
+          "trust_surface"
+        ],
+        "harness_stage": "S2_agent_scale_report",
+        "artifact_contract": [
+          "ownership_transfer_scale.scale-report.json"
+        ],
+        "verifier_gate": "Command exits 0 and reports composition breaks through the existing verification_status / verification_violations / next_steps keys."
+      }
+    ]
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3",
+      "l2_agent"
+    ],
+    "state_dir": "{output_dir}",
+    "intent": "Prove that ownership only moves through authorised, quorum-approved, timelocked, and escrow-funded transitions.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/ownership_transfer_scale/correct_code.mm.",
+      "Generate evidence: result.json and report.md in reports/{scenario}/latest/ plus per-step logs.",
+      "ownership_transfer_scale.proof-cert.json is the proof certificate covering every atom of the scale case.",
+      "ownership_transfer_scale.trust-surface.json records trusted atoms, FFI boundaries, Z3 solver time, Lean escalation counts, and budget_policy_fingerprint.",
+      "ownership_transfer_scale.composability.json records atom-local closure, composition breaks, and modular_verification_inputs.",
+      "ownership_transfer_scale.scale-report.json reports composition breaks through verification_status / verification_violations / next_steps.",
+      "Gate order: l1_z3 -> l2_agent; each stage must satisfy its expected_exit, expected_patterns, artifacts, and depends_on contract before downstream evidence is trusted."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "Prove that ownership only moves through authorised, quorum-approved, timelocked, and escrow-funded transitions.",
+    "success_criteria": [
+      "correct_code.mm verifies with a proof certificate for every atom.",
+      "verify-cert --strict re-checks the certificate against the source.",
+      "Ownership state and authority invariants hold across transfer and dispute paths.",
+      "Composability measurement records atom-local closure and composition breaks."
+    ],
+    "drift_risk": "Low: every obligation is an explicit atom contract and the certificate is re-checked in strict mode against the source."
+  }
+}
