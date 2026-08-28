@@ -255,6 +255,28 @@ make demo-no-mm       # No-.mm multi-language audit (fixture default)
 make demo             # full integrated sequence (alias: make demo-all)
 ```
 
+### Large-scale targets (Priority 16)
+
+The `*_scale` scenarios are **separate targets**: they are not in `SCENARIOS`,
+so `make demo`, `make demo-all`, and the deterministic `make demo-ci` run are
+unchanged. Each one verifies an order-of-magnitude larger case (30–41 atoms,
+dependency depth 5–7), emits a proof certificate for every atom, re-checks it
+with `mumei verify-cert --strict`, records the trust surface, and measures
+atom-local composability by clause ablation.
+
+```bash
+make demo-medical-scale     # 34 atoms, 8-state InsulinPump
+make demo-settlement-scale  # 30 atoms, 8-state Settlement
+make demo-regtech-scale     # 41 atoms, 8-state ComplianceReview
+make demo-defi-scale        # 32 atoms, 8-state Vault
+make demo-ownership-scale   # 35 atoms, 8-state Ownership
+make demo-scale             # all five
+```
+
+The composability step ablates every contract clause one at a time, so a single
+scale scenario takes a few minutes (≈3.5 min for `medical_device_scale` on two
+cores) — that is why these targets stay out of the CI path.
+
 The P9-G NLAE integration demo runs via
 `./demos/nlae_integration/run_demo.sh`. Setup, explicit repo paths,
 per-scenario notes, and the CLI/Streamlit dashboards are covered in the
