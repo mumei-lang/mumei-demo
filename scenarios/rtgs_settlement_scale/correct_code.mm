@@ -394,6 +394,15 @@ atom phase_wrap_up(sender_after: Balance, receiver_after: Balance)
 // Layer 5: whole settlement cycles
 // ---------------------------------------------------------------------------
 
+atom amount_in_window(requested: Amount)
+    requires: requested >= 0 && requested <= 1000000;
+    ensures: result >= 0;
+    ensures: result <= 1000000;
+    ensures: result == requested;
+    body: {
+        requested
+    };
+
 atom settlement_cycle(
     sender_balance: Balance,
     receiver_balance: Balance,
@@ -426,15 +435,6 @@ atom settlement_cycle(
         let receiver_after = phase_settle(sender_balance, receiver_balance, settled);
         let sender_after = debit_balance(sender_balance, settled);
         phase_wrap_up(sender_after, receiver_after)
-    };
-
-atom amount_in_window(requested: Amount)
-    requires: requested >= 0 && requested <= 1000000;
-    ensures: result >= 0;
-    ensures: result <= 1000000;
-    ensures: result == requested;
-    body: {
-        requested
     };
 
 atom two_settlement_cycles(
