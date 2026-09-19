@@ -15,10 +15,14 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCENARIO_FILES = [
+# Scenario files under the full contract (fixed phrases, exact artifact keys,
+# fixture checks). Every other scenario.json still gets the generic checks:
+# forbidden aliases in dict keys and well-formed artifact_keys lists.
+STRICT_SCENARIO_FILES = [
     REPO_ROOT / "scenarios" / "spec_code_verification_suite" / "scenario.json",
     REPO_ROOT / "scenarios" / "no_mm_audit" / "scenario.json",
 ]
+SCENARIO_FILES = sorted(REPO_ROOT.glob("scenarios/*/scenario.json"))
 DOCS_UNDER_CONTRACT = [
     REPO_ROOT / "docs" / "HARNESS_CONTRACTS.md",
     REPO_ROOT / "docs" / "ROADMAP.md",
@@ -103,16 +107,18 @@ def _check_file(path: Path) -> list[str]:
     data = json.loads(path.read_text(encoding="utf-8"))
     failures: list[str] = []
 
-    if data.get("canonical_demo_phrases") != FIXED_DEMO_PHRASES:
-        failures.append(f"{rel}: $.canonical_demo_phrases must match the fixed three public phrases")
+    strict = path in STRICT_SCENARIO_FILES
+    if strict:
+        if data.get("canonical_demo_phrases") != FIXED_DEMO_PHRASES:
+            failures.append(f"{rel}: $.canonical_demo_phrases must match the fixed three public phrases")
 
-    exact_artifact_key_fields = [
-        ("$.artifact_keys", data.get("artifact_keys")),
-        ("$.harness_contract.artifact_keys", data.get("harness_contract", {}).get("artifact_keys")),
-    ]
-    for key_path, value in exact_artifact_key_fields:
-        if value != FIXED_ARTIFACT_KEYS:
-            failures.append(f"{rel}: {key_path} must match the fixed no-.mm artifact key list")
+        exact_artifact_key_fields = [
+            ("$.artifact_keys", data.get("artifact_keys")),
+            ("$.harness_contract.artifact_keys", data.get("harness_contract", {}).get("artifact_keys")),
+        ]
+        for key_path, value in exact_artifact_key_fields:
+            if value != FIXED_ARTIFACT_KEYS:
+                failures.append(f"{rel}: {key_path} must match the fixed no-.mm artifact key list")
 
     for key_path, value in _collect_named(data, "artifact_keys"):
         if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
@@ -129,7 +135,10 @@ def _check_file(path: Path) -> list[str]:
                 for alias in FORBIDDEN_ALIASES:
                     if alias in key:
                         failures.append(f"{rel}: {json_path}.{key} contains forbidden alias `{alias}`")
-        elif isinstance(value, str):
+        elif strict and isinstance(value, str):
+            # String-value alias scanning is strict-files only: substring
+            # matches in prose (e.g. "Checks-Effects-Interactions" containing
+            # "actions") produce false positives elsewhere.
             for alias in FORBIDDEN_ALIASES:
                 if alias in value:
                     failures.append(f"{rel}: {json_path} contains forbidden alias `{alias}`")

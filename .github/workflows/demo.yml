@@ -101,17 +101,15 @@ jobs:
           from pathlib import Path
 
           root = Path("reports")
-          scenarios = [
-              "ownership_transfer",
-              "rtgs_settlement",
-              "regtech_compliance",
-              "nl_to_verified",
-              "no_mm_audit",
-              "mumei_develop_audit",
-              "smart_contract_audit",
-              "medical_device",
-              "aviation_control",
-          ]
+          # Derive the expected scenario set from Makefile SCENARIOS so a new
+          # scenario can never silently skip the status check.
+          import re
+          match = re.search(r"^SCENARIOS\s*:?=\s*(.+)$",
+                            Path("Makefile").read_text(encoding="utf-8"), re.M)
+          if not match:
+              print("SCENARIOS not found in Makefile", file=sys.stderr)
+              sys.exit(1)
+          scenarios = match.group(1).split()
           failures = []
           for scenario in scenarios:
               path = root / scenario / "latest" / "result.json"

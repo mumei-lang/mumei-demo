@@ -217,7 +217,6 @@ def generated_code_from_spec(spec: dict) -> str:
         ensures = str(atom.get("ensures", "true"))
         name = str(atom.get("name", "generated_atom"))
         return_type = str(atom.get("return_type", "i64"))
-        body_expr = "0"
         spec_text = flatten_spec_text(atom).lower()
         if (
             "old(sender_balance) - amount" in spec_text
@@ -227,6 +226,13 @@ def generated_code_from_spec(spec: dict) -> str:
             body_expr = "from_balance - amount" if "from_balance" in spec_text else "sender_balance - amount"
         elif "old(receiver_balance) + amount" in spec_text or "result == receiver_balance + amount" in spec_text:
             body_expr = "receiver_balance + amount"
+        else:
+            # No recognized body shape — fail loudly rather than emit a stub
+            # (`return 0`) that could satisfy a weak `ensures` by accident.
+            raise ValueError(
+                f"fixture cannot synthesize a body for atom {name!r}: "
+                "spec text matches no known pattern"
+            )
         rendered_atoms.append(
             "\n".join([
                 f"atom {name}({', '.join(param_parts)}) -> {return_type} {{",
@@ -262,9 +268,23 @@ def maybe_run_fixture_step(
         return 0, f"Extracted spec written to {output}\n", ""
     if step_id == "generate_code":
         output = output_dir / "generated.mm"
-        output.write_text(generated_code_from_spec(spec), encoding="utf-8")
+        try:
+            code = generated_code_from_spec(spec)
+        except ValueError as err:
+            return 1, "", f"{err}\n"
+        output.write_text(code, encoding="utf-8")
         return 0, f"Generated verified code written to {output}\n", ""
     return None
+
+
+MAX_RESULT_LOG_CHARS = 64 * 1024
+
+
+def clip_log(text: str) -> str:
+    """Bound stdout/stderr stored in result.json; the full log file keeps everything."""
+    if len(text) <= MAX_RESULT_LOG_CHARS:
+        return text
+    return text[:MAX_RESULT_LOG_CHARS] + "\n...[truncated]\n"
 
 
 def proof_density(step_results: dict[str, dict]) -> dict[str, float | int]:
@@ -501,9 +521,43 @@ def main(argv: list[str]) -> int:
     artifacts: list[str] = []
     overall_status = "PASS"
 
+    # depends_on resolves step ids globally — a duplicated id would make the
+    # dependency lookup ambiguous, so reject the scenario up front.
+    step_owner: dict[str, str] = {}
+    for layer_name in scenario.get("layers", []):
+        for step in scenario.get(layer_name, {}).get("steps", []):
+            step_id_key = step.get("id")
+            if step_id_key in step_owner:
+                raise SystemExit(
+                    f"{scenario_name}: duplicate step id {step_id_key!r} "
+                    f"(layers {step_owner[step_id_key]!r} and {layer_name!r})"
+                )
+            step_owner[step_id_key] = layer_name
+
     for layer in scenario.get("layers", []):
+        layer_def = scenario.get(layer)
+        if not isinstance(layer_def, dict):
+            # A declared layer with no definition must fail, not silently PASS.
+            layer_steps = [{
+                "id": "__missing_layer__",
+                "name": f"missing layer `{layer}`",
+                "status": "FAIL",
+                "display_status": "FAIL",
+                "exit_code": None,
+                "expected_exit": None,
+                "expect_failure": False,
+                "duration_ms": 0,
+                "output_file": None,
+                "stdout": "",
+                "stderr": f"scenario.json declares `{layer}` in layers but has no matching key",
+                "artifacts": [],
+            }]
+            results[layer] = {"status": "FAIL", "steps": layer_steps}
+            overall_status = "FAIL"
+            print(f"{layer}: FAIL (scenario.json has no `{layer}` key)")
+            continue
         layer_steps: list[dict] = []
-        for step in scenario.get(layer, {}).get("steps", []):
+        for step in layer_def.get("steps", []):
             step_id = step["id"]
             log_file = f"{step_id}.log"
             log_path = output_dir / log_file
@@ -611,8 +665,8 @@ def main(argv: list[str]) -> int:
                 "expect_failure": bool(step.get("expect_failure", False)),
                 "duration_ms": duration_ms,
                 "output_file": log_file,
-                "stdout": stdout,
-                "stderr": stderr,
+                "stdout": clip_log(stdout),
+                "stderr": clip_log(stderr),
                 "artifacts": step.get("artifacts", []),
             }
             if "harness_stage" in step:
@@ -689,7 +743,12 @@ def main(argv: list[str]) -> int:
         else:
             shutil.rmtree(latest)
     try:
-        latest.symlink_to(output_dir, target_is_directory=True)
+        # Relative symlink — an absolute target would break when the
+        # reports tree is moved or uploaded as an artifact.
+        latest.symlink_to(
+            os.path.relpath(output_dir, latest.parent),
+            target_is_directory=True,
+        )
     except OSError:
         shutil.copytree(output_dir, latest)
 
