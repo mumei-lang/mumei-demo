@@ -7,8 +7,8 @@
   "files_audited": 3,
   "files_with_issues": 1,
   "counts": {
-    "total": 11,
-    "detected": 1,
+    "total": 12,
+    "detected": 2,
     "function_flagged": 1,
     "missed": 9
   },
@@ -127,21 +127,27 @@
       "in_target_category": false,
       "status": "missed",
       "findings": []
-    }
-  ],
-  "unmatched_findings": [
+    },
     {
+      "id": "RS01-D12",
       "file": "src/bank.rs",
-      "kind": "verification_violations",
-      "text": "Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)"
+      "function": "charge_fee",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)"
+      ]
     }
   ],
+  "unmatched_findings": [],
   "meta": {
     "mumei_agent_commit": "8f85274a2105d39ad3e9f8ab906a6178eb1eacf5",
     "mumei_commit": "d5fe4b6d809e119463370c7364d0577325a2fd38",
     "mumei_version": "mumei 0.6.20",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
-    "generated_at": "2026-10-04T06:07:29Z"
+    "generated_at": "2026-10-04T06:13:32Z"
   }
 }

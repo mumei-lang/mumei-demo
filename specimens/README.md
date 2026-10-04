@@ -155,22 +155,22 @@ specimens. It exits non-zero listing every problem found.
 
 ![Detection over runs](scoreboard/history.svg)
 
-Latest run: mumei-agent `8f85274` · mumei `d5fe4b6` (mumei 0.6.20) · 2026-10-04T06:07:29Z · LLM configured: `False`
+Latest run: mumei-agent `8f85274` · mumei `d5fe4b6` (mumei 0.6.20) · 2026-10-04T06:13:32Z · LLM configured: `False`
 
 | Language | Defects | Detected | Detected % | Detected or flagged % | Target detected |
 |---|---:|---:|---:|---:|---:|
 | go | 32 | 1 | 3% | 3% | 1/11 |
 | python | 41 | 1 | 2% | 5% | 1/15 |
-| rust | 33 | 1 | 3% | 6% | 1/13 |
+| rust | 34 | 2 | 6% | 9% | 2/14 |
 | solidity | 31 | 6 | 19% | 71% | 5/19 |
 | typescript | 33 | 1 | 3% | 3% | 1/12 |
-| **Total** | **170** | **10** | **6%** | **16%** | **9/70** |
+| **Total** | **171** | **11** | **6%** | **17%** | **10/71** |
 
 Recent runs:
 
 | Date | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % |
 |---|---|---|---:|---:|---:|---:|
-| 2026-10-04 | `8f85274` | `d5fe4b6` | 170 | 6% | 13% | 16% |
+| 2026-10-04 | `8f85274` | `d5fe4b6` | 171 | 6% | 14% | 17% |
 
 Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md).
 
