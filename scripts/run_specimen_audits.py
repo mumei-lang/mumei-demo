@@ -336,6 +336,40 @@ def pct(n: int, d: int) -> str:
     return f"{(100 * n / d):.0f}%" if d else "-"
 
 
+def _dotenv_values(path: Path) -> dict[str, str]:
+    """Minimal .env parser: KEY=VALUE lines, optional `export ` prefix,
+    `#` comments, surrounding single/double quotes stripped."""
+    values: dict[str, str] = {}
+    if not path.is_file():
+        return values
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export "):].lstrip()
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        values[key] = value
+    return values
+
+
+def llm_configured(agent_repo: Path) -> bool:
+    """Mirror of mumei-agent's agent/config.py: the audit uses an LLM when
+    `LLM_API_KEY` or `OPENAI_API_KEY` is non-empty — in os.environ, or in the
+    agent repo's `.env` (which mumei-agent loads via python-dotenv)."""
+    keys = ("LLM_API_KEY", "OPENAI_API_KEY")
+    for key in keys:
+        if os.environ.get(key):
+            return True
+    dotenv = _dotenv_values(agent_repo / ".env")
+    return any(dotenv.get(key) for key in keys)
+
+
 def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
     lines = [
         "# Specimen audit summary",
@@ -605,6 +639,23 @@ def svg_placeholder(text: str = "No benchmark runs yet", width: int = 720,
     )
 
 
+def _legend_layout(entries: list[tuple[str, str]], x0: int, y0: int,
+                   max_x: float) -> list[tuple[float, float, str, str]]:
+    """Lay out legend (name, color) entries left to right starting at (x0, y0),
+    wrapping to a new row when the next entry would cross max_x.
+    Returns (x, y, name, color) per entry."""
+    laid_out: list[tuple[float, float, str, str]] = []
+    lx, ly = x0, y0
+    for name, color in entries:
+        entry_w = 18 + int(6.5 * len(name)) + 24
+        if lx != x0 and lx + entry_w > max_x:
+            lx = x0
+            ly += 18
+        laid_out.append((lx, ly, name, color))
+        lx += entry_w
+    return laid_out
+
+
 # Bar colors per mode: (detected, detected or flagged)
 _MODE_COLORS = {
     False: ("#2f81f7", "#bf8700"),
@@ -630,9 +681,24 @@ def svg_by_language(modes: dict[bool, dict | None]) -> str:
     label_w, bar_w, bar_h, gap = 150, 460, 15, 5
     bars_per_row = 2 * len(present)
     row_h = bars_per_row * (bar_h + gap) + 12
-    top, bottom = 78, 110
-    H = top + row_h * (len(langs) + 1) + bottom
+    top = 78
     x0 = label_w
+    n_rows = len(langs) + 1
+    axis_y = top + row_h * n_rows + 6
+
+    legend_entries: list[tuple[str, str]] = []
+    for mode in (False, True):
+        if modes.get(mode) is None:
+            legend_entries.append((f"{_MODE_LABEL[mode]} (not run yet)", _MUTED))
+        else:
+            det_color, flag_color = _MODE_COLORS[mode]
+            legend_entries.append((f"{_MODE_LABEL[mode]}: detected", det_color))
+            legend_entries.append(
+                (f"{_MODE_LABEL[mode]}: detected or function-flagged", flag_color))
+    legend = _legend_layout(legend_entries, x0, axis_y + 36, W - 20)
+    # axis_y + 104 keeps the historical height for a single legend row so the
+    # current no-LLM-only chart is byte-identical; extra rows grow past it.
+    H = max(axis_y + 104, int(max(y for _, y, _, _ in legend)) + 12 + 12)
 
     def bar(y: int, n: int, d: int, color: str) -> str:
         p = 100 * n / d if d else 0.0
@@ -651,7 +717,6 @@ def svg_by_language(modes: dict[bool, dict | None]) -> str:
         f'  <text x="20" y="47" font-size="12" fill="#57606a">'
         f'mumei-agent {_esc(sha)} · {_esc(date)}</text>',
     ]
-    axis_y = top + row_h * (len(langs) + 1) + 6
     for step in (0, 25, 50, 75, 100):
         gx = x0 + bar_w * step / 100
         parts.append(
@@ -689,22 +754,10 @@ def svg_by_language(modes: dict[bool, dict | None]) -> str:
             parts.append(bar(y + (slot + 1) * (bar_h + gap), flag, total, flag_color))
             slot += 2
 
-    legend_y = axis_y + 36
-    lx = x0
-    for mode in (False, True):
-        if modes.get(mode) is None:
-            parts.append(f'  <rect x="{lx}" y="{legend_y}" width="12" height="12" fill="{_MUTED}"/>')
-            parts.append(f'  <text x="{lx + 18}" y="{legend_y + 11}" font-size="11" '
-                         f'fill="#57606a">{_esc(_MODE_LABEL[mode])} (not run yet)</text>')
-            lx += 18 + int(6.5 * (len(_MODE_LABEL[mode]) + 14)) + 24
-            continue
-        det_color, flag_color = _MODE_COLORS[mode]
-        for label, color in (("detected", det_color),
-                             ("detected or function-flagged", flag_color)):
-            parts.append(f'  <rect x="{lx}" y="{legend_y}" width="12" height="12" fill="{color}"/>')
-            parts.append(f'  <text x="{lx + 18}" y="{legend_y + 11}" font-size="11" '
-                         f'fill="#24292f">{_esc(_MODE_LABEL[mode])}: {label}</text>')
-            lx += 18 + int(6.5 * (len(_MODE_LABEL[mode]) + len(label) + 2)) + 24
+    for lx, ly, name, color in legend:
+        parts.append(f'  <rect x="{lx}" y="{ly}" width="12" height="12" fill="{color}"/>')
+        parts.append(f'  <text x="{lx + 18}" y="{ly + 11}" font-size="11" '
+                     f'fill="#24292f">{_esc(name)}</text>')
     parts.append('</svg>')
     return "\n".join(parts) + "\n"
 
@@ -717,9 +770,8 @@ def svg_history(runs: list[dict]) -> str:
         return svg_placeholder()
     mode_runs = {False: [(i, r) for i, r in enumerate(runs) if not entry_llm(r)],
                  True: [(i, r) for i, r in enumerate(runs) if entry_llm(r)]}
-    W, H = 720, 360
-    left, right, top, bottom = 60, 30, 60, 88
-    plot_w, plot_h = W - left - right, H - top - bottom
+    W = 720
+    left, right, top = 60, 30, 60
 
     metrics = [
         ("detected", "#2f81f7",
@@ -732,6 +784,26 @@ def svg_history(runs: list[dict]) -> str:
          lambda r: 100 * (r["totals"]["detected"] + r["totals"]["function_flagged"])
          / r["totals"]["total"] if r["totals"]["total"] else 0.0),
     ]
+
+    # Legend entries are known up front: three metric series per mode with
+    # runs, or a single muted "(not run yet)" entry per empty mode. Lay them
+    # out so `bottom` grows to fit every row below the x labels.
+    legend_entries: list[tuple[str, str]] = []
+    for mode in (False, True):
+        if not mode_runs[mode]:
+            legend_entries.append((f"{_MODE_LABEL[mode]} (not run yet)", _MUTED))
+        else:
+            suffix = "" if mode is False else " (with LLM)"
+            for name, color, _fn in metrics:
+                legend_entries.append((f"{name}{suffix}", color))
+    probe = _legend_layout(legend_entries, left, 0, W - right)
+    legend_rows = int(max(y for _, y, _, _ in probe)) // 18 + 1
+    # 48px for the two-line x labels, 18px per legend row, 12px bottom padding;
+    # a single legend row keeps the historical bottom=88 so output is unchanged.
+    plot_w, plot_h = W - left - right, 212
+    bottom = max(88, 48 + 18 * legend_rows + 12)
+    H = top + plot_h + bottom
+    legend = [(x, top + plot_h + 48 + y, n, c) for x, y, n, c in probe]
 
     def xy(i: int, pct_val: float) -> tuple[float, float]:
         x = left + (plot_w * i / (len(runs) - 1) if len(runs) > 1 else plot_w / 2)
@@ -751,11 +823,9 @@ def svg_history(runs: list[dict]) -> str:
         parts.append(f'  <text x="{left - 8}" y="{gy + 4:.1f}" font-size="10" '
                      f'fill="#57606a" text-anchor="end">{step}%</text>')
 
-    legend: list[tuple[str, str]] = []
     for mode in (False, True):
         series_runs = mode_runs[mode]
         if not series_runs:
-            legend.append((f"{_MODE_LABEL[mode]} (not run yet)", _MUTED))
             continue
         suffix = "" if mode is False else " (with LLM)"
         dash = ' stroke-dasharray="5 3"' if mode else ""
@@ -767,7 +837,6 @@ def svg_history(runs: list[dict]) -> str:
                              f'stroke-width="2"{dash}/>')
             for x, y in pts:
                 parts.append(f'  <circle cx="{x:.1f}" cy="{y:.1f}" r="3.5" fill="{color}"/>')
-            legend.append((f"{name}{suffix}", color))
     # one x label per run, at the run's global (chronological) index
     seen_x: set[float] = set()
     for i, r in enumerate(runs):
@@ -782,16 +851,10 @@ def svg_history(runs: list[dict]) -> str:
                      f'fill="#57606a" text-anchor="middle">'
                      f'<tspan x="{x:.1f}" dy="0">{_esc(sha)}</tspan>'
                      f'<tspan x="{x:.1f}" dy="12">{_esc(date)} · {tag}</tspan></text>')
-    lx = left
-    ly = H - 40
-    for name, color in legend:
-        if lx + 18 + int(6.5 * len(name)) > W - right:
-            lx = left
-            ly += 18
+    for lx, ly, name, color in legend:
         parts.append(f'  <rect x="{lx}" y="{ly}" width="12" height="12" fill="{color}"/>')
         parts.append(f'  <text x="{lx + 18}" y="{ly + 11}" font-size="11" '
                      f'fill="#24292f">{_esc(name)}</text>')
-        lx += 18 + int(6.5 * len(name)) + 24
     parts.append("</svg>")
     return "\n".join(parts) + "\n"
 
@@ -830,7 +893,6 @@ def readme_block_specimens(history: dict) -> str:
             "| Language | Defects | No LLM detected | No LLM detected or flagged | With LLM detected | With LLM detected or flagged |",
             "|---|---:|---:|---:|---:|---:|",
         ]
-        anchor = modes[False] or modes[True]
         langs = sorted({lang for m in modes.values() if m for lang in m["by_language"]})
 
         def cells(lang: str, mode: bool) -> tuple[str, str]:
@@ -849,22 +911,38 @@ def readme_block_specimens(history: dict) -> str:
             return (f"{det}/{total} ({pct(det, total)})",
                     f"{flag}/{total} ({pct(flag, total)})")
 
-        def total_of(lang: str) -> int:
-            if lang == "overall":
-                return anchor["totals"]["total"]
-            return anchor["by_language"].get(lang, {}).get("total", 0)
+        def defects_cell(lang: str) -> str:
+            """Defect totals from each mode that has this language; when the
+            modes disagree, show both rather than mixing one mode's total with
+            the other's results."""
+            totals: dict[bool, int] = {}
+            for mode, run in modes.items():
+                if run is None:
+                    continue
+                if lang == "overall":
+                    totals[mode] = run["totals"]["total"]
+                elif lang in run["by_language"]:
+                    totals[mode] = run["by_language"][lang]["total"]
+            if not totals:
+                return "0"
+            if len(set(totals.values())) == 1:
+                return str(next(iter(totals.values())))
+            return " / ".join(
+                f"{totals[m]} ({_MODE_LABEL[m].lower()})"
+                for m in (False, True) if m in totals
+            )
 
         for lang in langs + ["overall"]:
             d_nl, f_nl = cells(lang, False)
             d_ll, f_ll = cells(lang, True)
             if lang == "overall":
                 lines.append(
-                    f"| **Total** | **{total_of(lang)}** | **{d_nl}** | **{f_nl}** | "
+                    f"| **Total** | **{defects_cell(lang)}** | **{d_nl}** | **{f_nl}** | "
                     f"**{d_ll}** | **{f_ll}** |"
                 )
             else:
                 lines.append(
-                    f"| {lang} | {total_of(lang)} | {d_nl} | {f_nl} | {d_ll} | {f_ll} |"
+                    f"| {lang} | {defects_cell(lang)} | {d_nl} | {f_nl} | {d_ll} | {f_ll} |"
                 )
         for mode in (False, True):
             if modes[mode] is None:
@@ -999,7 +1077,7 @@ def main(argv: list[str]) -> int:
         "mumei_agent_commit": git_rev(agent_repo),
         "mumei_commit": git_rev(mumei_repo),
         "mumei_version": version,
-        "llm_configured": bool(os.environ.get("LLM_API_KEY")) or (agent_repo / ".env").is_file(),
+        "llm_configured": llm_configured(agent_repo),
         "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }

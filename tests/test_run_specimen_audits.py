@@ -604,3 +604,86 @@ def test_svg_history_shared_x_axis_per_mode():
     text = ET.tostring(root, encoding="unicode")
     assert "2025-01-03 · With LLM" in text
     assert "2025-01-02 · No LLM" in text
+
+
+# --- llm_configured ---------------------------------------------------------
+
+def test_llm_configured_env_parsing(tmp_path, monkeypatch):
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    repo = tmp_path / "agent"
+    repo.mkdir()
+    # no .env at all
+    assert rsa.llm_configured(repo) is False
+    # empty .env
+    (repo / ".env").write_text("")
+    assert rsa.llm_configured(repo) is False
+    # unrelated key only
+    (repo / ".env").write_text("LLM_MODEL=x\n")
+    assert rsa.llm_configured(repo) is False
+    # explicitly empty key
+    (repo / ".env").write_text('LLM_API_KEY=""\n')
+    assert rsa.llm_configured(repo) is False
+    # OPENAI_API_KEY in .env
+    (repo / ".env").write_text("OPENAI_API_KEY=sk-test\n")
+    assert rsa.llm_configured(repo) is True
+    # export prefix + quotes + comments
+    (repo / ".env").write_text('# c\nexport LLM_API_KEY="sk-q"\n')
+    assert rsa.llm_configured(repo) is True
+    # env var wins without .env
+    (repo / ".env").unlink()
+    monkeypatch.setenv("LLM_API_KEY", "sk-env")
+    assert rsa.llm_configured(repo) is True
+
+
+# --- defects cell with mixed corpora ----------------------------------------
+
+def test_readme_defects_cell_mixed_modes():
+    nollm = _run(llm=False)
+    llm = _run(llm=True, date="2025-01-03")
+    # drop `rust` from the no-LLM run's language table and shrink its totals
+    nollm["by_language"] = {"python": {"total": 6, "detected": 2, "flagged": 3,
+                                     "target_total": 3, "target_detected": 1}}
+    llm["by_language"]["rust"]["total"] = 5
+    llm["totals"]["total"] = 175
+    block = rsa.readme_block_specimens({"runs": [nollm, llm]})
+    rust_row = next(l for l in block.splitlines() if l.startswith("| rust"))
+    # the with-LLM run's total shows for a language the no-LLM run lacks
+    assert "| rust | 5 |" in rust_row
+    total_row = next(l for l in block.splitlines() if l.startswith("| **Total**"))
+    # 10 vs 175: both modes' totals are shown, each labelled
+    assert "10 (no llm) / 175 (with llm)" in total_row
+    python_row = next(l for l in block.splitlines() if l.startswith("| python"))
+    assert "| python | 6 |" in python_row
+
+
+# --- legend bounds ----------------------------------------------------------
+
+def _legend_elements(svg):
+    root = _parse(svg)
+    ns = "{http://www.w3.org/2000/svg}"
+    items = []
+    for e in root.iter():
+        if e.tag not in (f"{ns}rect", f"{ns}text"):
+            continue
+        y = float(e.attrib.get("y", -1))
+        items.append((float(e.attrib.get("x", 0)), y,
+                      float(e.attrib.get("width", 0)),
+                      e.attrib.get("font-size", ""), e.attrib.get("fill", "")))
+    return items, root
+
+
+def test_svg_legends_fit_viewbox_both_modes():
+    import re
+    runs = [_run(llm=False), _run(llm=True, date="2025-01-03", corpus_hash="h2")]
+    for svg in (rsa.svg_by_language(rsa.latest_by_mode(runs)),
+                rsa.svg_history(runs)):
+        m = re.search(r'viewBox="0 0 (\d+) (\d+)"', svg)
+        W, H = int(m.group(1)), int(m.group(2))
+        # legend zone = bottom ~120px of the canvas
+        for x, y, w, fs, fill in _legend_elements(svg)[0]:
+            if y < H - 130:
+                continue
+            est_w = w if w else 6.5 * 40  # text width is approximated anyway
+            assert x <= W, f"element at x={x} exceeds W={W}: {svg[:80]}"
+            assert y + 12 <= H, f"element at y={y} exceeds H={H}"
