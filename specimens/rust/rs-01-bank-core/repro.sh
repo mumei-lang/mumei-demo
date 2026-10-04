@@ -7,6 +7,8 @@ BIN="$PWD/target/release/bank-core"
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
+panic_msg() { echo "$1" | awk '/panicked at/{getline; sub(/^ +/,""); print; exit}'; }
+
 PASS=0; FAIL=0
 report() {  # id repro ok evidence
   if [ "$3" = ok ]; then
@@ -56,7 +58,7 @@ set +e
 out=$($BIN split 1000 2>&1); rc=$?
 set -e
 if [ $rc -ne 0 ] && echo "$out" | grep -q 'divide by zero'; then
-  report RS01-D04 empty_split ok "exit $rc: $(echo "$out" | head -1)"
+  report RS01-D04 empty_split ok "exit $rc: $(panic_msg "$out")"
 else
   report RS01-D04 empty_split fail "rc=$rc out=$out"
 fi
@@ -68,7 +70,7 @@ set +e
 out=$($BIN --state "$S" account-at 99 2>&1); rc=$?
 set -e
 if [ $rc -eq 101 ]; then
-  report RS01-D05 index_oob ok "exit 101: $(echo "$out" | head -1)"
+  report RS01-D05 index_oob ok "exit 101: $(panic_msg "$out")"
 else
   report RS01-D05 index_oob fail "rc=$rc out=$out"
 fi
@@ -122,7 +124,7 @@ set +e
 out=$($BIN --state "$S" deposit a xyz 2>&1); rc=$?
 set -e
 if [ $rc -eq 101 ]; then
-  report RS01-D09 bad_amount ok "exit 101: $(echo "$out" | grep -o 'panicked.*' | head -1)"
+  report RS01-D09 bad_amount ok "exit 101: $(panic_msg "$out")"
 else
   report RS01-D09 bad_amount fail "rc=$rc out=$out"
 fi

@@ -35,7 +35,6 @@ fn incr(state: &State, key: &str, delta: i32) -> i32 {
         *map.get(key).unwrap_or(&0)
     };
     log_line(&format!("incr {key} from {current}"));
-    thread::yield_now();
     let next = current + delta;
     let mut map = state.counters.lock().unwrap();
     map.insert(key.to_string(), next);
@@ -70,10 +69,8 @@ fn flush(state: &State) {
     state.counters.lock().unwrap().clear();
 }
 
-fn log_line(_msg: &str) {
-    if env::var("KV_VERBOSE").is_ok() {
-        eprintln!("{_msg}");
-    }
+fn log_line(msg: &str) {
+    eprintln!("{msg}");
 }
 
 struct Request {

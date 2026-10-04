@@ -20,7 +20,7 @@ SRV_PID=""
 LAST_PORT=8341
 start_server() {  # data_dir [extra env KV_DATA_DIR override already applied]
   LAST_PORT=$((LAST_PORT+1))
-  KV_DATA_DIR="$1" PORT=$LAST_PORT "$BIN" & SRV_PID=$!
+  KV_DATA_DIR="$1" PORT=$LAST_PORT "$BIN" 2>>"$WORK/server_$LAST_PORT.log" & SRV_PID=$!
   for _ in $(seq 50); do
     curl -s -o /dev/null "http://127.0.0.1:$LAST_PORT/kv/x" && return 0
     sleep 0.1
@@ -42,38 +42,35 @@ try:
 except Exception as e:
     print('ERR', e)
 " || true)
-after=$(curl -s "$(base)/kv/x"; echo "rc=$?")
-if [ -z "$reply" ] && [ "$after" != "" ]; then
+after=$(curl -s "$(base)/kv/x"); after_rc=$?
+if [ -z "$reply" ] && [ $after_rc -eq 0 ] && [ "$after" != "" ]; then
   report RS02-D01 bad_request_line ok "malformed line got empty reply; server still answers: $after"
 else
   report RS02-D01 bad_request_line fail "reply='$reply' after='$after'"
 fi
 stop_server
 
-# RS02-D03 race-condition: 8 threads x 40 increments lose updates.
+# RS02-D03 race-condition: 16 threads x 100 increments lose updates.
 start_server "$WORK/d3"
-final=$(python3 - "$LAST_PORT" <<'PY'
+python3 - "$LAST_PORT" <<'PY'
 import http.client, sys, threading
 port = int(sys.argv[1])
-barrier = threading.Barrier(8)
+barrier = threading.Barrier(16)
 def worker():
     barrier.wait()
-    for _ in range(40):
+    for _ in range(100):
         c = http.client.HTTPConnection('127.0.0.1', port)
         c.request('POST', '/incr/c?delta=1')
         c.getresponse().read()
         c.close()
-ts = [threading.Thread(target=worker) for _ in range(8)]
+ts = [threading.Thread(target=worker) for _ in range(16)]
 for t in ts: t.start()
 for t in ts: t.join()
-c = http.client.HTTPConnection('127.0.0.1', port)
-c.request('GET', '/incr_read')
 PY
-)
 # read the counter via a fresh incr of 0 (adds nothing on top of final value)
 final=$(curl -s -X POST "$(base)/incr/c?delta=0")
-if [ "$final" -lt 320 ]; then
-  report RS02-D03 lost_updates ok "counter=$final after 8x40 increments (expected 320)"
+if [ "$final" -lt 1600 ]; then
+  report RS02-D03 lost_updates ok "counter=$final after 16x100 increments (expected 1600)"
 else
   report RS02-D03 lost_updates fail "counter=$final"
 fi

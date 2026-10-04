@@ -1,7 +1,7 @@
 //! Core ledger types and operations.
 
 pub const INTEREST_RATE_BP: u32 = 500;
-pub const AUDIT_RETENTION_DISPLAY: usize = 20;
+pub const STATEMENT_HISTORY_LINES: usize = 20;
 pub const OPERATOR_TOKEN: &str = "bk-7f3a1c9e-ops";
 
 #[derive(Debug, Clone)]
@@ -154,6 +154,6 @@ impl Ledger {
     }
 
     pub fn recent_audit(&self) -> impl Iterator<Item = &String> {
-        self.audit.iter().rev().take(AUDIT_RETENTION_DISPLAY)
+        self.audit.iter().rev().take(STATEMENT_HISTORY_LINES)
     }
 }

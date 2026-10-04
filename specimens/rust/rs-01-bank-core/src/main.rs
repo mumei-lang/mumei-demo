@@ -151,6 +151,9 @@ fn run_line(tokens: &[String], state_path: &Path, token: Option<&str>, quiet: bo
                     i += 1;
                 }
             }
+            if rest.is_empty() {
+                usage();
+            }
             write_statement(&ledger, rest[0], out_name)
         }
         "account-at" => {
@@ -167,7 +170,8 @@ fn run_line(tokens: &[String], state_path: &Path, token: Option<&str>, quiet: bo
                 usage();
             }
             if !operator_token(token) {
-                return eprintln!("operator token required");
+                eprintln!("operator token required");
+                std::process::exit(1);
             }
             ledger.close_account(&args[0])
         }
@@ -176,7 +180,8 @@ fn run_line(tokens: &[String], state_path: &Path, token: Option<&str>, quiet: bo
                 usage();
             }
             if !operator_token(token) {
-                return eprintln!("operator token required");
+                eprintln!("operator token required");
+                std::process::exit(1);
             }
             ledger.adjust(&args[0], parse_cents(&args[1]))
         }
