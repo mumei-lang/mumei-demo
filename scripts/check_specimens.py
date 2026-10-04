@@ -312,8 +312,13 @@ def collect_ports(specimen_dir: Path) -> list[int]:
 
 
 def discover_specimens(root: Path) -> list[Path]:
+    """Every <lang>/<id>/ directory, with or without DEFECTS.json — a missing
+    manifest must surface as a validation error, not hide the specimen."""
     return sorted(
-        p.parent for p in root.glob("*/*/DEFECTS.json") if p.is_file()
+        p for p in root.glob("*/*")
+        if p.is_dir()
+        and not p.name.startswith(".")
+        and not p.parent.name.startswith(".")
     )
 
 

@@ -188,3 +188,17 @@ def test_specimen_dirname_mismatch(tmp_path, capsys):
     rc, out = run(tmp_path, capsys=capsys)
     assert rc == 1
     assert "directory name" in out
+
+
+def test_missing_defects_json_is_error(tmp_path, capsys):
+    d = tmp_path / "python" / "py-01-broken"
+    d.mkdir(parents=True)
+    (d / "README.md").write_text("# x\n")
+    for sh in ("run.sh", "repro.sh"):
+        p = d / sh
+        p.write_text("#!/usr/bin/env bash\necho ok\n")
+        p.chmod(0o755)
+    rc, out = run(tmp_path, capsys=capsys)
+    assert rc == 1
+    assert "checked 1 specimens" in out
+    assert "missing DEFECTS.json" in out
