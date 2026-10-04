@@ -496,7 +496,18 @@ def load_history(path: Path) -> dict:
     return {"schema": 1, "runs": []}
 
 
-def history_entry(coverages: list[dict], meta: dict, corpus: dict) -> dict:
+def scoring_hash(root: Path) -> str:
+    """Hash of the adjudications file (empty input when absent).
+
+    Part of the run key so a ruling change can't silently overwrite a run
+    whose totals it changed."""
+    path = root / "scoreboard" / ADJUDICATIONS_FILE
+    data = path.read_bytes() if path.is_file() else b""
+    return hashlib.sha256(data).hexdigest()
+
+
+def history_entry(coverages: list[dict], meta: dict, corpus: dict,
+                  score_hash: str) -> dict:
     agg = aggregate(coverages)
     t = agg["totals"]
     return {
@@ -506,6 +517,7 @@ def history_entry(coverages: list[dict], meta: dict, corpus: dict) -> dict:
         "mumei_version": meta["mumei_version"],
         "llm_configured": meta["llm_configured"],
         "corpus": corpus,
+        "scoring_hash": score_hash,
         "totals": {k: t[k] for k in ("total", "detected", "function_flagged",
                                     "missed",
                                     "target_total", "target_detected")},
@@ -533,12 +545,15 @@ def record_run(history_path: Path, entry: dict) -> dict:
     (agent commit, mumei commit, corpus hash) is unchanged."""
     hist = load_history(history_path)
     runs = hist.setdefault("runs", [])
+    empty_hash = hashlib.sha256(b"").hexdigest()
     key = (entry.get("mumei_agent_commit"), entry.get("mumei_commit"),
-           (entry.get("corpus") or {}).get("hash"))
+           (entry.get("corpus") or {}).get("hash"),
+           entry.get("scoring_hash", empty_hash))
     if runs:
         last = runs[-1]
         last_key = (last.get("mumei_agent_commit"), last.get("mumei_commit"),
-                    (last.get("corpus") or {}).get("hash"))
+                    (last.get("corpus") or {}).get("hash"),
+                    last.get("scoring_hash", empty_hash))
         if last_key == key:
             runs[-1] = entry
         else:
@@ -869,7 +884,8 @@ def main(argv: list[str]) -> int:
         write_summary(coverages, meta, Path(args.summary))
         scoreboard_dir = Path(args.scoreboard_dir)
         record_run(scoreboard_dir / "history.json",
-                   history_entry(coverages, meta, corpus_info(SPECIMENS_ROOT)))
+                   history_entry(coverages, meta, corpus_info(SPECIMENS_ROOT),
+                                scoring_hash(SPECIMENS_ROOT)))
         render_scoreboard(scoreboard_dir, Path(args.specimens_readme),
                           Path(args.top_readme))
     return 0

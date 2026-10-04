@@ -473,3 +473,39 @@ def test_load_adjudications_unknown_id(tmp_path):
                            "verdict": "not_category_evidence",
                            "reason": "y"}]}))
     assert len(rsa.load_adjudications(tmp_path)) == 1
+
+
+def test_record_run_scoring_hash_in_key(tmp_path):
+    hp = tmp_path / "history.json"
+    rsa.record_run(hp, _run())
+    # unchanged scoring -> replaces
+    rsa.record_run(hp, _run(detected=4))
+    assert len(json.loads(hp.read_text())["runs"]) == 1
+    # changed adjudications content -> new scoring_hash -> appends
+    rsa.record_run(hp, _run(date="2025-01-05", detected=4))
+    hist = json.loads(hp.read_text())
+    entry = dict(hist["runs"][-1], scoring_hash="deadbeef")
+    rsa.record_run(hp, entry)
+    assert len(json.loads(hp.read_text())["runs"]) == 2
+    # older entry without scoring_hash is treated as the empty-file hash:
+    # an entry hashing b"" still replaces it
+    import hashlib
+    last = dict(entry, scoring_hash=hashlib.sha256(b"").hexdigest(),
+                generated_at="2025-01-06T00:00:00Z")
+    # does NOT match 'deadbeef' -> appends
+    rsa.record_run(hp, last)
+    assert len(json.loads(hp.read_text())["runs"]) == 3
+    # a fresh no-hash entry does NOT replace a deadbeef-scored run... but
+    # matches the last (empty-hash) entry, so it replaces that one
+    rsa.record_run(hp, dict(last))
+    hist = json.loads(hp.read_text())
+    assert len(hist["runs"]) == 3
+
+
+def test_scoring_hash_missing_and_present(tmp_path):
+    import hashlib
+    assert rsa.scoring_hash(tmp_path) == hashlib.sha256(b"").hexdigest()
+    (tmp_path / "scoreboard").mkdir()
+    (tmp_path / "scoreboard" / "adjudications.json").write_text('{"adjudications":[]}')
+    assert rsa.scoring_hash(tmp_path) == hashlib.sha256(
+        b'{"adjudications":[]}').hexdigest()
