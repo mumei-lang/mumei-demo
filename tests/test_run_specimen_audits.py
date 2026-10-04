@@ -652,7 +652,7 @@ def test_readme_defects_cell_mixed_modes():
     assert "| rust | 5 |" in rust_row
     total_row = next(l for l in block.splitlines() if l.startswith("| **Total**"))
     # 10 vs 175: both modes' totals are shown, each labelled
-    assert "10 (no llm) / 175 (with llm)" in total_row
+    assert "10 (No LLM) / 175 (With LLM)" in total_row
     python_row = next(l for l in block.splitlines() if l.startswith("| python"))
     assert "| python | 6 |" in python_row
 

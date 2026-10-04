@@ -928,7 +928,7 @@ def readme_block_specimens(history: dict) -> str:
             if len(set(totals.values())) == 1:
                 return str(next(iter(totals.values())))
             return " / ".join(
-                f"{totals[m]} ({_MODE_LABEL[m].lower()})"
+                f"{totals[m]} ({_MODE_LABEL[m]})"
                 for m in (False, True) if m in totals
             )
 
