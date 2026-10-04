@@ -168,6 +168,21 @@
       "trigger": "statement a --out ../../<name>.txt",
       "observed": "statement file is written to a directory outside reports/.",
       "repro": "report_traversal"
+    },
+    {
+      "id": "RS01-D12",
+      "file": "src/bank.rs",
+      "function": "charge_fee",
+      "line": 132,
+      "anchor": "acct.spent_today_cents += cents as u64",
+      "class": "bug",
+      "category": "missing-precondition",
+      "cwe": "CWE-20",
+      "title": "Fees are not required to be non-negative",
+      "description": "charge_fee never checks cents >= 0, so a negative fee credits the account and makes spent_today_cents wrap around u64.",
+      "trigger": "fee a -300",
+      "observed": "balance goes 1000->1300 and spent_today_cents wraps to 18446744073709551316.",
+      "repro": "negative_fee"
     }
   ]
 }

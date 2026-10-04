@@ -154,5 +154,17 @@ else
   report RS01-D11 report_traversal fail "escaped file not found"
 fi
 
+# RS01-D12 missing-precondition: a negative fee credits the account and wraps the spend counter.
+S="$WORK/d12.txt"
+$BIN --state "$S" open a 1000 9000000000 >/dev/null
+out=$($BIN --state "$S" fee a -300)
+ba=$(echo "$out" | awk '/^a:/{print $2}')
+spent=$(echo "$out" | grep -o 'spent today: [0-9]*' | awk '{print $3}')
+if [ "$ba" = 1300 ] && [ "${#spent}" -gt 18 ]; then
+  report RS01-D12 negative_fee ok "fee -300: balance 1000->$ba, spent_today wrapped to $spent"
+else
+  report RS01-D12 negative_fee fail "balance=$ba spent=$spent"
+fi
+
 echo "== $PASS reproduced, $FAIL not =="
 [ "$FAIL" -eq 0 ]
