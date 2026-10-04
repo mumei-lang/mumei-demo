@@ -47,7 +47,7 @@ An executable corpus of deliberately broken Python/TypeScript/Go/Rust/Solidity a
 
 ![Detection by language](specimens/scoreboard/by_language.svg)
 
-Latest: 11/171 defects detected (6%), 29/171 detected or function-flagged.
+Latest: 10/171 defects detected (6%), 29/171 detected or function-flagged.
 
 Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreboard).
 <!-- scoreboard:end -->
