@@ -239,7 +239,7 @@ def generated_code_from_spec(spec: dict) -> str:
                 f"    requires: {requires};",
                 f"    ensures: {ensures};",
                 "    body: {",
-                f"        return {body_expr};",
+                f"        {body_expr}",
                 "    }",
                 "}",
             ])

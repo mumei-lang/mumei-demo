@@ -24,11 +24,11 @@ atom demo_check_transaction(customer_type: i64, amount: i64)
         compliance::check_transaction(customer_type, amount)
     }
 
-atom demo_verify_all_transactions_compliant(n: i64, limit: i64)
+atom demo_verify_all_transactions_compliant(arr: [i64], n: i64, limit: i64)
     requires: n >= 0 && limit > 0 && forall(i, 0, n, arr[i] >= 0 && arr[i] <= limit);
     ensures: result == 1;
     body: {
-        compliance::verify_all_transactions_compliant(n, limit)
+        compliance::verify_all_transactions_compliant(arr, n, limit)
     }
 
 atom demo_approval_level(amount: i64)
