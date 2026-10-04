@@ -62,7 +62,7 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "out-of-bounds": ["bounds", "index", "out of range", "len_"],
     "off-by-one": ["bounds", "index", "off-by-one", "len_"],
     "null-dereference": ["null", "nil", "none", "undefined", "dereference"],
-    "missing-precondition": ["precondition", "requires", "negative", "non-negative", "positive", "bounds contract"],
+    "missing-precondition": ["precondition", "requires", "negative", "non-negative", "positive", "bounds contract", "range contract"],
     "invariant-violation": ["invariant", "conserv", "non-negative", "ensures"],
     "invalid-state-transition": ["state", "transition", "invalidprestate"],
     "reentrancy": ["reentran", "checks-effects", "cei", "external call before"],
