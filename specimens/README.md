@@ -164,8 +164,8 @@ specimens. It exits non-zero listing every problem found.
 
 ![Detection over runs](scoreboard/history.svg)
 
-Latest run — no llm: mumei-agent `8f85274` · mumei `d5fe4b6` (mumei 0.6.20) · 2026-10-04T06:27:28Z
-Latest run — with llm: not run yet.
+Latest run — no LLM: mumei-agent `8f85274` · mumei `d5fe4b6` (mumei 0.6.20) · 2026-10-04T06:27:28Z
+Latest run — with LLM: not run yet.
 
 | Language | Defects | No LLM detected | No LLM detected or flagged | With LLM detected | With LLM detected or flagged |
 |---|---:|---:|---:|---:|---:|

@@ -812,7 +812,7 @@ def readme_block_specimens(history: dict) -> str:
         modes = latest_by_mode(runs)
         for mode in (False, True):
             run = modes[mode]
-            label = _MODE_LABEL[mode].lower()
+            label = "with LLM" if mode else "no LLM"
             if run is None:
                 lines.append(f"Latest run — {label}: not run yet.")
             else:
