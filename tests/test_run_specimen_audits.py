@@ -361,3 +361,17 @@ def test_render_only_end_to_end(tmp_path):
     top_text = top_readme.read_text()
     assert "## Specimen benchmark" in top_text
     assert "3/10 defects detected" in top_text
+
+
+def test_category_hit_ignores_generic_audit_wording():
+    access = ("Solidity function `finalize` is an externally callable state-mutating function "
+              "with no access-control guard")
+    reentrancy = ("Solidity function `bid` may be vulnerable to reentrancy: verified "
+                  "guard-state-machine trace shows an external call reachable in the Unlocked state")
+    lowering = "encoding-gap: f: spec_lowering_failed: Verification Error: Expected bool for =="
+    assert not rsa.category_hit(access, "invalid-state-transition")
+    assert not rsa.category_hit(reentrancy, "invalid-state-transition")
+    assert not rsa.category_hit(reentrancy, "race-condition")
+    assert not rsa.category_hit(lowering, "error-handling")
+    assert rsa.category_hit(access, "access-control")
+    assert rsa.category_hit(reentrancy, "reentrancy")
