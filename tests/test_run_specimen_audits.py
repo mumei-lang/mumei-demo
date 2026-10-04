@@ -412,3 +412,13 @@ def test_corpus_info_tracks_source_changes(tmp_path):
     assert c3["hash"] == c2["hash"]
 
 
+
+def test_audit_failure():
+    good = {"success": False, "errors": [], "skipped_rate_limited_files": []}
+    # audit["success"]=False is normal (issues found), not a failure
+    assert rsa.audit_failure(0, 0, good) is None
+    assert "exited 3" in rsa.audit_failure(3, 0, good)
+    assert "markdown" in rsa.audit_failure(0, 1, good)
+    assert "boom" in rsa.audit_failure(0, 0, {"errors": ["boom"]})
+    assert "rate-limited" in rsa.audit_failure(
+        0, 0, {"skipped_rate_limited_files": ["a.py"]})

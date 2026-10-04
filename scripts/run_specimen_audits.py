@@ -249,6 +249,25 @@ def aggregate(coverages: list[dict]) -> dict:
     return {"totals": totals, "by_language": by_lang, "by_category": by_cat}
 
 
+def audit_failure(rc_json: int, rc_md: int, audit: dict) -> str | None:
+    """A broken audit (nonzero exit, errors, or rate-limited skips) is fatal.
+
+    audit["success"] is False whenever issues are found, so it is NOT a
+    failure signal and is deliberately not checked here.
+    """
+    if rc_json != 0:
+        return f"audit exited {rc_json}"
+    if rc_md != 0:
+        return f"markdown audit exited {rc_md}"
+    errors = audit.get("errors")
+    if errors:
+        return f"audit reported errors: {errors[:3]}"
+    skipped = audit.get("skipped_rate_limited_files")
+    if skipped:
+        return f"audit skipped rate-limited files: {skipped}"
+    return None
+
+
 def audit_specimen(specimen_dir: Path, agent_repo: Path, mumei_bin: str, timeout: int, meta: dict) -> dict:
     label = str(specimen_dir.relative_to(REPO_ROOT))
     defects_doc = json.loads((specimen_dir / "DEFECTS.json").read_text(encoding="utf-8"))
@@ -270,6 +289,9 @@ def audit_specimen(specimen_dir: Path, agent_repo: Path, mumei_bin: str, timeout
         audit = json.loads(out_json)
     except json.JSONDecodeError:
         raise SystemExit(f"{label}: audit did not return JSON (exit {rc_json}):\n{err_json[-2000:]}")
+    failure = audit_failure(rc_json, rc_md, audit)
+    if failure:
+        raise SystemExit(f"{label}: {failure}")
     audit = rewrite_paths(audit, scratch_str, label)
     (out_dir / "audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (out_dir / "audit.md").write_text(out_md.replace(scratch_str, label), encoding="utf-8")
