@@ -380,20 +380,43 @@ SCOREBOARD_START = "<!-- scoreboard:start -->"
 SCOREBOARD_END = "<!-- scoreboard:end -->"
 
 
+def _specimen_files(specimen_dir: Path) -> list[Path]:
+    """Files that make up a specimen, excluding audit/ output.
+
+    Git-tracked files when specimen_dir lives under the repo; everything on
+    disk (except audit/) otherwise, so corpus_info also works on scratch dirs.
+    """
+    try:
+        return tracked_files(specimen_dir)
+    except (OSError, subprocess.CalledProcessError, ValueError):
+        return sorted(f for f in specimen_dir.rglob("*")
+                      if f.is_file() and "audit" not in f.relative_to(specimen_dir).parts)
+
+
 def corpus_info(root: Path) -> dict:
-    """Specimen/defect counts plus a hash of every DEFECTS.json under root."""
+    """Specimen/defect counts plus a hash of every specimen file under root.
+
+    Hashes the full specimen content (not just DEFECTS.json) so a source
+    change with unchanged ground truth still produces a new run key.
+    """
     h = hashlib.sha256()
-    files = sorted(root.glob("*/*/DEFECTS.json"))
+    dirs = sorted(d for d in root.glob("*/*")
+                  if d.is_dir() and (d / "DEFECTS.json").is_file())
     defects = 0
-    for f in files:
-        rel = f.relative_to(root).as_posix()
+    files: list[Path] = []
+    for d in dirs:
+        defects += len(json.loads((d / "DEFECTS.json").read_bytes())["defects"])
+        files.extend(_specimen_files(d))
+    for f in sorted(set(files), key=lambda p: p.as_posix()):
+        try:
+            rel = f.relative_to(root).as_posix()
+        except ValueError:
+            rel = f.as_posix()
         h.update(rel.encode())
         h.update(b"\0")
-        data = f.read_bytes()
-        h.update(data)
+        h.update(f.read_bytes())
         h.update(b"\0")
-        defects += len(json.loads(data)["defects"])
-    return {"specimens": len(files), "defects": defects, "hash": h.hexdigest()}
+    return {"specimens": len(dirs), "defects": defects, "hash": h.hexdigest()}
 
 
 def load_history(path: Path) -> dict:

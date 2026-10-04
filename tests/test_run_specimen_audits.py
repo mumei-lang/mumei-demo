@@ -381,3 +381,34 @@ def test_category_hit_ignores_generic_audit_wording():
     assert not rsa.category_hit(lowering, "error-handling")
     assert rsa.category_hit(access, "access-control")
     assert rsa.category_hit(reentrancy, "reentrancy")
+
+
+# --- corpus_info / audit_failure ---------------------------------------------
+
+def _mini_specimen(root):
+    d = root / "python" / "py-01-x"
+    d.mkdir(parents=True)
+    (d / "DEFECTS.json").write_text(json.dumps({
+        "specimen": "py-01-x", "language": "python", "kind": "cli",
+        "summary": "x", "defects": [_defect("PY01-D01", "f", "logic-error")],
+    }))
+    (d / "app.py").write_text("def f():\n    return 1\n")
+    return d
+
+
+def test_corpus_info_tracks_source_changes(tmp_path):
+    d = _mini_specimen(tmp_path)
+    c1 = rsa.corpus_info(tmp_path)
+    assert c1["specimens"] == 1 and c1["defects"] == 1
+    # editing a source file changes the hash even with DEFECTS.json unchanged
+    (d / "app.py").write_text("def f():\n    return 2\n")
+    c2 = rsa.corpus_info(tmp_path)
+    assert c2["hash"] != c1["hash"]
+    assert c2["defects"] == c1["defects"]
+    # editing audit/ output does not change the hash
+    (d / "audit").mkdir()
+    (d / "audit" / "coverage.json").write_text("{}")
+    c3 = rsa.corpus_info(tmp_path)
+    assert c3["hash"] == c2["hash"]
+
+
