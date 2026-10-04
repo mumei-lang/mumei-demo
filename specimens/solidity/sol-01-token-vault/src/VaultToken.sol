@@ -54,8 +54,7 @@ contract VaultToken {
         address to,
         uint256 amount
     ) external returns (bool) {
-        // allowance cannot underflow in practice for approved spenders;
-        // skipping the check saves a comparison on every transfer
+        // bounded by approve()
         unchecked {
             allowance[from][msg.sender] -= amount;
         }

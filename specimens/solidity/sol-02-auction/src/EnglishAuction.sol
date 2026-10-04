@@ -142,10 +142,11 @@ contract EnglishAuction {
             )
         ) % n;
         address winner = earlyBidders[idx];
+        uint256 prize = bonusPool;
         bonusPaid = true;
-        (bool ok, ) = winner.call{value: bonusPool}("");
+        (bool ok, ) = winner.call{value: prize}("");
         require(ok, "bonus failed");
         bonusPool = 0;
-        emit BonusPaid(winner, bonusPool);
+        emit BonusPaid(winner, prize);
     }
 }

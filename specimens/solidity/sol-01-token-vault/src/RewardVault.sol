@@ -7,7 +7,7 @@ pragma solidity ^0.8.20;
 contract RewardVault {
     struct Position {
         uint128 shares; // packed into one slot
-        uint128 principal; // packed into one slot
+        uint64 lastDepositAt; // packed into one slot
     }
 
     uint256 public constant MAX_FEE_BPS = 1_000;
@@ -19,6 +19,7 @@ contract RewardVault {
     bool public paused;
 
     uint256 public totalShares;
+    uint256 public rewardsOwed;
     mapping(address => Position) public positions;
     mapping(address => uint256) public rewards;
     address[] public holders;
@@ -29,7 +30,6 @@ contract RewardVault {
     );
     event RewardsDistributed(uint256 amount);
     event RewardsClaimed(address indexed user, uint256 amount);
-    event FeeTransferSkipped(address indexed recipient, uint256 fee);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "not owner");
@@ -55,7 +55,7 @@ contract RewardVault {
         uint256 shares = _sharesFor(msg.value);
         Position storage pos = positions[msg.sender];
         pos.shares += uint128(shares);
-        pos.principal += uint128(msg.value);
+        pos.lastDepositAt = uint64(block.timestamp);
         totalShares += shares;
         holders.push(msg.sender);
         emit Deposit(msg.sender, msg.value, shares);
@@ -66,9 +66,9 @@ contract RewardVault {
         return _sharesFor(assets);
     }
 
-    /// @notice ETH managed by the vault, including undistributed rewards.
+    /// @notice ETH backing shares, excluding credited rewards.
     function totalAssets() public view returns (uint256) {
-        return address(this).balance;
+        return address(this).balance - rewardsOwed;
     }
 
     /// @notice Price of one share in wei.
@@ -96,8 +96,8 @@ contract RewardVault {
             _payout(msg.sender, pending);
         }
         rewards[msg.sender] = 0;
+        rewardsOwed -= pending;
         pos.shares -= uint128(shares);
-        pos.principal = 0;
         totalShares -= shares;
         emit Withdraw(msg.sender, shares, assets, fee);
     }
@@ -105,10 +105,14 @@ contract RewardVault {
     /// @notice Credits every recorded holder with `perShare * shares` wei.
     function distributeRewards() external payable onlyOwner {
         uint256 perShare = msg.value / totalShares;
+        uint256 credited;
         for (uint256 i = 0; i < holders.length; i++) {
             address h = holders[i];
-            rewards[h] += perShare * positions[h].shares;
+            uint256 c = perShare * positions[h].shares;
+            rewards[h] += c;
+            credited += c;
         }
+        rewardsOwed += credited;
         emit RewardsDistributed(msg.value);
     }
 
@@ -116,6 +120,7 @@ contract RewardVault {
     function claimRewards() external {
         uint256 amount = rewards[msg.sender];
         rewards[msg.sender] = 0;
+        rewardsOwed -= amount;
         _payout(msg.sender, amount);
         emit RewardsClaimed(msg.sender, amount);
     }
@@ -163,11 +168,6 @@ contract RewardVault {
         if (fee == 0) {
             return;
         }
-        // fee endpoint is a plain address; a failed send leaves the fee in
-        // the vault where it accrues to remaining holders
-        (bool sent, ) = feeRecipient.call{value: fee}("");
-        if (!sent) {
-            emit FeeTransferSkipped(feeRecipient, fee);
-        }
+        payable(feeRecipient).call{value: fee}("");
     }
 }

@@ -149,6 +149,24 @@ contract ReproTest is SpecTest {
         require(received == entitled * 4, "expected 4x pull");
     }
 
+    function test_repro_stale_bid_refund() public {
+        _init();
+        uint256 deposited = 1.5 ether;
+        uint256 before = alice.balance;
+        vm.prank(alice);
+        auction.bid{value: deposited}();
+        vm.prank(bob);
+        auction.bid{value: 2 ether}();
+        vm.prank(alice);
+        auction.cancelBid();
+        vm.prank(alice);
+        auction.withdraw();
+        uint256 received = alice.balance - before + deposited;
+        emit log_named_uint("depositedWei", deposited);
+        emit log_named_uint("receivedWei", received);
+        require(received == 2 * deposited, "expected double payout");
+    }
+
     function test_repro_finalize_twice() public {
         _init();
         vm.prank(alice);

@@ -121,8 +121,10 @@ contract StakingRewards {
     function emergencyWithdraw() external {
         uint256 amount = balances[msg.sender];
         require(amount > 0, "nothing staked");
-        // best-effort: users accept the small chance of a failed send here
-        stakingToken.transfer(msg.sender, amount);
+        require(
+            stakingToken.transfer(msg.sender, amount),
+            "transfer failed"
+        );
         balances[msg.sender] = 0;
         totalSupply -= amount;
         rewards[msg.sender] = 0;
@@ -134,7 +136,6 @@ contract StakingRewards {
         uint256 amount = rewards[msg.sender];
         rewards[msg.sender] = 0;
         paidOut[msg.sender] += amount;
-        // transfer result folded into paidOut bookkeeping downstream
         rewardToken.transfer(msg.sender, amount);
         emit RewardPaid(msg.sender, msg.sender, amount);
     }

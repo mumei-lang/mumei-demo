@@ -119,9 +119,9 @@
       "category": "integer-overflow",
       "cwe": "CWE-190",
       "title": "endTime wraps on huge durations",
-      "description": "endTime is stored as uint64 in an unchecked cast; a duration of 2^256-1 wraps endTime to a past timestamp so the auction is born already ended.",
+      "description": "endTime is stored as uint64 in an unchecked cast; a duration of 2^256-1 wraps endTime to timestamp 0, so the auction counts as ended as soon as the block clock catches up.",
       "trigger": "init(seller, reserve, type(uint256).max, 500).",
-      "observed": "endTime is one second before deployment and hasEnded() is immediately true.",
+      "observed": "endTime is 0 (wrapped) at deployment; once block.number is rolled past endBlock, hasEnded() is already true.",
       "repro": "end_time_wrap"
     },
     {
@@ -153,6 +153,21 @@
       "trigger": "An early-bidder contract waits for a block whose predicted index is itself, then calls drawEarlyBirdBonus().",
       "observed": "The bonus pool is paid to the computing contract on a winning block.",
       "repro": "random_draw"
+    },
+    {
+      "id": "SOL02-D11",
+      "file": "src/EnglishAuction.sol",
+      "function": "bid",
+      "line": 80,
+      "anchor": "bidOf[msg.sender] = msg.value;",
+      "class": "bug",
+      "category": "invariant-violation",
+      "cwe": "CWE-841",
+      "title": "Outbid bidder's bid record is never cleared",
+      "description": "bid() refunds the previous highest bidder with a call but only writes bidOf[msg.sender]; the outbid bidder's bidOf entry stays live, so they can cancelBid() and withdraw() the same bid a second time out of other bidders' or the seller's funds.",
+      "trigger": "A bids 1.5 ETH, B bids 2 ETH (A is refunded), then A calls cancelBid() and withdraw().",
+      "observed": "A receives 3 ETH total (1.5 ETH instant refund + 1.5 ETH pendingReturns) for a 1.5 ETH deposit.",
+      "repro": "stale_bid_refund"
     }
   ]
 }
