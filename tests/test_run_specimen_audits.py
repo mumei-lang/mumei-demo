@@ -48,6 +48,12 @@ def test_category_hit_logic_error_never_hits():
     assert not rsa.category_hit("overflow bounds index inject", "logic-error")
 
 
+def test_category_hit_denial_of_service_not_todos():
+    assert not rsa.category_hit("several todos left in the queue", "denial-of-service")
+    assert rsa.category_hit("unbounded loop leads to denial of service",
+                            "denial-of-service")
+
+
 # --- rewrite_paths ---------------------------------------------------------
 
 def test_rewrite_paths_nested():

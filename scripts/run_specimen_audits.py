@@ -90,7 +90,7 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "toctou": ["race condition", "toctou", "time-of-check"],
     "resource-leak": ["leak", "close", "resource"],
     "unbounded-resource": ["unbounded", "memory", "limit"],
-    "denial-of-service": ["denial", "dos", "gas", "unbounded"],
+    "denial-of-service": ["denial", "denial of service", "denial-of-service", "gas", "unbounded"],
     "front-running": ["front-run", "frontrun", "ordering"],
     "timestamp-dependence": ["timestamp", "block.timestamp"],
     "signature-replay": ["replay", "nonce", "signature"],
