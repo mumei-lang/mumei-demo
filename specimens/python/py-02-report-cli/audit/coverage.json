@@ -1,0 +1,118 @@
+{
+  "specimen": "py-02-report-cli",
+  "language": "python",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "refuted",
+  "files_audited": 2,
+  "files_with_issues": 1,
+  "counts": {
+    "total": 9,
+    "detected": 1,
+    "function_flagged": 0,
+    "missed": 8
+  },
+  "defects": [
+    {
+      "id": "PY02-D01",
+      "file": "report.py",
+      "function": "render",
+      "category": "float-money",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY02-D02",
+      "file": "timesheet.py",
+      "function": "share_of_total",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Python function `share_of_total` can divide by `whole` without a non-zero contract (Z3 counterexample: whole=0)"
+      ]
+    },
+    {
+      "id": "PY02-D03",
+      "file": "report.py",
+      "function": "post_process",
+      "category": "command-injection",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY02-D04",
+      "file": "report.py",
+      "function": "parse_row",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY02-D05",
+      "file": "timesheet.py",
+      "function": "overtime_minutes",
+      "category": "off-by-one",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY02-D06",
+      "file": "timesheet.py",
+      "function": "parse_duration",
+      "category": "redos",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY02-D07",
+      "file": "report.py",
+      "function": "load_entries",
+      "category": "error-handling",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY02-D08",
+      "file": "timesheet.py",
+      "function": "parse_duration",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY02-D09",
+      "file": "timesheet.py",
+      "function": "is_weekend",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [],
+  "meta": {
+    "mumei_agent_commit": "8f85274a2105d39ad3e9f8ab906a6178eb1eacf5",
+    "mumei_commit": "d5fe4b6d809e119463370c7364d0577325a2fd38",
+    "mumei_version": "mumei 0.6.20",
+    "llm_configured": false,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-10-04T06:07:29Z"
+  }
+}

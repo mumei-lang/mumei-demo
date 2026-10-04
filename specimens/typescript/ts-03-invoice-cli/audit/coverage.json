@@ -1,0 +1,126 @@
+{
+  "specimen": "ts-03-invoice-cli",
+  "language": "typescript",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "verified",
+  "files_audited": 2,
+  "files_with_issues": 0,
+  "counts": {
+    "total": 10,
+    "detected": 0,
+    "function_flagged": 0,
+    "missed": 10
+  },
+  "defects": [
+    {
+      "id": "TS03-D01",
+      "file": "pricing.ts",
+      "function": "subtotal",
+      "category": "float-money",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D02",
+      "file": "invoice.ts",
+      "function": "renderInvoice",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D03",
+      "file": "pricing.ts",
+      "function": "effectiveTaxRate",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D04",
+      "file": "pricing.ts",
+      "function": "parseItem",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D05",
+      "file": "pricing.ts",
+      "function": "pageFooters",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D06",
+      "file": "invoice.ts",
+      "function": "invoiceId",
+      "category": "weak-crypto",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D07",
+      "file": "invoice.ts",
+      "function": "writeInvoice",
+      "category": "command-injection",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D08",
+      "file": "pricing.ts",
+      "function": "parseItems",
+      "category": "error-handling",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D09",
+      "file": "pricing.ts",
+      "function": "applyDiscount",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D10",
+      "file": "pricing.ts",
+      "function": "taxAmount",
+      "category": "rounding-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [],
+  "meta": {
+    "mumei_agent_commit": "8f85274a2105d39ad3e9f8ab906a6178eb1eacf5",
+    "mumei_commit": "d5fe4b6d809e119463370c7364d0577325a2fd38",
+    "mumei_version": "mumei 0.6.20",
+    "llm_configured": false,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-10-04T06:07:29Z"
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "specimen": "go-03-auth-gateway",
+  "language": "go",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "verified",
+  "files_audited": 3,
+  "files_with_issues": 0,
+  "counts": {
+    "total": 11,
+    "detected": 0,
+    "function_flagged": 0,
+    "missed": 11
+  },
+  "defects": [
+    {
+      "id": "GO03-D01",
+      "file": "handlers.go",
+      "function": "loginHandler",
+      "category": "insecure-randomness",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D02",
+      "file": "auth.go",
+      "function": "tokenMatches",
+      "category": "timing-side-channel",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D03",
+      "file": "handlers.go",
+      "function": "proxyHandler",
+      "category": "ssrf",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D04",
+      "file": "handlers.go",
+      "function": "profileHandler",
+      "category": "idor",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D05",
+      "file": "handlers.go",
+      "function": "profileHandler",
+      "category": "weak-crypto",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D06",
+      "file": "handlers.go",
+      "function": "rotateHandler",
+      "category": "invalid-state-transition",
+      "class": "design",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D07",
+      "file": "handlers.go",
+      "function": "loginHandler",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D08",
+      "file": "auth.go",
+      "function": "allowAttempt",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D09",
+      "file": "main.go",
+      "function": "main",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D10",
+      "file": "handlers.go",
+      "function": "healthHandler",
+      "category": "information-exposure",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D11",
+      "file": "handlers.go",
+      "function": "loginHandler",
+      "category": "open-redirect",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [],
+  "meta": {
+    "mumei_agent_commit": "8f85274a2105d39ad3e9f8ab906a6178eb1eacf5",
+    "mumei_commit": "d5fe4b6d809e119463370c7364d0577325a2fd38",
+    "mumei_version": "mumei 0.6.20",
+    "llm_configured": false,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-10-04T06:07:29Z"
+  }
+}

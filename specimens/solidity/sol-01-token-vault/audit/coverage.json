@@ -1,0 +1,149 @@
+{
+  "specimen": "sol-01-token-vault",
+  "language": "solidity",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "refuted",
+  "files_audited": 4,
+  "files_with_issues": 2,
+  "counts": {
+    "total": 10,
+    "detected": 1,
+    "function_flagged": 4,
+    "missed": 5
+  },
+  "defects": [
+    {
+      "id": "SOL01-D01",
+      "file": "src/RewardVault.sol",
+      "function": "withdraw",
+      "category": "reentrancy",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `withdraw` can truncate `shares` in cast to `uint128` without a range contract (shares outside 0..=340282366920938463463374607431768211455 wraps)",
+        "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "counterexample for `withdraw`: {\"shares\": 340282366920938463463374607431768211456}"
+      ]
+    },
+    {
+      "id": "SOL01-D02",
+      "file": "src/VaultToken.sol",
+      "function": "transferFrom",
+      "category": "integer-underflow",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL01-D03",
+      "file": "src/RewardVault.sol",
+      "function": "sharePrice",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D04",
+      "file": "src/RewardVault.sol",
+      "function": "_sharesFor",
+      "category": "rounding-error",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D05",
+      "file": "src/RewardVault.sol",
+      "function": "setFeeRecipient",
+      "category": "access-control",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Solidity function `setFeeRecipient` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL01-D06",
+      "file": "src/RewardVault.sol",
+      "function": "setWithdrawFeeBps",
+      "category": "tx-origin-auth",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL01-D07",
+      "file": "src/RewardVault.sol",
+      "function": "_payFee",
+      "category": "unchecked-call",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D08",
+      "file": "src/RewardVault.sol",
+      "function": "deposit",
+      "category": "integer-overflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `deposit` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL01-D09",
+      "file": "src/RewardVault.sol",
+      "function": "distributeRewards",
+      "category": "denial-of-service",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D10",
+      "file": "src/RewardVault.sol",
+      "function": "distributeRewards",
+      "category": "rounding-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `claimRewards` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+    },
+    {
+      "file": "src/VaultToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+    }
+  ],
+  "meta": {
+    "mumei_agent_commit": "8f85274a2105d39ad3e9f8ab906a6178eb1eacf5",
+    "mumei_commit": "d5fe4b6d809e119463370c7364d0577325a2fd38",
+    "mumei_version": "mumei 0.6.20",
+    "llm_configured": false,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-10-04T06:07:29Z"
+  }
+}

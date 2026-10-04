@@ -319,7 +319,7 @@ def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
         "## Per specimen",
         "",
         "| Specimen | Defects | Detected | Function flagged | Missed | Target-category detected | Unmatched findings |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|",
+        "|---|---:|---:|---:|---:|---:|---:|",
     ]
     agg = aggregate(coverages)
     totals = agg["totals"]
@@ -596,7 +596,7 @@ def svg_history(runs: list[dict]) -> str:
         parts.append(f'  <rect x="{lx}" y="{H - 20}" width="12" height="12" fill="{color}"/>')
         parts.append(f'  <text x="{lx + 18}" y="{H - 9}" font-size="11" '
                      f'fill="#24292f">{_esc(name)}</text>')
-        lx += 18 + 8 * len(name) + 24
+        lx += 18 + int(6.5 * len(name)) + 24
     parts.append("</svg>")
     return "\n".join(parts) + "\n"
 

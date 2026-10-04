@@ -1,0 +1,138 @@
+{
+  "specimen": "go-01-inventory-api",
+  "language": "go",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "refuted",
+  "files_audited": 4,
+  "files_with_issues": 1,
+  "counts": {
+    "total": 11,
+    "detected": 1,
+    "function_flagged": 0,
+    "missed": 10
+  },
+  "defects": [
+    {
+      "id": "GO01-D01",
+      "file": "handlers.go",
+      "function": "reserveHandler",
+      "category": "race-condition",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D02",
+      "file": "handlers.go",
+      "function": "restockHandler",
+      "category": "integer-overflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D03",
+      "file": "handlers.go",
+      "function": "releaseHandler",
+      "category": "invariant-violation",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D04",
+      "file": "handlers.go",
+      "function": "itemHandler",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D05",
+      "file": "calc.go",
+      "function": "reorderPoint",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Go function `reorderPoint` can divide by `int32(len(locations))` without a non-zero contract (Z3 counterexample: int32(len(locations))=0)"
+      ]
+    },
+    {
+      "id": "GO01-D06",
+      "file": "handlers.go",
+      "function": "viewItem",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D07",
+      "file": "handlers.go",
+      "function": "reportHandler",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D08",
+      "file": "main.go",
+      "function": "auditRequests",
+      "category": "resource-leak",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D09",
+      "file": "handlers.go",
+      "function": "createItem",
+      "category": "error-handling",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D10",
+      "file": "handlers.go",
+      "function": "searchHandler",
+      "category": "xss",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D11",
+      "file": "main.go",
+      "function": "main",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [],
+  "meta": {
+    "mumei_agent_commit": "8f85274a2105d39ad3e9f8ab906a6178eb1eacf5",
+    "mumei_commit": "d5fe4b6d809e119463370c7364d0577325a2fd38",
+    "mumei_version": "mumei 0.6.20",
+    "llm_configured": false,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-10-04T06:07:29Z"
+  }
+}

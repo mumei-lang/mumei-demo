@@ -1,0 +1,136 @@
+{
+  "specimen": "rs-03-matrix-tool",
+  "language": "rust",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "verified",
+  "files_audited": 1,
+  "files_with_issues": 0,
+  "counts": {
+    "total": 11,
+    "detected": 0,
+    "function_flagged": 0,
+    "missed": 11
+  },
+  "defects": [
+    {
+      "id": "RS03-D01",
+      "file": "src/main.rs",
+      "function": "at",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D02",
+      "file": "src/main.rs",
+      "function": "mean",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D03",
+      "file": "src/main.rs",
+      "function": "invert2x2",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D04",
+      "file": "src/main.rs",
+      "function": "scale",
+      "category": "integer-overflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D05",
+      "file": "src/main.rs",
+      "function": "parse_cells",
+      "category": "error-handling",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D06",
+      "file": "src/main.rs",
+      "function": "load_matrix",
+      "category": "logic-error",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D07",
+      "file": "src/main.rs",
+      "function": "main",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D08",
+      "file": "src/main.rs",
+      "function": "transpose",
+      "category": "off-by-one",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D09",
+      "file": "src/main.rs",
+      "function": "append_report",
+      "category": "command-injection",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D10",
+      "file": "src/main.rs",
+      "function": "checksum_file",
+      "category": "weak-crypto",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D11",
+      "file": "src/main.rs",
+      "function": "write_cache",
+      "category": "toctou",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [],
+  "meta": {
+    "mumei_agent_commit": "8f85274a2105d39ad3e9f8ab906a6178eb1eacf5",
+    "mumei_commit": "d5fe4b6d809e119463370c7364d0577325a2fd38",
+    "mumei_version": "mumei 0.6.20",
+    "llm_configured": false,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-10-04T06:07:29Z"
+  }
+}

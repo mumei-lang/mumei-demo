@@ -1,0 +1,138 @@
+{
+  "specimen": "py-01-expense-tracker",
+  "language": "python",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "unverifiable",
+  "files_audited": 4,
+  "files_with_issues": 1,
+  "counts": {
+    "total": 11,
+    "detected": 0,
+    "function_flagged": 1,
+    "missed": 10
+  },
+  "defects": [
+    {
+      "id": "PY01-D01",
+      "file": "app.py",
+      "function": "list_expenses",
+      "category": "sql-injection",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D02",
+      "file": "app.py",
+      "function": "export",
+      "category": "path-traversal",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D03",
+      "file": "ledger.py",
+      "function": "daily_average",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D04",
+      "file": "ledger.py",
+      "function": "average_expense",
+      "category": "rounding-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D05",
+      "file": "ledger.py",
+      "function": "is_over_budget",
+      "category": "off-by-one",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "encoding-gap: is_over_budget: spec_lowering_failed: failed to lower ensures clause 'result == spent_cents > limit_cents': Verification Error: Expected bool for == (constraints: [\"result == spent_cents > limit_cents\"])"
+      ]
+    },
+    {
+      "id": "PY01-D06",
+      "file": "app.py",
+      "function": "list_expenses",
+      "category": "idor",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D07",
+      "file": "app.py",
+      "function": "create_expense",
+      "category": "resource-leak",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D08",
+      "file": "ledger.py",
+      "function": "subcategory",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D09",
+      "file": "config.py",
+      "function": "ADMIN_TOKEN",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D10",
+      "file": "ledger.py",
+      "function": "parse_amount",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D11",
+      "file": "app.py",
+      "function": "_dispatch",
+      "category": "information-exposure",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [],
+  "meta": {
+    "mumei_agent_commit": "8f85274a2105d39ad3e9f8ab906a6178eb1eacf5",
+    "mumei_commit": "d5fe4b6d809e119463370c7364d0577325a2fd38",
+    "mumei_version": "mumei 0.6.20",
+    "llm_configured": false,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-10-04T06:07:29Z"
+  }
+}
