@@ -203,7 +203,7 @@ def score(defects_doc: dict, audit: dict, label: str) -> dict:
     for rel, findings in sorted(by_file.items()):
         for i, f in enumerate(findings):
             if (rel, i) not in matched_finding_ids and f["kind"] != "counterexample_values" \
-                    and not f["text"].split(": ", 1)[-1].startswith("Z3 Counter-example"):
+                    and "Z3 Counter-example:" not in f["text"]:
                 unmatched.append({"file": rel, "kind": f["kind"], "text": f["text"]})
     return {"defects": results, "unmatched_findings": unmatched}
 

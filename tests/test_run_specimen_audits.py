@@ -98,6 +98,7 @@ def _audit():
                     "Python function `stray` has no caller",
                     "check transfer: Z3 Counter-example: a=1",
                     "model check: Z3 Counter-example: z=9",
+                    "Z3 Counter-example: int32(len(locations))=0",
                 ],
                 "counterexample_values": [
                     {"function_name": "transfer", "counterexample": {"a": 1}}
