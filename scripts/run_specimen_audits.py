@@ -167,7 +167,9 @@ def collect_findings(file_result: dict) -> list[dict]:
     return findings
 
 
-def score(defects_doc: dict, audit: dict, label: str) -> dict:
+def score(defects_doc: dict, audit: dict, label: str,
+          adjudications: list[dict] | None = None) -> dict:
+    adjudications = adjudications or []
     by_file: dict[str, list[dict]] = {}
     for fr in audit.get("file_results") or []:
         src = str(fr.get("source_file", ""))
@@ -180,6 +182,20 @@ def score(defects_doc: dict, audit: dict, label: str) -> dict:
         findings = by_file.get(d["file"], [])
         hits = [(i, f) for i, f in enumerate(findings) if names_function(f["text"], d["function"])]
         cat_hits = [(i, f) for i, f in hits if category_hit(f["text"], d["category"])]
+        applied = []
+        for a in adjudications:
+            if a.get("defect") != d["id"] or a.get("verdict") != "not_category_evidence":
+                continue
+            needle = a.get("finding_contains", "")
+            if not needle:
+                continue
+            kept = []
+            for i, f in cat_hits:
+                if needle in f["text"]:
+                    applied.append(a.get("reason", ""))
+                else:
+                    kept.append((i, f))
+            cat_hits = kept
         if cat_hits:
             status, used = "detected", cat_hits
         elif hits:
@@ -188,7 +204,7 @@ def score(defects_doc: dict, audit: dict, label: str) -> dict:
             status, used = "missed", []
         for i, _ in hits:
             matched_finding_ids.add((d["file"], i))
-        results.append({
+        entry = {
             "id": d["id"],
             "file": d["file"],
             "function": d["function"],
@@ -197,7 +213,10 @@ def score(defects_doc: dict, audit: dict, label: str) -> dict:
             "in_target_category": d["category"] in TARGET_CATEGORIES,
             "status": status,
             "findings": [f["text"] for _, f in used],
-        })
+        }
+        if applied:
+            entry["adjudicated"] = applied
+        results.append(entry)
 
     unmatched = []
     for rel, findings in sorted(by_file.items()):
@@ -268,7 +287,8 @@ def audit_failure(rc_json: int, rc_md: int, audit: dict) -> str | None:
     return None
 
 
-def audit_specimen(specimen_dir: Path, agent_repo: Path, mumei_bin: str, timeout: int, meta: dict) -> dict:
+def audit_specimen(specimen_dir: Path, agent_repo: Path, mumei_bin: str, timeout: int,
+                   meta: dict, adjudications: list[dict] | None = None) -> dict:
     label = str(specimen_dir.relative_to(REPO_ROOT))
     defects_doc = json.loads((specimen_dir / "DEFECTS.json").read_text(encoding="utf-8"))
     files = tracked_files(specimen_dir)
@@ -295,7 +315,7 @@ def audit_specimen(specimen_dir: Path, agent_repo: Path, mumei_bin: str, timeout
     audit = rewrite_paths(audit, scratch_str, label)
     (out_dir / "audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (out_dir / "audit.md").write_text(out_md.replace(scratch_str, label), encoding="utf-8")
-    scored = score(defects_doc, audit, label)
+    scored = score(defects_doc, audit, label, adjudications)
     coverage = {
         "specimen": defects_doc["specimen"],
         "language": defects_doc["language"],
@@ -439,6 +459,35 @@ def corpus_info(root: Path) -> dict:
         h.update(f.read_bytes())
         h.update(b"\0")
     return {"specimens": len(dirs), "defects": defects, "hash": h.hexdigest()}
+
+
+ADJUDICATIONS_FILE = "adjudications.json"
+
+
+def load_adjudications(root: Path) -> list[dict]:
+    """Manual rulings for keyword matches that are not real category evidence.
+
+    Validates eagerly: a ruling naming an unknown defect id or an unsupported
+    verdict fails loudly instead of silently doing nothing.
+    """
+    path = root / "scoreboard" / ADJUDICATIONS_FILE
+    if not path.is_file():
+        return []
+    entries = json.loads(path.read_text(encoding="utf-8")).get("adjudications") or []
+    known_ids = {
+        d["id"]
+        for f in root.glob("*/*/DEFECTS.json")
+        for d in json.loads(f.read_bytes())["defects"]
+    }
+    for a in entries:
+        if a.get("verdict") != "not_category_evidence":
+            raise SystemExit(
+                f"{path}: adjudication for {a.get('defect')!r}: "
+                f"unsupported verdict {a.get('verdict')!r}")
+        if a.get("defect") not in known_ids:
+            raise SystemExit(
+                f"{path}: adjudication references unknown defect {a.get('defect')!r}")
+    return entries
 
 
 def load_history(path: Path) -> dict:
@@ -807,10 +856,11 @@ def main(argv: list[str]) -> int:
         "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
+    adjudications = load_adjudications(SPECIMENS_ROOT)
     dirs = [Path(d).resolve() for d in args.specimens] or discover(SPECIMENS_ROOT)
     coverages = []
     for d in dirs:
-        cov = audit_specimen(d, agent_repo, mumei_bin, args.timeout, meta)
+        cov = audit_specimen(d, agent_repo, mumei_bin, args.timeout, meta, adjudications)
         c = cov["counts"]
         print(f"{cov['specimen']}: {c['detected']}/{c['total']} detected, {c['function_flagged']} function-flagged, "
               f"{c['missed']} missed, {len(cov['unmatched_findings'])} unmatched")

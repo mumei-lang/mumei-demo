@@ -17,6 +17,15 @@ Mumei/mumei-agent updates and records each run in
 [`scoreboard/history.json`](scoreboard/history.json); the charts below are
 rendered from it.
 
+Scoring is keyword-based: a finding matches a defect when it is reported for
+the defect's file, names the defect's function, and carries a keyword for its
+category. That can produce false `detected` results when a warning mentions
+the right function but is not evidence of that defect.
+[`scoreboard/adjudications.json`](scoreboard/adjudications.json) records manual
+rulings for those cases. Entries are substring-matched against the finding
+text, so when tool wording changes a ruling silently stops applying — review
+new `detected` statuses after each tool update.
+
 ## Layout
 
 ```text

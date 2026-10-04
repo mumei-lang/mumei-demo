@@ -422,3 +422,54 @@ def test_audit_failure():
     assert "boom" in rsa.audit_failure(0, 0, {"errors": ["boom"]})
     assert "rate-limited" in rsa.audit_failure(
         0, 0, {"skipped_rate_limited_files": ["a.py"]})
+
+
+# --- adjudications -----------------------------------------------------------
+
+ADJ = [{
+    "defect": "PY01-D01",
+    "finding_contains": "integer overflow",
+    "verdict": "not_category_evidence",
+    "reason": "the cast warning is not evidence of the missing precondition",
+}]
+
+
+def test_score_adjudication_downgrades():
+    scored = rsa.score(_defects_doc(), _audit(), "specimens/python/py-01-demo",
+                       adjudications=ADJ)
+    by_id = {r["id"]: r for r in scored["defects"]}
+    assert by_id["PY01-D01"]["status"] == "function_flagged"
+    assert by_id["PY01-D01"]["adjudicated"] == [
+        "the cast warning is not evidence of the missing precondition"]
+    # the finding is still reported on the defect
+    assert any("overflow" in f for f in by_id["PY01-D01"]["findings"])
+    # unaffected defects carry no key
+    assert "adjudicated" not in by_id["PY01-D02"]
+
+
+def test_score_nonmatching_adjudication_noop():
+    adj = [dict(ADJ[0], finding_contains="no such text")]
+    scored = rsa.score(_defects_doc(), _audit(), "specimens/python/py-01-demo",
+                       adjudications=adj)
+    by_id = {r["id"]: r for r in scored["defects"]}
+    assert by_id["PY01-D01"]["status"] == "detected"
+    assert "adjudicated" not in by_id["PY01-D01"]
+
+
+def test_load_adjudications_unknown_id(tmp_path):
+    d = _mini_specimen(tmp_path)
+    (tmp_path / "scoreboard").mkdir()
+    (tmp_path / "scoreboard" / "adjudications.json").write_text(json.dumps({
+        "adjudications": [{"defect": "ZZ99-D01",
+                           "finding_contains": "x",
+                           "verdict": "not_category_evidence",
+                           "reason": "y"}]}))
+    with pytest.raises(SystemExit, match="unknown defect"):
+        rsa.load_adjudications(tmp_path)
+    # a valid file for the known defect loads fine
+    (tmp_path / "scoreboard" / "adjudications.json").write_text(json.dumps({
+        "adjudications": [{"defect": "PY01-D01",
+                           "finding_contains": "x",
+                           "verdict": "not_category_evidence",
+                           "reason": "y"}]}))
+    assert len(rsa.load_adjudications(tmp_path)) == 1
