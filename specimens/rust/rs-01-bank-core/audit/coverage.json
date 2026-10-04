@@ -1,0 +1,157 @@
+{
+  "specimen": "rs-01-bank-core",
+  "language": "rust",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "refuted",
+  "files_audited": 3,
+  "files_with_issues": 1,
+  "counts": {
+    "total": 12,
+    "detected": 1,
+    "function_flagged": 2,
+    "missed": 9
+  },
+  "defects": [
+    {
+      "id": "RS01-D01",
+      "file": "src/bank.rs",
+      "function": "accrue_interest",
+      "category": "float-money",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D02",
+      "file": "src/bank.rs",
+      "function": "remaining_daily_allowance",
+      "category": "integer-underflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D03",
+      "file": "src/bank.rs",
+      "function": "request_transfer",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64` without a range contract (amount_cents outside 0..=18446744073709551615 wraps)",
+        "counterexample for `request_transfer`: {\"amount_cents\": -9223372036854775808}"
+      ],
+      "adjudicated": [
+        "The cast in request_transfer only runs under `amount_cents > 0`; the warning does not identify the missing non-negative check at the balance comparison."
+      ]
+    },
+    {
+      "id": "RS01-D04",
+      "file": "src/bank.rs",
+      "function": "split_payment",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D05",
+      "file": "src/bank.rs",
+      "function": "account_at",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D06",
+      "file": "src/bank.rs",
+      "function": "request_transfer",
+      "category": "invariant-violation",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64` without a range contract (amount_cents outside 0..=18446744073709551615 wraps)",
+        "counterexample for `request_transfer`: {\"amount_cents\": -9223372036854775808}"
+      ]
+    },
+    {
+      "id": "RS01-D07",
+      "file": "src/bank.rs",
+      "function": "close_account",
+      "category": "invalid-state-transition",
+      "class": "design",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D08",
+      "file": "src/bank.rs",
+      "function": "record_audit",
+      "category": "unbounded-resource",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D09",
+      "file": "src/main.rs",
+      "function": "parse_cents",
+      "category": "error-handling",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D10",
+      "file": "src/main.rs",
+      "function": "operator_token",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D11",
+      "file": "src/main.rs",
+      "function": "write_statement",
+      "category": "path-traversal",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D12",
+      "file": "src/bank.rs",
+      "function": "charge_fee",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)"
+      ]
+    }
+  ],
+  "unmatched_findings": [],
+  "meta": {
+    "mumei_agent_commit": "8f85274a2105d39ad3e9f8ab906a6178eb1eacf5",
+    "mumei_commit": "d5fe4b6d809e119463370c7364d0577325a2fd38",
+    "mumei_version": "mumei 0.6.20",
+    "llm_configured": false,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-10-04T06:27:28Z"
+  }
+}

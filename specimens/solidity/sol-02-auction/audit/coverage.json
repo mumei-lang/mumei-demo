@@ -1,0 +1,169 @@
+{
+  "specimen": "sol-02-auction",
+  "language": "solidity",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "refuted",
+  "files_audited": 3,
+  "files_with_issues": 1,
+  "counts": {
+    "total": 11,
+    "detected": 2,
+    "function_flagged": 8,
+    "missed": 1
+  },
+  "defects": [
+    {
+      "id": "SOL02-D01",
+      "file": "src/EnglishAuction.sol",
+      "function": "bid",
+      "category": "denial-of-service",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `bid` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)",
+        "Solidity function `bid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "counterexample for `bid`: {\"guard\": \"absent\", \"reentrancy_trace\": [\"externalCall: (bool refunded, ) = highestBidder.call{value: highestBid}(\\\"\\\");\", \"stateWrite: highestBidder\"]}"
+      ]
+    },
+    {
+      "id": "SOL02-D02",
+      "file": "src/EnglishAuction.sol",
+      "function": "withdraw",
+      "category": "reentrancy",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Solidity function `withdraw` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)"
+      ]
+    },
+    {
+      "id": "SOL02-D03",
+      "file": "src/EnglishAuction.sol",
+      "function": "finalize",
+      "category": "invalid-state-transition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `finalize` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL02-D04",
+      "file": "src/EnglishAuction.sol",
+      "function": "bid",
+      "category": "timestamp-dependence",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `bid` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)",
+        "Solidity function `bid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "counterexample for `bid`: {\"guard\": \"absent\", \"reentrancy_trace\": [\"externalCall: (bool refunded, ) = highestBidder.call{value: highestBid}(\\\"\\\");\", \"stateWrite: highestBidder\"]}"
+      ]
+    },
+    {
+      "id": "SOL02-D05",
+      "file": "src/EnglishAuction.sol",
+      "function": "minNextBid",
+      "category": "rounding-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL02-D06",
+      "file": "src/EnglishAuction.sol",
+      "function": "cancelBid",
+      "category": "invariant-violation",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `cancelBid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL02-D07",
+      "file": "src/EnglishAuction.sol",
+      "function": "init",
+      "category": "access-control",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Solidity function `init` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL02-D08",
+      "file": "src/EnglishAuction.sol",
+      "function": "init",
+      "category": "integer-overflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `init` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL02-D09",
+      "file": "src/EnglishAuction.sol",
+      "function": "init",
+      "category": "information-exposure",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `init` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL02-D10",
+      "file": "src/EnglishAuction.sol",
+      "function": "drawEarlyBirdBonus",
+      "category": "insecure-randomness",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `drawEarlyBirdBonus` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)",
+        "Solidity function `drawEarlyBirdBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL02-D11",
+      "file": "src/EnglishAuction.sol",
+      "function": "bid",
+      "category": "invariant-violation",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `bid` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)",
+        "Solidity function `bid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "counterexample for `bid`: {\"guard\": \"absent\", \"reentrancy_trace\": [\"externalCall: (bool refunded, ) = highestBidder.call{value: highestBid}(\\\"\\\");\", \"stateWrite: highestBidder\"]}"
+      ]
+    }
+  ],
+  "unmatched_findings": [
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `fundBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+    }
+  ],
+  "meta": {
+    "mumei_agent_commit": "8f85274a2105d39ad3e9f8ab906a6178eb1eacf5",
+    "mumei_commit": "d5fe4b6d809e119463370c7364d0577325a2fd38",
+    "mumei_version": "mumei 0.6.20",
+    "llm_configured": false,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-10-04T06:27:28Z"
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "specimen": "rs-02-kv-server",
+  "language": "rust",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "verified",
+  "files_audited": 1,
+  "files_with_issues": 0,
+  "counts": {
+    "total": 11,
+    "detected": 0,
+    "function_flagged": 0,
+    "missed": 11
+  },
+  "defects": [
+    {
+      "id": "RS02-D01",
+      "file": "src/main.rs",
+      "function": "read_request",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS02-D02",
+      "file": "src/main.rs",
+      "function": "read_request",
+      "category": "unbounded-resource",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS02-D03",
+      "file": "src/main.rs",
+      "function": "incr",
+      "category": "race-condition",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS02-D04",
+      "file": "src/main.rs",
+      "function": "snapshot",
+      "category": "path-traversal",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS02-D05",
+      "file": "src/main.rs",
+      "function": "incr",
+      "category": "integer-overflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS02-D06",
+      "file": "src/main.rs",
+      "function": "normalize_key",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS02-D07",
+      "file": "src/main.rs",
+      "function": "keys_with_prefix",
+      "category": "error-handling",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS02-D08",
+      "file": "src/main.rs",
+      "function": "read_request",
+      "category": "resource-leak",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS02-D09",
+      "file": "src/main.rs",
+      "function": "handle",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS02-D10",
+      "file": "src/main.rs",
+      "function": "handle",
+      "category": "information-exposure",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS02-D11",
+      "file": "src/main.rs",
+      "function": "handle",
+      "category": "xss",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [],
+  "meta": {
+    "mumei_agent_commit": "8f85274a2105d39ad3e9f8ab906a6178eb1eacf5",
+    "mumei_commit": "d5fe4b6d809e119463370c7364d0577325a2fd38",
+    "mumei_version": "mumei 0.6.20",
+    "llm_configured": false,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-10-04T06:27:28Z"
+  }
+}

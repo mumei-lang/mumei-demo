@@ -1,0 +1,136 @@
+{
+  "specimen": "py-04-doc-vault",
+  "language": "python",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "verified",
+  "files_audited": 2,
+  "files_with_issues": 0,
+  "counts": {
+    "total": 11,
+    "detected": 0,
+    "function_flagged": 0,
+    "missed": 11
+  },
+  "defects": [
+    {
+      "id": "PY04-D01",
+      "file": "vault.py",
+      "function": "make_share_token",
+      "category": "insecure-randomness",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D02",
+      "file": "vault.py",
+      "function": "token_matches",
+      "category": "timing-side-channel",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D03",
+      "file": "vault.py",
+      "function": "fetch_remote",
+      "category": "ssrf",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D04",
+      "file": "vault.py",
+      "function": "decode_body",
+      "category": "insecure-deserialization",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D05",
+      "file": "app.py",
+      "function": "purge",
+      "category": "missing-authentication",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D06",
+      "file": "vault.py",
+      "function": "save_upload",
+      "category": "toctou",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D07",
+      "file": "app.py",
+      "function": "go",
+      "category": "open-redirect",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D08",
+      "file": "app.py",
+      "function": "docs_html",
+      "category": "xss",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D09",
+      "file": "vault.py",
+      "function": "save_upload",
+      "category": "unbounded-resource",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D10",
+      "file": "vault.py",
+      "function": "share_expiry",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D11",
+      "file": "vault.py",
+      "function": "can_read",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [],
+  "meta": {
+    "mumei_agent_commit": "8f85274a2105d39ad3e9f8ab906a6178eb1eacf5",
+    "mumei_commit": "d5fe4b6d809e119463370c7364d0577325a2fd38",
+    "mumei_version": "mumei 0.6.20",
+    "llm_configured": false,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-10-04T06:27:28Z"
+  }
+}

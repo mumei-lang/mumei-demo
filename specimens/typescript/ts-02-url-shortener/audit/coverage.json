@@ -1,0 +1,136 @@
+{
+  "specimen": "ts-02-url-shortener",
+  "language": "typescript",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "verified",
+  "files_audited": 2,
+  "files_with_issues": 0,
+  "counts": {
+    "total": 11,
+    "detected": 0,
+    "function_flagged": 0,
+    "missed": 11
+  },
+  "defects": [
+    {
+      "id": "TS02-D01",
+      "file": "links.ts",
+      "function": "generateCode",
+      "category": "insecure-randomness",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D02",
+      "file": "links.ts",
+      "function": "createLink",
+      "category": "logic-error",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D03",
+      "file": "links.ts",
+      "function": "validateTarget",
+      "category": "open-redirect",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D04",
+      "file": "server.ts",
+      "function": "recordClick",
+      "category": "race-condition",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D05",
+      "file": "links.ts",
+      "function": "clicksPerDay",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D06",
+      "file": "server.ts",
+      "function": "handleAdminDelete",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D07",
+      "file": "links.ts",
+      "function": "normalizeAlias",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D08",
+      "file": "links.ts",
+      "function": "normalizeAlias",
+      "category": "off-by-one",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D09",
+      "file": "links.ts",
+      "function": "isExpired",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D10",
+      "file": "server.ts",
+      "function": "fetchPreview",
+      "category": "ssrf",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D11",
+      "file": "links.ts",
+      "function": "linkStats",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [],
+  "meta": {
+    "mumei_agent_commit": "8f85274a2105d39ad3e9f8ab906a6178eb1eacf5",
+    "mumei_commit": "d5fe4b6d809e119463370c7364d0577325a2fd38",
+    "mumei_version": "mumei 0.6.20",
+    "llm_configured": false,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-10-04T06:27:28Z"
+  }
+}

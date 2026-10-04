@@ -1,0 +1,10 @@
+{
+  "adjudications": [
+    {
+      "defect": "RS01-D03",
+      "finding_contains": "can truncate `amount_cents` in cast to `u64` without a range contract",
+      "verdict": "not_category_evidence",
+      "reason": "The cast in request_transfer only runs under `amount_cents > 0`; the warning does not identify the missing non-negative check at the balance comparison."
+    }
+  ]
+}
