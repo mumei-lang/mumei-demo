@@ -18,8 +18,7 @@ Matching is deliberately simple and is documented in AUDIT_SUMMARY.md:
 a finding matches a defect when it belongs to the defect's file and names the
 defect's function. It counts as `detected` when the finding text also carries
 a keyword for the defect's category, `function_flagged` when it names the
-function but describes something else, `advisory_only` when the only signal is
-a next_steps advisory, and `missed` otherwise.
+function but describes something else, and `missed` otherwise.
 """
 from __future__ import annotations
 
@@ -102,7 +101,6 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
 }
 
 STRONG_KINDS = ("verification_violations", "spec_health_issues", "cross_validation_gaps", "trusted_atoms")
-ADVISORY_RE = re.compile(r":\s*([A-Za-z_][A-Za-z0-9_.:]*)\.(requires|ensures)\b")
 
 
 def short_name(function: str) -> str:
@@ -169,22 +167,12 @@ def collect_findings(file_result: dict) -> list[dict]:
     return findings
 
 
-def advisory_functions(audit: dict) -> list[str]:
-    names = []
-    for step in audit.get("next_steps") or []:
-        m = ADVISORY_RE.search(str(step.get("action", "")))
-        if m:
-            names.append(m.group(1))
-    return names
-
-
 def score(defects_doc: dict, audit: dict, label: str) -> dict:
     by_file: dict[str, list[dict]] = {}
     for fr in audit.get("file_results") or []:
         src = str(fr.get("source_file", ""))
         rel = src[len(label) + 1:] if src.startswith(label + "/") else src
         by_file.setdefault(rel, []).extend(collect_findings(fr))
-    advisories = advisory_functions(audit)
 
     matched_finding_ids: set[tuple[str, int]] = set()
     results = []
@@ -196,8 +184,6 @@ def score(defects_doc: dict, audit: dict, label: str) -> dict:
             status, used = "detected", cat_hits
         elif hits:
             status, used = "function_flagged", hits
-        elif any(short_name(a) == short_name(d["function"]) for a in advisories):
-            status, used = "advisory_only", []
         else:
             status, used = "missed", []
         for i, _ in hits:
@@ -219,11 +205,11 @@ def score(defects_doc: dict, audit: dict, label: str) -> dict:
             if (rel, i) not in matched_finding_ids and f["kind"] != "counterexample_values" \
                     and not f["text"].split(": ", 1)[-1].startswith("Z3 Counter-example"):
                 unmatched.append({"file": rel, "kind": f["kind"], "text": f["text"]})
-    return {"defects": results, "unmatched_findings": unmatched, "advisory_functions": advisories}
+    return {"defects": results, "unmatched_findings": unmatched}
 
 
 def counts(results: list[dict]) -> dict[str, int]:
-    c = {"total": len(results), "detected": 0, "function_flagged": 0, "advisory_only": 0, "missed": 0}
+    c = {"total": len(results), "detected": 0, "function_flagged": 0, "missed": 0}
     for r in results:
         c[r["status"]] += 1
     return c
@@ -234,13 +220,13 @@ def aggregate(coverages: list[dict]) -> dict:
 
     Shared by write_summary and the history entry so numbers are computed once.
     """
-    totals = {"total": 0, "detected": 0, "function_flagged": 0, "advisory_only": 0,
+    totals = {"total": 0, "detected": 0, "function_flagged": 0,
               "missed": 0, "target_total": 0, "target_detected": 0, "unmatched": 0}
     by_lang: dict[str, dict[str, int]] = {}
     by_cat: dict[str, dict[str, Any]] = {}
     for cov in coverages:
         c = cov["counts"]
-        for k in ("total", "detected", "function_flagged", "advisory_only", "missed"):
+        for k in ("total", "detected", "function_flagged", "missed"):
             totals[k] += c[k]
         tgt = [r for r in cov["defects"] if r["in_target_category"]]
         td = sum(1 for r in tgt if r["status"] == "detected")
@@ -256,7 +242,7 @@ def aggregate(coverages: list[dict]) -> dict:
         lang["target_detected"] += td
         for r in cov["defects"]:
             bc = by_cat.setdefault(r["category"], {"total": 0, "detected": 0, "function_flagged": 0,
-                                                   "advisory_only": 0, "missed": 0,
+                                                   "missed": 0,
                                                    "in_target": r["category"] in TARGET_CATEGORIES})
             bc["total"] += 1
             bc[r["status"]] += 1
@@ -324,8 +310,7 @@ def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
         "",
         "A finding matches a planted defect when it is reported for the defect's file and names the defect's",
         "function. `detected` means the finding text also carries a keyword for the defect's category;",
-        "`function_flagged` means the audit flagged that function for something else; `advisory_only` means the",
-        "only signal is an \"underspecified intent\" next step for that function; `missed` means nothing.",
+        "`function_flagged` means the audit flagged that function for something else; `missed` means nothing.",
         "\"Target\" categories are the ones the audit is designed to check today (arithmetic, bounds, null,",
         "preconditions, invariants, state transitions, and the Solidity reentrancy/access-control/unchecked-call",
         "heuristics). Findings that match no planted defect are listed per specimen in `audit/coverage.json`",
@@ -333,7 +318,7 @@ def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
         "",
         "## Per specimen",
         "",
-        "| Specimen | Defects | Detected | Function flagged | Advisory only | Missed | Target-category detected | Unmatched findings |",
+        "| Specimen | Defects | Detected | Function flagged | Missed | Target-category detected | Unmatched findings |",
         "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
     agg = aggregate(coverages)
@@ -350,11 +335,11 @@ def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
         rel = f"{cov['language']}/{cov['specimen']}"
         lines.append(
             f"| [{cov['specimen']}]({rel}/audit/audit.md) | {c['total']} | {c['detected']} | {c['function_flagged']} | "
-            f"{c['advisory_only']} | {c['missed']} | {td}/{len(tgt)} | {len(cov['unmatched_findings'])} |"
+            f"{c['missed']} | {td}/{len(tgt)} | {len(cov['unmatched_findings'])} |"
         )
     lines.append(
         f"| **Total** | **{totals['total']}** | **{totals['detected']}** | **{totals['function_flagged']}** | "
-        f"**{totals['advisory_only']}** | **{totals['missed']}** | **{tgt_det}/{tgt_total}** | **{unmatched_total}** |"
+        f"**{totals['missed']}** | **{tgt_det}/{tgt_total}** | **{unmatched_total}** |"
     )
     lines += [
         "",
@@ -376,13 +361,13 @@ def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
         "",
         "## Per category",
         "",
-        "| Category | Target | Defects | Detected | Function flagged | Advisory only | Missed |",
-        "|---|:---:|---:|---:|---:|---:|---:|",
+        "| Category | Target | Defects | Detected | Function flagged | Missed |",
+        "|---|:---:|---:|---:|---:|---:|" ,
     ]
     for cat, v in sorted(by_cat.items(), key=lambda kv: (kv[0] not in TARGET_CATEGORIES, kv[0])):
         lines.append(
             f"| {cat} | {'yes' if cat in TARGET_CATEGORIES else ''} | {v['total']} | {v['detected']} | "
-            f"{v['function_flagged']} | {v['advisory_only']} | {v['missed']} |"
+            f"{v['function_flagged']} | {v['missed']} |"
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -428,7 +413,7 @@ def history_entry(coverages: list[dict], meta: dict, corpus: dict) -> dict:
         "llm_configured": meta["llm_configured"],
         "corpus": corpus,
         "totals": {k: t[k] for k in ("total", "detected", "function_flagged",
-                                    "advisory_only", "missed",
+                                    "missed",
                                     "target_total", "target_detected")},
         "by_language": {
             lang: {"total": v["total"], "detected": v["detected"], "flagged": v["flagged"],
@@ -783,7 +768,7 @@ def main(argv: list[str]) -> int:
         cov = audit_specimen(d, agent_repo, mumei_bin, args.timeout, meta)
         c = cov["counts"]
         print(f"{cov['specimen']}: {c['detected']}/{c['total']} detected, {c['function_flagged']} function-flagged, "
-              f"{c['advisory_only']} advisory, {c['missed']} missed, {len(cov['unmatched_findings'])} unmatched")
+              f"{c['missed']} missed, {len(cov['unmatched_findings'])} unmatched")
         coverages.append(cov)
     if not args.specimens:
         write_summary(coverages, meta, Path(args.summary))

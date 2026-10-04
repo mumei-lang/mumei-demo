@@ -67,19 +67,6 @@ def test_rewrite_paths_nested():
     }
 
 
-# --- advisory_functions ----------------------------------------------------
-
-def test_advisory_functions_extracts_name():
-    audit = {
-        "next_steps": [
-            {"action": "underspecified な意図を明文化（推測で補完しない）: withdraw.requires"},
-            {"action": "plain advisory without a dotted name"},
-            {"action": "another: Vault.deposit.ensures"},
-        ]
-    }
-    assert rsa.advisory_functions(audit) == ["withdraw", "Vault.deposit"]
-
-
 # --- score -----------------------------------------------------------------
 
 def _defect(did, func, category, file="app.py"):
@@ -118,9 +105,6 @@ def _audit():
             },
             {"source_file": "specimens/python/py-01-demo/other.py"},
         ],
-        "next_steps": [
-            {"action": "underspecified intent: cleanup.requires"},
-        ],
     }
 
 
@@ -140,7 +124,7 @@ def test_score_statuses():
     by_id = {r["id"]: r for r in scored["defects"]}
     assert by_id["PY01-D01"]["status"] == "detected"
     assert by_id["PY01-D02"]["status"] == "function_flagged"
-    assert by_id["PY01-D03"]["status"] == "advisory_only"
+    assert by_id["PY01-D03"]["status"] == "missed"
     assert by_id["PY01-D04"]["status"] == "missed"
 
 
@@ -159,12 +143,12 @@ def test_counts():
         {"status": "detected"},
         {"status": "detected"},
         {"status": "function_flagged"},
-        {"status": "advisory_only"},
+        {"status": "missed"},
         {"status": "missed"},
     ]
     assert rsa.counts(results) == {
         "total": 5, "detected": 2, "function_flagged": 1,
-        "advisory_only": 1, "missed": 1,
+        "missed": 2,
     }
 
 
@@ -197,16 +181,16 @@ def test_write_summary(tmp_path):
         ]),
         _coverage("rs-01-b", "rust", [
             d("function_flagged", "division-by-zero"),
-            d("advisory_only", "error-handling"),
+            d("missed", "error-handling"),
         ]),
     ]
     out = tmp_path / "AUDIT_SUMMARY.md"
     rsa.write_summary(coverages, meta, out)
     text = out.read_text()
-    assert "| **Total** | **5** | **2** | **1** | **1** | **1** | **1/2** | **0** |" in text
+    assert "| **Total** | **5** | **2** | **1** | **2** | **1/2** | **0** |" in text
     assert "| python | 3 | 2 (67%) | 2 (67%) | 1/1 (100%) |" in text
     assert "| rust | 2 | 0 (0%) | 1 (50%) | 0/1 (0%) |" in text
-    assert "| [py-01-a](python/py-01-a/audit/audit.md) | 3 | 2 | 0 | 0 | 1 | 1/1 | 0 |" in text
+    assert "| [py-01-a](python/py-01-a/audit/audit.md) | 3 | 2 | 0 | 1 | 1/1 | 0 |" in text
 
 
 # --- aggregate / history / scoreboard ---------------------------------------
@@ -222,18 +206,18 @@ def test_aggregate_numbers():
         ]),
         _coverage("rs-01-b", "rust", [
             d("function_flagged", "division-by-zero"),
-            d("advisory_only", "error-handling"),
+            d("missed", "error-handling"),
         ]),
     ]
     agg = rsa.aggregate(coverages)
     assert agg["totals"] == {"total": 5, "detected": 2, "function_flagged": 1,
-                            "advisory_only": 1, "missed": 1,
+                            "missed": 2,
                             "target_total": 2, "target_detected": 1, "unmatched": 0}
     assert agg["by_language"]["python"] == {"total": 3, "detected": 2, "flagged": 2,
                                             "target_total": 1, "target_detected": 1}
     assert agg["by_language"]["rust"]["flagged"] == 1
     assert agg["by_category"]["integer-overflow"] == {
-        "total": 1, "detected": 1, "function_flagged": 0, "advisory_only": 0,
+        "total": 1, "detected": 1, "function_flagged": 0,
         "missed": 0, "in_target": True}
     assert agg["by_category"]["sql-injection"]["in_target"] is False
 
@@ -249,7 +233,7 @@ def _run(agent="aaaaaaa1111", mumei="bbbbbbb2222", corpus_hash="h1",
         "llm_configured": True,
         "corpus": {"specimens": 2, "defects": total, "hash": corpus_hash},
         "totals": {"total": total, "detected": detected,
-                   "function_flagged": flagged_extra, "advisory_only": 0,
+                   "function_flagged": flagged_extra,
                    "missed": total - detected - flagged_extra,
                    "target_total": tgt_total, "target_detected": tgt_det},
         "by_language": {
