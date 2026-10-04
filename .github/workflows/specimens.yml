@@ -1,0 +1,24 @@
+name: specimens
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "specimens/**"
+      - "scripts/check_specimens.py"
+      - "tests/test_check_specimens.py"
+      - ".github/workflows/specimens.yml"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate specimens
+        run: python3 scripts/check_specimens.py
+      - name: Run validator tests
+        run: python3 -m pytest tests/test_check_specimens.py -q
