@@ -715,8 +715,8 @@ def svg_history(runs: list[dict]) -> str:
     A mode with no runs appears in the legend only, marked "(not run yet)"."""
     if not runs:
         return svg_placeholder()
-    mode_runs = {False: [r for r in runs if not entry_llm(r)],
-                 True: [r for r in runs if entry_llm(r)]}
+    mode_runs = {False: [(i, r) for i, r in enumerate(runs) if not entry_llm(r)],
+                 True: [(i, r) for i, r in enumerate(runs) if entry_llm(r)]}
     W, H = 720, 360
     left, right, top, bottom = 60, 30, 60, 88
     plot_w, plot_h = W - left - right, H - top - bottom
@@ -733,9 +733,8 @@ def svg_history(runs: list[dict]) -> str:
          / r["totals"]["total"] if r["totals"]["total"] else 0.0),
     ]
 
-    def xy_for(series_runs: list[dict], i: int, pct_val: float) -> tuple[float, float]:
-        x = left + (plot_w * i / (len(series_runs) - 1)
-                    if len(series_runs) > 1 else plot_w / 2)
+    def xy(i: int, pct_val: float) -> tuple[float, float]:
+        x = left + (plot_w * i / (len(runs) - 1) if len(runs) > 1 else plot_w / 2)
         y = top + plot_h * (1 - pct_val / 100)
         return x, y
 
@@ -761,7 +760,7 @@ def svg_history(runs: list[dict]) -> str:
         suffix = "" if mode is False else " (with LLM)"
         dash = ' stroke-dasharray="5 3"' if mode else ""
         for name, color, fn in metrics:
-            pts = [xy_for(series_runs, i, fn(r)) for i, r in enumerate(series_runs)]
+            pts = [xy(i, fn(r)) for i, r in series_runs]
             if len(pts) > 1:
                 d = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
                 parts.append(f'  <polyline points="{d}" fill="none" stroke="{color}" '
@@ -769,15 +768,20 @@ def svg_history(runs: list[dict]) -> str:
             for x, y in pts:
                 parts.append(f'  <circle cx="{x:.1f}" cy="{y:.1f}" r="3.5" fill="{color}"/>')
             legend.append((f"{name}{suffix}", color))
-        for i, r in enumerate(series_runs):
-            x, _ = xy_for(series_runs, i, 0)
-            sha = (r.get("mumei_agent_commit") or "?")[:7]
-            date = (r.get("generated_at") or "")[:10]
-            tag = _MODE_LABEL[mode]
-            parts.append(f'  <text x="{x:.1f}" y="{H - bottom + 18}" font-size="10" '
-                         f'fill="#57606a" text-anchor="middle">'
-                         f'<tspan x="{x:.1f}" dy="0">{_esc(sha)}</tspan>'
-                         f'<tspan x="{x:.1f}" dy="12">{_esc(date)} · {tag}</tspan></text>')
+    # one x label per run, at the run's global (chronological) index
+    seen_x: set[float] = set()
+    for i, r in enumerate(runs):
+        x, _ = xy(i, 0)
+        if x in seen_x:
+            continue
+        seen_x.add(x)
+        sha = (r.get("mumei_agent_commit") or "?")[:7]
+        date = (r.get("generated_at") or "")[:10]
+        tag = _MODE_LABEL[entry_llm(r)]
+        parts.append(f'  <text x="{x:.1f}" y="{H - bottom + 18}" font-size="10" '
+                     f'fill="#57606a" text-anchor="middle">'
+                     f'<tspan x="{x:.1f}" dy="0">{_esc(sha)}</tspan>'
+                     f'<tspan x="{x:.1f}" dy="12">{_esc(date)} · {tag}</tspan></text>')
     lx = left
     ly = H - 40
     for name, color in legend:

@@ -582,3 +582,25 @@ def test_svg_modes_parse():
     # two runs in different modes: each mode's series gets its own points
     root = _parse(rsa.svg_history(both))
     assert any(e.tag == f"{ns}circle" for e in root.iter())
+
+
+def test_svg_history_shared_x_axis_per_mode():
+    # two no-LLM runs with one with-LLM run in between: all three land on
+    # distinct global-index x positions and each series marks only its own runs
+    ns = "{http://www.w3.org/2000/svg}"
+    runs = [_run(llm=False, date="2025-01-02"),
+            _run(llm=True, date="2025-01-03", corpus_hash="h2", agent="ddddddd4444"),
+            _run(llm=False, date="2025-01-04", corpus_hash="h3", agent="eeeeeee5555")]
+    root = _parse(rsa.svg_history(runs))
+    label_xs = sorted({
+        float(e.attrib["x"]) for e in root.iter(f"{ns}text")
+        if e.attrib.get("text-anchor") == "middle" and "y" in e.attrib
+    })
+    assert len(label_xs) == 3
+    # the with-LLM run is the middle one on the shared axis
+    middle_x = label_xs[1]
+    llm_circles = [e for e in root.iter(f"{ns}circle")]
+    assert any(float(c.attrib["cx"]) == middle_x for c in llm_circles)
+    text = ET.tostring(root, encoding="unicode")
+    assert "2025-01-03 · With LLM" in text
+    assert "2025-01-02 · No LLM" in text
