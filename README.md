@@ -40,6 +40,18 @@ The `mumei_develop_audit` scenario now passes all three layers with zero origina
 
 ![Mumei Develop Audit live re-run — 0/0 findings, scenario PASS](docs/assets/mumei-develop-audit-result.png)
 
+<!-- scoreboard:start -->
+## Specimen benchmark
+
+An executable corpus of deliberately broken Python/TypeScript/Go/Rust/Solidity apps with ground-truth defects, scored with `mumei-agent audit`. It includes defect classes the tools don't detect yet, so the score is expected to rise over time.
+
+![Detection by language](specimens/scoreboard/by_language.svg)
+
+No benchmark runs yet — the chart fills in after the first full audit run.
+
+Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreboard).
+<!-- scoreboard:end -->
+
 ## Quick Start
 
 ```bash

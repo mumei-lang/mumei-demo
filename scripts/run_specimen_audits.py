@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
 import json
 import os
 import re
@@ -228,6 +229,40 @@ def counts(results: list[dict]) -> dict[str, int]:
     return c
 
 
+def aggregate(coverages: list[dict]) -> dict:
+    """Totals, per-language and per-category stats over a set of coverages.
+
+    Shared by write_summary and the history entry so numbers are computed once.
+    """
+    totals = {"total": 0, "detected": 0, "function_flagged": 0, "advisory_only": 0,
+              "missed": 0, "target_total": 0, "target_detected": 0, "unmatched": 0}
+    by_lang: dict[str, dict[str, int]] = {}
+    by_cat: dict[str, dict[str, Any]] = {}
+    for cov in coverages:
+        c = cov["counts"]
+        for k in ("total", "detected", "function_flagged", "advisory_only", "missed"):
+            totals[k] += c[k]
+        tgt = [r for r in cov["defects"] if r["in_target_category"]]
+        td = sum(1 for r in tgt if r["status"] == "detected")
+        totals["target_total"] += len(tgt)
+        totals["target_detected"] += td
+        totals["unmatched"] += len(cov["unmatched_findings"])
+        lang = by_lang.setdefault(cov["language"], {"total": 0, "detected": 0, "flagged": 0,
+                                                    "target_total": 0, "target_detected": 0})
+        lang["total"] += c["total"]
+        lang["detected"] += c["detected"]
+        lang["flagged"] += c["detected"] + c["function_flagged"]
+        lang["target_total"] += len(tgt)
+        lang["target_detected"] += td
+        for r in cov["defects"]:
+            bc = by_cat.setdefault(r["category"], {"total": 0, "detected": 0, "function_flagged": 0,
+                                                   "advisory_only": 0, "missed": 0,
+                                                   "in_target": r["category"] in TARGET_CATEGORIES})
+            bc["total"] += 1
+            bc[r["status"]] += 1
+    return {"totals": totals, "by_language": by_lang, "by_category": by_cat}
+
+
 def audit_specimen(specimen_dir: Path, agent_repo: Path, mumei_bin: str, timeout: int, meta: dict) -> dict:
     label = str(specimen_dir.relative_to(REPO_ROOT))
     defects_doc = json.loads((specimen_dir / "DEFECTS.json").read_text(encoding="utf-8"))
@@ -301,29 +336,17 @@ def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
         "| Specimen | Defects | Detected | Function flagged | Advisory only | Missed | Target-category detected | Unmatched findings |",
         "|---|---:|---:|---:|---:|---:|---:|---:|",
     ]
-    totals = {"total": 0, "detected": 0, "function_flagged": 0, "advisory_only": 0, "missed": 0}
-    tgt_total = tgt_det = unmatched_total = 0
-    by_cat: dict[str, dict[str, int]] = {}
-    by_lang: dict[str, dict[str, int]] = {}
+    agg = aggregate(coverages)
+    totals = agg["totals"]
+    tgt_total = totals["target_total"]
+    tgt_det = totals["target_detected"]
+    unmatched_total = totals["unmatched"]
+    by_cat = agg["by_category"]
+    by_lang = agg["by_language"]
     for cov in coverages:
         c = cov["counts"]
-        for k in totals:
-            totals[k] += c[k]
         tgt = [r for r in cov["defects"] if r["in_target_category"]]
         td = sum(1 for r in tgt if r["status"] == "detected")
-        tgt_total += len(tgt)
-        tgt_det += td
-        unmatched_total += len(cov["unmatched_findings"])
-        lang = by_lang.setdefault(cov["language"], {"total": 0, "detected": 0, "flagged": 0, "tgt": 0, "tgt_det": 0})
-        lang["total"] += c["total"]
-        lang["detected"] += c["detected"]
-        lang["flagged"] += c["detected"] + c["function_flagged"]
-        lang["tgt"] += len(tgt)
-        lang["tgt_det"] += td
-        for r in cov["defects"]:
-            bc = by_cat.setdefault(r["category"], {"total": 0, "detected": 0, "function_flagged": 0, "advisory_only": 0, "missed": 0})
-            bc["total"] += 1
-            bc[r["status"]] += 1
         rel = f"{cov['language']}/{cov['specimen']}"
         lines.append(
             f"| [{cov['specimen']}]({rel}/audit/audit.md) | {c['total']} | {c['detected']} | {c['function_flagged']} | "
@@ -346,7 +369,8 @@ def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
     for lang, v in sorted(by_lang.items()):
         lines.append(
             f"| {lang} | {v['total']} | {v['detected']} ({pct(v['detected'], v['total'])}) | "
-            f"{v['flagged']} ({pct(v['flagged'], v['total'])}) | {v['tgt_det']}/{v['tgt']} ({pct(v['tgt_det'], v['tgt'])}) |"
+            f"{v['flagged']} ({pct(v['flagged'], v['total'])}) | "
+            f"{v['target_detected']}/{v['target_total']} ({pct(v['target_detected'], v['target_total'])}) |"
         )
     lines += [
         "",
@@ -363,6 +387,356 @@ def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+# ---------------------------------------------------------------------------
+# Benchmark history and scoreboard
+# ---------------------------------------------------------------------------
+
+SCOREBOARD_START = "<!-- scoreboard:start -->"
+SCOREBOARD_END = "<!-- scoreboard:end -->"
+
+
+def corpus_info(root: Path) -> dict:
+    """Specimen/defect counts plus a hash of every DEFECTS.json under root."""
+    h = hashlib.sha256()
+    files = sorted(root.glob("*/*/DEFECTS.json"))
+    defects = 0
+    for f in files:
+        rel = f.relative_to(root).as_posix()
+        h.update(rel.encode())
+        h.update(b"\0")
+        data = f.read_bytes()
+        h.update(data)
+        h.update(b"\0")
+        defects += len(json.loads(data)["defects"])
+    return {"specimens": len(files), "defects": defects, "hash": h.hexdigest()}
+
+
+def load_history(path: Path) -> dict:
+    if path.is_file():
+        return json.loads(path.read_text(encoding="utf-8"))
+    return {"schema": 1, "runs": []}
+
+
+def history_entry(coverages: list[dict], meta: dict, corpus: dict) -> dict:
+    agg = aggregate(coverages)
+    t = agg["totals"]
+    return {
+        "generated_at": meta["generated_at"],
+        "mumei_agent_commit": meta["mumei_agent_commit"],
+        "mumei_commit": meta["mumei_commit"],
+        "mumei_version": meta["mumei_version"],
+        "llm_configured": meta["llm_configured"],
+        "corpus": corpus,
+        "totals": {k: t[k] for k in ("total", "detected", "function_flagged",
+                                    "advisory_only", "missed",
+                                    "target_total", "target_detected")},
+        "by_language": {
+            lang: {"total": v["total"], "detected": v["detected"], "flagged": v["flagged"],
+                   "target_total": v["target_total"], "target_detected": v["target_detected"]}
+            for lang, v in agg["by_language"].items()
+        },
+        "by_category": {
+            cat: {"total": v["total"], "detected": v["detected"], "in_target": v["in_target"]}
+            for cat, v in agg["by_category"].items()
+        },
+        "specimens": {
+            cov["specimen"]: {"language": cov["language"],
+                              "total": cov["counts"]["total"],
+                              "detected": cov["counts"]["detected"],
+                              "function_flagged": cov["counts"]["function_flagged"]}
+            for cov in coverages
+        },
+    }
+
+
+def record_run(history_path: Path, entry: dict) -> dict:
+    """Append a run to history.json, replacing the last entry when the run key
+    (agent commit, mumei commit, corpus hash) is unchanged."""
+    hist = load_history(history_path)
+    runs = hist.setdefault("runs", [])
+    key = (entry.get("mumei_agent_commit"), entry.get("mumei_commit"),
+           (entry.get("corpus") or {}).get("hash"))
+    if runs:
+        last = runs[-1]
+        last_key = (last.get("mumei_agent_commit"), last.get("mumei_commit"),
+                    (last.get("corpus") or {}).get("hash"))
+        if last_key == key:
+            runs[-1] = entry
+        else:
+            runs.append(entry)
+    else:
+        runs.append(entry)
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    history_path.write_text(json.dumps(hist, indent=2, sort_keys=True) + "\n",
+                            encoding="utf-8")
+    return hist
+
+
+def _esc(text: Any) -> str:
+    return (str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+
+
+def svg_placeholder(text: str = "No benchmark runs yet", width: int = 720,
+                    height: int = 200) -> str:
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {height}" '
+        f'font-family="sans-serif">\n'
+        f'  <rect width="{width}" height="{height}" fill="white"/>\n'
+        f'  <text x="{width // 2}" y="{height // 2}" font-size="18" fill="#57606a" '
+        f'text-anchor="middle">{_esc(text)}</text>\n'
+        f'</svg>\n'
+    )
+
+
+def svg_by_language(run: dict | None) -> str:
+    """Grouped horizontal bars: detected % and detected-or-flagged % per language."""
+    if run is None:
+        return svg_placeholder()
+    rows = [(lang, v["total"], v["detected"], v["flagged"])
+            for lang, v in sorted(run["by_language"].items())]
+    t = run["totals"]
+    rows.append(("overall", t["total"], t["detected"],
+                 t["detected"] + t["function_flagged"]))
+    sha = (run.get("mumei_agent_commit") or "?")[:7]
+    date = (run.get("generated_at") or "")[:10]
+
+    W = 720
+    label_w, bar_w, bar_h, gap, row_h = 150, 460, 15, 5, 58
+    top, bottom = 78, 78
+    H = top + row_h * len(rows) + bottom
+    x0 = label_w
+
+    def bar(y: int, n: int, d: int, color: str) -> str:
+        p = 100 * n / d if d else 0.0
+        w = bar_w * p / 100
+        return (
+            f'  <rect x="{x0}" y="{y}" width="{w:.1f}" height="{bar_h}" fill="{color}"/>\n'
+            f'  <text x="{x0 + w + 6:.1f}" y="{y + bar_h - 3}" font-size="11" '
+            f'fill="#24292f">{_esc(f"{n}/{d} · {p:.0f}%")}</text>\n'
+        )
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" font-family="sans-serif">',
+        f'  <rect width="{W}" height="{H}" fill="white"/>',
+        f'  <text x="20" y="28" font-size="17" font-weight="bold" fill="#24292f">'
+        f'Specimen benchmark — detection by language</text>',
+        f'  <text x="20" y="47" font-size="12" fill="#57606a">'
+        f'mumei-agent {_esc(sha)} · {_esc(date)}</text>',
+    ]
+    # x-axis: 0..100% in 25% steps
+    axis_y = top + row_h * len(rows) + 6
+    for step in (0, 25, 50, 75, 100):
+        gx = x0 + bar_w * step / 100
+        parts.append(
+            f'  <line x1="{gx:.1f}" y1="{top - 4}" x2="{gx:.1f}" y2="{axis_y}" '
+            f'stroke="#d0d7de" stroke-width="1"/>')
+        parts.append(
+            f'  <text x="{gx:.1f}" y="{axis_y + 16}" font-size="10" fill="#57606a" '
+            f'text-anchor="middle">{step}%</text>')
+    for i, (lang, total, det, flag) in enumerate(rows):
+        y = top + i * row_h
+        weight = "bold" if lang == "overall" else "normal"
+        parts.append(
+            f'  <text x="{x0 - 10}" y="{y + bar_h + gap // 2}" font-size="12" '
+            f'font-weight="{weight}" fill="#24292f" text-anchor="end">{_esc(lang)}</text>')
+        parts.append(bar(y, det, total, "#2f81f7"))
+        parts.append(bar(y + bar_h + gap, flag, total, "#bf8700"))
+    legend_y = axis_y + 36
+    parts += [
+        f'  <rect x="{x0}" y="{legend_y}" width="12" height="12" fill="#2f81f7"/>',
+        f'  <text x="{x0 + 18}" y="{legend_y + 11}" font-size="11" fill="#24292f">detected</text>',
+        f'  <rect x="{x0 + 110}" y="{legend_y}" width="12" height="12" fill="#bf8700"/>',
+        f'  <text x="{x0 + 128}" y="{legend_y + 11}" font-size="11" fill="#24292f">'
+        f'detected or function-flagged</text>',
+        '</svg>',
+    ]
+    return "\n".join(parts) + "\n"
+
+
+def svg_history(runs: list[dict]) -> str:
+    """Line chart of detected %, target detected %, detected-or-flagged % per run."""
+    if not runs:
+        return svg_placeholder()
+    W, H = 720, 340
+    left, right, top, bottom = 60, 30, 60, 70
+    plot_w, plot_h = W - left - right, H - top - bottom
+
+    def xy(i: int, pct_val: float) -> tuple[float, float]:
+        x = left + (plot_w * i / (len(runs) - 1) if len(runs) > 1 else plot_w / 2)
+        y = top + plot_h * (1 - pct_val / 100)
+        return x, y
+
+    series = [
+        ("detected", "#2f81f7",
+         lambda r: 100 * r["totals"]["detected"] / r["totals"]["total"]
+         if r["totals"]["total"] else 0.0),
+        ("target detected", "#1a7f37",
+         lambda r: 100 * r["totals"]["target_detected"] / r["totals"]["target_total"]
+         if r["totals"]["target_total"] else 0.0),
+        ("detected or flagged", "#bf8700",
+         lambda r: 100 * (r["totals"]["detected"] + r["totals"]["function_flagged"])
+         / r["totals"]["total"] if r["totals"]["total"] else 0.0),
+    ]
+
+    parts = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" font-family="sans-serif">',
+        f'  <rect width="{W}" height="{H}" fill="white"/>',
+        f'  <text x="20" y="28" font-size="17" font-weight="bold" fill="#24292f">'
+        f'Specimen benchmark — detection over runs</text>',
+    ]
+    for step in (0, 25, 50, 75, 100):
+        gy = top + plot_h * (1 - step / 100)
+        parts.append(f'  <line x1="{left}" y1="{gy:.1f}" x2="{W - right}" y2="{gy:.1f}" '
+                     f'stroke="#d0d7de" stroke-width="1"/>')
+        parts.append(f'  <text x="{left - 8}" y="{gy + 4:.1f}" font-size="10" '
+                     f'fill="#57606a" text-anchor="end">{step}%</text>')
+    for name, color, fn in series:
+        pts = [xy(i, fn(r)) for i, r in enumerate(runs)]
+        if len(pts) > 1:
+            d = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
+            parts.append(f'  <polyline points="{d}" fill="none" stroke="{color}" '
+                         f'stroke-width="2"/>')
+        for x, y in pts:
+            parts.append(f'  <circle cx="{x:.1f}" cy="{y:.1f}" r="3.5" fill="{color}"/>')
+    for i, r in enumerate(runs):
+        x, _ = xy(i, 0)
+        sha = (r.get("mumei_agent_commit") or "?")[:7]
+        date = (r.get("generated_at") or "")[:10]
+        parts.append(f'  <text x="{x:.1f}" y="{H - bottom + 18}" font-size="10" '
+                     f'fill="#57606a" text-anchor="middle">'
+                     f'<tspan x="{x:.1f}" dy="0">{_esc(sha)}</tspan>'
+                     f'<tspan x="{x:.1f}" dy="12">{_esc(date)}</tspan></text>')
+    lx = left
+    for name, color, _ in series:
+        parts.append(f'  <rect x="{lx}" y="{H - 20}" width="12" height="12" fill="{color}"/>')
+        parts.append(f'  <text x="{lx + 18}" y="{H - 9}" font-size="11" '
+                     f'fill="#24292f">{_esc(name)}</text>')
+        lx += 18 + 8 * len(name) + 24
+    parts.append("</svg>")
+    return "\n".join(parts) + "\n"
+
+
+def _sha7(value: Any) -> str:
+    return (str(value) if value else "?")[:7]
+
+
+def readme_block_specimens(history: dict) -> str:
+    runs = history.get("runs") or []
+    lines = [
+        "## Scoreboard",
+        "",
+        "![Detection by language](scoreboard/by_language.svg)",
+        "",
+        "![Detection over runs](scoreboard/history.svg)",
+        "",
+    ]
+    if not runs:
+        lines += ["No benchmark runs yet. The charts fill in after the first full run.", ""]
+    else:
+        latest = runs[-1]
+        t = latest["totals"]
+        lines += [
+            f"Latest run: mumei-agent `{_sha7(latest.get('mumei_agent_commit'))}` · "
+            f"mumei `{_sha7(latest.get('mumei_commit'))}` ({latest.get('mumei_version')}) · "
+            f"{latest.get('generated_at')} · LLM configured: `{latest.get('llm_configured')}`",
+            "",
+            "| Language | Defects | Detected | Detected % | Detected or flagged % | Target detected |",
+            "|---|---:|---:|---:|---:|---:|",
+        ]
+        for lang, v in sorted(latest["by_language"].items()):
+            lines.append(
+                f"| {lang} | {v['total']} | {v['detected']} | "
+                f"{pct(v['detected'], v['total'])} | {pct(v['flagged'], v['total'])} | "
+                f"{v['target_detected']}/{v['target_total']} |"
+            )
+        lines.append(
+            f"| **Total** | **{t['total']}** | **{t['detected']}** | "
+            f"**{pct(t['detected'], t['total'])}** | "
+            f"**{pct(t['detected'] + t['function_flagged'], t['total'])}** | "
+            f"**{t['target_detected']}/{t['target_total']}** |"
+        )
+        lines += [
+            "",
+            "Recent runs:",
+            "",
+            "| Date | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % |",
+            "|---|---|---|---:|---:|---:|---:|",
+        ]
+        for r in reversed(runs[-10:]):
+            rt = r["totals"]
+            lines.append(
+                f"| {(r.get('generated_at') or '')[:10]} | `{_sha7(r.get('mumei_agent_commit'))}` | "
+                f"`{_sha7(r.get('mumei_commit'))}` | {rt['total']} | "
+                f"{pct(rt['detected'], rt['total'])} | "
+                f"{pct(rt['target_detected'], rt['target_total'])} | "
+                f"{pct(rt['detected'] + rt['function_flagged'], rt['total'])} |"
+            )
+        lines.append("")
+    lines += [
+        "Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md).",
+        "",
+        "Re-run:",
+        "",
+        "```bash",
+        "python3 scripts/run_specimen_audits.py            # needs a mumei binary; set MUMEI_BIN",
+        "                                                # or build ../mumei (cargo build)",
+        "python3 scripts/run_specimen_audits.py --render-only   # re-render charts/READMEs only",
+        "```",
+    ]
+    return "\n".join(lines)
+
+
+def readme_block_top(history: dict) -> str:
+    runs = history.get("runs") or []
+    lines = [
+        "## Specimen benchmark",
+        "",
+        "An executable corpus of deliberately broken Python/TypeScript/Go/Rust/Solidity "
+        "apps with ground-truth defects, scored with `mumei-agent audit`. It includes "
+        "defect classes the tools don't detect yet, so the score is expected to rise over time.",
+        "",
+        "![Detection by language](specimens/scoreboard/by_language.svg)",
+        "",
+    ]
+    if not runs:
+        lines += ["No benchmark runs yet — the chart fills in after the first full audit run.", ""]
+    else:
+        t = runs[-1]["totals"]
+        lines += [
+            f"Latest: {t['detected']}/{t['total']} defects detected "
+            f"({pct(t['detected'], t['total'])}), "
+            f"{t['detected'] + t['function_flagged']}/{t['total']} detected or function-flagged.",
+            "",
+        ]
+    lines += ["Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreboard)."]
+    return "\n".join(lines)
+
+
+def update_scoreboard_block(readme_path: Path, block: str) -> None:
+    text = readme_path.read_text(encoding="utf-8")
+    if SCOREBOARD_START not in text or SCOREBOARD_END not in text:
+        raise SystemExit(f"{readme_path}: missing {SCOREBOARD_START} / {SCOREBOARD_END} markers")
+    pre, rest = text.split(SCOREBOARD_START, 1)
+    _, post = rest.split(SCOREBOARD_END, 1)
+    readme_path.write_text(
+        pre + SCOREBOARD_START + "\n" + block.rstrip() + "\n" + SCOREBOARD_END + post,
+        encoding="utf-8",
+    )
+
+
+def render_scoreboard(scoreboard_dir: Path, specimens_readme: Path, top_readme: Path) -> dict:
+    """Render history.svg / by_language.svg and rewrite both README blocks."""
+    history = load_history(scoreboard_dir / "history.json")
+    latest = history["runs"][-1] if history.get("runs") else None
+    scoreboard_dir.mkdir(parents=True, exist_ok=True)
+    (scoreboard_dir / "by_language.svg").write_text(svg_by_language(latest), encoding="utf-8")
+    (scoreboard_dir / "history.svg").write_text(svg_history(history.get("runs") or []),
+                                                encoding="utf-8")
+    update_scoreboard_block(specimens_readme, readme_block_specimens(history))
+    update_scoreboard_block(top_readme, readme_block_top(history))
+    return history
+
+
 def discover(root: Path) -> list[Path]:
     return sorted(p.parent for p in root.glob("*/*/DEFECTS.json"))
 
@@ -375,7 +749,18 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--mumei-bin", default=os.environ.get("MUMEI_BIN"))
     parser.add_argument("--timeout", type=int, default=900, help="per-audit timeout in seconds")
     parser.add_argument("--summary", default=str(SPECIMENS_ROOT / "AUDIT_SUMMARY.md"))
+    parser.add_argument("--scoreboard-dir", default=str(SPECIMENS_ROOT / "scoreboard"))
+    parser.add_argument("--specimens-readme", default=str(SPECIMENS_ROOT / "README.md"))
+    parser.add_argument("--top-readme", default=str(REPO_ROOT / "README.md"))
+    parser.add_argument("--render-only", action="store_true",
+                        help="re-render scoreboard SVGs and README blocks from history.json "
+                             "without running any audits")
     args = parser.parse_args(argv)
+
+    if args.render_only:
+        render_scoreboard(Path(args.scoreboard_dir), Path(args.specimens_readme),
+                          Path(args.top_readme))
+        return 0
 
     agent_repo = Path(args.mumei_agent_repo).resolve()
     mumei_repo = Path(args.mumei_repo).resolve()
@@ -402,6 +787,11 @@ def main(argv: list[str]) -> int:
         coverages.append(cov)
     if not args.specimens:
         write_summary(coverages, meta, Path(args.summary))
+        scoreboard_dir = Path(args.scoreboard_dir)
+        record_run(scoreboard_dir / "history.json",
+                   history_entry(coverages, meta, corpus_info(SPECIMENS_ROOT)))
+        render_scoreboard(scoreboard_dir, Path(args.specimens_readme),
+                          Path(args.top_readme))
     return 0
 
 

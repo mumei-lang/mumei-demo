@@ -10,6 +10,13 @@ measured against a known ground truth.
 are fake, and the Solidity contracts are only meant for a local Foundry test
 run.
 
+The corpus is a long-running benchmark: it intentionally includes defect
+classes outside what the audit detects today, so the score has room to rise as
+the tools improve. `scripts/run_specimen_audits.py` re-runs the audit after
+Mumei/mumei-agent updates and records each run in
+[`scoreboard/history.json`](scoreboard/history.json); the charts below are
+rendered from it.
+
 ## Layout
 
 ```text
@@ -140,3 +147,23 @@ The validator checks each specimen's files, validates `DEFECTS.json` against
 `DEFECTS.schema.json`, verifies anchors and line numbers against the source,
 scans for spoiler words, and enforces unique `Default port:` values for web
 specimens. It exits non-zero listing every problem found.
+
+<!-- scoreboard:start -->
+## Scoreboard
+
+![Detection by language](scoreboard/by_language.svg)
+
+![Detection over runs](scoreboard/history.svg)
+
+No benchmark runs yet. The charts fill in after the first full run.
+
+Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md).
+
+Re-run:
+
+```bash
+python3 scripts/run_specimen_audits.py            # needs a mumei binary; set MUMEI_BIN
+                                                # or build ../mumei (cargo build)
+python3 scripts/run_specimen_audits.py --render-only   # re-render charts/READMEs only
+```
+<!-- scoreboard:end -->
