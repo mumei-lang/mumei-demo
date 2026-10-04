@@ -231,13 +231,14 @@ def test_aggregate_numbers():
 
 def _run(agent="aaaaaaa1111", mumei="bbbbbbb2222", corpus_hash="h1",
          date="2025-01-02", detected=3, total=10, flagged_extra=1,
-         tgt_total=5, tgt_det=2):
+         tgt_total=5, tgt_det=2, llm=True):
     return {
         "generated_at": f"{date}T00:00:00Z",
         "mumei_agent_commit": agent,
         "mumei_commit": mumei,
         "mumei_version": "mumei 0.1",
-        "llm_configured": True,
+        "llm_configured": llm,
+        "llm": llm,
         "corpus": {"specimens": 2, "defects": total, "hash": corpus_hash},
         "totals": {"total": total, "detected": detected,
                    "function_flagged": flagged_extra,
@@ -283,17 +284,18 @@ def _parse(svg):
 
 
 def test_svg_by_language_parses_and_labels():
-    svg = rsa.svg_by_language(None)
+    svg = rsa.svg_by_language({False: None, True: None})
     root = _parse(svg)
     assert "No benchmark runs yet" in ET.tostring(root, encoding="unicode")
-    run = _run()
-    svg = rsa.svg_by_language(run)
+    run = _run(llm=False)
+    svg = rsa.svg_by_language(rsa.latest_by_mode([run]))
     root = _parse(svg)
     text = ET.tostring(root, encoding="unicode")
     assert "Specimen benchmark — detection by language" in text
     assert "aaaaaaa" in text  # sha7 subtitle
     assert "python" in text and "rust" in text and "overall" in text
     assert "2/6 · 33%" in text  # detected bar label
+    assert "With LLM (not run yet)" in text
     assert root.attrib["viewBox"].startswith("0 0 ")
 
 
@@ -366,7 +368,7 @@ def test_render_only_end_to_end(tmp_path):
     assert "Recent runs" in spec_text and "aaaaaaa" in spec_text
     top_text = top_readme.read_text()
     assert "## Specimen benchmark" in top_text
-    assert "3/10 defects detected" in top_text
+    assert "3/10 detected" in top_text
 
 
 def test_category_hit_ignores_generic_audit_wording():
@@ -509,3 +511,74 @@ def test_scoring_hash_missing_and_present(tmp_path):
     (tmp_path / "scoreboard" / "adjudications.json").write_text('{"adjudications":[]}')
     assert rsa.scoring_hash(tmp_path) == hashlib.sha256(
         b'{"adjudications":[]}').hexdigest()
+
+
+def test_record_run_llm_modes_stay_separate(tmp_path):
+    hp = tmp_path / "history.json"
+    rsa.record_run(hp, _run(llm=False))
+    # a with-LLM run on the same key appends instead of replacing
+    rsa.record_run(hp, _run(llm=True, date="2025-01-03", detected=5))
+    hist = json.loads(hp.read_text())
+    assert len(hist["runs"]) == 2
+    assert [rsa.entry_llm(r) for r in hist["runs"]] == [False, True]
+    # a rerun in one mode replaces only that mode's entry
+    rsa.record_run(hp, _run(llm=True, date="2025-01-04", detected=7))
+    hist = json.loads(hp.read_text())
+    assert len(hist["runs"]) == 2
+    assert hist["runs"][1]["totals"]["detected"] == 7
+    assert hist["runs"][0]["totals"]["detected"] == 3
+    # older entries without an `llm` key infer the mode from llm_configured
+    legacy = _run(llm=False, detected=9)
+    del legacy["llm"]
+    assert rsa.entry_llm(legacy) is False
+    rsa.record_run(hp, legacy)
+    hist = json.loads(hp.read_text())
+    # the legacy run keys as no-LLM, so it replaces that mode's entry — which is
+    # not the last one, so it appends instead of clobbering the with-LLM run
+    assert len(hist["runs"]) == 3
+    assert [rsa.entry_llm(r) for r in hist["runs"]] == [False, True, False]
+
+
+def test_latest_by_mode_picks_newest_per_mode():
+    runs = [_run(llm=False, date="2025-01-02"),
+            _run(llm=False, date="2025-02-01", detected=8),
+            _run(llm=True, date="2025-01-05", detected=1)]
+    modes = rsa.latest_by_mode(runs)
+    assert modes[False]["totals"]["detected"] == 8
+    assert modes[True]["totals"]["detected"] == 1
+
+
+def test_readme_blocks_no_llm_run_shows_llm_placeholder():
+    block = rsa.readme_block_specimens({"runs": [_run(llm=False)]})
+    assert "With LLM detected" in block
+    assert "not run yet" in block
+    assert "—" in block
+    assert "| LLM |" in block
+    top = rsa.readme_block_top({"runs": [_run(llm=False)]})
+    assert "no LLM: 3/10 detected" in top
+    assert "with LLM: not run yet" in top
+
+
+def test_readme_blocks_llm_run_fills_columns():
+    block = rsa.readme_block_specimens(
+        {"runs": [_run(llm=False), _run(llm=True, date="2025-01-03", detected=5)]})
+    assert "5/10 (50%)" in block
+    assert "not run yet" not in block
+    top = rsa.readme_block_top(
+        {"runs": [_run(llm=False), _run(llm=True, detected=5)]})
+    assert "with LLM: 5/10 detected" in top
+
+
+def test_svg_modes_parse():
+    ns = "{http://www.w3.org/2000/svg}"
+    both = [_run(llm=False), _run(llm=True, date="2025-01-03", corpus_hash="h2")]
+    for runs in ([_run(llm=False)], both):
+        root = _parse(rsa.svg_by_language(rsa.latest_by_mode(runs)))
+        text = ET.tostring(root, encoding="unicode")
+        assert "detected" in text
+        hist = _parse(rsa.svg_history(runs))
+        htext = ET.tostring(hist, encoding="unicode")
+        assert "(not run yet)" in htext or "with LLM" in htext
+    # two runs in different modes: each mode's series gets its own points
+    root = _parse(rsa.svg_history(both))
+    assert any(e.tag == f"{ns}circle" for e in root.iter())

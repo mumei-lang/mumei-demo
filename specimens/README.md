@@ -164,22 +164,25 @@ specimens. It exits non-zero listing every problem found.
 
 ![Detection over runs](scoreboard/history.svg)
 
-Latest run: mumei-agent `8f85274` · mumei `d5fe4b6` (mumei 0.6.20) · 2026-10-04T06:27:28Z · LLM configured: `False`
+Latest run — no llm: mumei-agent `8f85274` · mumei `d5fe4b6` (mumei 0.6.20) · 2026-10-04T06:27:28Z
+Latest run — with llm: not run yet.
 
-| Language | Defects | Detected | Detected % | Detected or flagged % | Target detected |
+| Language | Defects | No LLM detected | No LLM detected or flagged | With LLM detected | With LLM detected or flagged |
 |---|---:|---:|---:|---:|---:|
-| go | 32 | 1 | 3% | 3% | 1/11 |
-| python | 41 | 1 | 2% | 5% | 1/15 |
-| rust | 34 | 1 | 3% | 9% | 1/14 |
-| solidity | 31 | 6 | 19% | 71% | 5/19 |
-| typescript | 33 | 1 | 3% | 3% | 1/12 |
-| **Total** | **171** | **10** | **6%** | **17%** | **9/71** |
+| go | 32 | 1/32 (3%) | 1/32 (3%) | — | — |
+| python | 41 | 1/41 (2%) | 2/41 (5%) | — | — |
+| rust | 34 | 1/34 (3%) | 3/34 (9%) | — | — |
+| solidity | 31 | 6/31 (19%) | 22/31 (71%) | — | — |
+| typescript | 33 | 1/33 (3%) | 1/33 (3%) | — | — |
+| **Total** | **171** | **10/171 (6%)** | **29/171 (17%)** | **—** | **—** |
+
+_With LLM: not run yet._
 
 Recent runs:
 
-| Date | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % |
-|---|---|---|---:|---:|---:|---:|
-| 2026-10-04 | `8f85274` | `d5fe4b6` | 171 | 6% | 13% | 17% |
+| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % |
+|---|---|---|---|---|---:|---:|---:|
+| 2026-10-04 | no | `8f85274` | `d5fe4b6` | 171 | 6% | 13% | 17% |
 
 Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md).
 
@@ -190,4 +193,10 @@ python3 scripts/run_specimen_audits.py            # needs a mumei binary; set MU
                                                 # or build ../mumei (cargo build)
 python3 scripts/run_specimen_audits.py --render-only   # re-render charts/READMEs only
 ```
+
+The scoreboard tracks two series: audits run without an LLM provider and audits run with
+one. To record a with-LLM run, configure an LLM provider for mumei-agent — `LLM_API_KEY`
+(or `OPENAI_API_KEY`), plus `LLM_BASE_URL` / `LLM_MODEL` as needed, or a `.env` file in the
+agent repo — and re-run the full audit. Each mode keeps its own history entries and the
+tables above show the latest run of each side by side.
 <!-- scoreboard:end -->
