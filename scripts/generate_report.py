@@ -332,6 +332,42 @@ def intent_fidelity_label(data: dict) -> str:
     return " · ".join(parts)
 
 
+def claim_book_label(data: dict) -> str:
+    if "claim_book" not in data:
+        return "N/A"
+    claim_book = data.get("claim_book")
+    if not isinstance(claim_book, dict):
+        return "unavailable"
+    entries = claim_book.get("entries", [])
+    if not isinstance(entries, list):
+        return "unavailable"
+    ok_entries = [
+        entry for entry in entries
+        if isinstance(entry, dict) and entry.get("status") == "ok"
+    ]
+    if not ok_entries:
+        statuses = {
+            entry.get("status")
+            for entry in entries
+            if isinstance(entry, dict)
+        }
+        return "skipped" if statuses == {"skipped"} else "unavailable"
+    totals = claim_book.get("totals", {})
+    if not isinstance(totals, dict):
+        totals = {}
+    grades = totals.get("by_effective_grade", {})
+    freshness = totals.get("by_freshness", {})
+    if not isinstance(grades, dict):
+        grades = {}
+    if not isinstance(freshness, dict):
+        freshness = {}
+    g4plus = int(grades.get("G4", 0) or 0) + int(grades.get("G5", 0) or 0)
+    total = int(totals.get("total", 0) or 0)
+    drifted = int(freshness.get("drifted", 0) or 0)
+    uncertified = int(freshness.get("uncertified", 0) or 0)
+    return f"{g4plus}/{total} machine-sealed · {drifted} drifted · {uncertified} uncertified"
+
+
 def render_artifact_contract_payloads(data: dict) -> str:
     payloads = data.get("artifact_payloads", {})
     if not isinstance(payloads, dict) or not payloads:
@@ -485,6 +521,49 @@ def render_layer_breakdown_markdown(data: dict) -> str:
     return "\n".join(lines)
 
 
+def render_claim_book_markdown(data: dict) -> str:
+    claim_book = data.get("claim_book", {})
+    entries = claim_book.get("entries", []) if isinstance(claim_book, dict) else []
+    lines = [
+        "## Claim Book",
+        "",
+        "| Step | Status | Claims | G4+ | G1 | G0 | Fresh | Drifted | Uncertified | Incomplete | Lowest grade |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+    ]
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict):
+            continue
+        step = str(entry.get("step", "")).replace("|", "\\|")
+        status = str(entry.get("status", "unavailable"))
+        if status == "ok":
+            grades = entry.get("by_effective_grade", {})
+            freshness = entry.get("by_freshness", {})
+            grades = grades if isinstance(grades, dict) else {}
+            freshness = freshness if isinstance(freshness, dict) else {}
+            values = [
+                str(entry.get("total", 0)),
+                str(int(grades.get("G4", 0) or 0) + int(grades.get("G5", 0) or 0)),
+                str(grades.get("G1", 0)),
+                str(grades.get("G0", 0)),
+                str(freshness.get("fresh", 0)),
+                str(freshness.get("drifted", 0)),
+                str(freshness.get("uncertified", 0)),
+                str(entry.get("incomplete", 0)),
+                str(entry.get("lowest_effective_grade") or "-"),
+            ]
+        else:
+            detail = str(entry.get("detail", "")).replace("|", "\\|").replace("\n", " ")
+            if detail:
+                status = f"{status}: {detail}"
+            values = ["-"] * 9
+        lines.append(f"| {step} | {status} | {' | '.join(values)} |")
+    lines.extend([
+        "",
+        "Informational: the Claim Book does not change the scenario status.",
+    ])
+    return "\n".join(lines)
+
+
 def render_duration_markdown(data: dict) -> str:
     lines = [
         "## Duration",
@@ -528,6 +607,10 @@ def render_scenario_markdown(data: dict, root: Path) -> str:
         render_bug_detection_markdown(data, root),
         "",
         render_proof_density_markdown(data),
+    ]
+    if "claim_book" in data:
+        lines.extend(["", render_claim_book_markdown(data)])
+    lines.extend([
         "",
         render_harness_contract_markdown(data),
         "",
@@ -535,7 +618,7 @@ def render_scenario_markdown(data: dict, root: Path) -> str:
         "",
         render_duration_markdown(data),
         "",
-    ]
+    ])
     return "\n".join(lines)
 
 
@@ -553,7 +636,7 @@ def write_summary(
     scenarios: list[str],
     require_all: bool,
 ) -> int:
-    rows: list[tuple[str, str, int, int, float, str, str, str]] = []
+    rows: list[tuple[str, str, int, int, float, str, str, str, str]] = []
     missing: list[str] = []
     for scenario in scenarios:
         result_path = latest_result_path(reports_dir, scenario)
@@ -574,6 +657,7 @@ def write_summary(
             lean_density,
             compliance_label(data),
             intent_fidelity_label(data),
+            claim_book_label(data),
         ))
 
     lines = [
@@ -581,12 +665,12 @@ def write_summary(
         "",
         f"Generated: {generated_at()}",
         "",
-        "| Scenario | Overall status | Verified | Total | Proof density | Lean proof coverage | Harness contract compliance | Intent fidelity |",
-        "| --- | --- | ---: | ---: | ---: | ---: | --- | --- |",
+        "| Scenario | Overall status | Verified | Total | Proof density | Lean proof coverage | Harness contract compliance | Intent fidelity | Claim Book |",
+        "| --- | --- | ---: | ---: | ---: | ---: | --- | --- | --- |",
     ]
-    for scenario, status, verified, total, percentage, lean_density, compliance, intent_fidelity in rows:
+    for scenario, status, verified, total, percentage, lean_density, compliance, intent_fidelity, claim_book in rows:
         lines.append(
-            f"| `{scenario}` | {status} | {verified} | {total} | {percentage:g}% | {lean_density} | {compliance} | {intent_fidelity} |"
+            f"| `{scenario}` | {status} | {verified} | {total} | {percentage:g}% | {lean_density} | {compliance} | {intent_fidelity} | {claim_book} |"
         )
     if missing:
         lines.extend(["", "## Missing results", ""])
@@ -633,6 +717,7 @@ def write_highlights(
             lines.append(f"- Lean proof coverage: {density_label(*layer_density_values(data, 'l3_lean'))}")
         lines.append(f"- Harness contract compliance: {compliance_label(data)}")
         lines.append(f"- Intent fidelity: {intent_fidelity_label(data)}")
+        lines.append(f"- Claim Book: {claim_book_label(data)}")
         lines.extend([
             "",
             bug_detection_moment(data, root, "### Bug Detection Moment", "####"),

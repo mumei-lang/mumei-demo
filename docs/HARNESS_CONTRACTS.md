@@ -19,7 +19,7 @@ still controlled by `layers`, `steps`, `expected_exit`, `expected_patterns`,
 | Contract item | Definition |
 | --- | --- |
 | Inputs | Scenario `.mm` files, sibling `mumei` checkout, `{mumei_bin}`, optional Mumei test fixtures, and upstream generated files such as `{output_dir}/generated.mm`. |
-| Outputs | Per-step log, `PASS` or expected `REJECTED` status in `result.json`, optional `*.proof.json` proof certificate, and dashboard/report rows. |
+| Outputs | Per-step log, `PASS` or expected `REJECTED` status in `result.json`, optional `*.proof.json` proof certificate, optional Claim Book report under `{output_dir}/claimbook/<step-id>/claimbook.json`, and dashboard/report rows. The Claim Book summary is informational and never changes a step status or `overall_status`. |
 | Verification gate | The command exit code must match `expected_exit`; every `expected_patterns` substring must appear in stdout/stderr; expected failures must set `expect_failure: true`; declared artifacts are trusted only when written under `{output_dir}`. |
 | Stop conditions | Unexpected exit code, missing expected diagnostic, failed `depends_on` prerequisite, missing verifier binary/source path, or missing proof artifact required by a downstream stage. |
 
@@ -72,6 +72,34 @@ Each step can additionally declare:
   "failure_taxonomy": "temporal_state_violation"
 }
 ```
+
+- A `claim_book` step field can name the source contract and the proof
+  certificate file name to inspect:
+
+```json
+{
+  "claim_book": {
+    "source": "{root_dir}/scenarios/example/correct_code.mm",
+    "cert": "example.proof.json"
+  }
+}
+```
+
+- The runner invokes `mumei claims` only after the step passes. A non-passing
+  step records a `skipped` entry; a command or output problem records
+  `unavailable`. Successful entries include Claim Book counts, freshness,
+  certificate integrity, incompleteness, and the lowest effective grade.
+- When present, `result.json` and `harness_state.json` contain
+  `claim_book: {entries, totals}`. Each entry has `step`, `status`, `source`,
+  `cert`, and `file`; successful entries also have `total`,
+  `by_effective_grade`, `by_freshness`, `certificate_integrity`, `incomplete`,
+  and `lowest_effective_grade`. Unavailable entries record `exit_code` and a
+  diagnostic `detail`. Totals sum claim counts and grade/freshness counts
+  across successful entries, including the number of incomplete claims and
+  lowest effective grade.
+- Claim Book JSON files remain separate outputs and are not inlined into
+  `artifact_payloads`. The Claim Book is informational only and never gates a
+  step or changes a step status or scenario `overall_status`.
 
 - `harness_stage` is a stable stage label for reports and ablation tooling.
 - `artifact_contract` lists generated files or evidence keys that make the gate

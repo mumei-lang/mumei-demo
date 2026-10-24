@@ -48,6 +48,10 @@
         "name": "Z3 Scale Verification: InsulinPump pipeline",
         "repo": "mumei",
         "command": "{mumei_bin} verify {root_dir}/scenarios/medical_device_scale/correct_code.mm --proof-cert --output {output_dir}/medical_device_scale.proof-cert.json",
+        "claim_book": {
+          "source": "{root_dir}/scenarios/medical_device_scale/correct_code.mm",
+          "cert": "medical_device_scale.proof-cert.json"
+        },
         "expected_exit": 0,
         "expected_patterns": [
           "Verification passed"

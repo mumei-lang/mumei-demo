@@ -61,6 +61,10 @@
         "name": "Z3 Correct Implementation Verification",
         "repo": "mumei",
         "command": "{mumei_bin} verify {root_dir}/scenarios/self_correction_demo/correct_code.mm --proof-cert --output {output_dir}/self_correction.proof.json",
+        "claim_book": {
+          "source": "{root_dir}/scenarios/self_correction_demo/correct_code.mm",
+          "cert": "self_correction.proof.json"
+        },
         "expected_exit": 0,
         "expected_patterns": [
           "Verification passed"

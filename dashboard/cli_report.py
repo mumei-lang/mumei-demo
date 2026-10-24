@@ -81,6 +81,42 @@ def intent_fidelity_label(data: dict) -> str:
     return status
 
 
+def claim_book_label(data: dict) -> str:
+    if "claim_book" not in data:
+        return "N/A"
+    claim_book = data.get("claim_book")
+    if not isinstance(claim_book, dict):
+        return "unavailable"
+    entries = claim_book.get("entries", [])
+    if not isinstance(entries, list):
+        return "unavailable"
+    ok_entries = [
+        entry for entry in entries
+        if isinstance(entry, dict) and entry.get("status") == "ok"
+    ]
+    if not ok_entries:
+        statuses = {
+            entry.get("status")
+            for entry in entries
+            if isinstance(entry, dict)
+        }
+        return "skipped" if statuses == {"skipped"} else "unavailable"
+    totals = claim_book.get("totals", {})
+    if not isinstance(totals, dict):
+        totals = {}
+    grades = totals.get("by_effective_grade", {})
+    freshness = totals.get("by_freshness", {})
+    if not isinstance(grades, dict):
+        grades = {}
+    if not isinstance(freshness, dict):
+        freshness = {}
+    g4plus = int(grades.get("G4", 0) or 0) + int(grades.get("G5", 0) or 0)
+    total = int(totals.get("total", 0) or 0)
+    drifted = int(freshness.get("drifted", 0) or 0)
+    uncertified = int(freshness.get("uncertified", 0) or 0)
+    return f"{g4plus}/{total} machine-sealed · {drifted} drifted · {uncertified} uncertified"
+
+
 def render(data: dict) -> str:
     title = f"  Mumei Verification Report: {data.get('scenario_name', data.get('scenario'))}"
     narrative = data.get("narrative", {})
@@ -115,12 +151,14 @@ def render(data: dict) -> str:
         table.append(f"  Lean Coverage: {lean_label}")
     table.append(f"  Harness Contract: {compliance_label(data)}")
     table.append(f"  Intent Fidelity:  {intent_fidelity_label(data)}")
+    table.append(f"  Claim Book:       {claim_book_label(data)}")
     table.append(f"  Harness State:    {data.get('harness_state_file', 'N/A')}")
     table.extend([
         f"  Audit Status:  {audit_status}",
         "  Moment:        Proof failure → Bug found",
     ])
-    return box([title, *table])
+    lines = [title, *table]
+    return box(lines, width=max(68, min(max(map(len, lines)) + 4, 120)))
 
 
 def latest_result(scenario_dir: Path) -> Path | None:
@@ -134,15 +172,15 @@ def latest_result(scenario_dir: Path) -> Path | None:
 
 def render_all() -> str:
     lines = [
-        "Scenario                  Status      Verification  Proof Density       Lean Coverage  Harness Contract  Intent Fidelity",
-        "────────────────────────  ──────────  ────────────  ──────────────────  ─────────────  ─────────────────  ───────────────",
+        "Scenario                  Status      Verification  Proof Density       Lean Coverage  Harness Contract  Intent Fidelity          Claim Book",
+        "────────────────────────  ──────────  ────────────  ──────────────────  ─────────────  ─────────────────  ───────────────  ──────────",
     ]
     for scenario_dir in sorted((ROOT / "scenarios").iterdir()):
         if not scenario_dir.is_dir() or scenario_dir.name == "_template":
             continue
         path = latest_result(scenario_dir)
         if path is None:
-            lines.append(f"{scenario_dir.name[:24]:<24}  MISSING     -             -                   -")
+            lines.append(f"{scenario_dir.name[:24]:<24}  MISSING     -             -                   -               -                  -                        -")
             continue
         data = json.loads(path.read_text(encoding="utf-8"))
         layers = data.get("layers", {})
@@ -164,7 +202,8 @@ def render_all() -> str:
             f"{proof_density[:18]:<18}  "
             f"{lean_density:<13}  "
             f"{compliance_label(data):<18}  "
-            f"{intent_fidelity_label(data)}"
+            f"{intent_fidelity_label(data):<24}  "
+            f"{claim_book_label(data)}"
         )
     return "\n".join(lines)
 

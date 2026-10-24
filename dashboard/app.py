@@ -89,6 +89,42 @@ def intent_fidelity_label(data: dict) -> str:
     return " · ".join(parts)
 
 
+def claim_book_label(data: dict) -> str:
+    if "claim_book" not in data:
+        return "N/A"
+    claim_book = data.get("claim_book")
+    if not isinstance(claim_book, dict):
+        return "unavailable"
+    entries = claim_book.get("entries", [])
+    if not isinstance(entries, list):
+        return "unavailable"
+    ok_entries = [
+        entry for entry in entries
+        if isinstance(entry, dict) and entry.get("status") == "ok"
+    ]
+    if not ok_entries:
+        statuses = {
+            entry.get("status")
+            for entry in entries
+            if isinstance(entry, dict)
+        }
+        return "skipped" if statuses == {"skipped"} else "unavailable"
+    totals = claim_book.get("totals", {})
+    if not isinstance(totals, dict):
+        totals = {}
+    grades = totals.get("by_effective_grade", {})
+    freshness = totals.get("by_freshness", {})
+    if not isinstance(grades, dict):
+        grades = {}
+    if not isinstance(freshness, dict):
+        freshness = {}
+    g4plus = int(grades.get("G4", 0) or 0) + int(grades.get("G5", 0) or 0)
+    total = int(totals.get("total", 0) or 0)
+    drifted = int(freshness.get("drifted", 0) or 0)
+    uncertified = int(freshness.get("uncertified", 0) or 0)
+    return f"{g4plus}/{total} machine-sealed · {drifted} drifted · {uncertified} uncertified"
+
+
 def artifact_payload_summary(payload: object) -> str:
     if not isinstance(payload, dict):
         return "captured"
@@ -280,7 +316,7 @@ def main() -> None:
         col.metric(layer, payload.get("status", "UNKNOWN"))
 
     density = data.get("proof_density", {})
-    metric_cols = st.columns(4 if has_lean else 3)
+    metric_cols = st.columns(5 if has_lean else 4)
     metric_cols[0].metric(
         "Proof Density",
         f"{density.get('percentage', 0):g}%",
@@ -295,6 +331,7 @@ def main() -> None:
             f"{lean_percentage:g}%" if lean_total else "N/A",
             f"{lean_verified}/{lean_total} Lean steps",
         )
+    metric_cols[4 if has_lean else 3].metric("Claim Book", claim_book_label(data))
 
     render_spec_code_mapping(data)
     render_harness_contract(data)

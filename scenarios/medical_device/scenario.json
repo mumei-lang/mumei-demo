@@ -71,6 +71,10 @@
         "name": "Z3 Correct Dosage Control Verification",
         "repo": "mumei",
         "command": "{mumei_bin} verify {root_dir}/scenarios/medical_device/correct_code.mm --proof-cert --output {output_dir}/medical_device.proof.json",
+        "claim_book": {
+          "source": "{root_dir}/scenarios/medical_device/correct_code.mm",
+          "cert": "medical_device.proof.json"
+        },
         "expected_exit": 0,
         "expected_patterns": [
           "Verification passed",

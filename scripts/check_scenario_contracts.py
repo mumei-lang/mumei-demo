@@ -102,6 +102,21 @@ def _collect_named(value: Any, wanted_key: str, path: str = "$") -> list[tuple[s
     return matches
 
 
+def _validate_claim_book(value: Any, context: str) -> list[str]:
+    failures: list[str] = []
+    if not isinstance(value, dict):
+        return [f"{context} must be an object"]
+    for key in ("source", "cert"):
+        if key not in value:
+            failures.append(f"{context} is missing `{key}`")
+        elif not isinstance(value[key], str):
+            failures.append(f"{context}.{key} must be a string")
+    cert = value.get("cert")
+    if isinstance(cert, str) and ("/" in cert or ".." in cert):
+        failures.append(f"{context}.cert must be a file name under {{output_dir}}")
+    return failures
+
+
 def _check_file(path: Path) -> list[str]:
     rel = path.relative_to(REPO_ROOT)
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -119,6 +134,15 @@ def _check_file(path: Path) -> list[str]:
         for key_path, value in exact_artifact_key_fields:
             if value != FIXED_ARTIFACT_KEYS:
                 failures.append(f"{rel}: {key_path} must match the fixed no-.mm artifact key list")
+
+    for layer in data.get("layers", []):
+        layer_def = data.get(layer)
+        if not isinstance(layer_def, dict):
+            continue
+        for index, step in enumerate(layer_def.get("steps", [])):
+            if isinstance(step, dict) and "claim_book" in step:
+                context = f"{rel}: $.{layer}.steps[{index}].claim_book"
+                failures.extend(_validate_claim_book(step["claim_book"], context))
 
     for key_path, value in _collect_named(data, "artifact_keys"):
         if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
