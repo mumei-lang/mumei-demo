@@ -319,6 +319,195 @@ def artifact_payloads(output_dir: Path, artifacts: list[str]) -> dict[str, objec
     return payloads
 
 
+CLAIM_BOOK_GRADES = ("G0", "G1", "G2", "G3", "G4", "G5")
+CLAIM_BOOK_FRESHNESS = ("fresh", "drifted", "uncertified")
+
+
+def read_claim_book(path: Path) -> tuple[dict[str, object] | None, str | None]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as err:
+        return None, f"claimbook.json is unreadable: {err}"
+    if not isinstance(payload, Mapping):
+        return None, "claimbook.json must contain an object"
+
+    summary = payload.get("summary")
+    if not isinstance(summary, Mapping):
+        return None, "claimbook.json is missing an object summary"
+    total = summary.get("total")
+    if isinstance(total, bool) or not isinstance(total, int) or total < 0:
+        return None, "claimbook.json summary.total must be a non-negative integer"
+
+    counts: dict[str, dict[str, int]] = {}
+    for field, categories in (
+        ("by_effective_grade", CLAIM_BOOK_GRADES),
+        ("by_freshness", CLAIM_BOOK_FRESHNESS),
+    ):
+        raw_counts = summary.get(field)
+        if not isinstance(raw_counts, Mapping):
+            return None, f"claimbook.json summary.{field} must be an object"
+        normalized: dict[str, int] = {}
+        for category in categories:
+            count = raw_counts.get(category, 0)
+            if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+                return None, f"claimbook.json summary.{field}.{category} must be a non-negative integer"
+            normalized[category] = count
+        counts[field] = normalized
+
+    integrity = payload.get("certificate_integrity")
+    if not isinstance(integrity, str):
+        return None, "claimbook.json certificate_integrity must be a string"
+    claims = payload.get("claims")
+    if not isinstance(claims, list) or len(claims) != total:
+        return None, "claimbook.json claims must be a list matching summary.total"
+
+    incomplete = 0
+    lowest_grade: str | None = None
+    for claim in claims:
+        if not isinstance(claim, Mapping):
+            return None, "claimbook.json claims must contain objects"
+        grade = claim.get("effective_grade")
+        complete = claim.get("effective_grade_complete")
+        if grade not in CLAIM_BOOK_GRADES or not isinstance(complete, bool):
+            return None, "claimbook.json claims must include a valid effective_grade and effective_grade_complete"
+        if not complete:
+            incomplete += 1
+        if lowest_grade is None or CLAIM_BOOK_GRADES.index(grade) < CLAIM_BOOK_GRADES.index(lowest_grade):
+            lowest_grade = grade
+
+    return {
+        "total": total,
+        "by_effective_grade": counts["by_effective_grade"],
+        "by_freshness": counts["by_freshness"],
+        "certificate_integrity": integrity,
+        "incomplete": incomplete,
+        "lowest_effective_grade": lowest_grade,
+    }, None
+
+
+def claim_book_totals(entries: list[dict[str, object]]) -> dict[str, object]:
+    totals: dict[str, object] = {
+        "total": 0,
+        "by_effective_grade": {grade: 0 for grade in CLAIM_BOOK_GRADES},
+        "by_freshness": {freshness: 0 for freshness in CLAIM_BOOK_FRESHNESS},
+        "incomplete": 0,
+        "lowest_effective_grade": None,
+    }
+    for entry in entries:
+        if entry.get("status") != "ok":
+            continue
+        totals["total"] += int(entry.get("total", 0))
+        totals["incomplete"] += int(entry.get("incomplete", 0))
+        grade_counts = entry.get("by_effective_grade", {})
+        freshness_counts = entry.get("by_freshness", {})
+        for grade in CLAIM_BOOK_GRADES:
+            totals["by_effective_grade"][grade] += int(grade_counts.get(grade, 0))
+        for freshness in CLAIM_BOOK_FRESHNESS:
+            totals["by_freshness"][freshness] += int(freshness_counts.get(freshness, 0))
+        grade = entry.get("lowest_effective_grade")
+        lowest = totals["lowest_effective_grade"]
+        if grade is not None and (
+            lowest is None
+            or CLAIM_BOOK_GRADES.index(grade) < CLAIM_BOOK_GRADES.index(lowest)
+        ):
+            totals["lowest_effective_grade"] = grade
+    return totals
+
+
+def run_claim_book_entry(
+    step_id: str,
+    step_status: str,
+    config: object,
+    placeholders: dict[str, str],
+    output_dir: Path,
+    mumei_bin: str,
+    env: dict[str, str],
+    cwd: str,
+) -> dict[str, object]:
+    values = config if isinstance(config, Mapping) else {}
+    source_template = values.get("source")
+    cert_value = values.get("cert")
+    source = substitute(source_template, placeholders) if isinstance(source_template, str) else ""
+    cert = cert_value if isinstance(cert_value, str) else ""
+    entry: dict[str, object] = {
+        "step": step_id,
+        "status": "skipped",
+        "source": source,
+        "cert": cert,
+        "file": None,
+    }
+    if step_status != "PASS":
+        entry["detail"] = f"Step status was {step_status}"
+        return entry
+    if not source or not cert or "/" in cert or ".." in cert:
+        entry.update({
+            "status": "unavailable",
+            "exit_code": None,
+            "detail": "claim_book must declare a source and a certificate file name",
+        })
+        return entry
+
+    claim_dir = output_dir / "claimbook" / step_id
+    claim_dir.mkdir(parents=True, exist_ok=True)
+    claim_file = claim_dir / "claimbook.json"
+    command = [
+        mumei_bin,
+        "claims",
+        source,
+        "--cert",
+        str(output_dir / cert),
+        "--format",
+        "json",
+        "--out-dir",
+        str(claim_dir),
+    ]
+    try:
+        proc = subprocess.run(
+            command,
+            cwd=cwd,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env,
+            check=False,
+        )
+    except OSError as err:
+        entry.update({
+            "status": "unavailable",
+            "exit_code": None,
+            "detail": f"Could not run mumei claims: {err}",
+        })
+        return entry
+
+    entry["exit_code"] = proc.returncode
+    if claim_file.is_file():
+        entry["file"] = claim_file.relative_to(output_dir).as_posix()
+    stderr_lines = [line.strip() for line in proc.stderr.splitlines() if line.strip()]
+    stderr_detail = stderr_lines[0] if stderr_lines else None
+    if proc.returncode != 0:
+        entry.update({
+            "status": "unavailable",
+            "detail": stderr_detail or f"mumei claims exited with code {proc.returncode}",
+        })
+        return entry
+    if not claim_file.is_file():
+        entry.update({
+            "status": "unavailable",
+            "detail": stderr_detail or "mumei claims did not write claimbook.json",
+        })
+        return entry
+
+    claim_book, error = read_claim_book(claim_file)
+    if claim_book is None:
+        entry.update({
+            "status": "unavailable",
+            "detail": stderr_detail or error or "claimbook.json is invalid",
+        })
+        return entry
+    entry.update({"status": "ok", **claim_book})
+    return entry
+
+
 def verification_evidence(layers: dict[str, dict]) -> list[dict[str, object]]:
     evidence = []
     for layer, payload in layers.items():
@@ -447,6 +636,18 @@ def main(argv: list[str]) -> int:
         "output_dir": str(output_dir),
     }
     command_placeholders = shell_placeholders(placeholders)
+    step_env = {
+        **os.environ.copy(),
+        "MUMEI_REPO": placeholders["mumei_repo"],
+        "MUMEI_LEAN_REPO": placeholders["mumei_lean_repo"],
+        "MUMEI_AGENT_REPO": placeholders["mumei_agent_repo"],
+        "MUMEI_AGENT_PYTHON": placeholders["mumei_agent_python"],
+        "MUMEI_BIN": placeholders["mumei_bin"],
+        "MUMEI_STD_PATH": os.environ.get(
+            "MUMEI_STD_PATH",
+            str(Path(placeholders["mumei_repo"]) / "std"),
+        ),
+    }
 
     box_width = 64
 
@@ -519,6 +720,7 @@ def main(argv: list[str]) -> int:
     results: dict[str, dict] = {}
     step_index: dict[str, dict] = {}
     artifacts: list[str] = []
+    claim_book_entries: list[dict[str, object]] = []
     overall_status = "PASS"
 
     # depends_on resolves step ids globally — a duplicated id would make the
@@ -562,6 +764,7 @@ def main(argv: list[str]) -> int:
             log_file = f"{step_id}.log"
             log_path = output_dir / log_file
             start = time.monotonic()
+            cwd = substitute(step.get("cwd", str(root)), placeholders)
 
             missing_tool = step.get("optional_toolchain") and shutil.which(step["optional_toolchain"]) is None
             optional_path = step.get("optional_path")
@@ -600,7 +803,6 @@ def main(argv: list[str]) -> int:
                 stderr = ""
             else:
                 command = substitute(step["command"], command_placeholders)
-                cwd = substitute(step.get("cwd", str(root)), placeholders)
                 fixture_result = maybe_run_fixture_step(root, scenario_name, step_id, output_dir)
                 if fixture_result is None:
                     proc = subprocess.run(
@@ -610,18 +812,7 @@ def main(argv: list[str]) -> int:
                         text=True,
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
-                        env={
-                            **os.environ.copy(),
-                            "MUMEI_REPO": placeholders["mumei_repo"],
-                            "MUMEI_LEAN_REPO": placeholders["mumei_lean_repo"],
-                            "MUMEI_AGENT_REPO": placeholders["mumei_agent_repo"],
-                            "MUMEI_AGENT_PYTHON": placeholders["mumei_agent_python"],
-                            "MUMEI_BIN": placeholders["mumei_bin"],
-                            "MUMEI_STD_PATH": os.environ.get(
-                                "MUMEI_STD_PATH",
-                                str(Path(placeholders["mumei_repo"]) / "std"),
-                            ),
-                        },
+                        env=step_env,
                         check=False,
                     )
                     returncode = proc.returncode
@@ -677,6 +868,19 @@ def main(argv: list[str]) -> int:
                 step_result["verifier_gate"] = step["verifier_gate"]
             if "failure_taxonomy" in step:
                 step_result["failure_taxonomy"] = step["failure_taxonomy"]
+            if "claim_book" in step:
+                claim_book_entries.append(
+                    run_claim_book_entry(
+                        step_id,
+                        status,
+                        step["claim_book"],
+                        placeholders,
+                        output_dir,
+                        placeholders["mumei_bin"],
+                        step_env,
+                        cwd,
+                    )
+                )
             for artifact in step.get("artifacts", []):
                 if (output_dir / artifact).exists():
                     artifacts.append(artifact)
@@ -713,6 +917,11 @@ def main(argv: list[str]) -> int:
         "proof_density": proof_density(step_index),
         "artifacts": artifacts,
     }
+    if claim_book_entries:
+        result["claim_book"] = {
+            "entries": claim_book_entries,
+            "totals": claim_book_totals(claim_book_entries),
+        }
     result["artifact_payloads"] = artifact_payloads(output_dir, artifacts)
     result["verification_evidence"] = verification_evidence(results)
     state_file = output_dir / "harness_state.json"
@@ -732,6 +941,8 @@ def main(argv: list[str]) -> int:
         "artifacts": result["artifacts"],
         "verification_evidence": result["verification_evidence"],
     }
+    if "claim_book" in result:
+        state_payload["claim_book"] = result["claim_book"]
     state_file.write_text(json.dumps(state_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     result["artifact_payloads"]["harness_state.json"] = state_payload
     (output_dir / "result.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

@@ -48,6 +48,10 @@
         "name": "Z3 Scale Verification: Settlement pipeline",
         "repo": "mumei",
         "command": "{mumei_bin} verify {root_dir}/scenarios/rtgs_settlement_scale/correct_code.mm --proof-cert --output {output_dir}/rtgs_settlement_scale.proof-cert.json",
+        "claim_book": {
+          "source": "{root_dir}/scenarios/rtgs_settlement_scale/correct_code.mm",
+          "cert": "rtgs_settlement_scale.proof-cert.json"
+        },
         "expected_exit": 0,
         "expected_patterns": [
           "Verification passed"

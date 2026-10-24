@@ -64,6 +64,10 @@
         "name": "Z3 Correct DeFi Invariant Verification",
         "repo": "mumei",
         "command": "{mumei_bin} verify {root_dir}/scenarios/defi_invariant/erc20_safe.mm --proof-cert --output {output_dir}/defi_invariant.proof.json",
+        "claim_book": {
+          "source": "{root_dir}/scenarios/defi_invariant/erc20_safe.mm",
+          "cert": "defi_invariant.proof.json"
+        },
         "expected_exit": 0,
         "expected_patterns": [
           "Verification passed",

@@ -11,6 +11,7 @@ from check_scenario_contracts import (
     _check_docs_forbidden_aliases,
     _in_code_fence,
     _is_key_context,
+    _validate_claim_book,
 )
 
 
@@ -40,6 +41,35 @@ def test_is_key_context_plain_prose_rejected():
 
 def test_is_key_context_array_notation():
     assert _is_key_context("recommendations[]", "recommendations")
+
+
+def test_claim_book_shape_validation():
+    assert _validate_claim_book(
+        {"source": "{root_dir}/scenario.mm", "cert": "scenario.proof.json"},
+        "$.l1_z3.steps[0].claim_book",
+    ) == []
+
+    assert _validate_claim_book(None, "$.claim_book")
+    assert "missing `source`" in _validate_claim_book(
+        {"cert": "scenario.proof.json"}, "$.claim_book"
+    )[0]
+    assert "missing `cert`" in _validate_claim_book(
+        {"source": "scenario.mm"}, "$.claim_book"
+    )[0]
+    assert "source must be a string" in _validate_claim_book(
+        {"source": 1, "cert": "scenario.proof.json"}, "$.claim_book"
+    )[0]
+    assert "cert must be a string" in _validate_claim_book(
+        {"source": "scenario.mm", "cert": None}, "$.claim_book"
+    )[0]
+    assert "file name" in _validate_claim_book(
+        {"source": "scenario.mm", "cert": "nested/scenario.proof.json"},
+        "$.claim_book",
+    )[0]
+    assert "file name" in _validate_claim_book(
+        {"source": "scenario.mm", "cert": "../scenario.proof.json"},
+        "$.claim_book",
+    )[0]
 
 
 def test_in_code_fence_detection():
