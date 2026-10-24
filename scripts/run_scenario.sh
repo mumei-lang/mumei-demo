@@ -450,6 +450,15 @@ def run_claim_book_entry(
     claim_dir = output_dir / "claimbook" / step_id
     claim_dir.mkdir(parents=True, exist_ok=True)
     claim_file = claim_dir / "claimbook.json"
+    try:
+        claim_file.unlink(missing_ok=True)
+    except OSError as err:
+        entry.update({
+            "status": "unavailable",
+            "exit_code": None,
+            "detail": f"Could not remove stale claimbook.json: {err}",
+        })
+        return entry
     command = [
         mumei_bin,
         "claims",

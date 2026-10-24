@@ -98,6 +98,7 @@ def _run_scenario(
     claims_exit: int = 0,
     claims_mode: str = "fixture",
     fixtures: dict[str, dict] | None = None,
+    preseed_stale_claimbook: bool = False,
 ) -> tuple[int, dict, Path]:
     root = tmp_path / "root"
     scenario_name = "claim_book_test"
@@ -142,6 +143,35 @@ def _run_scenario(
     monkeypatch.setenv("MUMEI_STUB_CLAIMS_MODE", claims_mode)
 
     runner = _load_runner()
+    if preseed_stale_claimbook:
+        fixed_now = runner["datetime"](
+            2026,
+            1,
+            1,
+            tzinfo=runner["timezone"].utc,
+        )
+
+        class FixedDateTime:
+            @staticmethod
+            def now(tz):
+                return fixed_now.astimezone(tz)
+
+        runner["datetime"] = FixedDateTime
+        timestamp = fixed_now.strftime("%Y%m%dT%H%M%SZ")
+        stale_file = (
+            root
+            / "reports"
+            / scenario_name
+            / timestamp
+            / "claimbook"
+            / "verify_0"
+            / "claimbook.json"
+        )
+        stale_file.parent.mkdir(parents=True, exist_ok=True)
+        stale_file.write_text(
+            json.dumps(_book([{"effective_grade": "G5", "effective_grade_complete": True}])),
+            encoding="utf-8",
+        )
     exit_code = runner["main"]([
         str(root),
         scenario_name,
@@ -290,6 +320,25 @@ def test_claim_book_missing_file_is_unavailable(tmp_path, monkeypatch):
     assert entry["exit_code"] == 0
     assert entry["file"] is None
     assert "did not write" in entry["detail"]
+
+
+def test_claim_book_does_not_reuse_stale_file_from_previous_run(tmp_path, monkeypatch):
+    exit_code, result, marker = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [{"source": "{root_dir}/source_0.mm", "cert": "certificate_0.json"}],
+        claims_mode="missing",
+        preseed_stale_claimbook=True,
+    )
+
+    assert exit_code == 0
+    assert result["overall_status"] == "PASS"
+    entry = result["claim_book"]["entries"][0]
+    assert entry["status"] == "unavailable"
+    assert entry["exit_code"] == 0
+    assert entry["file"] is None
+    assert "did not write" in entry["detail"]
+    assert marker.exists()
 
 
 def test_claim_book_invalid_json_is_unavailable(tmp_path, monkeypatch):
