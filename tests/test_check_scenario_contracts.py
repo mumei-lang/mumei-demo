@@ -12,6 +12,7 @@ from check_scenario_contracts import (
     _in_code_fence,
     _is_key_context,
     _validate_claim_book,
+    _validate_charter_gate,
 )
 
 
@@ -70,6 +71,13 @@ def test_claim_book_shape_validation():
         {"source": "scenario.mm", "cert": "../scenario.proof.json"},
         "$.claim_book",
     )[0]
+
+
+def test_charter_gate_must_be_boolean_true():
+    assert _validate_charter_gate(True, "$.charter_gate") == []
+    for value in (False, 1, "true", None, {}):
+        failures = _validate_charter_gate(value, "$.charter_gate")
+        assert failures == ["$.charter_gate must be the boolean true"]
 
 
 def test_in_code_fence_detection():

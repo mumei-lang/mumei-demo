@@ -54,6 +54,9 @@ if args and args[0] == "verify":
     cert.write_text(json.dumps({"fixture": True}), encoding="utf-8")
     print("Verification passed")
     raise SystemExit(int(os.environ.get("MUMEI_STUB_VERIFY_EXIT", "0")))
+if args and args[0] == "charter":
+    print(os.environ.get("MUMEI_STUB_CHARTER_STDOUT", ""))
+    raise SystemExit(int(os.environ.get("MUMEI_STUB_CHARTER_EXIT", "0")))
 if not args or args[0] != "claims":
     print("unsupported command", file=sys.stderr)
     raise SystemExit(2)
@@ -99,6 +102,9 @@ def _run_scenario(
     claims_mode: str = "fixture",
     fixtures: dict[str, dict] | None = None,
     preseed_stale_claimbook: bool = False,
+    scenario_steps: list[dict] | None = None,
+    charter_stdout: str = "",
+    charter_exit: int = 0,
 ) -> tuple[int, dict, Path]:
     root = tmp_path / "root"
     scenario_name = "claim_book_test"
@@ -111,22 +117,23 @@ def _run_scenario(
     for name, payload in (fixtures or {}).items():
         (fixture_dir / f"{name}.json").write_text(json.dumps(payload), encoding="utf-8")
 
-    steps = []
-    for index, claim_book in enumerate(claim_books):
-        step = {
-            "id": f"verify_{index}",
-            "name": f"Verify {index}",
-            "command": (
-                f"{{mumei_bin}} verify {{root_dir}}/source_{index}.mm "
-                f"--proof-cert --output {{output_dir}}/certificate_{index}.json"
-            ),
-            "expected_exit": 0,
-            "expected_patterns": ["Verification passed"],
-            "artifacts": [f"certificate_{index}.json"],
-        }
-        if claim_book is not None:
-            step["claim_book"] = claim_book
-        steps.append(step)
+    steps = list(scenario_steps or [])
+    if scenario_steps is None:
+        for index, claim_book in enumerate(claim_books):
+            step = {
+                "id": f"verify_{index}",
+                "name": f"Verify {index}",
+                "command": (
+                    f"{{mumei_bin}} verify {{root_dir}}/source_{index}.mm "
+                    f"--proof-cert --output {{output_dir}}/certificate_{index}.json"
+                ),
+                "expected_exit": 0,
+                "expected_patterns": ["Verification passed"],
+                "artifacts": [f"certificate_{index}.json"],
+            }
+            if claim_book is not None:
+                step["claim_book"] = claim_book
+            steps.append(step)
     scenario = {
         "name": "Claim Book Test",
         "layers": ["l1_z3"],
@@ -139,6 +146,8 @@ def _run_scenario(
     monkeypatch.setenv("MUMEI_STUB_CLAIMS_MARKER", str(marker))
     monkeypatch.setenv("MUMEI_STUB_FIXTURE_DIR", str(fixture_dir))
     monkeypatch.setenv("MUMEI_STUB_VERIFY_EXIT", str(verify_exit))
+    monkeypatch.setenv("MUMEI_STUB_CHARTER_STDOUT", charter_stdout)
+    monkeypatch.setenv("MUMEI_STUB_CHARTER_EXIT", str(charter_exit))
     monkeypatch.setenv("MUMEI_STUB_CLAIMS_EXIT", str(claims_exit))
     monkeypatch.setenv("MUMEI_STUB_CLAIMS_MODE", claims_mode)
 
@@ -248,6 +257,181 @@ def test_claim_book_ok_entry_has_counts_and_lowest_grade(tmp_path, monkeypatch):
         path.startswith("claimbook/")
         for path in result["artifact_payloads"]
     )
+
+
+def _charter_report(
+    status: str = "fail",
+    atom_status: str = "post_weakened",
+    lock_status: str = "ok",
+) -> dict:
+    return {
+        "schema": "mumei.charter-report/v1",
+        "status": status,
+        "lock": {"status": lock_status},
+        "atoms": [
+            {
+                "name": "clamp_dose",
+                "charter": "specs/dosage.charter.mm",
+                "status": atom_status,
+                "effective_grade": "G1",
+            }
+        ],
+    }
+
+
+def test_charter_gate_parser_accepts_pass_report():
+    entry = _load_runner()["parse_charter_gate_entry"](
+        "charter_pass",
+        "PASS",
+        json.dumps(_charter_report(status="pass", atom_status="ok")),
+    )
+
+    assert entry == {
+        "step": "charter_pass",
+        "status": "ok",
+        "gate_status": "pass",
+        "lock_status": "ok",
+        "atoms": [
+            {
+                "name": "clamp_dose",
+                "charter": "specs/dosage.charter.mm",
+                "status": "ok",
+                "effective_grade": "G1",
+            }
+        ],
+    }
+
+
+def test_charter_gate_parser_preserves_failure_statuses():
+    parse_entry = _load_runner()["parse_charter_gate_entry"]
+    for status, lock_status in (
+        ("post_weakened", "ok"),
+        ("pre_weakened", "ok"),
+        ("grade_below", "ok"),
+        ("unpinned", "mismatch"),
+    ):
+        report = _charter_report(atom_status=status, lock_status=lock_status)
+        entry = parse_entry("reject_candidate", "REJECTED", json.dumps(report))
+        assert entry["status"] == "ok"
+        assert entry["gate_status"] == "fail"
+        assert entry["lock_status"] == lock_status
+        assert entry["atoms"][0]["status"] == status
+
+
+def test_charter_gate_parser_extracts_json_after_prefix_text():
+    report = _charter_report(status="pass", atom_status="ok")
+    entry = _load_runner()["parse_charter_gate_entry"](
+        "charter_pass",
+        "PASS",
+        "Verification passed\n" + json.dumps(report),
+    )
+
+    assert entry["status"] == "ok"
+    assert entry["gate_status"] == "pass"
+
+
+def test_charter_gate_parser_marks_non_json_unavailable():
+    entry = _load_runner()["parse_charter_gate_entry"](
+        "charter_check",
+        "REJECTED",
+        "not a charter report",
+    )
+
+    assert entry["status"] == "unavailable"
+    assert "JSON object" in entry["detail"]
+
+
+def test_charter_gate_parser_rejects_wrong_schema():
+    report = _charter_report()
+    report["schema"] = "mumei.other-report/v1"
+    entry = _load_runner()["parse_charter_gate_entry"](
+        "charter_check",
+        "REJECTED",
+        json.dumps(report),
+    )
+
+    assert entry["status"] == "unavailable"
+    assert "unsupported charter report schema" in entry["detail"]
+
+
+def test_charter_gate_parser_rejects_missing_atoms():
+    report = _charter_report()
+    del report["atoms"]
+    entry = _load_runner()["parse_charter_gate_entry"](
+        "charter_check",
+        "REJECTED",
+        json.dumps(report),
+    )
+
+    assert entry["status"] == "unavailable"
+    assert "atoms must be an array" in entry["detail"]
+
+
+def test_charter_gate_parser_skips_unexpected_and_skipped_steps():
+    parse_entry = _load_runner()["parse_charter_gate_entry"]
+    stdout = json.dumps(_charter_report())
+    for step_status in ("SKIPPED", "FAIL", "FAILED"):
+        entry = parse_entry("charter_check", step_status, stdout)
+        assert entry["status"] == "skipped"
+        assert entry["detail"] == f"Step status was {step_status}"
+
+
+def test_charter_gate_totals_ignore_unavailable_and_skipped_entries():
+    parse_entry = _load_runner()["parse_charter_gate_entry"]
+    passed = parse_entry(
+        "charter_pass",
+        "PASS",
+        json.dumps(_charter_report(status="pass", atom_status="ok")),
+    )
+    failed = parse_entry(
+        "charter_reject",
+        "REJECTED",
+        json.dumps(_charter_report(atom_status="post_weakened")),
+    )
+    unavailable = parse_entry("unavailable", "REJECTED", "not JSON")
+    skipped = parse_entry("skipped", "SKIPPED", "")
+
+    totals = _load_runner()["charter_gate_totals"](
+        [passed, failed, unavailable, skipped]
+    )
+
+    assert totals == {
+        "checks": 2,
+        "passed": 1,
+        "failed": 1,
+        "by_atom_status": {"ok": 1, "post_weakened": 1},
+    }
+
+
+def test_charter_gate_result_is_written_for_declared_step(tmp_path, monkeypatch):
+    step = {
+        "id": "charter_reject",
+        "name": "Charter rejection",
+        "command": "{mumei_bin} charter check source.mm --json",
+        "expected_exit": 1,
+        "expect_failure": True,
+        "expected_patterns": ["post_weakened"],
+        "artifacts": [],
+        "charter_gate": True,
+    }
+    exit_code, result, _ = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+        charter_stdout=json.dumps(_charter_report()),
+        charter_exit=1,
+    )
+
+    assert exit_code == 0
+    assert result["overall_status"] == "PASS"
+    assert result["charter_gate"]["entries"][0]["status"] == "ok"
+    assert result["charter_gate"]["totals"] == {
+        "checks": 1,
+        "passed": 0,
+        "failed": 1,
+        "by_atom_status": {"post_weakened": 1},
+    }
 
 
 def test_claim_book_totals_aggregate_freshness_and_grades(tmp_path, monkeypatch):

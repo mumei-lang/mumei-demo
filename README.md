@@ -2,7 +2,7 @@
 
 > **Mumei proves that LLM-generated code has bugs — mathematically.**
 
-Mumei runs formal verification over every possible case before an LLM-generated bug becomes a production incident. The representative scenarios below show the same contract pipeline catching concrete failures; the full 12-row catalog is in [`docs/SCENARIO_CATALOG.md`](docs/SCENARIO_CATALOG.md).
+Mumei runs formal verification over every possible case before an LLM-generated bug becomes a production incident. The representative scenarios below show the same contract pipeline catching concrete failures; the full catalog is in [`docs/SCENARIO_CATALOG.md`](docs/SCENARIO_CATALOG.md).
 
 | Scenario | Bug an LLM can miss | How Mumei catches it |
 |---|---|---|
@@ -11,6 +11,7 @@ Mumei runs formal verification over every possible case before an LLM-generated 
 | RegTech Compliance | `PEP` customers are missing from a `match`. | Exhaustiveness checking reports `CustomerType::PEP (tag=3)`. |
 | No-.mm Multi-language Audit | Existing code enters before any `.mm` file exists. | The audit gate reports violations, counterexamples, and `next_steps`. |
 | DeFi Invariant | Integer overflow occurs in an ERC-20 transfer. | Refinement types prevent overflow at compile time. |
+| Charter Gate | A repair weakens a reviewed dosage contract or relies on a low-grade proof. | The charter gate rejects weakened, narrowed, under-graded, and unpinned candidates. |
 
 ## How It Works
 
@@ -68,6 +69,7 @@ make demo-ownership
 make demo-settlement
 make demo-regtech
 make demo-no-mm
+make demo-charter
 ```
 
 See [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) for the exhaustive target list and P9-G NLAE integration.

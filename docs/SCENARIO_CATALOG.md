@@ -37,6 +37,9 @@ Detailed descriptions of every demo scenario. For run commands see
   `hash_function_secure`, then verifies the collision-resistance contract.
 - **DeFi Invariant** — Z3 rejects an unchecked ERC-20 receiver overflow, then
   verifies `Uint256` transfer bounds (`to_balance + amount <= MAX`).
+- **Charter Gate** — mumei rejects a dosage repair that weakens its reviewed
+  contract, narrows accepted inputs, falls below the required Seal Grade, or
+  uses charter text that no longer matches the lock.
 - **ArkLib-Style Audit** — Z3 rejects a contradictory top-level theorem, then
   verifies the reviewed audit theorem and proof certificate.
 - **Aviation Control** — Z3 verifies ordered runway allocation and the agent
@@ -111,6 +114,17 @@ Proof Density: 100% (3/3 atoms)
 ```
 
 ## Step-by-step: what runs
+
+### Charter Gate
+
+```bash
+make demo-charter
+```
+
+The scenario locks its reviewed dosage charter in an output-directory copy,
+accepts a correctly proved implementation, and records expected rejections
+for weaker, narrower, under-graded, and unpinned candidates in `result.json`
+and `report.md`.
 
 `make demo-ownership` (Phase 1 Ownership Transfer Protocol):
 
@@ -263,6 +277,7 @@ catching it; per-scenario breakdowns follow in the sections above.
 | NL → Verified | Requirements start as natural language instead of verified code. | The agent extracts a spec, generates `.mm`, and Z3 verifies the result automatically. |
 | No-.mm Multi-language Audit | Existing Python/Rust/TypeScript/Go code enters before any `.mm` file exists. | The audit gate reports each language's violations as `verification_violations` with Z3 counterexamples and `next_steps`. |
 | Phase 7 Spec-Code Verification Suite | A reviewer has only `spec.txt` and existing Python code, with no `.mm` entry yet. | V1-A through V1-D run in one flow: `spec_health_issues`, `verification_violations`, `traceability_matrix`, `drift_score`, and `next_steps`. |
+| Charter Gate | A dosage repair weakens the reviewed contract, narrows accepted inputs, or relies on a low-grade proof. | The charter gate rejects weaker contracts, under-graded evidence, and edits to locked charter text. |
 | Mumei Develop Audit | The project's own tooling drifts from its spec. | Dogfooding: `mumei-agent audit` runs on `mumei/scripts/generate_stdlib_metrics.py`. |
 | Medical Device Control | An insulin pump skips hourly dosage safety checks. | Z3 catches the invalid delivery state, then optional Lean proof certifies cumulative dosage safety. |
 | Aviation Control | Runway allocation has inconsistent lock ordering. | Z3 verifies ordered allocation, and the agent validates the generation task. |
