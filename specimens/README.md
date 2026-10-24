@@ -164,7 +164,7 @@ specimens. It exits non-zero listing every problem found.
 
 ![Detection over runs](scoreboard/history.svg)
 
-Latest run — no LLM: mumei-agent `8f85274` · mumei `d5fe4b6` (mumei 0.6.20) · 2026-10-04T06:27:28Z
+Latest run — no LLM: mumei-agent `759dcc3` · mumei `d89609c` (mumei 0.6.21) · 2026-10-24T04:47:24Z
 Latest run — with LLM: not run yet.
 
 | Language | Defects | No LLM detected | No LLM detected or flagged | With LLM detected | With LLM detected or flagged |
@@ -182,6 +182,7 @@ Recent runs:
 
 | Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % |
 |---|---|---|---|---|---:|---:|---:|
+| 2026-10-24 | no | `759dcc3` | `d89609c` | 171 | 6% | 13% | 17% |
 | 2026-10-04 | no | `8f85274` | `d5fe4b6` | 171 | 6% | 13% | 17% |
 
 Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md).
