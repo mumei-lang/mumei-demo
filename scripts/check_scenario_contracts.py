@@ -123,6 +123,12 @@ def _validate_charter_gate(value: Any, context: str) -> list[str]:
     return []
 
 
+def _validate_negative_controls(value: Any, context: str) -> list[str]:
+    if not isinstance(value, bool):
+        return [f"{context} must be a boolean"]
+    return []
+
+
 def _check_file(path: Path) -> list[str]:
     rel = path.relative_to(REPO_ROOT)
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -153,6 +159,11 @@ def _check_file(path: Path) -> list[str]:
                 if "charter_gate" in step:
                     context = f"{rel}: $.{layer}.steps[{index}].charter_gate"
                     failures.extend(_validate_charter_gate(step["charter_gate"], context))
+                if "negative_controls" in step:
+                    context = f"{rel}: $.{layer}.steps[{index}].negative_controls"
+                    failures.extend(
+                        _validate_negative_controls(step["negative_controls"], context)
+                    )
 
     for key_path, value in _collect_named(data, "artifact_keys"):
         if not isinstance(value, list) or not all(isinstance(item, str) for item in value):

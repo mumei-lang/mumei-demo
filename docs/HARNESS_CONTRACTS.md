@@ -148,6 +148,23 @@ optional effective grades. The `charter_gate.totals` object aggregates
 `report.md` renders a Charter Gate table and a single highlights line; the
 cross-scenario summary table keeps its existing columns.
 
+## Negative Controls reports
+
+A scenario step opts into negative-control report capture with
+`"negative_controls": true`. The runner parses the complete stdout as JSON and
+requires the `mumei.controls-report/v1` schema, typed atom fields, and
+consistent mutant counts (`tested == killed + survived + unanalyzable`). It
+extracts surviving mutant IDs from the report's `mutants` list. Invalid JSON,
+an unsupported schema, or malformed counts records an `unavailable` entry and
+fails the step and scenario. A skipped step records a `skipped` entry.
+
+`result.json` and `harness_state.json` contain a `negative_controls` section
+with per-step status, per-atom status and counts, and aggregate step/atom
+status counts plus the number of surviving mutants. `report.md` renders each
+step and atom in a Negative Controls table. A surviving mutant is evidence
+that the contract permits a mutation; equivalent mutants can still survive,
+so survivors require human judgment.
+
 ## Scenario-to-gate mapping
 
 | Scenario | L1 evidence | L2 evidence | L3 evidence | Dashboard evidence |

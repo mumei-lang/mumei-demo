@@ -1,0 +1,242 @@
+{
+  "name": "Negative Controls: Dosage Contract",
+  "version": "1.0.0",
+  "description": "Shows how per-atom mutations distinguish a weak dosage contract from a body-specific one.",
+  "layers": [
+    "l1_z3"
+  ],
+  "narrative": {
+    "intro": [
+      "Step 1: Copy the dosage project and verify its weak and strong contracts.",
+      "Step 2: Compare negative controls, vacuity, and Claim Book discrimination."
+    ],
+    "before": "The same dosage implementation verifies under both a weak and a body-specific contract.",
+    "after": "Negative controls and Phase 1i expose the weak contract while the strong contract discriminates every tested mutation.",
+    "steps": {
+      "controls_weak": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "Negative Controls: a mutation survives the weak contract",
+          "follow_up": [
+            "  The dosage body verifies, but the contract permits a mutated result.",
+            "  The surviving mutant needs human judgment."
+          ]
+        }
+      },
+      "controls_strong": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Negative Controls: the strong contract distinguishes the body"
+        }
+      },
+      "vacuity_weak": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "Phase 1i: a mutation survives the weak contract"
+        }
+      },
+      "claims_weak_gate": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "Claim Book: weak discrimination fails the opt-in gate"
+        }
+      },
+      "claims_strong_gate": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Claim Book: discriminating evidence passes the opt-in gate"
+        }
+      }
+    }
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate that a dosage body can verify under a weak contract while negative controls, Phase 1i, and the Claim Book gate distinguish it from a strong contract.",
+    "artifact_contracts": [
+      "The first step copies scenarios/negative_controls_demo/project into {output_dir}/project; every verifier and gate command runs on that copy.",
+      "The weak and strong source files have identical bodies and differ only in their ensures clauses.",
+      "Both source files verify and emit proof certificates; each verification step records a Claim Book entry.",
+      "controls_weak reports a weak atom and its surviving mutant; controls_strong reports a discriminating atom.",
+      "vacuity_weak rejects the weak contract and names the surviving mutant.",
+      "The Claim Book discrimination gate rejects weak_spec.mm and accepts strong_spec.mm.",
+      "result.json, harness_state.json, and report.md record negative-control entries and totals."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "A verified implementation is not sufficient evidence when its contract allows behavior-changing mutations to survive.",
+    "success_criteria": [
+      "Both contracts verify the same dosage body and emit proof certificates.",
+      "The weak contract is reported as weak with a surviving mutant.",
+      "The strong contract is reported as discriminating.",
+      "Phase 1i and the Claim Book discrimination gate reject the weak contract while the strong Claim Book gate passes."
+    ],
+    "drift_risk": "Low: the two fixtures share one body, and the controls and vacuity outputs expose the exact surviving mutation."
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "verify_weak",
+        "name": "Verify the weak dosage contract",
+        "repo": "mumei",
+        "command": "rm -rf {output_dir}/project && cp -R {root_dir}/scenarios/negative_controls_demo/project {output_dir}/project && cd {output_dir}/project && {mumei_bin} verify weak_spec.mm --proof-cert --output {output_dir}/weak.proof.json",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Verification passed",
+          "next_dose"
+        ],
+        "artifacts": [
+          "weak.proof.json"
+        ],
+        "claim_book": {
+          "source": "{output_dir}/project/weak_spec.mm",
+          "cert": "weak.proof.json"
+        },
+        "harness_stage": "S1_negative_controls_verify_weak",
+        "artifact_contract": [
+          "The source project is copied into {output_dir}/project before verification.",
+          "The verifier writes {output_dir}/weak.proof.json and the step records a Claim Book entry."
+        ],
+        "verifier_gate": "mumei verify exits 0 and writes a proof certificate for next_dose."
+      },
+      {
+        "id": "controls_weak",
+        "name": "Detect the weak dosage contract",
+        "repo": "mumei",
+        "cwd": "{output_dir}/project",
+        "command": "{mumei_bin} controls weak_spec.mm --json",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": [
+          "\"status\": \"weak\"",
+          "constant:1->0@1"
+        ],
+        "artifacts": [],
+        "depends_on": [
+          "verify_weak"
+        ],
+        "negative_controls": true,
+        "harness_stage": "S1_negative_controls_weak_rejection",
+        "artifact_contract": [
+          "The controls report identifies next_dose as weak and lists the surviving mutant."
+        ],
+        "verifier_gate": "mumei controls exits 1 with a valid controls report containing a weak atom.",
+        "failure_taxonomy": "weak_specification"
+      },
+      {
+        "id": "controls_strong",
+        "name": "Accept the strong dosage contract",
+        "repo": "mumei",
+        "cwd": "{output_dir}/project",
+        "command": "{mumei_bin} controls strong_spec.mm --json",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "\"status\": \"discriminating\""
+        ],
+        "artifacts": [],
+        "depends_on": [
+          "verify_weak"
+        ],
+        "negative_controls": true,
+        "harness_stage": "S1_negative_controls_strong_acceptance",
+        "artifact_contract": [
+          "The controls report identifies next_dose as discriminating."
+        ],
+        "verifier_gate": "mumei controls exits 0 with a valid controls report containing a discriminating atom."
+      },
+      {
+        "id": "vacuity_weak",
+        "name": "Reject the weak contract with Phase 1i",
+        "repo": "mumei",
+        "cwd": "{output_dir}/project",
+        "command": "{mumei_bin} verify weak_spec.mm --enable-vacuity-check",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": [
+          "Specification is vacuous",
+          "constant:1->0@1"
+        ],
+        "artifacts": [],
+        "depends_on": [
+          "verify_weak"
+        ],
+        "harness_stage": "S1_negative_controls_vacuity_rejection",
+        "artifact_contract": [
+          "Phase 1i reports the surviving mutation while checking the copied weak contract."
+        ],
+        "verifier_gate": "mumei verify exits 1 and names the surviving mutant."
+      },
+      {
+        "id": "verify_strong",
+        "name": "Verify the strong dosage contract",
+        "repo": "mumei",
+        "cwd": "{output_dir}/project",
+        "command": "{mumei_bin} verify strong_spec.mm --proof-cert --output {output_dir}/strong.proof.json",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Verification passed",
+          "next_dose"
+        ],
+        "artifacts": [
+          "strong.proof.json"
+        ],
+        "depends_on": [
+          "verify_weak"
+        ],
+        "claim_book": {
+          "source": "{output_dir}/project/strong_spec.mm",
+          "cert": "strong.proof.json"
+        },
+        "harness_stage": "S1_negative_controls_verify_strong",
+        "artifact_contract": [
+          "The verifier writes {output_dir}/strong.proof.json and the step records a Claim Book entry."
+        ],
+        "verifier_gate": "mumei verify exits 0 and writes a proof certificate for next_dose."
+      },
+      {
+        "id": "claims_weak_gate",
+        "name": "Reject weak discrimination in the Claim Book",
+        "repo": "mumei",
+        "cwd": "{output_dir}/project",
+        "command": "{mumei_bin} claims weak_spec.mm --cert {output_dir}/weak.proof.json --controls --require-discriminating --format json --out-dir {output_dir}/claims_weak",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "artifacts": [
+          "claims_weak/claimbook.json"
+        ],
+        "depends_on": [
+          "verify_weak"
+        ],
+        "harness_stage": "S1_negative_controls_claims_weak_rejection",
+        "artifact_contract": [
+          "The Claim Book report is written before the discrimination gate exits 1."
+        ],
+        "verifier_gate": "mumei claims exits 1 because weak_spec.mm has a weak control result.",
+        "failure_taxonomy": "weak_specification"
+      },
+      {
+        "id": "claims_strong_gate",
+        "name": "Accept discriminating evidence in the Claim Book",
+        "repo": "mumei",
+        "cwd": "{output_dir}/project",
+        "command": "{mumei_bin} claims strong_spec.mm --cert {output_dir}/strong.proof.json --controls --require-discriminating --format json --out-dir {output_dir}/claims_strong",
+        "expected_exit": 0,
+        "artifacts": [
+          "claims_strong/claimbook.json"
+        ],
+        "depends_on": [
+          "verify_strong"
+        ],
+        "harness_stage": "S1_negative_controls_claims_strong_acceptance",
+        "artifact_contract": [
+          "The Claim Book report attaches the discriminating control result to next_dose."
+        ],
+        "verifier_gate": "mumei claims exits 0 because strong_spec.mm is discriminating."
+      }
+    ]
+  }
+}

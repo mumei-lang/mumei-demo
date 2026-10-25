@@ -9,9 +9,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from generate_report import (  # noqa: E402
+    SCENARIO_ORDER,
     bug_detection_moment,
     charter_gate_label,
     claim_book_label,
+    render_negative_controls_markdown,
     render_scenario_markdown,
     scenario_code_paths,
     write_summary,
@@ -141,6 +143,103 @@ def test_old_result_does_not_render_charter_gate_section(tmp_path):
     assert "## Charter Gate" not in report
 
 
+def test_negative_controls_section_renders_counts_and_surviving_ids(tmp_path):
+    report = render_scenario_markdown(
+        {
+            "scenario": "negative_controls_demo",
+            "scenario_name": "Negative Controls",
+            "overall_status": "PASS",
+            "proof_density": {},
+            "layers": {},
+            "negative_controls": {
+                "entries": [
+                    {
+                        "step": "controls_weak",
+                        "status": "weak",
+                        "atoms": [
+                            {
+                                "name": "next_dose",
+                                "status": "weak",
+                                "tested": 2,
+                                "killed": 1,
+                                "survived": 1,
+                                "unanalyzable": 0,
+                                "surviving": ["constant:1->0@1"],
+                            }
+                        ],
+                    },
+                    {
+                        "step": "controls_strong",
+                        "status": "discriminating",
+                        "atoms": [
+                            {
+                                "name": "next_dose",
+                                "status": "discriminating",
+                                "tested": 2,
+                                "killed": 2,
+                                "survived": 0,
+                                "unanalyzable": 0,
+                                "surviving": [],
+                            }
+                        ],
+                    },
+                ],
+                "totals": {
+                    "steps": 2,
+                    "by_step_status": {"discriminating": 1, "weak": 1},
+                    "atoms": 2,
+                    "by_atom_status": {"discriminating": 1, "weak": 1},
+                    "surviving_mutants": 1,
+                },
+            },
+        },
+        tmp_path,
+    )
+
+    assert "## Negative Controls" in report
+    assert (
+        "| Step | Step status | Atom | Atom status | Tested | Killed | "
+        "Survived | Unanalyzable | Surviving mutants |" in report
+    )
+    assert (
+        "| controls_weak | weak | next_dose | weak | 2 | 1 | 1 | 0 | "
+        "`constant:1->0@1` |" in report
+    )
+    assert (
+        "- Totals: 2 steps (discriminating: 1, weak: 1); 2 atoms "
+        "(discriminating: 1, weak: 1); 1 surviving mutant." in report
+    )
+
+
+def test_absent_negative_controls_section_does_not_change_old_report(tmp_path):
+    data = {
+        "scenario": "legacy",
+        "overall_status": "PASS",
+        "proof_density": {},
+        "layers": {},
+    }
+    assert render_negative_controls_markdown(data) == ""
+    report = render_scenario_markdown(data, tmp_path)
+    assert "## Negative Controls" not in report
+
+
+def test_empty_negative_controls_section_is_rendered_when_present():
+    section = render_negative_controls_markdown({
+        "negative_controls": {
+            "entries": [],
+            "totals": {
+                "steps": 0,
+                "by_step_status": {},
+                "atoms": 0,
+                "by_atom_status": {},
+                "surviving_mutants": 0,
+            },
+        }
+    })
+    assert "## Negative Controls" in section
+    assert "No negative-control checks were recorded." in section
+
+
 def test_charter_gate_demo_has_a_nonempty_before_after_diff():
     root = Path(__file__).resolve().parents[1]
     before_path, after_path = scenario_code_paths(root, "charter_gate_demo")
@@ -172,6 +271,39 @@ def test_charter_gate_demo_has_a_nonempty_before_after_diff():
         "####",
     )
 
+    assert "#### BEFORE → AFTER diff" in report
+
+
+def test_negative_controls_demo_diff_uses_weak_and_strong_specs():
+    root = Path(__file__).resolve().parents[1]
+    before_path, after_path = scenario_code_paths(root, "negative_controls_demo")
+
+    assert before_path.relative_to(root).as_posix() == (
+        "scenarios/negative_controls_demo/project/weak_spec.mm"
+    )
+    assert after_path.relative_to(root).as_posix() == (
+        "scenarios/negative_controls_demo/project/strong_spec.mm"
+    )
+    report = bug_detection_moment(
+        {
+            "scenario": "negative_controls_demo",
+            "layers": {
+                "l1_z3": {
+                    "steps": [
+                        {
+                            "id": "controls_weak",
+                            "status": "REJECTED",
+                            "expect_failure": True,
+                            "stdout": "constant:1->0@1",
+                        }
+                    ]
+                }
+            },
+        },
+        root,
+        "### Evidence",
+        "####",
+    )
     assert "#### BEFORE → AFTER diff" in report
 
 
@@ -248,11 +380,20 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
     app = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(app)
     charter_index = app.SCENARIO_ORDER.index("charter_gate_demo")
-    assert app.SCENARIO_ORDER[charter_index - 1 : charter_index + 2] == [
+    assert app.SCENARIO_ORDER[charter_index - 1 : charter_index + 3] == [
         "arklib_style_audit",
         "charter_gate_demo",
+        "negative_controls_demo",
         "self_correction_demo",
     ]
+    makefile = Path(__file__).resolve().parents[1] / "Makefile"
+    scenario_line = next(
+        line for line in makefile.read_text(encoding="utf-8").splitlines()
+        if line.startswith("SCENARIOS :=")
+    )
+    makefile_order = scenario_line.split(":=", 1)[1].split()
+    assert SCENARIO_ORDER == makefile_order
+    assert app.SCENARIO_ORDER == makefile_order
     data = {
         "claim_book": {
             "entries": [{"status": "ok"}],

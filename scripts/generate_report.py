@@ -17,6 +17,7 @@ SCENARIO_ORDER = [
     "regtech_compliance",
     "nl_to_verified",
     "no_mm_audit",
+    "spec_code_verification_suite",
     "mumei_develop_audit",
     "smart_contract_audit",
     "blockchain_audit",
@@ -26,6 +27,7 @@ SCENARIO_ORDER = [
     "defi_invariant",
     "arklib_style_audit",
     "charter_gate_demo",
+    "negative_controls_demo",
     "self_correction_demo",
 ]
 LAYER_LABELS = {
@@ -220,6 +222,9 @@ def scenario_code_paths(root: Path, scenario: str) -> tuple[Path, Path]:
     if scenario == "charter_gate_demo":
         project_dir = scenario_dir / "project"
         return project_dir / "weakened_ensures.mm", project_dir / "correct.mm"
+    if scenario == "negative_controls_demo":
+        project_dir = scenario_dir / "project"
+        return project_dir / "weak_spec.mm", project_dir / "strong_spec.mm"
     return scenario_dir / "buggy_code.mm", scenario_dir / "correct_code.mm"
 
 
@@ -633,6 +638,92 @@ def render_charter_gate_markdown(data: dict) -> str:
     return "\n".join(lines)
 
 
+def render_negative_controls_markdown(data: dict) -> str:
+    negative_controls = data.get("negative_controls")
+    if not isinstance(negative_controls, dict):
+        return ""
+
+    entries = negative_controls.get("entries", [])
+    entries = entries if isinstance(entries, list) else []
+    lines = [
+        "## Negative Controls",
+        "",
+        "| Step | Step status | Atom | Atom status | Tested | Killed | Survived | Unanalyzable | Surviving mutants |",
+        "| --- | --- | --- | --- | ---: | ---: | ---: | ---: | --- |",
+    ]
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        step = str(entry.get("step", "")).replace("|", "\\|").replace("\n", " ")
+        step_status = str(entry.get("status", "unavailable"))
+        atoms = entry.get("atoms", [])
+        atoms = atoms if isinstance(atoms, list) else []
+        if not atoms:
+            detail = str(entry.get("detail", "")).replace("|", "\\|").replace("\n", " ")
+            status_text = f"{step_status}: {detail}" if detail else step_status
+            lines.append(f"| {step} | {status_text} | - | - | - | - | - | - | - |")
+            continue
+        for atom in atoms:
+            if not isinstance(atom, dict):
+                continue
+            name = str(atom.get("name", "")).replace("|", "\\|").replace("\n", " ")
+            status = str(atom.get("status", "unavailable"))
+            tested = atom.get("tested", "-")
+            killed = atom.get("killed", "-")
+            survived = atom.get("survived", "-")
+            unanalyzable = atom.get("unanalyzable", "-")
+            surviving = atom.get("surviving", [])
+            surviving_text = (
+                ", ".join(
+                    f"`{mutant_id}`"
+                    for mutant_id in surviving
+                    if isinstance(mutant_id, str)
+                )
+                if isinstance(surviving, list)
+                else ""
+            )
+            if not surviving_text:
+                surviving_text = "-"
+            lines.append(
+                f"| {step} | {step_status} | {name} | {status} | {tested} | "
+                f"{killed} | {survived} | {unanalyzable} | {surviving_text} |"
+            )
+
+    totals = negative_controls.get("totals", {})
+    totals = totals if isinstance(totals, dict) else {}
+    step_statuses = totals.get("by_step_status", {})
+    step_statuses = step_statuses if isinstance(step_statuses, dict) else {}
+    atom_statuses = totals.get("by_atom_status", {})
+    atom_statuses = atom_statuses if isinstance(atom_statuses, dict) else {}
+    step_text = ", ".join(
+        f"{status}: {count}"
+        for status, count in sorted(step_statuses.items())
+        if isinstance(status, str)
+    )
+    atom_text = ", ".join(
+        f"{status}: {count}"
+        for status, count in sorted(atom_statuses.items())
+        if isinstance(status, str)
+    )
+    steps = totals.get("steps", len(entries))
+    atoms = totals.get("atoms", 0)
+    survivors = totals.get("surviving_mutants", 0)
+    summary = f"- Totals: {steps} steps"
+    if step_text:
+        summary += f" ({step_text})"
+    summary += f"; {atoms} atoms"
+    if atom_text:
+        summary += f" ({atom_text})"
+    summary += f"; {survivors} surviving mutant"
+    if survivors != 1:
+        summary += "s"
+    summary += "."
+    lines.extend(["", summary])
+    if not entries:
+        lines.extend(["", "No negative-control checks were recorded."])
+    return "\n".join(lines)
+
+
 def render_duration_markdown(data: dict) -> str:
     lines = [
         "## Duration",
@@ -681,6 +772,9 @@ def render_scenario_markdown(data: dict, root: Path) -> str:
         lines.extend(["", render_claim_book_markdown(data)])
     if "charter_gate" in data:
         lines.extend(["", render_charter_gate_markdown(data)])
+    negative_controls_markdown = render_negative_controls_markdown(data)
+    if negative_controls_markdown:
+        lines.extend(["", negative_controls_markdown])
     lines.extend([
         "",
         render_harness_contract_markdown(data),

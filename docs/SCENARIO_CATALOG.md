@@ -40,6 +40,10 @@ Detailed descriptions of every demo scenario. For run commands see
 - **Charter Gate** — mumei rejects a dosage repair that weakens its reviewed
   contract, narrows accepted inputs, falls below the required Seal Grade, or
   uses charter text that no longer matches the lock.
+- **Negative Controls** — the same dosage body verifies under weak and strong
+  contracts; a surviving mutation exposes the weak contract, while the strong
+  contract is discriminating. Phase 1i and the Claim Book discrimination gate
+  provide complementary evidence; survivors still need human judgment.
 - **ArkLib-Style Audit** — Z3 rejects a contradictory top-level theorem, then
   verifies the reviewed audit theorem and proof certificate.
 - **Aviation Control** — Z3 verifies ordered runway allocation and the agent
@@ -125,6 +129,18 @@ The scenario locks its reviewed dosage charter in an output-directory copy,
 accepts a correctly proved implementation, and records expected rejections
 for weaker, narrower, under-graded, and unpinned candidates in `result.json`
 and `report.md`.
+
+### Negative Controls
+
+```bash
+make demo-negative-controls
+```
+
+The scenario copies its dosage project to the run output directory and keeps
+the function body identical while changing only `ensures`. It records the
+weak contract's surviving mutant, the strong contract's discriminating result,
+Phase 1i's rejection, and the weak/strong Claim Book gates. A surviving mutant
+is evidence for review, not a semantic-equivalence proof.
 
 `make demo-ownership` (Phase 1 Ownership Transfer Protocol):
 
@@ -278,6 +294,7 @@ catching it; per-scenario breakdowns follow in the sections above.
 | No-.mm Multi-language Audit | Existing Python/Rust/TypeScript/Go code enters before any `.mm` file exists. | The audit gate reports each language's violations as `verification_violations` with Z3 counterexamples and `next_steps`. |
 | Phase 7 Spec-Code Verification Suite | A reviewer has only `spec.txt` and existing Python code, with no `.mm` entry yet. | V1-A through V1-D run in one flow: `spec_health_issues`, `verification_violations`, `traceability_matrix`, `drift_score`, and `next_steps`. |
 | Charter Gate | A dosage repair weakens the reviewed contract, narrows accepted inputs, or relies on a low-grade proof. | The charter gate rejects weaker contracts, under-graded evidence, and edits to locked charter text. |
+| Negative Controls | A verified dosage body is paired with a contract that permits other results. | A surviving mutant and Phase 1i expose weak evidence; the strong contract discriminates. |
 | Mumei Develop Audit | The project's own tooling drifts from its spec. | Dogfooding: `mumei-agent audit` runs on `mumei/scripts/generate_stdlib_metrics.py`. |
 | Medical Device Control | An insulin pump skips hourly dosage safety checks. | Z3 catches the invalid delivery state, then optional Lean proof certifies cumulative dosage safety. |
 | Aviation Control | Runway allocation has inconsistent lock ordering. | Z3 verifies ordered allocation, and the agent validates the generation task. |
