@@ -578,6 +578,11 @@ def test_test_observations_section_renders_contradictions_and_totals():
                     "line": 6,
                     "verdict": "contradicts_ensures",
                 }],
+            }, {
+                "step": "observe_aligned",
+                "status": "ok",
+                "verdict_totals": {"consistent": 4, "rejection_explained": 2},
+                "contradictions": [],
             }],
             "totals": {
                 "steps": 1,
@@ -592,8 +597,20 @@ def test_test_observations_section_renders_contradictions_and_totals():
     })
 
     assert "## Test Observations" in section
-    assert "| observe_wrong | ok | consistent: 2, contradicts_ensures: 1, requires_admits_rejected: 1 |" in section
+    table_lines = section.splitlines()
+    header_index = table_lines.index("| Step | Status | Verdict totals | Contradictions |")
+    table_row_indices = [
+        index for index, line in enumerate(table_lines)
+        if line.startswith("|")
+    ]
+    assert table_row_indices == list(
+        range(header_index, table_row_indices[-1] + 1)
+    )
+    assert "| observe_wrong | ok | consistent: 2, contradicts_ensures: 1, requires_admits_rejected: 1 | 1 |" in section
+    assert "| observe_aligned | ok | consistent: 4, rejection_explained: 2 | 0 |" in section
+    assert "### Contradictions in observe_wrong" in section
     assert "- `late_fee` / `test_late_fee_example` (`test_late_fee.py:6`): `contradicts_ensures`" in section
+    assert table_row_indices[-1] < table_lines.index("### Contradictions in observe_wrong")
     assert "1 contradicting results." in section
 
 
@@ -614,7 +631,7 @@ def test_test_observations_section_renders_all_consistent_data():
         }
     })
 
-    assert "consistent: 4, rejection_explained: 2" in section
+    assert "| observe_aligned | ok | consistent: 4, rejection_explained: 2 | 0 |" in section
     assert "No contradictions or admitted rejections were recorded." in section
 
 

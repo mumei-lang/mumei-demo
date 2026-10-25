@@ -774,10 +774,11 @@ def render_test_observations_markdown(data: dict) -> str:
     lines = [
         "## Test Observations",
         "",
-        "| Step | Status | Verdict totals |",
-        "| --- | --- | --- |",
+        "| Step | Status | Verdict totals | Contradictions |",
+        "| --- | --- | --- | ---: |",
     ]
     contradiction_count = 0
+    entry_contradictions = []
     for entry in entries:
         if not isinstance(entry, dict):
             continue
@@ -790,15 +791,23 @@ def render_test_observations_markdown(data: dict) -> str:
             for verdict, count in sorted(totals.items())
             if isinstance(verdict, str) and isinstance(count, int) and count
         )
-        lines.append(
-            f"| {step} | {status} | {verdict_text or 'no observations'} |"
-        )
         contradictions = entry.get("contradictions", [])
-        contradictions = contradictions if isinstance(contradictions, list) else []
+        contradictions = [
+            contradiction for contradiction in contradictions
+            if isinstance(contradiction, dict)
+        ] if isinstance(contradictions, list) else []
+        lines.append(
+            f"| {step} | {status} | {verdict_text or 'no observations'} | "
+            f"{len(contradictions)} |"
+        )
+        if contradictions:
+            entry_contradictions.append((step, contradictions))
         for contradiction in contradictions:
-            if not isinstance(contradiction, dict):
-                continue
             contradiction_count += 1
+
+    for step, contradictions in entry_contradictions:
+        lines.extend(["", f"### Contradictions in {step}", ""])
+        for contradiction in contradictions:
             target = str(contradiction.get("target", "")).replace("|", "\\|")
             test = str(contradiction.get("test", "")).replace("|", "\\|")
             file_name = str(contradiction.get("file", "")).replace("|", "\\|")
@@ -814,9 +823,9 @@ def render_test_observations_markdown(data: dict) -> str:
             )
 
     if not entries:
-        lines.append("_No test-observation checks were recorded._")
+        lines.extend(["", "_No test-observation checks were recorded._"])
     elif contradiction_count == 0:
-        lines.append("- No contradictions or admitted rejections were recorded.")
+        lines.extend(["", "No contradictions or admitted rejections were recorded."])
 
     totals = observations.get("totals", {})
     totals = totals if isinstance(totals, dict) else {}
