@@ -954,10 +954,16 @@ def main(argv: list[str]) -> int:
         return True
 
     def render_step_narrative(step_id: str, status: str) -> bool:
+        step_events = step_narratives.get(step_id, {})
+        event = (
+            step_events.get(status.lower(), {})
+            if isinstance(step_events, dict)
+            else {}
+        )
+        if isinstance(event, dict) and event:
+            return render_narrative_event(event)
+
         if step_id == "detect_bug" and status == "REJECTED":
-            event = step_narratives.get("detect_bug", {}).get("rejected", {})
-            if event:
-                return render_narrative_event(event)
             story_icon("❌", "BUG DETECTED!")
             story("  InvalidPreState: 'accept' requires 'PendingTransfer'")
             story("  but current state is 'Idle'")
@@ -965,17 +971,11 @@ def main(argv: list[str]) -> int:
             story("  Step 3: Verifying the correct implementation...")
             return True
         if step_id == "verify_correct" and status == "PASS":
-            event = step_narratives.get("verify_correct", {}).get("pass", {})
-            if event:
-                return render_narrative_event(event)
             story_icon("✅", "All 5 atoms verified by Z3")
             story()
             story("  Step 4: Lean proves unreachability...")
             return True
         if step_id == "lean_build" and status == "CERTIFIED":
-            event = step_narratives.get("lean_build", {}).get("certified", {})
-            if event:
-                return render_narrative_event(event)
             story_icon("✅", "CERTIFIED: no_transfer_without_accept")
             return True
         return False

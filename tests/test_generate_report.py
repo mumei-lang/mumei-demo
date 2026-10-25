@@ -6,6 +6,8 @@ import types
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from generate_report import (  # noqa: E402
@@ -260,6 +262,7 @@ def test_charter_gate_demo_has_a_nonempty_before_after_diff():
                             "id": "detect_weakened_ensures",
                             "status": "REJECTED",
                             "expect_failure": True,
+                            "command": "mumei charter --json",
                             "stdout": "post_weakened",
                         }
                     ]
@@ -272,6 +275,7 @@ def test_charter_gate_demo_has_a_nonempty_before_after_diff():
     )
 
     assert "#### BEFORE → AFTER diff" in report
+    assert "#### mumei charter → CHARTER REJECTED" in report
 
 
 def test_negative_controls_demo_diff_uses_weak_and_strong_specs():
@@ -294,6 +298,7 @@ def test_negative_controls_demo_diff_uses_weak_and_strong_specs():
                             "id": "controls_weak",
                             "status": "REJECTED",
                             "expect_failure": True,
+                            "command": "mumei controls weak_spec.mm --json",
                             "stdout": "constant:1->0@1",
                         }
                     ]
@@ -305,6 +310,107 @@ def test_negative_controls_demo_diff_uses_weak_and_strong_specs():
         "####",
     )
     assert "#### BEFORE → AFTER diff" in report
+    assert "#### mumei controls → WEAK SPEC DETECTED" in report
+
+
+@pytest.mark.parametrize(
+    ("command", "label"),
+    [
+        ("mumei verify weak_spec.mm", "mumei verify → BUG DETECTED"),
+        ("mumei controls weak_spec.mm --json", "mumei controls → WEAK SPEC DETECTED"),
+        ("mumei claims weak_spec.mm --controls", "mumei claims → GATE REJECTED"),
+        ("mumei charter weak_spec.mm --json", "mumei charter → CHARTER REJECTED"),
+    ],
+)
+def test_rejected_step_labels_follow_the_mumei_subcommand(tmp_path, command, label):
+    root = Path(__file__).resolve().parents[1]
+    report = bug_detection_moment(
+        {
+            "scenario": "legacy",
+            "layers": {
+                "l1_z3": {
+                    "steps": [
+                        {
+                            "id": "rejected_step",
+                            "status": "REJECTED",
+                            "expect_failure": True,
+                            "command": command,
+                            "stdout": "expected rejection",
+                        }
+                    ]
+                }
+            },
+        },
+        root,
+        "### Evidence",
+        "####",
+    )
+
+    assert f"#### {label}" in report
+
+
+def test_rejected_step_label_reads_the_executed_command_from_its_log(tmp_path):
+    run_dir = tmp_path / "reports" / "legacy" / "run"
+    run_dir.mkdir(parents=True)
+    state_file = run_dir / "harness_state.json"
+    state_file.write_text("{}", encoding="utf-8")
+    (run_dir / "rejected_step.log").write_text(
+        "$ /opt/mumei/target/release/mumei claims weak_spec.mm --controls\n",
+        encoding="utf-8",
+    )
+
+    report = bug_detection_moment(
+        {
+            "scenario": "legacy",
+            "harness_state_file": str(state_file),
+            "layers": {
+                "l1_z3": {
+                    "steps": [
+                        {
+                            "id": "rejected_step",
+                            "status": "REJECTED",
+                            "expect_failure": True,
+                            "output_file": "rejected_step.log",
+                            "command": "mumei verify weak_spec.mm",
+                            "stdout": "expected rejection",
+                        }
+                    ]
+                }
+            },
+        },
+        Path(__file__).resolve().parents[1],
+        "### Evidence",
+        "####",
+    )
+
+    assert "#### mumei claims → GATE REJECTED" in report
+
+
+def test_verify_rejection_report_matches_the_legacy_label():
+    root = Path(__file__).resolve().parents[1]
+
+    def render(command=None):
+        step = {
+            "id": "detect_bug",
+            "status": "REJECTED",
+            "expect_failure": True,
+            "stdout": "Verification failed",
+        }
+        if command is not None:
+            step["command"] = command
+        return bug_detection_moment(
+            {
+                "scenario": "legacy",
+                "layers": {"l1_z3": {"steps": [step]}},
+            },
+            root,
+            "### Evidence",
+            "####",
+        )
+
+    legacy_report = render()
+    assert legacy_report == render("mumei verify weak_spec.mm")
+    assert "#### mumei verify → BUG DETECTED" in legacy_report
 
 
 def test_write_highlights_adds_one_charter_gate_line(tmp_path):

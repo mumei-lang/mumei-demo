@@ -122,6 +122,35 @@ def rejected_failure_steps(data: dict) -> list[tuple[str, dict]]:
     ]
 
 
+def rejected_step_subcommand(data: dict, step: dict) -> str:
+    command = step.get("command")
+    state_file = data.get("harness_state_file")
+    output_file = step.get("output_file")
+    if isinstance(state_file, str) and isinstance(output_file, str):
+        log_path = Path(output_file)
+        if not log_path.is_absolute():
+            log_path = Path(state_file).parent / log_path
+        first_line = read_optional(log_path).splitlines()[:1]
+        if first_line and first_line[0].startswith("$ "):
+            command = first_line[0][2:]
+
+    if not isinstance(command, str):
+        return "verify"
+    match = re.search(
+        r"(?:^|[\s;&|])(?:\S*/)?mumei\s+(verify|controls|claims|charter)(?=\s|$)",
+        command,
+    )
+    return match.group(1) if match else "verify"
+
+
+def rejected_step_label(data: dict, step: dict) -> str:
+    return {
+        "controls": "mumei controls → WEAK SPEC DETECTED",
+        "claims": "mumei claims → GATE REJECTED",
+        "charter": "mumei charter → CHARTER REJECTED",
+    }.get(rejected_step_subcommand(data, step), "mumei verify → BUG DETECTED")
+
+
 def strip_ansi(text: str) -> str:
     return ANSI_RE.sub("", text)
 
@@ -263,7 +292,7 @@ def bug_detection_moment(data: dict, root: Path, heading: str, subheading: str) 
             "",
             code_fence(numbered_snippet(before_text, before_indices)),
             "",
-            f"{subheading} mumei verify → BUG DETECTED",
+            f"{subheading} {rejected_step_label(data, step)}",
             "",
             f"`{layer}/{step.get('id')}` rejected as expected.",
             "",

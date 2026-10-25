@@ -72,7 +72,7 @@ if marker:
         handle.write("claims\\\\n")
 exit_code = int(os.environ.get("MUMEI_STUB_CLAIMS_EXIT", "0"))
 if exit_code:
-    print("fixture claims failed", file=sys.stderr)
+    print(os.environ.get("MUMEI_STUB_CLAIMS_STDERR", "fixture claims failed"), file=sys.stderr)
     print("second diagnostic", file=sys.stderr)
     raise SystemExit(exit_code)
 
@@ -112,6 +112,8 @@ def _run_scenario(
     charter_exit: int = 0,
     controls_stdout: str = "",
     controls_exit: int = 0,
+    claims_stderr: str = "fixture claims failed",
+    narrative: dict | None = None,
 ) -> tuple[int, dict, Path]:
     root = tmp_path / "root"
     scenario_name = "claim_book_test"
@@ -146,6 +148,8 @@ def _run_scenario(
         "layers": ["l1_z3"],
         "l1_z3": {"steps": steps},
     }
+    if narrative is not None:
+        scenario["narrative"] = narrative
     (scenario_dir / "scenario.json").write_text(json.dumps(scenario), encoding="utf-8")
 
     stub = _make_mumei_stub(root)
@@ -159,6 +163,7 @@ def _run_scenario(
     monkeypatch.setenv("MUMEI_STUB_CONTROLS_EXIT", str(controls_exit))
     monkeypatch.setenv("MUMEI_STUB_CLAIMS_EXIT", str(claims_exit))
     monkeypatch.setenv("MUMEI_STUB_CLAIMS_MODE", claims_mode)
+    monkeypatch.setenv("MUMEI_STUB_CLAIMS_STDERR", claims_stderr)
 
     runner = _load_runner()
     if preseed_stale_claimbook:
@@ -500,6 +505,177 @@ def test_unflagged_scenario_has_no_negative_controls_output(tmp_path, monkeypatc
     state = json.loads(Path(result["harness_state_file"]).read_text(encoding="utf-8"))
     assert "negative_controls" not in result
     assert "negative_controls" not in state
+
+
+def test_negative_controls_gate_steps_require_specific_evidence_patterns():
+    scenario_path = (
+        Path(__file__).resolve().parents[1]
+        / "scenarios"
+        / "negative_controls_demo"
+        / "scenario.json"
+    )
+    scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+    steps = {step["id"]: step for step in scenario["l1_z3"]["steps"]}
+
+    assert "constant:1->0@1" in steps["vacuity_weak"]["expected_patterns"]
+    assert "next_dose: controls weak" in steps["claims_weak_gate"]["expected_patterns"]
+    assert "constant:1->0@1" in steps["claims_weak_gate"]["expected_patterns"]
+    assert "controls discriminating: next_dose" in steps["claims_strong_gate"]["expected_patterns"]
+    assert "--require-grade" not in steps["claims_weak_gate"]["command"]
+
+
+def test_claims_weak_gate_fails_on_certificate_error(tmp_path, monkeypatch):
+    scenario_path = (
+        Path(__file__).resolve().parents[1]
+        / "scenarios"
+        / "negative_controls_demo"
+        / "scenario.json"
+    )
+    scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+    step = next(
+        step
+        for step in scenario["l1_z3"]["steps"]
+        if step["id"] == "claims_weak_gate"
+    )
+    step["cwd"] = "{root_dir}"
+    step.pop("depends_on", None)
+
+    exit_code, result, output_dir = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+        claims_exit=1,
+        claims_stderr="certificate error: invalid proof certificate",
+    )
+
+    step_result = result["layers"]["l1_z3"]["steps"][0]
+    assert exit_code == 1
+    assert result["overall_status"] == "FAIL"
+    assert step_result["status"] == "FAIL"
+    assert step_result["exit_code"] == 2
+    assert "certificate error: invalid proof certificate" in step_result["stderr"]
+    assert "controls weak" not in step_result["stdout"] + step_result["stderr"]
+    assert not (output_dir / "claims_weak" / "claimbook.json").exists()
+
+
+def test_step_narratives_render_for_new_and_existing_ids(tmp_path, monkeypatch, capsys):
+    new_step = {
+        "id": "controls_weak",
+        "command": "{mumei_bin} controls weak_spec.mm --json",
+        "expected_exit": 1,
+        "expect_failure": True,
+        "negative_controls": True,
+    }
+    _run_scenario(
+        tmp_path / "new",
+        monkeypatch,
+        [],
+        scenario_steps=[new_step],
+        controls_stdout=json.dumps(_controls_report()),
+        controls_exit=1,
+        narrative={
+            "steps": {
+                "controls_weak": {
+                    "rejected": {
+                        "icon": "🧭",
+                        "headline": "CONTROLS REJECTION BANNER",
+                        "follow_up": ["  Review the surviving mutant."],
+                    }
+                }
+            }
+        },
+    )
+    new_output = capsys.readouterr().out
+    assert "🧭 CONTROLS REJECTION BANNER" in new_output
+    assert "Review the surviving mutant." in new_output
+
+    vacuity_step = {
+        "id": "vacuity_weak",
+        "command": (
+            "{mumei_bin} verify weak_spec.mm --proof-cert "
+            "--output {output_dir}/weak.proof.json"
+        ),
+        "expected_exit": 1,
+        "expected_patterns": ["Verification passed"],
+        "expect_failure": True,
+    }
+    _run_scenario(
+        tmp_path / "vacuity",
+        monkeypatch,
+        [],
+        scenario_steps=[vacuity_step],
+        verify_exit=1,
+        narrative={
+            "steps": {
+                "vacuity_weak": {
+                    "rejected": {
+                        "icon": "❌",
+                        "headline": "Phase 1i: a mutation survives the weak contract",
+                    }
+                }
+            }
+        },
+    )
+    vacuity_output = capsys.readouterr().out
+    assert "❌ Phase 1i: a mutation survives the weak contract" in vacuity_output
+
+    existing_step = {
+        "id": "detect_bug",
+        "command": (
+            "{mumei_bin} verify source.mm --proof-cert "
+            "--output {output_dir}/source.proof.json"
+        ),
+        "expected_exit": 1,
+        "expected_patterns": ["Verification passed"],
+        "expect_failure": True,
+    }
+    _run_scenario(
+        tmp_path / "existing",
+        monkeypatch,
+        [],
+        scenario_steps=[existing_step],
+        verify_exit=1,
+        narrative={
+            "steps": {
+                "detect_bug": {
+                    "rejected": {
+                        "icon": "❌",
+                        "headline": "LEGACY REJECTION BANNER",
+                        "follow_up": ["  Legacy follow-up."],
+                    }
+                }
+            }
+        },
+    )
+    existing_output = capsys.readouterr().out
+    assert "❌ LEGACY REJECTION BANNER" in existing_output
+    assert "Legacy follow-up." in existing_output
+
+
+def test_existing_detect_bug_fallback_narrative_is_unchanged(tmp_path, monkeypatch, capsys):
+    step = {
+        "id": "detect_bug",
+        "command": (
+            "{mumei_bin} verify source.mm --proof-cert "
+            "--output {output_dir}/source.proof.json"
+        ),
+        "expected_exit": 1,
+        "expected_patterns": ["Verification passed"],
+        "expect_failure": True,
+    }
+    _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+        verify_exit=1,
+    )
+
+    output = capsys.readouterr().out
+    assert "❌ BUG DETECTED!" in output
+    assert "InvalidPreState: 'accept' requires 'PendingTransfer'" in output
+    assert "Step 3: Verifying the correct implementation..." in output
 
 
 def test_charter_gate_parser_accepts_pass_report():
