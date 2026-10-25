@@ -12,6 +12,7 @@ Mumei runs formal verification over every possible case before an LLM-generated 
 | No-.mm Multi-language Audit | Existing code enters before any `.mm` file exists. | The audit gate reports violations, counterexamples, and `next_steps`. |
 | DeFi Invariant | Integer overflow occurs in an ERC-20 transfer. | Refinement types prevent overflow at compile time. |
 | Charter Gate | A repair weakens a reviewed dosage contract or relies on a low-grade proof. | The charter gate rejects weakened, narrowed, under-graded, and unpinned candidates. |
+| Negative Controls | A dosage implementation verifies under a contract that permits a wrong result. | Controls and Phase 1i expose a surviving mutant; the strong contract is discriminating. |
 
 ## How It Works
 
@@ -70,6 +71,7 @@ make demo-settlement
 make demo-regtech
 make demo-no-mm
 make demo-charter
+make demo-negative-controls
 ```
 
 See [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) for the exhaustive target list and P9-G NLAE integration.

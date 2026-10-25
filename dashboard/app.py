@@ -15,6 +15,7 @@ SCENARIO_ORDER = [
     "regtech_compliance",
     "nl_to_verified",
     "no_mm_audit",
+    "spec_code_verification_suite",
     "mumei_develop_audit",
     "smart_contract_audit",
     "blockchain_audit",
@@ -24,6 +25,7 @@ SCENARIO_ORDER = [
     "defi_invariant",
     "arklib_style_audit",
     "charter_gate_demo",
+    "negative_controls_demo",
     "self_correction_demo",
 ]
 

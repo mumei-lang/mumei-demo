@@ -13,6 +13,7 @@ from check_scenario_contracts import (
     _is_key_context,
     _validate_claim_book,
     _validate_charter_gate,
+    _validate_negative_controls,
 )
 
 
@@ -78,6 +79,14 @@ def test_charter_gate_must_be_boolean_true():
     for value in (False, 1, "true", None, {}):
         failures = _validate_charter_gate(value, "$.charter_gate")
         assert failures == ["$.charter_gate must be the boolean true"]
+
+
+def test_negative_controls_flag_must_be_boolean():
+    assert _validate_negative_controls(True, "$.negative_controls") == []
+    assert _validate_negative_controls(False, "$.negative_controls") == []
+    for value in (1, "true", None, {}, []):
+        failures = _validate_negative_controls(value, "$.negative_controls")
+        assert failures == ["$.negative_controls must be a boolean"]
 
 
 def test_in_code_fence_detection():

@@ -527,6 +527,160 @@ def charter_gate_totals(entries: list[dict[str, object]]) -> dict[str, object]:
     }
 
 
+CONTROLS_REPORT_SCHEMA = "mumei.controls-report/v1"
+CONTROLS_ATOM_STATUSES = {
+    "discriminating",
+    "weak",
+    "inconclusive",
+    "no_mutants",
+    "not_checked",
+}
+
+
+def parse_negative_controls_entry(
+    step_id: str,
+    step_status: str,
+    stdout: str,
+) -> dict[str, object]:
+    entry: dict[str, object] = {
+        "step": step_id,
+        "status": "unavailable",
+        "atoms": [],
+    }
+    if step_status == "SKIPPED":
+        entry.update({
+            "status": "skipped",
+            "detail": f"Step status was {step_status}",
+        })
+        return entry
+
+    try:
+        report = json.loads(stdout)
+    except json.JSONDecodeError as error:
+        entry["detail"] = f"controls report JSON is invalid: {error}"
+        return entry
+
+    if not isinstance(report, Mapping):
+        entry["detail"] = "controls report must be a JSON object"
+        return entry
+    if report.get("schema") != CONTROLS_REPORT_SCHEMA:
+        entry["detail"] = f"unsupported controls report schema: {report.get('schema')!r}"
+        return entry
+    report_status = report.get("status")
+    if not isinstance(report_status, str) or report_status not in {"pass", "fail"}:
+        entry["detail"] = "controls report status must be 'pass' or 'fail'"
+        return entry
+
+    atoms = report.get("atoms")
+    if not isinstance(atoms, list) or not atoms:
+        entry["detail"] = "controls report atoms must be a non-empty array"
+        return entry
+
+    normalized_atoms: list[dict[str, object]] = []
+    for atom in atoms:
+        if not isinstance(atom, Mapping):
+            entry["detail"] = "controls report atoms must contain objects"
+            return entry
+        name = atom.get("name")
+        status = atom.get("status")
+        counts = {
+            key: atom.get(key)
+            for key in ("tested", "killed", "survived", "unanalyzable")
+        }
+        if not isinstance(name, str) or not name:
+            entry["detail"] = "controls report atom name must be a non-empty string"
+            return entry
+        if not isinstance(status, str) or status not in CONTROLS_ATOM_STATUSES:
+            entry["detail"] = "controls report atom status is missing or invalid"
+            return entry
+        if any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 0
+            for value in counts.values()
+        ):
+            entry["detail"] = "controls report atom counts must be non-negative integers"
+            return entry
+        if counts["tested"] != (
+            counts["killed"] + counts["survived"] + counts["unanalyzable"]
+        ):
+            entry["detail"] = "controls report atom counts are inconsistent"
+            return entry
+
+        mutants = atom.get("mutants")
+        if not isinstance(mutants, list):
+            entry["detail"] = "controls report atom mutants must be an array"
+            return entry
+        surviving: list[str] = []
+        for mutant in mutants:
+            if not isinstance(mutant, Mapping):
+                entry["detail"] = "controls report mutants must contain objects"
+                return entry
+            mutant_id = mutant.get("id")
+            outcome = mutant.get("outcome")
+            if not isinstance(mutant_id, str) or not isinstance(outcome, str):
+                entry["detail"] = "controls report mutants require id and outcome strings"
+                return entry
+            if outcome == "survived":
+                surviving.append(mutant_id)
+        if len(surviving) != counts["survived"]:
+            entry["detail"] = "controls report surviving mutant ids do not match the survived count"
+            return entry
+
+        normalized_atoms.append({
+            "name": name,
+            "status": status,
+            **counts,
+            "surviving": surviving,
+        })
+
+    statuses = [atom["status"] for atom in normalized_atoms]
+    if "weak" in statuses:
+        step_status = "weak"
+    elif "inconclusive" in statuses:
+        step_status = "inconclusive"
+    elif "not_checked" in statuses:
+        step_status = "not_checked"
+    elif "discriminating" in statuses:
+        step_status = "discriminating"
+    else:
+        step_status = "no_mutants"
+    entry.update({
+        "status": step_status,
+        "atoms": normalized_atoms,
+    })
+    return entry
+
+
+def negative_controls_totals(entries: list[dict[str, object]]) -> dict[str, object]:
+    by_step_status: dict[str, int] = {}
+    by_atom_status: dict[str, int] = {}
+    atom_count = 0
+    surviving_mutants = 0
+    for entry in entries:
+        status = entry.get("status")
+        if isinstance(status, str):
+            by_step_status[status] = by_step_status.get(status, 0) + 1
+        atoms = entry.get("atoms", [])
+        if not isinstance(atoms, list):
+            continue
+        for atom in atoms:
+            if not isinstance(atom, Mapping):
+                continue
+            atom_count += 1
+            atom_status = atom.get("status")
+            if isinstance(atom_status, str):
+                by_atom_status[atom_status] = by_atom_status.get(atom_status, 0) + 1
+            surviving = atom.get("surviving", [])
+            if isinstance(surviving, list):
+                surviving_mutants += len(surviving)
+    return {
+        "steps": len(entries),
+        "by_step_status": dict(sorted(by_step_status.items())),
+        "atoms": atom_count,
+        "by_atom_status": dict(sorted(by_atom_status.items())),
+        "surviving_mutants": surviving_mutants,
+    }
+
+
 def run_claim_book_entry(
     step_id: str,
     step_status: str,
@@ -800,10 +954,16 @@ def main(argv: list[str]) -> int:
         return True
 
     def render_step_narrative(step_id: str, status: str) -> bool:
+        step_events = step_narratives.get(step_id, {})
+        event = (
+            step_events.get(status.lower(), {})
+            if isinstance(step_events, dict)
+            else {}
+        )
+        if isinstance(event, dict) and event:
+            return render_narrative_event(event)
+
         if step_id == "detect_bug" and status == "REJECTED":
-            event = step_narratives.get("detect_bug", {}).get("rejected", {})
-            if event:
-                return render_narrative_event(event)
             story_icon("❌", "BUG DETECTED!")
             story("  InvalidPreState: 'accept' requires 'PendingTransfer'")
             story("  but current state is 'Idle'")
@@ -811,17 +971,11 @@ def main(argv: list[str]) -> int:
             story("  Step 3: Verifying the correct implementation...")
             return True
         if step_id == "verify_correct" and status == "PASS":
-            event = step_narratives.get("verify_correct", {}).get("pass", {})
-            if event:
-                return render_narrative_event(event)
             story_icon("✅", "All 5 atoms verified by Z3")
             story()
             story("  Step 4: Lean proves unreachability...")
             return True
         if step_id == "lean_build" and status == "CERTIFIED":
-            event = step_narratives.get("lean_build", {}).get("certified", {})
-            if event:
-                return render_narrative_event(event)
             story_icon("✅", "CERTIFIED: no_transfer_without_accept")
             return True
         return False
@@ -844,6 +998,7 @@ def main(argv: list[str]) -> int:
     artifacts: list[str] = []
     claim_book_entries: list[dict[str, object]] = []
     charter_gate_entries: list[dict[str, object]] = []
+    negative_controls_entries: list[dict[str, object]] = []
     overall_status = "PASS"
 
     # depends_on resolves step ids globally — a duplicated id would make the
@@ -987,6 +1142,26 @@ def main(argv: list[str]) -> int:
                         handle.write(f"\n[{charter_gate_detail}]\n")
                     print(f"[{step_id}] {charter_gate_detail}", file=sys.stderr)
 
+            negative_controls_entry = None
+            negative_controls_detail = None
+            if step.get("negative_controls") is True:
+                negative_controls_entry = parse_negative_controls_entry(
+                    step_id,
+                    status,
+                    stdout,
+                )
+                if negative_controls_entry.get("status") == "unavailable":
+                    negative_controls_detail = (
+                        "negative controls report unavailable: "
+                        f"{negative_controls_entry.get('detail', 'unknown error')}"
+                    )
+                    status = "FAIL"
+                    overall_status = "FAIL"
+                    stderr = "\n".join(part for part in (stderr, negative_controls_detail) if part)
+                    with log_path.open("a", encoding="utf-8") as handle:
+                        handle.write(f"\n[{negative_controls_detail}]\n")
+                    print(f"[{step_id}] {negative_controls_detail}", file=sys.stderr)
+
             step_result = {
                 "id": step_id,
                 "name": step.get("name", step_id),
@@ -1012,6 +1187,8 @@ def main(argv: list[str]) -> int:
                 step_result["failure_taxonomy"] = step["failure_taxonomy"]
             if charter_gate_detail is not None:
                 step_result["detail"] = charter_gate_detail
+            if negative_controls_detail is not None:
+                step_result["detail"] = negative_controls_detail
             if "claim_book" in step:
                 claim_book_entries.append(
                     run_claim_book_entry(
@@ -1027,6 +1204,8 @@ def main(argv: list[str]) -> int:
                 )
             if charter_gate_entry is not None:
                 charter_gate_entries.append(charter_gate_entry)
+            if negative_controls_entry is not None:
+                negative_controls_entries.append(negative_controls_entry)
             for artifact in step.get("artifacts", []):
                 if (output_dir / artifact).exists():
                     artifacts.append(artifact)
@@ -1073,6 +1252,11 @@ def main(argv: list[str]) -> int:
             "entries": charter_gate_entries,
             "totals": charter_gate_totals(charter_gate_entries),
         }
+    if negative_controls_entries:
+        result["negative_controls"] = {
+            "entries": negative_controls_entries,
+            "totals": negative_controls_totals(negative_controls_entries),
+        }
     result["artifact_payloads"] = artifact_payloads(output_dir, artifacts)
     result["verification_evidence"] = verification_evidence(results)
     state_file = output_dir / "harness_state.json"
@@ -1096,6 +1280,8 @@ def main(argv: list[str]) -> int:
         state_payload["claim_book"] = result["claim_book"]
     if "charter_gate" in result:
         state_payload["charter_gate"] = result["charter_gate"]
+    if "negative_controls" in result:
+        state_payload["negative_controls"] = result["negative_controls"]
     state_file.write_text(json.dumps(state_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     result["artifact_payloads"]["harness_state.json"] = state_payload
     (output_dir / "result.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

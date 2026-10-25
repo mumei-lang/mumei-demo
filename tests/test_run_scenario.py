@@ -5,6 +5,8 @@ import json
 import os
 from pathlib import Path
 
+import pytest
+
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "run_scenario.sh"
 
 
@@ -57,6 +59,9 @@ if args and args[0] == "verify":
 if args and args[0] == "charter":
     print(os.environ.get("MUMEI_STUB_CHARTER_STDOUT", ""))
     raise SystemExit(int(os.environ.get("MUMEI_STUB_CHARTER_EXIT", "0")))
+if args and args[0] == "controls":
+    print(os.environ.get("MUMEI_STUB_CONTROLS_STDOUT", ""))
+    raise SystemExit(int(os.environ.get("MUMEI_STUB_CONTROLS_EXIT", "0")))
 if not args or args[0] != "claims":
     print("unsupported command", file=sys.stderr)
     raise SystemExit(2)
@@ -67,7 +72,7 @@ if marker:
         handle.write("claims\\\\n")
 exit_code = int(os.environ.get("MUMEI_STUB_CLAIMS_EXIT", "0"))
 if exit_code:
-    print("fixture claims failed", file=sys.stderr)
+    print(os.environ.get("MUMEI_STUB_CLAIMS_STDERR", "fixture claims failed"), file=sys.stderr)
     print("second diagnostic", file=sys.stderr)
     raise SystemExit(exit_code)
 
@@ -105,6 +110,10 @@ def _run_scenario(
     scenario_steps: list[dict] | None = None,
     charter_stdout: str = "",
     charter_exit: int = 0,
+    controls_stdout: str = "",
+    controls_exit: int = 0,
+    claims_stderr: str = "fixture claims failed",
+    narrative: dict | None = None,
 ) -> tuple[int, dict, Path]:
     root = tmp_path / "root"
     scenario_name = "claim_book_test"
@@ -139,6 +148,8 @@ def _run_scenario(
         "layers": ["l1_z3"],
         "l1_z3": {"steps": steps},
     }
+    if narrative is not None:
+        scenario["narrative"] = narrative
     (scenario_dir / "scenario.json").write_text(json.dumps(scenario), encoding="utf-8")
 
     stub = _make_mumei_stub(root)
@@ -148,8 +159,11 @@ def _run_scenario(
     monkeypatch.setenv("MUMEI_STUB_VERIFY_EXIT", str(verify_exit))
     monkeypatch.setenv("MUMEI_STUB_CHARTER_STDOUT", charter_stdout)
     monkeypatch.setenv("MUMEI_STUB_CHARTER_EXIT", str(charter_exit))
+    monkeypatch.setenv("MUMEI_STUB_CONTROLS_STDOUT", controls_stdout)
+    monkeypatch.setenv("MUMEI_STUB_CONTROLS_EXIT", str(controls_exit))
     monkeypatch.setenv("MUMEI_STUB_CLAIMS_EXIT", str(claims_exit))
     monkeypatch.setenv("MUMEI_STUB_CLAIMS_MODE", claims_mode)
+    monkeypatch.setenv("MUMEI_STUB_CLAIMS_STDERR", claims_stderr)
 
     runner = _load_runner()
     if preseed_stale_claimbook:
@@ -277,6 +291,438 @@ def _charter_report(
             }
         ],
     }
+
+
+def _controls_report(
+    atom_status: str = "weak",
+    *,
+    report_status: str | None = None,
+) -> dict:
+    weak = atom_status == "weak"
+    return {
+        "schema": "mumei.controls-report/v1",
+        "status": report_status or ("fail" if weak else "pass"),
+        "input": "dosage.mm",
+        "atoms": [
+            {
+                "name": "next_dose",
+                "status": atom_status,
+                "tested": 2,
+                "killed": 1 if weak else 2,
+                "survived": 1 if weak else 0,
+                "unanalyzable": 0,
+                "mutants": [
+                    {"id": "op-flip:Add->Sub@0", "outcome": "killed"},
+                    {
+                        "id": "constant:1->0@1",
+                        "outcome": "survived" if weak else "killed",
+                    },
+                ],
+            }
+        ],
+        "totals": {
+            "atoms": 1,
+            "by_status": {atom_status: 1},
+            "mutants": 2,
+            "killed": 1 if weak else 2,
+            "survived": 1 if weak else 0,
+            "unanalyzable": 0,
+        },
+    }
+
+
+def test_negative_controls_parser_normalizes_weak_and_discriminating_reports():
+    parse_entry = _load_runner()["parse_negative_controls_entry"]
+    weak = parse_entry("controls_weak", "REJECTED", json.dumps(_controls_report()))
+    strong = parse_entry(
+        "controls_strong",
+        "PASS",
+        json.dumps(_controls_report("discriminating")),
+    )
+
+    assert weak == {
+        "step": "controls_weak",
+        "status": "weak",
+        "atoms": [
+            {
+                "name": "next_dose",
+                "status": "weak",
+                "tested": 2,
+                "killed": 1,
+                "survived": 1,
+                "unanalyzable": 0,
+                "surviving": ["constant:1->0@1"],
+            }
+        ],
+    }
+    assert strong["status"] == "discriminating"
+    assert strong["atoms"][0]["surviving"] == []
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        "not json",
+        json.dumps({**_controls_report(), "schema": "wrong/v1"}),
+        json.dumps({**_controls_report(), "status": []}),
+        json.dumps({"schema": "mumei.controls-report/v1", "status": "fail"}),
+        json.dumps({
+            **_controls_report(),
+            "atoms": ["not an atom object"],
+        }),
+        json.dumps({
+            **_controls_report(),
+            "atoms": [{**_controls_report()["atoms"][0], "status": []}],
+        }),
+        json.dumps({
+            **_controls_report(),
+            "atoms": [{**_controls_report()["atoms"][0], "tested": "2"}],
+        }),
+        json.dumps({
+            **_controls_report(),
+            "atoms": [{**_controls_report()["atoms"][0], "killed": 0, "survived": 0}],
+        }),
+        json.dumps({
+            **_controls_report(),
+            "atoms": [{
+                key: value
+                for key, value in _controls_report()["atoms"][0].items()
+                if key != "killed"
+            }],
+        }),
+    ],
+    ids=[
+        "invalid-json",
+        "wrong-schema",
+        "bad-report-status",
+        "missing-atoms",
+        "non-object-atom",
+        "bad-atom-status",
+        "bad-counts",
+        "inconsistent-counts",
+        "missing-field",
+    ],
+)
+def test_malformed_negative_controls_report_fails_step_and_scenario(
+    tmp_path,
+    monkeypatch,
+    payload,
+):
+    step = {
+        "id": "controls_weak",
+        "command": "{mumei_bin} controls weak_spec.mm --json",
+        "expected_exit": 1,
+        "expect_failure": True,
+        "negative_controls": True,
+    }
+    exit_code, result, _ = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+        controls_stdout=payload,
+        controls_exit=1,
+    )
+
+    step_result = result["layers"]["l1_z3"]["steps"][0]
+    assert exit_code == 1
+    assert result["overall_status"] == "FAIL"
+    assert step_result["status"] == "FAIL"
+    assert step_result["detail"].startswith("negative controls report unavailable:")
+    assert result["negative_controls"]["entries"][0]["status"] == "unavailable"
+
+
+def test_negative_controls_totals_count_steps_atoms_and_survivors():
+    runner = _load_runner()
+    weak = runner["parse_negative_controls_entry"](
+        "controls_weak",
+        "REJECTED",
+        json.dumps(_controls_report()),
+    )
+    strong = runner["parse_negative_controls_entry"](
+        "controls_strong",
+        "PASS",
+        json.dumps(_controls_report("discriminating")),
+    )
+    totals = runner["negative_controls_totals"]([
+        weak,
+        strong,
+        {"step": "controls_skipped", "status": "skipped", "atoms": []},
+    ])
+
+    assert totals == {
+        "steps": 3,
+        "by_step_status": {
+            "discriminating": 1,
+            "skipped": 1,
+            "weak": 1,
+        },
+        "atoms": 2,
+        "by_atom_status": {"discriminating": 1, "weak": 1},
+        "surviving_mutants": 1,
+    }
+
+
+def test_negative_controls_result_is_mirrored_to_harness_state(tmp_path, monkeypatch):
+    step = {
+        "id": "controls_weak",
+        "command": "{mumei_bin} controls weak_spec.mm --json",
+        "expected_exit": 1,
+        "expect_failure": True,
+        "negative_controls": True,
+    }
+    exit_code, result, _ = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+        controls_stdout=json.dumps(_controls_report()),
+        controls_exit=1,
+    )
+
+    state = json.loads(Path(result["harness_state_file"]).read_text(encoding="utf-8"))
+    assert exit_code == 0
+    assert result["negative_controls"] == state["negative_controls"]
+
+
+def test_unflagged_scenario_has_no_negative_controls_output(tmp_path, monkeypatch):
+    step = {
+        "id": "verify_unflagged",
+        "command": (
+            "{mumei_bin} verify source.mm --proof-cert "
+            "--output {output_dir}/source.proof.json"
+        ),
+        "expected_exit": 0,
+        "expected_patterns": ["Verification passed"],
+    }
+    _, result, _ = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+    )
+
+    state = json.loads(Path(result["harness_state_file"]).read_text(encoding="utf-8"))
+    assert "negative_controls" not in result
+    assert "negative_controls" not in state
+
+
+def test_negative_controls_gate_steps_require_specific_evidence_patterns():
+    scenario_path = (
+        Path(__file__).resolve().parents[1]
+        / "scenarios"
+        / "negative_controls_demo"
+        / "scenario.json"
+    )
+    scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+    steps = {step["id"]: step for step in scenario["l1_z3"]["steps"]}
+
+    assert "constant:1->0@1" in steps["vacuity_weak"]["expected_patterns"]
+    assert "next_dose: controls weak" in steps["claims_weak_gate"]["expected_patterns"]
+    assert "constant:1->0@1" in steps["claims_weak_gate"]["expected_patterns"]
+    assert "controls discriminating: next_dose" in steps["claims_strong_gate"]["expected_patterns"]
+    assert "--require-grade" not in steps["claims_weak_gate"]["command"]
+
+
+def test_claims_weak_gate_fails_on_certificate_error(tmp_path, monkeypatch):
+    scenario_path = (
+        Path(__file__).resolve().parents[1]
+        / "scenarios"
+        / "negative_controls_demo"
+        / "scenario.json"
+    )
+    scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+    step = next(
+        step
+        for step in scenario["l1_z3"]["steps"]
+        if step["id"] == "claims_weak_gate"
+    )
+    step["cwd"] = "{root_dir}"
+    step.pop("depends_on", None)
+
+    exit_code, result, output_dir = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+        claims_exit=1,
+        claims_stderr="certificate error: invalid proof certificate",
+    )
+
+    step_result = result["layers"]["l1_z3"]["steps"][0]
+    assert exit_code == 1
+    assert result["overall_status"] == "FAIL"
+    assert step_result["status"] == "FAIL"
+    assert step_result["exit_code"] == 2
+    assert "certificate error: invalid proof certificate" in step_result["stderr"]
+    assert "controls weak" not in step_result["stdout"] + step_result["stderr"]
+    assert not (output_dir / "claims_weak" / "claimbook.json").exists()
+
+
+def test_claims_weak_gate_rejects_wrong_artifact_under_pythonoptimize(
+    tmp_path, monkeypatch
+):
+    scenario_path = (
+        Path(__file__).resolve().parents[1]
+        / "scenarios"
+        / "negative_controls_demo"
+        / "scenario.json"
+    )
+    scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+    step = next(
+        step
+        for step in scenario["l1_z3"]["steps"]
+        if step["id"] == "claims_weak_gate"
+    )
+    step["cwd"] = "{root_dir}"
+    step.pop("depends_on", None)
+    monkeypatch.setenv("PYTHONOPTIMIZE", "1")
+
+    exit_code, result, _ = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+        fixtures={
+            "weak_spec": {
+                "claims": [
+                    {
+                        "atom": "next_dose",
+                        "discrimination": {"status": "discriminating"},
+                    }
+                ]
+            }
+        },
+    )
+
+    step_result = result["layers"]["l1_z3"]["steps"][0]
+    assert exit_code == 1
+    assert result["overall_status"] == "FAIL"
+    assert step_result["status"] == "FAIL"
+    assert step_result["exit_code"] == 2
+    assert (
+        "Claim Book discrimination check failed: expected next_dose status weak"
+        in step_result["stderr"]
+    )
+
+
+def test_step_narratives_render_for_new_and_existing_ids(tmp_path, monkeypatch, capsys):
+    new_step = {
+        "id": "controls_weak",
+        "command": "{mumei_bin} controls weak_spec.mm --json",
+        "expected_exit": 1,
+        "expect_failure": True,
+        "negative_controls": True,
+    }
+    _run_scenario(
+        tmp_path / "new",
+        monkeypatch,
+        [],
+        scenario_steps=[new_step],
+        controls_stdout=json.dumps(_controls_report()),
+        controls_exit=1,
+        narrative={
+            "steps": {
+                "controls_weak": {
+                    "rejected": {
+                        "icon": "🧭",
+                        "headline": "CONTROLS REJECTION BANNER",
+                        "follow_up": ["  Review the surviving mutant."],
+                    }
+                }
+            }
+        },
+    )
+    new_output = capsys.readouterr().out
+    assert "🧭 CONTROLS REJECTION BANNER" in new_output
+    assert "Review the surviving mutant." in new_output
+
+    vacuity_step = {
+        "id": "vacuity_weak",
+        "command": (
+            "{mumei_bin} verify weak_spec.mm --proof-cert "
+            "--output {output_dir}/weak.proof.json"
+        ),
+        "expected_exit": 1,
+        "expected_patterns": ["Verification passed"],
+        "expect_failure": True,
+    }
+    _run_scenario(
+        tmp_path / "vacuity",
+        monkeypatch,
+        [],
+        scenario_steps=[vacuity_step],
+        verify_exit=1,
+        narrative={
+            "steps": {
+                "vacuity_weak": {
+                    "rejected": {
+                        "icon": "❌",
+                        "headline": "Phase 1i: a mutation survives the weak contract",
+                    }
+                }
+            }
+        },
+    )
+    vacuity_output = capsys.readouterr().out
+    assert "❌ Phase 1i: a mutation survives the weak contract" in vacuity_output
+
+    existing_step = {
+        "id": "detect_bug",
+        "command": (
+            "{mumei_bin} verify source.mm --proof-cert "
+            "--output {output_dir}/source.proof.json"
+        ),
+        "expected_exit": 1,
+        "expected_patterns": ["Verification passed"],
+        "expect_failure": True,
+    }
+    _run_scenario(
+        tmp_path / "existing",
+        monkeypatch,
+        [],
+        scenario_steps=[existing_step],
+        verify_exit=1,
+        narrative={
+            "steps": {
+                "detect_bug": {
+                    "rejected": {
+                        "icon": "❌",
+                        "headline": "LEGACY REJECTION BANNER",
+                        "follow_up": ["  Legacy follow-up."],
+                    }
+                }
+            }
+        },
+    )
+    existing_output = capsys.readouterr().out
+    assert "❌ LEGACY REJECTION BANNER" in existing_output
+    assert "Legacy follow-up." in existing_output
+
+
+def test_existing_detect_bug_fallback_narrative_is_unchanged(tmp_path, monkeypatch, capsys):
+    step = {
+        "id": "detect_bug",
+        "command": (
+            "{mumei_bin} verify source.mm --proof-cert "
+            "--output {output_dir}/source.proof.json"
+        ),
+        "expected_exit": 1,
+        "expected_patterns": ["Verification passed"],
+        "expect_failure": True,
+    }
+    _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+        verify_exit=1,
+    )
+
+    output = capsys.readouterr().out
+    assert "❌ BUG DETECTED!" in output
+    assert "InvalidPreState: 'accept' requires 'PendingTransfer'" in output
+    assert "Step 3: Verifying the correct implementation..." in output
 
 
 def test_charter_gate_parser_accepts_pass_report():
