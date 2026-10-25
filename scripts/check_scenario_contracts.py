@@ -62,6 +62,15 @@ FIXED_DEMO_PHRASES = [
     "仕様から既存コードとの差分を指摘",
     "仕様単独でおかしい場合を指摘",
 ]
+TEST_OBSERVATION_VERDICTS = {
+    "consistent",
+    "contradicts_ensures",
+    "inconclusive",
+    "not_checked",
+    "outside_requires",
+    "rejection_explained",
+    "requires_admits_rejected",
+}
 FORBIDDEN_ALIASES = [
     "recommendations",
     "actions",
@@ -129,6 +138,70 @@ def _validate_negative_controls(value: Any, context: str) -> list[str]:
     return []
 
 
+def _validate_test_observations(value: Any, context: str) -> list[str]:
+    if not isinstance(value, dict):
+        return [f"{context} must be an object"]
+
+    failures: list[str] = []
+    allowed_keys = {
+        "report",
+        "expected_results",
+        "forbidden_verdicts",
+        "expected_totals",
+    }
+    unknown_keys = sorted(set(value) - allowed_keys)
+    if unknown_keys:
+        failures.append(f"{context} contains unknown fields: {', '.join(unknown_keys)}")
+
+    report = value.get("report")
+    if not isinstance(report, str) or not report:
+        failures.append(f"{context}.report must be a non-empty path")
+    elif Path(report).is_absolute() or ".." in Path(report).parts:
+        failures.append(f"{context}.report must stay under the output directory")
+
+    expected_results = value.get("expected_results", [])
+    if not isinstance(expected_results, list):
+        failures.append(f"{context}.expected_results must be an array")
+    else:
+        for index, expected in enumerate(expected_results):
+            item_context = f"{context}.expected_results[{index}]"
+            if not isinstance(expected, dict):
+                failures.append(f"{item_context} must be an object")
+                continue
+            for key in ("target", "test", "file_suffix"):
+                if not isinstance(expected.get(key), str) or not expected[key]:
+                    failures.append(f"{item_context}.{key} must be a non-empty string")
+            verdict = expected.get("verdict")
+            if verdict not in TEST_OBSERVATION_VERDICTS:
+                failures.append(f"{item_context}.verdict is unsupported")
+
+    forbidden_verdicts = value.get("forbidden_verdicts", [])
+    if not isinstance(forbidden_verdicts, list) or not all(
+        isinstance(verdict, str) and verdict in TEST_OBSERVATION_VERDICTS
+        for verdict in forbidden_verdicts
+    ):
+        failures.append(
+            f"{context}.forbidden_verdicts must be an array of supported verdict strings"
+        )
+
+    expected_totals = value.get("expected_totals")
+    if expected_totals is not None and (
+        not isinstance(expected_totals, dict)
+        or any(
+            not isinstance(verdict, str)
+            or verdict not in TEST_OBSERVATION_VERDICTS
+            or not isinstance(count, int)
+            or isinstance(count, bool)
+            or count < 0
+            for verdict, count in expected_totals.items()
+        )
+    ):
+        failures.append(
+            f"{context}.expected_totals must map supported verdicts to non-negative integers"
+        )
+    return failures
+
+
 def _check_file(path: Path) -> list[str]:
     rel = path.relative_to(REPO_ROOT)
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -163,6 +236,11 @@ def _check_file(path: Path) -> list[str]:
                     context = f"{rel}: $.{layer}.steps[{index}].negative_controls"
                     failures.extend(
                         _validate_negative_controls(step["negative_controls"], context)
+                    )
+                if "test_observations" in step:
+                    context = f"{rel}: $.{layer}.steps[{index}].test_observations"
+                    failures.extend(
+                        _validate_test_observations(step["test_observations"], context)
                     )
 
     for key_path, value in _collect_named(data, "artifact_keys"):

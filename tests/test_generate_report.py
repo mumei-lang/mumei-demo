@@ -16,6 +16,7 @@ from generate_report import (  # noqa: E402
     charter_gate_label,
     claim_book_label,
     render_negative_controls_markdown,
+    render_test_observations_markdown,
     render_scenario_markdown,
     scenario_code_paths,
     write_summary,
@@ -321,6 +322,14 @@ def test_negative_controls_demo_diff_uses_weak_and_strong_specs():
         ("mumei claims weak_spec.mm --controls", "mumei claims → GATE REJECTED"),
         ("mumei charter weak_spec.mm --json", "mumei charter → CHARTER REJECTED"),
         (
+            "python -m agent observe-tests --spec wrong.json",
+            "observe-tests → TEST OBSERVATIONS REJECTED",
+        ),
+        (
+            "mumei observe aligned.mm harvest.json --json",
+            "mumei observe → TEST OBSERVATIONS REJECTED",
+        ),
+        (
             "mumei verify weak_spec.mm && mumei charter check weak_spec.mm",
             "mumei charter → CHARTER REJECTED",
         ),
@@ -490,10 +499,11 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
     app = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(app)
     charter_index = app.SCENARIO_ORDER.index("charter_gate_demo")
-    assert app.SCENARIO_ORDER[charter_index - 1 : charter_index + 3] == [
+    assert app.SCENARIO_ORDER[charter_index - 1 : charter_index + 4] == [
         "arklib_style_audit",
         "charter_gate_demo",
         "negative_controls_demo",
+        "test_observation_demo",
         "self_correction_demo",
     ]
     makefile = Path(__file__).resolve().parents[1] / "Makefile"
@@ -548,3 +558,90 @@ def test_write_summary_includes_claim_book_label(tmp_path):
     summary = output.read_text(encoding="utf-8")
     assert "| Claim Book |" in summary
     assert "3/3 machine-sealed · 0 drifted · 0 uncertified" in summary
+
+
+def test_test_observations_section_renders_contradictions_and_totals():
+    section = render_test_observations_markdown({
+        "test_observations": {
+            "entries": [{
+                "step": "observe_wrong",
+                "status": "ok",
+                "verdict_totals": {
+                    "consistent": 2,
+                    "contradicts_ensures": 1,
+                    "requires_admits_rejected": 1,
+                },
+                "contradictions": [{
+                    "target": "late_fee",
+                    "test": "test_late_fee_example",
+                    "file": "test_late_fee.py",
+                    "line": 6,
+                    "verdict": "contradicts_ensures",
+                }],
+            }, {
+                "step": "observe_aligned",
+                "status": "ok",
+                "verdict_totals": {"consistent": 4, "rejection_explained": 2},
+                "contradictions": [],
+            }],
+            "totals": {
+                "steps": 1,
+                "verdicts": {
+                    "consistent": 2,
+                    "contradicts_ensures": 1,
+                    "requires_admits_rejected": 1,
+                },
+                "contradictions": 1,
+            },
+        }
+    })
+
+    assert "## Test Observations" in section
+    table_lines = section.splitlines()
+    header_index = table_lines.index("| Step | Status | Verdict totals | Contradictions |")
+    table_row_indices = [
+        index for index, line in enumerate(table_lines)
+        if line.startswith("|")
+    ]
+    assert table_row_indices == list(
+        range(header_index, table_row_indices[-1] + 1)
+    )
+    assert "| observe_wrong | ok | consistent: 2, contradicts_ensures: 1, requires_admits_rejected: 1 | 1 |" in section
+    assert "| observe_aligned | ok | consistent: 4, rejection_explained: 2 | 0 |" in section
+    assert "### Contradictions in observe_wrong" in section
+    assert "- `late_fee` / `test_late_fee_example` (`test_late_fee.py:6`): `contradicts_ensures`" in section
+    assert table_row_indices[-1] < table_lines.index("### Contradictions in observe_wrong")
+    assert "1 contradicting results." in section
+
+
+def test_test_observations_section_renders_all_consistent_data():
+    section = render_test_observations_markdown({
+        "test_observations": {
+            "entries": [{
+                "step": "observe_aligned",
+                "status": "ok",
+                "verdict_totals": {"consistent": 4, "rejection_explained": 2},
+                "contradictions": [],
+            }],
+            "totals": {
+                "steps": 1,
+                "verdicts": {"consistent": 4, "rejection_explained": 2},
+                "contradictions": 0,
+            },
+        }
+    })
+
+    assert "| observe_aligned | ok | consistent: 4, rejection_explained: 2 | 0 |" in section
+    assert "No contradictions or admitted rejections were recorded." in section
+
+
+def test_missing_test_observations_section_is_not_rendered(tmp_path):
+    data = {
+        "scenario": "legacy",
+        "overall_status": "PASS",
+        "proof_density": {},
+        "layers": {},
+    }
+
+    assert render_test_observations_markdown(data) == ""
+    assert "## Test Observations" not in render_scenario_markdown(data, tmp_path)

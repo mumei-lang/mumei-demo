@@ -62,6 +62,17 @@ if args and args[0] == "charter":
 if args and args[0] == "controls":
     print(os.environ.get("MUMEI_STUB_CONTROLS_STDOUT", ""))
     raise SystemExit(int(os.environ.get("MUMEI_STUB_CONTROLS_EXIT", "0")))
+if args and args[0] == "observe":
+    print(os.environ.get("MUMEI_STUB_OBSERVE_REPORT", "{}"))
+    raise SystemExit(int(os.environ.get("MUMEI_STUB_OBSERVE_EXIT", "0")))
+if args and args[0] == "observe-tests":
+    report_path = Path(args[args.index("--output") + 1])
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(
+        os.environ.get("MUMEI_STUB_OBSERVE_REPORT", "{}"),
+        encoding="utf-8",
+    )
+    raise SystemExit(int(os.environ.get("MUMEI_STUB_OBSERVE_EXIT", "0")))
 if not args or args[0] != "claims":
     print("unsupported command", file=sys.stderr)
     raise SystemExit(2)
@@ -463,6 +474,254 @@ def test_negative_controls_totals_count_steps_atoms_and_survivors():
     }
 
 
+def _observation_report(results: list[dict] | None = None) -> dict:
+    return {
+        "schema": "mumei.observation-check/v1",
+        "results": results or [],
+    }
+
+
+def test_test_observations_parser_records_verdict_totals_and_contradictions(tmp_path):
+    report_path = tmp_path / "observations.json"
+    report_path.write_text(json.dumps(_observation_report([
+        {
+            "target": "late_fee",
+            "test": "test_example",
+            "file": "test_late_fee.py",
+            "line": 12,
+            "verdict": "contradicts_ensures",
+        },
+        {
+            "target": "late_fee",
+            "test": "test_rejects",
+            "file": "test_late_fee.py",
+            "line": 18,
+            "verdict": "requires_admits_rejected",
+        },
+        {"verdict": "consistent"},
+    ])), encoding="utf-8")
+
+    entry = _load_runner()["parse_test_observations_entry"](
+        "observe_wrong",
+        "REJECTED",
+        report_path,
+        {},
+    )
+
+    assert entry["status"] == "ok"
+    assert entry["verdict_totals"] == {
+        "consistent": 1,
+        "contradicts_ensures": 1,
+        "inconclusive": 0,
+        "not_checked": 0,
+        "outside_requires": 0,
+        "rejection_explained": 0,
+        "requires_admits_rejected": 1,
+    }
+    assert entry["contradictions"] == [
+        {
+            "target": "late_fee",
+            "test": "test_example",
+            "file": "test_late_fee.py",
+            "line": 12,
+            "verdict": "contradicts_ensures",
+        },
+        {
+            "target": "late_fee",
+            "test": "test_rejects",
+            "file": "test_late_fee.py",
+            "line": 18,
+            "verdict": "requires_admits_rejected",
+        },
+    ]
+
+
+def test_unknown_test_observation_verdict_fails_without_expected_totals(tmp_path):
+    report_path = tmp_path / "observations.json"
+    report_path.write_text(
+        json.dumps(_observation_report([{"verdict": "future_verdict"}])),
+        encoding="utf-8",
+    )
+
+    entry = _load_runner()["parse_test_observations_entry"](
+        "observe",
+        "PASS",
+        report_path,
+        {},
+    )
+
+    assert entry["status"] == "unavailable"
+    assert entry["detail"] == "unknown test observation verdict 'future_verdict'"
+
+
+def test_known_test_observation_verdicts_pass_without_expected_totals(tmp_path):
+    report_path = tmp_path / "observations.json"
+    report_path.write_text(
+        json.dumps(_observation_report([
+            {"verdict": "consistent"},
+            {"verdict": "rejection_explained"},
+        ])),
+        encoding="utf-8",
+    )
+
+    entry = _load_runner()["parse_test_observations_entry"](
+        "observe",
+        "PASS",
+        report_path,
+        {},
+    )
+
+    assert entry["status"] == "ok"
+    assert entry["verdict_totals"]["consistent"] == 1
+    assert entry["verdict_totals"]["rejection_explained"] == 1
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_detail"),
+    [
+        (None, "cannot read test observations report"),
+        ("not json", "JSON is invalid"),
+        (json.dumps({"schema": "wrong/v1", "results": []}), "unsupported"),
+        (json.dumps({"schema": "mumei.observation-check/v1"}), "results must be an array"),
+    ],
+    ids=["missing-file", "bad-json", "wrong-schema", "missing-results"],
+)
+def test_unavailable_test_observation_reports(tmp_path, payload, expected_detail):
+    report_path = tmp_path / "observations.json"
+    if payload is not None:
+        report_path.write_text(payload, encoding="utf-8")
+
+    entry = _load_runner()["parse_test_observations_entry"](
+        "observe",
+        "PASS",
+        report_path,
+        {},
+    )
+
+    assert entry["status"] == "unavailable"
+    assert expected_detail in entry["detail"]
+
+
+def test_test_observations_totals_count_verdicts_and_steps():
+    totals = _load_runner()["test_observations_totals"]([
+        {
+            "status": "ok",
+            "verdict_totals": {"consistent": 2, "contradicts_ensures": 1},
+            "contradictions": [{"verdict": "contradicts_ensures"}],
+        },
+        {
+            "status": "failed",
+            "verdict_totals": {"consistent": 1, "requires_admits_rejected": 1},
+            "contradictions": [{"verdict": "requires_admits_rejected"}],
+        },
+    ])
+
+    assert totals == {
+        "steps": 2,
+        "by_step_status": {"failed": 1, "ok": 1},
+        "verdicts": {
+            "consistent": 3,
+            "contradicts_ensures": 1,
+            "requires_admits_rejected": 1,
+        },
+        "contradictions": 2,
+    }
+
+
+def test_wrong_test_observation_gate_fails_without_expected_verdicts(tmp_path, monkeypatch):
+    monkeypatch.setenv(
+        "MUMEI_STUB_OBSERVE_REPORT",
+        json.dumps(_observation_report([{"target": "late_fee", "test": "example", "verdict": "consistent"}])),
+    )
+    monkeypatch.setenv("MUMEI_STUB_OBSERVE_EXIT", "1")
+    step = {
+        "id": "observe_wrong",
+        "command": "{mumei_bin} observe-tests --output {output_dir}/observations.json",
+        "expected_exit": 1,
+        "expect_failure": True,
+        "test_observations": {
+            "report": "observations.json",
+            "expected_results": [
+                {
+                    "target": "late_fee",
+                    "test": "example",
+                    "file_suffix": "test_late_fee.py",
+                    "verdict": "contradicts_ensures",
+                },
+                {
+                    "target": "late_fee",
+                    "test": "rejects",
+                    "file_suffix": "test_late_fee.py",
+                    "verdict": "requires_admits_rejected",
+                },
+            ],
+        },
+    }
+    exit_code, result, _ = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+    )
+
+    step_result = result["layers"]["l1_z3"]["steps"][0]
+    assert exit_code == 1
+    assert step_result["status"] == "FAIL"
+    assert "missing expected observation" in step_result["detail"]
+
+
+def test_aligned_test_observation_gate_fails_on_contradiction(tmp_path, monkeypatch):
+    monkeypatch.setenv(
+        "MUMEI_STUB_OBSERVE_REPORT",
+        json.dumps(_observation_report([
+            {"target": "late_fee", "test": "example", "verdict": "contradicts_ensures"}
+        ])),
+    )
+    step = {
+        "id": "observe_aligned",
+        "command": "{mumei_bin} observe-tests --output {output_dir}/observations.json",
+        "expected_exit": 0,
+        "test_observations": {
+            "report": "observations.json",
+            "forbidden_verdicts": ["contradicts_ensures", "requires_admits_rejected"],
+        },
+    }
+    exit_code, result, _ = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+    )
+
+    step_result = result["layers"]["l1_z3"]["steps"][0]
+    assert exit_code == 1
+    assert step_result["status"] == "FAIL"
+    assert "forbidden verdict contradicts_ensures" in step_result["detail"]
+
+
+def test_test_observation_result_is_mirrored_to_harness_state(tmp_path, monkeypatch):
+    monkeypatch.setenv(
+        "MUMEI_STUB_OBSERVE_REPORT",
+        json.dumps(_observation_report([{"verdict": "consistent"}])),
+    )
+    step = {
+        "id": "observe_aligned",
+        "command": "{mumei_bin} observe-tests --output {output_dir}/observations.json",
+        "expected_exit": 0,
+        "test_observations": {"report": "observations.json"},
+    }
+    exit_code, result, _ = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+    )
+
+    state = json.loads(Path(result["harness_state_file"]).read_text(encoding="utf-8"))
+    assert exit_code == 0
+    assert result["test_observations"] == state["test_observations"]
+
+
 def test_negative_controls_result_is_mirrored_to_harness_state(tmp_path, monkeypatch):
     step = {
         "id": "controls_weak",
@@ -505,6 +764,8 @@ def test_unflagged_scenario_has_no_negative_controls_output(tmp_path, monkeypatc
     state = json.loads(Path(result["harness_state_file"]).read_text(encoding="utf-8"))
     assert "negative_controls" not in result
     assert "negative_controls" not in state
+    assert "test_observations" not in result
+    assert "test_observations" not in state
 
 
 def test_negative_controls_gate_steps_require_specific_evidence_patterns():

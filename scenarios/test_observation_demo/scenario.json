@@ -1,0 +1,258 @@
+{
+  "name": "Test Observation Demo: Late Fees",
+  "version": "1.0.0",
+  "description": "Checks harvested Python and Rust test observations against a wrong and an aligned late-fee contract.",
+  "layers": [
+    "l1_z3"
+  ],
+  "narrative": {
+    "intro": [
+      "Step 1: Copy the late-fee project and harvest its Python and Rust test observations.",
+      "Step 2: Check a deliberately wrong contract, then compare the aligned spec and .mm atom."
+    ],
+    "before": "The wrong late-fee contract admits rejected inputs and predicts the wrong example result.",
+    "after": "The aligned contract explains the rejected inputs and agrees with the examples and relation in both languages.",
+    "steps": {
+      "observe_wrong": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "observe-tests: harvested tests reject the wrong late-fee contract",
+          "follow_up": [
+            "  The example contradicts ensures and requires admits a rejected input.",
+            "  The evidence is tied to the Python and Rust test cases."
+          ]
+        }
+      },
+      "observe_aligned": {
+        "pass": {
+          "icon": "✅",
+          "headline": "observe-tests: the aligned late-fee spec matches the harvested tests"
+        }
+      },
+      "mumei_observe": {
+        "pass": {
+          "icon": "✅",
+          "headline": "mumei observe: the .mm contract matches the harvested tests"
+        }
+      }
+    }
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Show that deterministic test observations expose a wrong contract and confirm an aligned contract across Python, Rust, and mumei.",
+    "artifact_contracts": [
+      "The first step copies scenarios/test_observation_demo/project into {output_dir}/project; commands use only that copy.",
+      "harvest_tests writes six observations: one example, relation, and rejection from each of Python and Rust.",
+      "observe_wrong exits 1 and the checked report ties both required verdicts to the expected Python test cases.",
+      "observe_aligned exits 0 with four consistent observations and two rejection_explained observations.",
+      "mumei_observe verifies aligned.mm and reports the same verdict totals as observe_aligned.",
+      "result.json, harness_state.json, and report.md record per-step observation verdicts and contradictions."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "A contract should reflect both observed results and observed rejected inputs, rather than merely verify for a narrow implementation.",
+    "success_criteria": [
+      "The copied project yields one example, relation, and rejection observation for each language.",
+      "The wrong spec is rejected for the example and for admitting the rejected negative input.",
+      "The aligned spec is consistent with examples and relations and explains the rejected inputs.",
+      "The verified .mm atom produces the same observation verdict totals as the aligned spec."
+    ],
+    "drift_risk": "Low: fixture inputs and expected verdicts are fixed, and every observation report is schema-checked and tied to its test case."
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "prepare_project",
+        "name": "Copy the late-fee fixture project",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "cp -R {root_dir}/scenarios/test_observation_demo/project {output_dir}/project",
+        "expected_exit": 0,
+        "artifacts": [],
+        "harness_stage": "S1_test_observation_copy",
+        "artifact_contract": [
+          "The fixture project is copied to {output_dir}/project before commands run."
+        ],
+        "verifier_gate": "The project copy command exits 0."
+      },
+      {
+        "id": "harvest_tests",
+        "name": "Harvest Python and Rust test observations",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent harvest-tests {output_dir}/project/test_late_fee.py {output_dir}/project/late_fee.py {output_dir}/project/late_fee.rs --output {output_dir}/harvest.json && python3 -c 'import collections,json,pathlib,sys; data=json.load(open(sys.argv[1], encoding=\"utf-8\")); observations=data.get(\"observations\", []); languages={\".py\":\"python\", \".rs\":\"rust\"}; counts=collections.Counter((languages.get(pathlib.Path(item.get(\"file\", \"\")).suffix), item.get(\"kind\")) for item in observations if isinstance(item, dict)); expected=collections.Counter({(\"python\", \"example\"):1, (\"python\", \"relation\"):1, (\"python\", \"rejects\"):1, (\"rust\", \"example\"):1, (\"rust\", \"relation\"):1, (\"rust\", \"rejects\"):1}); summary=\",\".join(f\"{language}:{kind}={counts[(language, kind)]}\" for language in (\"python\", \"rust\") for kind in (\"example\", \"relation\", \"rejects\")); print(f\"HARVEST_COUNTS total={len(observations)} {summary}\"); sys.exit(0 if counts == expected and len(observations) == 6 else 1)' {output_dir}/harvest.json",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "HARVEST_COUNTS total=6 python:example=1,python:relation=1,python:rejects=1,rust:example=1,rust:relation=1,rust:rejects=1"
+        ],
+        "artifacts": [
+          "harvest.json"
+        ],
+        "depends_on": [
+          "prepare_project"
+        ],
+        "harness_stage": "S1_test_observation_harvest",
+        "artifact_contract": [
+          "harvest-tests writes {output_dir}/harvest.json from the copied Python test, Python library, and Rust source.",
+          "The report contains one example, relation, and rejection from each language."
+        ],
+        "verifier_gate": "Harvest exits 0 and the report has exactly six observations with the pinned per-language counts."
+      },
+      {
+        "id": "observe_wrong",
+        "name": "Reject the wrong spec against test observations",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent observe-tests --spec {output_dir}/project/wrong_spec.json {output_dir}/project/test_late_fee.py {output_dir}/project/late_fee.py {output_dir}/project/late_fee.rs --output {output_dir}/observe_wrong.json",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "artifacts": [
+          "observe_wrong.json"
+        ],
+        "depends_on": [
+          "harvest_tests"
+        ],
+        "test_observations": {
+          "report": "observe_wrong.json",
+          "expected_results": [
+            {
+              "target": "late_fee",
+              "test": "test_late_fee_example",
+              "file_suffix": "test_late_fee.py",
+              "verdict": "contradicts_ensures"
+            },
+            {
+              "target": "late_fee",
+              "test": "late_fee_example",
+              "file_suffix": "late_fee.rs",
+              "verdict": "contradicts_ensures"
+            },
+            {
+              "target": "late_fee",
+              "test": "test_late_fee_rejects_negative",
+              "file_suffix": "test_late_fee.py",
+              "verdict": "requires_admits_rejected"
+            },
+            {
+              "target": "late_fee",
+              "test": "late_fee_rejects_negative",
+              "file_suffix": "late_fee.rs",
+              "verdict": "requires_admits_rejected"
+            }
+          ],
+          "expected_totals": {
+            "consistent": 2,
+            "contradicts_ensures": 2,
+            "inconclusive": 0,
+            "not_checked": 0,
+            "outside_requires": 0,
+            "rejection_explained": 0,
+            "requires_admits_rejected": 2
+          }
+        },
+        "harness_stage": "S1_test_observation_wrong_spec",
+        "artifact_contract": [
+          "observe-tests writes a mumei.observation-check/v1 report for the wrong spec.",
+          "The Python and Rust example and rejection test records carry the expected contradiction verdicts."
+        ],
+        "verifier_gate": "observe-tests exits 1; the report contains the expected example and rejected-input verdicts with pinned totals.",
+        "failure_taxonomy": "contract_contradicts_tests"
+      },
+      {
+        "id": "observe_aligned",
+        "name": "Check the aligned spec against test observations",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent observe-tests --spec {output_dir}/project/aligned_spec.json {output_dir}/project/test_late_fee.py {output_dir}/project/late_fee.py {output_dir}/project/late_fee.rs --output {output_dir}/observe_aligned.json",
+        "expected_exit": 0,
+        "artifacts": [
+          "observe_aligned.json"
+        ],
+        "depends_on": [
+          "harvest_tests"
+        ],
+        "test_observations": {
+          "report": "observe_aligned.json",
+          "forbidden_verdicts": [
+            "contradicts_ensures",
+            "requires_admits_rejected"
+          ],
+          "expected_totals": {
+            "consistent": 4,
+            "contradicts_ensures": 0,
+            "inconclusive": 0,
+            "not_checked": 0,
+            "outside_requires": 0,
+            "rejection_explained": 2,
+            "requires_admits_rejected": 0
+          }
+        },
+        "harness_stage": "S1_test_observation_aligned_spec",
+        "artifact_contract": [
+          "observe-tests writes a report with no contradiction or admitted-rejection verdicts."
+        ],
+        "verifier_gate": "observe-tests exits 0 with four consistent results and two rejection_explained results."
+      },
+      {
+        "id": "verify_aligned",
+        "name": "Verify the aligned .mm atom",
+        "repo": "mumei",
+        "cwd": "{output_dir}/project",
+        "command": "{mumei_bin} verify aligned.mm",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Verification passed",
+          "late_fee"
+        ],
+        "artifacts": [],
+        "harness_stage": "S1_test_observation_verify_mm",
+        "artifact_contract": [
+          "mumei verifies the aligned late_fee atom from the copied project."
+        ],
+        "verifier_gate": "mumei verify exits 0 for aligned.mm."
+      },
+      {
+        "id": "mumei_observe",
+        "name": "Check the aligned .mm atom against harvested observations",
+        "repo": "mumei",
+        "cwd": "{output_dir}/project",
+        "command": "{mumei_bin} observe aligned.mm {output_dir}/harvest.json --json > {output_dir}/observe_mm.json",
+        "expected_exit": 0,
+        "artifacts": [
+          "observe_mm.json"
+        ],
+        "depends_on": [
+          "harvest_tests",
+          "verify_aligned"
+        ],
+        "test_observations": {
+          "report": "observe_mm.json",
+          "forbidden_verdicts": [
+            "contradicts_ensures",
+            "requires_admits_rejected"
+          ],
+          "expected_totals": {
+            "consistent": 4,
+            "contradicts_ensures": 0,
+            "inconclusive": 0,
+            "not_checked": 0,
+            "outside_requires": 0,
+            "rejection_explained": 2,
+            "requires_admits_rejected": 0
+          }
+        },
+        "harness_stage": "S1_test_observation_mm",
+        "artifact_contract": [
+          "mumei observe writes {output_dir}/observe_mm.json from harvest.json without contradictions.",
+          "The report verdict totals equal observe_aligned.json."
+        ],
+        "verifier_gate": "mumei observe exits 0 and has the same verdict totals as the aligned spec check."
+      }
+    ]
+  }
+}

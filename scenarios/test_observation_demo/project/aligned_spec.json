@@ -1,0 +1,20 @@
+{
+  "atoms": [
+    {
+      "name": "late_fee",
+      "params": [
+        {
+          "name": "days_late",
+          "type": "i64"
+        },
+        {
+          "name": "daily_rate",
+          "type": "i64"
+        }
+      ],
+      "return_type": "i64",
+      "requires": "days_late >= 0 && daily_rate >= 0",
+      "ensures": "result == days_late * daily_rate"
+    }
+  ]
+}

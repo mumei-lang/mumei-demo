@@ -681,6 +681,212 @@ def negative_controls_totals(entries: list[dict[str, object]]) -> dict[str, obje
     }
 
 
+TEST_OBSERVATION_REPORT_SCHEMA = "mumei.observation-check/v1"
+TEST_OBSERVATION_VERDICTS = (
+    "consistent",
+    "contradicts_ensures",
+    "inconclusive",
+    "not_checked",
+    "outside_requires",
+    "rejection_explained",
+    "requires_admits_rejected",
+)
+TEST_OBSERVATION_CONTRADICTIONS = {
+    "contradicts_ensures",
+    "requires_admits_rejected",
+}
+
+
+def _test_observation_result_matches(
+    result: Mapping,
+    expected: Mapping,
+) -> bool:
+    for key in ("target", "test", "verdict"):
+        if result.get(key) != expected.get(key):
+            return False
+    file_suffix = expected.get("file_suffix")
+    if isinstance(file_suffix, str):
+        file_name = result.get("file")
+        if not isinstance(file_name, str) or not file_name.endswith(file_suffix):
+            return False
+    return True
+
+
+def parse_test_observations_entry(
+    step_id: str,
+    step_status: str,
+    report_path: Path | None,
+    config: Mapping,
+) -> dict[str, object]:
+    entry: dict[str, object] = {
+        "step": step_id,
+        "status": "unavailable",
+        "verdict_totals": {},
+        "contradictions": [],
+    }
+    if step_status == "SKIPPED":
+        entry.update({
+            "status": "skipped",
+            "detail": f"Step status was {step_status}",
+        })
+        return entry
+    if report_path is None:
+        entry["detail"] = "test observations report path is missing"
+        return entry
+
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except OSError as error:
+        entry["detail"] = f"cannot read test observations report: {error}"
+        return entry
+    except json.JSONDecodeError as error:
+        entry["detail"] = f"test observations report JSON is invalid: {error}"
+        return entry
+
+    if not isinstance(report, Mapping):
+        entry["detail"] = "test observations report must be a JSON object"
+        return entry
+    if report.get("schema") != TEST_OBSERVATION_REPORT_SCHEMA:
+        entry["detail"] = (
+            "unsupported test observations report schema: "
+            f"{report.get('schema')!r}"
+        )
+        return entry
+    results = report.get("results")
+    if not isinstance(results, list):
+        entry["detail"] = "test observations report results must be an array"
+        return entry
+
+    normalized_results: list[Mapping] = []
+    verdict_totals = {verdict: 0 for verdict in TEST_OBSERVATION_VERDICTS}
+    contradictions: list[dict[str, object]] = []
+    for result in results:
+        if not isinstance(result, Mapping):
+            entry["detail"] = "test observations report results must contain objects"
+            return entry
+        verdict = result.get("verdict")
+        if not isinstance(verdict, str) or not verdict:
+            entry["detail"] = "test observations report result verdict must be a string"
+            return entry
+        if verdict not in TEST_OBSERVATION_VERDICTS:
+            entry["detail"] = f"unknown test observation verdict '{verdict}'"
+            return entry
+        normalized_results.append(result)
+        verdict_totals[verdict] = verdict_totals.get(verdict, 0) + 1
+        if verdict in TEST_OBSERVATION_CONTRADICTIONS:
+            line = result.get("line")
+            contradictions.append({
+                "target": result.get("target") if isinstance(result.get("target"), str) else "",
+                "test": result.get("test") if isinstance(result.get("test"), str) else "",
+                "file": result.get("file") if isinstance(result.get("file"), str) else "",
+                "line": line if isinstance(line, int) and not isinstance(line, bool) else None,
+                "verdict": verdict,
+            })
+
+    entry["verdict_totals"] = dict(sorted(verdict_totals.items()))
+    entry["contradictions"] = contradictions
+    failures: list[str] = []
+
+    expected_results = config.get("expected_results", [])
+    if not isinstance(expected_results, list):
+        failures.append("expected_results must be an array")
+    else:
+        unmatched_results = list(normalized_results)
+        for expected in expected_results:
+            if not isinstance(expected, Mapping):
+                failures.append("expected_results must contain objects")
+                continue
+            match_index = next(
+                (
+                    index
+                    for index, result in enumerate(unmatched_results)
+                    if _test_observation_result_matches(result, expected)
+                ),
+                None,
+            )
+            if match_index is None:
+                failures.append(
+                    "missing expected observation "
+                    f"{expected.get('target', '?')}/{expected.get('test', '?')} "
+                    f"with verdict {expected.get('verdict', '?')}"
+                )
+            else:
+                unmatched_results.pop(match_index)
+
+    forbidden_verdicts = config.get("forbidden_verdicts", [])
+    if not isinstance(forbidden_verdicts, list) or not all(
+        isinstance(verdict, str) for verdict in forbidden_verdicts
+    ):
+        failures.append("forbidden_verdicts must be an array of strings")
+    else:
+        for verdict in forbidden_verdicts:
+            if verdict_totals.get(verdict, 0):
+                failures.append(
+                    f"forbidden verdict {verdict} occurred "
+                    f"{verdict_totals[verdict]} time(s)"
+                )
+
+    expected_totals = config.get("expected_totals")
+    if expected_totals is not None:
+        if not isinstance(expected_totals, Mapping) or any(
+            not isinstance(verdict, str)
+            or not isinstance(count, int)
+            or isinstance(count, bool)
+            or count < 0
+            for verdict, count in expected_totals.items()
+        ):
+            failures.append("expected_totals must map verdict strings to non-negative integers")
+        else:
+            mismatches = [
+                f"{verdict}={verdict_totals.get(verdict, 0)} (expected {count})"
+                for verdict, count in sorted(expected_totals.items())
+                if verdict_totals.get(verdict, 0) != count
+            ]
+            unexpected = [
+                f"{verdict}={count}"
+                for verdict, count in sorted(verdict_totals.items())
+                if count and verdict not in expected_totals
+            ]
+            if mismatches or unexpected:
+                failures.append(
+                    "verdict totals differ"
+                    + (": " + ", ".join(mismatches + unexpected) if mismatches or unexpected else "")
+                )
+
+    if failures:
+        entry.update({
+            "status": "failed",
+            "detail": "; ".join(failures),
+        })
+    else:
+        entry["status"] = "ok"
+    return entry
+
+
+def test_observations_totals(entries: list[dict[str, object]]) -> dict[str, object]:
+    by_step_status: dict[str, int] = {}
+    verdict_totals: dict[str, int] = {}
+    contradiction_count = 0
+    for entry in entries:
+        status = entry.get("status")
+        if isinstance(status, str):
+            by_step_status[status] = by_step_status.get(status, 0) + 1
+        totals = entry.get("verdict_totals", {})
+        if isinstance(totals, Mapping):
+            for verdict, count in totals.items():
+                if isinstance(verdict, str) and isinstance(count, int) and not isinstance(count, bool):
+                    verdict_totals[verdict] = verdict_totals.get(verdict, 0) + count
+        contradictions = entry.get("contradictions", [])
+        if isinstance(contradictions, list):
+            contradiction_count += len(contradictions)
+    return {
+        "steps": len(entries),
+        "by_step_status": dict(sorted(by_step_status.items())),
+        "verdicts": dict(sorted(verdict_totals.items())),
+        "contradictions": contradiction_count,
+    }
+
+
 def run_claim_book_entry(
     step_id: str,
     step_status: str,
@@ -999,6 +1205,7 @@ def main(argv: list[str]) -> int:
     claim_book_entries: list[dict[str, object]] = []
     charter_gate_entries: list[dict[str, object]] = []
     negative_controls_entries: list[dict[str, object]] = []
+    test_observations_entries: list[dict[str, object]] = []
     overall_status = "PASS"
 
     # depends_on resolves step ids globally — a duplicated id would make the
@@ -1162,6 +1369,55 @@ def main(argv: list[str]) -> int:
                         handle.write(f"\n[{negative_controls_detail}]\n")
                     print(f"[{step_id}] {negative_controls_detail}", file=sys.stderr)
 
+            test_observations_entry = None
+            test_observations_detail = None
+            if "test_observations" in step:
+                observation_config = step.get("test_observations")
+                if isinstance(observation_config, Mapping):
+                    report_reference = observation_config.get("report")
+                    report_path = None
+                    if isinstance(report_reference, str) and report_reference:
+                        resolved_report = Path(
+                            substitute(report_reference, placeholders)
+                        )
+                        report_path = (
+                            resolved_report
+                            if resolved_report.is_absolute()
+                            else output_dir / resolved_report
+                        )
+                    test_observations_entry = parse_test_observations_entry(
+                        step_id,
+                        status,
+                        report_path,
+                        observation_config,
+                    )
+                else:
+                    test_observations_entry = {
+                        "step": step_id,
+                        "status": "unavailable",
+                        "verdict_totals": {},
+                        "contradictions": [],
+                        "detail": "test_observations flag must be an object",
+                    }
+                if test_observations_entry.get("status") not in {"ok", "skipped"}:
+                    prefix = (
+                        "test observations report unavailable: "
+                        if test_observations_entry.get("status") == "unavailable"
+                        else "test observations gate failed: "
+                    )
+                    test_observations_detail = (
+                        prefix
+                        + str(test_observations_entry.get("detail", "unknown error"))
+                    )
+                    status = "FAIL"
+                    overall_status = "FAIL"
+                    stderr = "\n".join(
+                        part for part in (stderr, test_observations_detail) if part
+                    )
+                    with log_path.open("a", encoding="utf-8") as handle:
+                        handle.write(f"\n[{test_observations_detail}]\n")
+                    print(f"[{step_id}] {test_observations_detail}", file=sys.stderr)
+
             step_result = {
                 "id": step_id,
                 "name": step.get("name", step_id),
@@ -1189,6 +1445,8 @@ def main(argv: list[str]) -> int:
                 step_result["detail"] = charter_gate_detail
             if negative_controls_detail is not None:
                 step_result["detail"] = negative_controls_detail
+            if test_observations_detail is not None:
+                step_result["detail"] = test_observations_detail
             if "claim_book" in step:
                 claim_book_entries.append(
                     run_claim_book_entry(
@@ -1206,6 +1464,8 @@ def main(argv: list[str]) -> int:
                 charter_gate_entries.append(charter_gate_entry)
             if negative_controls_entry is not None:
                 negative_controls_entries.append(negative_controls_entry)
+            if test_observations_entry is not None:
+                test_observations_entries.append(test_observations_entry)
             for artifact in step.get("artifacts", []):
                 if (output_dir / artifact).exists():
                     artifacts.append(artifact)
@@ -1257,6 +1517,11 @@ def main(argv: list[str]) -> int:
             "entries": negative_controls_entries,
             "totals": negative_controls_totals(negative_controls_entries),
         }
+    if test_observations_entries:
+        result["test_observations"] = {
+            "entries": test_observations_entries,
+            "totals": test_observations_totals(test_observations_entries),
+        }
     result["artifact_payloads"] = artifact_payloads(output_dir, artifacts)
     result["verification_evidence"] = verification_evidence(results)
     state_file = output_dir / "harness_state.json"
@@ -1282,6 +1547,8 @@ def main(argv: list[str]) -> int:
         state_payload["charter_gate"] = result["charter_gate"]
     if "negative_controls" in result:
         state_payload["negative_controls"] = result["negative_controls"]
+    if "test_observations" in result:
+        state_payload["test_observations"] = result["test_observations"]
     state_file.write_text(json.dumps(state_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     result["artifact_payloads"]["harness_state.json"] = state_payload
     (output_dir / "result.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

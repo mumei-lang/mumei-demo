@@ -26,6 +26,7 @@ SCENARIO_ORDER = [
     "arklib_style_audit",
     "charter_gate_demo",
     "negative_controls_demo",
+    "test_observation_demo",
     "self_correction_demo",
 ]
 
