@@ -165,6 +165,22 @@ step and atom in a Negative Controls table. A surviving mutant is evidence
 that the contract permits a mutation; equivalent mutants can still survive,
 so survivors require human judgment.
 
+## Test Observation reports
+
+A scenario step opts into test-observation evidence with a
+`"test_observations"` object containing a report path under the run output
+directory. The runner requires the `mumei.observation-check/v1` schema and a
+`results` array, recomputes verdict totals from the records, and fails the step
+when the report is missing or malformed. Optional expected records, forbidden
+verdicts, and exact verdict totals make a scenario's gate explicit; expected
+records can be tied to a target, test name, source-file suffix, and verdict.
+
+`result.json` and `harness_state.json` contain a `test_observations` section
+with per-step status, verdict totals, and records classified as
+`contradicts_ensures` or `requires_admits_rejected`. `report.md` renders the
+per-step totals and contradiction locations. Rejected-step headlines identify
+the actual rejecting command, such as `observe-tests` or `mumei observe`.
+
 ## Scenario-to-gate mapping
 
 | Scenario | L1 evidence | L2 evidence | L3 evidence | Dashboard evidence |

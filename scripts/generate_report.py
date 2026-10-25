@@ -28,6 +28,7 @@ SCENARIO_ORDER = [
     "arklib_style_audit",
     "charter_gate_demo",
     "negative_controls_demo",
+    "test_observation_demo",
     "self_correction_demo",
 ]
 LAYER_LABELS = {
@@ -136,11 +137,16 @@ def rejected_step_subcommand(data: dict, step: dict) -> str:
 
     if not isinstance(command, str):
         return "verify"
-    matches = re.findall(
-        r"(?:^|[\s;&|])(?:\S*/)?mumei\s+(verify|controls|claims|charter)(?=\s|$)",
-        command,
+    pattern = re.compile(
+        r"(?:^|[\s;&|])(?:\S*/)?mumei\s+"
+        r"(?P<mumei>verify|controls|claims|charter|observe)(?=\s|$)"
+        r"|(?:^|[\s;&|])(?:\S*/)?agent\s+(?P<agent>observe-tests)(?=\s|$)"
     )
-    return matches[-1] if matches else "verify"
+    matches = list(pattern.finditer(command))
+    if not matches:
+        return "verify"
+    match = matches[-1]
+    return match.group("agent") or match.group("mumei")
 
 
 def rejected_step_label(data: dict, step: dict) -> str:
@@ -148,6 +154,8 @@ def rejected_step_label(data: dict, step: dict) -> str:
         "controls": "mumei controls → WEAK SPEC DETECTED",
         "claims": "mumei claims → GATE REJECTED",
         "charter": "mumei charter → CHARTER REJECTED",
+        "observe-tests": "observe-tests → TEST OBSERVATIONS REJECTED",
+        "observe": "mumei observe → TEST OBSERVATIONS REJECTED",
     }.get(rejected_step_subcommand(data, step), "mumei verify → BUG DETECTED")
 
 
@@ -254,6 +262,9 @@ def scenario_code_paths(root: Path, scenario: str) -> tuple[Path, Path]:
     if scenario == "negative_controls_demo":
         project_dir = scenario_dir / "project"
         return project_dir / "weak_spec.mm", project_dir / "strong_spec.mm"
+    if scenario == "test_observation_demo":
+        project_dir = scenario_dir / "project"
+        return project_dir / "wrong_spec.json", project_dir / "aligned_spec.json"
     return scenario_dir / "buggy_code.mm", scenario_dir / "correct_code.mm"
 
 
@@ -753,6 +764,78 @@ def render_negative_controls_markdown(data: dict) -> str:
     return "\n".join(lines)
 
 
+def render_test_observations_markdown(data: dict) -> str:
+    observations = data.get("test_observations")
+    if not isinstance(observations, dict):
+        return ""
+
+    entries = observations.get("entries", [])
+    entries = entries if isinstance(entries, list) else []
+    lines = [
+        "## Test Observations",
+        "",
+        "| Step | Status | Verdict totals |",
+        "| --- | --- | --- |",
+    ]
+    contradiction_count = 0
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        step = str(entry.get("step", "")).replace("|", "\\|").replace("\n", " ")
+        status = str(entry.get("status", "unavailable"))
+        totals = entry.get("verdict_totals", {})
+        totals = totals if isinstance(totals, dict) else {}
+        verdict_text = ", ".join(
+            f"{verdict}: {count}"
+            for verdict, count in sorted(totals.items())
+            if isinstance(verdict, str) and isinstance(count, int) and count
+        )
+        lines.append(
+            f"| {step} | {status} | {verdict_text or 'no observations'} |"
+        )
+        contradictions = entry.get("contradictions", [])
+        contradictions = contradictions if isinstance(contradictions, list) else []
+        for contradiction in contradictions:
+            if not isinstance(contradiction, dict):
+                continue
+            contradiction_count += 1
+            target = str(contradiction.get("target", "")).replace("|", "\\|")
+            test = str(contradiction.get("test", "")).replace("|", "\\|")
+            file_name = str(contradiction.get("file", "")).replace("|", "\\|")
+            line_number = contradiction.get("line")
+            location = (
+                f"{file_name}:{line_number}"
+                if isinstance(line_number, int) and not isinstance(line_number, bool)
+                else file_name or "unknown location"
+            )
+            verdict = str(contradiction.get("verdict", "unknown"))
+            lines.append(
+                f"- `{target}` / `{test}` (`{location}`): `{verdict}`"
+            )
+
+    if not entries:
+        lines.append("_No test-observation checks were recorded._")
+    elif contradiction_count == 0:
+        lines.append("- No contradictions or admitted rejections were recorded.")
+
+    totals = observations.get("totals", {})
+    totals = totals if isinstance(totals, dict) else {}
+    aggregate_verdicts = totals.get("verdicts", {})
+    aggregate_verdicts = aggregate_verdicts if isinstance(aggregate_verdicts, dict) else {}
+    aggregate_text = ", ".join(
+        f"{verdict}: {count}"
+        for verdict, count in sorted(aggregate_verdicts.items())
+        if isinstance(verdict, str) and isinstance(count, int) and count
+    )
+    lines.extend([
+        "",
+        f"- Totals: {totals.get('steps', len(entries))} steps; "
+        f"{aggregate_text or 'no verdicts'}; "
+        f"{totals.get('contradictions', contradiction_count)} contradicting results.",
+    ])
+    return "\n".join(lines)
+
+
 def render_duration_markdown(data: dict) -> str:
     lines = [
         "## Duration",
@@ -804,6 +887,9 @@ def render_scenario_markdown(data: dict, root: Path) -> str:
     negative_controls_markdown = render_negative_controls_markdown(data)
     if negative_controls_markdown:
         lines.extend(["", negative_controls_markdown])
+    test_observations_markdown = render_test_observations_markdown(data)
+    if test_observations_markdown:
+        lines.extend(["", test_observations_markdown])
     lines.extend([
         "",
         render_harness_contract_markdown(data),

@@ -13,6 +13,7 @@ Mumei runs formal verification over every possible case before an LLM-generated 
 | DeFi Invariant | Integer overflow occurs in an ERC-20 transfer. | Refinement types prevent overflow at compile time. |
 | Charter Gate | A repair weakens a reviewed dosage contract or relies on a low-grade proof. | The charter gate rejects weakened, narrowed, under-graded, and unpinned candidates. |
 | Negative Controls | A dosage implementation verifies under a contract that permits a wrong result. | Controls and Phase 1i expose a surviving mutant; the strong contract is discriminating. |
+| Test Observations | A late-fee contract predicts the wrong result or admits a rejected input. | Harvested Python and Rust tests expose contradictions and confirm an aligned spec and `.mm` atom. |
 
 ## How It Works
 
@@ -72,9 +73,26 @@ make demo-regtech
 make demo-no-mm
 make demo-charter
 make demo-negative-controls
+make demo-test-observation
 ```
 
 See [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) for the exhaustive target list and P9-G NLAE integration.
+
+## Manual test-aware spec extraction
+
+`extract-spec --from-tests` adds harvested test behavior to a manual
+specification extraction:
+
+```bash
+cd ../mumei-agent
+python -m agent extract-spec \
+  --text-file requirements.txt \
+  --from-tests tests/test_late_fee.py src/late_fee.py \
+  --observations-output observations.json
+```
+
+This workflow requires configured LLM credentials and is manual; it is not
+part of CI.
 
 ## What Mumei Adds to the Pipeline
 

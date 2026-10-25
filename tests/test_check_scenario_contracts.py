@@ -14,6 +14,7 @@ from check_scenario_contracts import (
     _validate_claim_book,
     _validate_charter_gate,
     _validate_negative_controls,
+    _validate_test_observations,
 )
 
 
@@ -87,6 +88,32 @@ def test_negative_controls_flag_must_be_boolean():
     for value in (1, "true", None, {}, []):
         failures = _validate_negative_controls(value, "$.negative_controls")
         assert failures == ["$.negative_controls must be a boolean"]
+
+
+def test_test_observations_flag_accepts_valid_shape_and_rejects_invalid_shapes():
+    valid = {
+        "report": "observe.json",
+        "expected_results": [{
+            "target": "late_fee",
+            "test": "test_example",
+            "file_suffix": "test_late_fee.py",
+            "verdict": "contradicts_ensures",
+        }],
+        "forbidden_verdicts": ["requires_admits_rejected"],
+        "expected_totals": {"consistent": 2, "contradicts_ensures": 1},
+    }
+    assert _validate_test_observations(valid, "$.test_observations") == []
+
+    for value in (
+        None,
+        {"report": ""},
+        {"report": "../outside.json"},
+        {"report": "observe.json", "expected_results": [{"test": "example"}]},
+        {"report": "observe.json", "forbidden_verdicts": "contradicts_ensures"},
+        {"report": "observe.json", "expected_totals": {"consistent": True}},
+        {"report": "observe.json", "unexpected": True},
+    ):
+        assert _validate_test_observations(value, "$.test_observations")
 
 
 def test_in_code_fence_detection():

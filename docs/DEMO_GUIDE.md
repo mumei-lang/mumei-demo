@@ -38,8 +38,8 @@ make demo
 
 This runs every scenario in presentation order, including the Phase 1 Ownership
 Transfer, Phase 2 RTGS Settlement, Phase 3 RegTech Compliance, the Phase 7
-Spec-Code Verification Suite, Charter Gate, and Negative Controls demos, then
-regenerates dashboard summaries.
+Spec-Code Verification Suite, Charter Gate, Negative Controls, and Test
+Observation demos, then regenerates dashboard summaries.
 
 ## Run the Ownership Transfer scenario
 
@@ -88,6 +88,19 @@ contracts. It records controls results, Phase 1i's surviving mutant, and
 Claim Book discrimination-gate results in
 `reports/negative_controls_demo/latest/result.json` and `report.md`.
 Surviving mutants require human judgment.
+
+## Run the Test Observation scenario
+
+```bash
+make demo-test-observation
+```
+
+The scenario copies the fixture project into each run directory, harvests
+Python and Rust test observations, and checks a deliberately wrong spec before
+checking the aligned spec and `.mm` atom. The reports are written to
+`reports/test_observation_demo/latest/`; `result.json` and `harness_state.json`
+contain per-step verdict totals and contradictions, and `report.md` renders a
+Test Observations section.
 
 ## Run the RTGS Settlement scenario
 
