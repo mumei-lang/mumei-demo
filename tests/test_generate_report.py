@@ -9,9 +9,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from generate_report import (  # noqa: E402
+    bug_detection_moment,
+    charter_gate_label,
     claim_book_label,
     render_scenario_markdown,
+    scenario_code_paths,
     write_summary,
+    write_highlights,
 )
 
 from dashboard.cli_report import claim_book_label as cli_claim_book_label  # noqa: E402
@@ -67,6 +71,155 @@ def test_old_result_does_not_render_claim_book_section(tmp_path):
     assert "## Claim Book" not in report
 
 
+def test_charter_gate_section_renders_statuses_and_highlights(tmp_path):
+    report = render_scenario_markdown(
+        {
+            "scenario": "charter_gate_demo",
+            "scenario_name": "Charter Gate Demo",
+            "overall_status": "PASS",
+            "proof_density": {},
+            "layers": {},
+            "charter_gate": {
+                "entries": [
+                    {
+                        "step": "charter_pass",
+                        "status": "ok",
+                        "gate_status": "pass",
+                        "lock_status": "ok",
+                        "atoms": [
+                            {
+                                "name": "clamp_dose",
+                                "charter": "specs/dosage.charter.mm",
+                                "status": "ok",
+                                "effective_grade": "G4",
+                            }
+                        ],
+                    },
+                    {
+                        "step": "detect_edit",
+                        "status": "ok",
+                        "gate_status": "fail",
+                        "lock_status": "mismatch",
+                        "atoms": [
+                            {
+                                "name": "clamp_dose",
+                                "charter": "specs/dosage.charter.mm",
+                                "status": "unpinned",
+                            }
+                        ],
+                    },
+                ],
+                "totals": {
+                    "checks": 2,
+                    "passed": 1,
+                    "failed": 1,
+                    "by_atom_status": {"ok": 1, "unpinned": 1},
+                },
+            },
+        },
+        tmp_path,
+    )
+
+    assert "## Charter Gate" in report
+    assert "| Step | Entry status | Gate status | Lock status | Atom statuses |" in report
+    assert "| charter_pass | ok | pass | ok | clamp_dose (`specs/dosage.charter.mm`): ok (G4) |" in report
+    assert "| detect_edit | ok | fail | mismatch | clamp_dose (`specs/dosage.charter.mm`): unpinned |" in report
+    assert "- Highlights: 1/2 checks passed · 1 failed · ok: 1 · unpinned: 1" in report
+
+
+def test_old_result_does_not_render_charter_gate_section(tmp_path):
+    report = render_scenario_markdown(
+        {
+            "scenario": "legacy",
+            "overall_status": "PASS",
+            "proof_density": {},
+            "layers": {},
+        },
+        tmp_path,
+    )
+
+    assert "## Charter Gate" not in report
+
+
+def test_charter_gate_demo_has_a_nonempty_before_after_diff():
+    root = Path(__file__).resolve().parents[1]
+    before_path, after_path = scenario_code_paths(root, "charter_gate_demo")
+
+    assert before_path.relative_to(root).as_posix() == (
+        "scenarios/charter_gate_demo/project/weakened_ensures.mm"
+    )
+    assert after_path.relative_to(root).as_posix() == (
+        "scenarios/charter_gate_demo/project/correct.mm"
+    )
+    report = bug_detection_moment(
+        {
+            "scenario": "charter_gate_demo",
+            "layers": {
+                "l1_z3": {
+                    "steps": [
+                        {
+                            "id": "detect_weakened_ensures",
+                            "status": "REJECTED",
+                            "expect_failure": True,
+                            "stdout": "post_weakened",
+                        }
+                    ]
+                }
+            },
+        },
+        root,
+        "### Evidence",
+        "####",
+    )
+
+    assert "#### BEFORE → AFTER diff" in report
+
+
+def test_write_highlights_adds_one_charter_gate_line(tmp_path):
+    reports = tmp_path / "reports"
+    result_dir = reports / "charter_gate_demo" / "20260101T000000Z"
+    result_dir.mkdir(parents=True)
+    (result_dir / "result.json").write_text(
+        json.dumps({
+            "scenario": "charter_gate_demo",
+            "scenario_name": "Charter Gate Demo",
+            "overall_status": "PASS",
+            "proof_density": {},
+            "layers": {},
+            "charter_gate": {
+                "entries": [],
+                "totals": {
+                    "checks": 1,
+                    "passed": 1,
+                    "failed": 0,
+                    "by_atom_status": {"ok": 1},
+                },
+            },
+        }),
+        encoding="utf-8",
+    )
+    output = tmp_path / "highlights.md"
+
+    assert charter_gate_label({
+        "charter_gate": {
+            "totals": {
+                "checks": 1,
+                "passed": 1,
+                "failed": 0,
+                "by_atom_status": {"ok": 1},
+            }
+        }
+    }) == "1/1 checks passed · 0 failed · ok: 1"
+    assert write_highlights(
+        tmp_path,
+        reports,
+        output,
+        ["charter_gate_demo"],
+        False,
+    ) == 0
+    assert output.read_text(encoding="utf-8").count("- Charter Gate:") == 1
+
+
 def test_claim_book_summary_labels():
     assert claim_book_label({}) == "N/A"
     assert claim_book_label({
@@ -94,6 +247,12 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
     spec = importlib.util.spec_from_file_location("claim_book_dashboard_app", app_path)
     app = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(app)
+    charter_index = app.SCENARIO_ORDER.index("charter_gate_demo")
+    assert app.SCENARIO_ORDER[charter_index - 1 : charter_index + 2] == [
+        "arklib_style_audit",
+        "charter_gate_demo",
+        "self_correction_demo",
+    ]
     data = {
         "claim_book": {
             "entries": [{"status": "ok"}],

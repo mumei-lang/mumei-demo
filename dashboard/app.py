@@ -23,6 +23,7 @@ SCENARIO_ORDER = [
     "merkle_tree_verification",
     "defi_invariant",
     "arklib_style_audit",
+    "charter_gate_demo",
     "self_correction_demo",
 ]
 

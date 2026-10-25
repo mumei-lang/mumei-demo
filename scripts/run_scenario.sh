@@ -414,6 +414,119 @@ def claim_book_totals(entries: list[dict[str, object]]) -> dict[str, object]:
     return totals
 
 
+CHARTER_REPORT_SCHEMA = "mumei.charter-report/v1"
+
+
+def parse_charter_gate_entry(
+    step_id: str,
+    step_status: str,
+    stdout: str,
+) -> dict[str, object]:
+    entry: dict[str, object] = {
+        "step": step_id,
+        "status": "unavailable",
+        "gate_status": None,
+        "lock_status": None,
+        "atoms": [],
+    }
+    if step_status in {"SKIPPED", "FAIL", "FAILED"}:
+        entry.update({
+            "status": "skipped",
+            "detail": f"Step status was {step_status}",
+        })
+        return entry
+
+    try:
+        report = json.loads(stdout)
+    except json.JSONDecodeError:
+        start = stdout.find("{")
+        end = stdout.rfind("}")
+        if start < 0 or end <= start:
+            entry["detail"] = "step stdout does not contain a JSON object"
+            return entry
+        try:
+            report = json.loads(stdout[start:end + 1])
+        except json.JSONDecodeError as error:
+            entry["detail"] = f"charter report JSON is invalid: {error}"
+            return entry
+
+    if not isinstance(report, Mapping):
+        entry["detail"] = "charter report must be a JSON object"
+        return entry
+    if report.get("schema") != CHARTER_REPORT_SCHEMA:
+        entry["detail"] = f"unsupported charter report schema: {report.get('schema')!r}"
+        return entry
+
+    gate_status = report.get("status")
+    lock = report.get("lock")
+    atoms = report.get("atoms")
+    if not isinstance(gate_status, str) or gate_status not in {"pass", "fail"}:
+        entry["detail"] = "charter report status must be 'pass' or 'fail'"
+        return entry
+    if not isinstance(lock, Mapping) or not isinstance(lock.get("status"), str):
+        entry["detail"] = "charter report lock status is missing"
+        return entry
+    if not isinstance(atoms, list):
+        entry["detail"] = "charter report atoms must be an array"
+        return entry
+
+    normalized_atoms: list[dict[str, object]] = []
+    for atom in atoms:
+        if not isinstance(atom, Mapping):
+            entry["detail"] = "charter report atoms must contain objects"
+            return entry
+        name = atom.get("name")
+        charter = atom.get("charter")
+        status = atom.get("status")
+        if not all(isinstance(value, str) for value in (name, charter, status)):
+            entry["detail"] = "charter report atoms require name, charter, and status strings"
+            return entry
+        normalized: dict[str, object] = {
+            "name": name,
+            "charter": charter,
+            "status": status,
+        }
+        grade = atom.get("effective_grade")
+        if isinstance(grade, str):
+            normalized["effective_grade"] = grade
+        normalized_atoms.append(normalized)
+
+    entry.update({
+        "status": "ok",
+        "gate_status": gate_status,
+        "lock_status": lock["status"],
+        "atoms": normalized_atoms,
+    })
+    return entry
+
+
+def charter_gate_totals(entries: list[dict[str, object]]) -> dict[str, object]:
+    checks = 0
+    passed = 0
+    by_atom_status: dict[str, int] = {}
+    for entry in entries:
+        if entry.get("status") != "ok":
+            continue
+        checks += 1
+        if entry.get("gate_status") == "pass":
+            passed += 1
+        atoms = entry.get("atoms", [])
+        if not isinstance(atoms, list):
+            continue
+        for atom in atoms:
+            if not isinstance(atom, Mapping):
+                continue
+            status = atom.get("status")
+            if isinstance(status, str):
+                by_atom_status[status] = by_atom_status.get(status, 0) + 1
+    return {
+        "checks": checks,
+        "passed": passed,
+        "failed": checks - passed,
+        "by_atom_status": dict(sorted(by_atom_status.items())),
+    }
+
+
 def run_claim_book_entry(
     step_id: str,
     step_status: str,
@@ -730,6 +843,7 @@ def main(argv: list[str]) -> int:
     step_index: dict[str, dict] = {}
     artifacts: list[str] = []
     claim_book_entries: list[dict[str, object]] = []
+    charter_gate_entries: list[dict[str, object]] = []
     overall_status = "PASS"
 
     # depends_on resolves step ids globally — a duplicated id would make the
@@ -854,6 +968,25 @@ def main(argv: list[str]) -> int:
                     if stdout:
                         print(f"[stdout] {step_id}:\n{stdout}", file=sys.stderr)
 
+            charter_gate_entry = None
+            charter_gate_detail = None
+            if step.get("charter_gate") is True:
+                charter_gate_entry = parse_charter_gate_entry(step_id, status, stdout)
+                if (
+                    status in {"PASS", "REJECTED"}
+                    and charter_gate_entry.get("status") == "unavailable"
+                ):
+                    charter_gate_detail = (
+                        "charter gate report unavailable: "
+                        f"{charter_gate_entry.get('detail', 'unknown error')}"
+                    )
+                    status = "FAIL"
+                    overall_status = "FAIL"
+                    stderr = "\n".join(part for part in (stderr, charter_gate_detail) if part)
+                    with log_path.open("a", encoding="utf-8") as handle:
+                        handle.write(f"\n[{charter_gate_detail}]\n")
+                    print(f"[{step_id}] {charter_gate_detail}", file=sys.stderr)
+
             step_result = {
                 "id": step_id,
                 "name": step.get("name", step_id),
@@ -877,6 +1010,8 @@ def main(argv: list[str]) -> int:
                 step_result["verifier_gate"] = step["verifier_gate"]
             if "failure_taxonomy" in step:
                 step_result["failure_taxonomy"] = step["failure_taxonomy"]
+            if charter_gate_detail is not None:
+                step_result["detail"] = charter_gate_detail
             if "claim_book" in step:
                 claim_book_entries.append(
                     run_claim_book_entry(
@@ -890,6 +1025,8 @@ def main(argv: list[str]) -> int:
                         cwd,
                     )
                 )
+            if charter_gate_entry is not None:
+                charter_gate_entries.append(charter_gate_entry)
             for artifact in step.get("artifacts", []):
                 if (output_dir / artifact).exists():
                     artifacts.append(artifact)
@@ -931,6 +1068,11 @@ def main(argv: list[str]) -> int:
             "entries": claim_book_entries,
             "totals": claim_book_totals(claim_book_entries),
         }
+    if charter_gate_entries:
+        result["charter_gate"] = {
+            "entries": charter_gate_entries,
+            "totals": charter_gate_totals(charter_gate_entries),
+        }
     result["artifact_payloads"] = artifact_payloads(output_dir, artifacts)
     result["verification_evidence"] = verification_evidence(results)
     state_file = output_dir / "harness_state.json"
@@ -952,6 +1094,8 @@ def main(argv: list[str]) -> int:
     }
     if "claim_book" in result:
         state_payload["claim_book"] = result["claim_book"]
+    if "charter_gate" in result:
+        state_payload["charter_gate"] = result["charter_gate"]
     state_file.write_text(json.dumps(state_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     result["artifact_payloads"]["harness_state.json"] = state_payload
     (output_dir / "result.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

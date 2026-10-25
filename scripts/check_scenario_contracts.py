@@ -117,6 +117,12 @@ def _validate_claim_book(value: Any, context: str) -> list[str]:
     return failures
 
 
+def _validate_charter_gate(value: Any, context: str) -> list[str]:
+    if value is not True:
+        return [f"{context} must be the boolean true"]
+    return []
+
+
 def _check_file(path: Path) -> list[str]:
     rel = path.relative_to(REPO_ROOT)
     data = json.loads(path.read_text(encoding="utf-8"))
@@ -140,9 +146,13 @@ def _check_file(path: Path) -> list[str]:
         if not isinstance(layer_def, dict):
             continue
         for index, step in enumerate(layer_def.get("steps", [])):
-            if isinstance(step, dict) and "claim_book" in step:
-                context = f"{rel}: $.{layer}.steps[{index}].claim_book"
-                failures.extend(_validate_claim_book(step["claim_book"], context))
+            if isinstance(step, dict):
+                if "claim_book" in step:
+                    context = f"{rel}: $.{layer}.steps[{index}].claim_book"
+                    failures.extend(_validate_claim_book(step["claim_book"], context))
+                if "charter_gate" in step:
+                    context = f"{rel}: $.{layer}.steps[{index}].charter_gate"
+                    failures.extend(_validate_charter_gate(step["charter_gate"], context))
 
     for key_path, value in _collect_named(data, "artifact_keys"):
         if not isinstance(value, list) or not all(isinstance(item, str) for item in value):

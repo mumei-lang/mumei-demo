@@ -38,7 +38,7 @@ make demo
 
 This runs every scenario in presentation order, including the Phase 1 Ownership
 Transfer, Phase 2 RTGS Settlement, Phase 3 RegTech Compliance, and Phase 7
-Spec-Code Verification Suite demos, then regenerates dashboard summaries.
+Spec-Code Verification Suite and Charter Gate demos, then regenerates dashboard summaries.
 
 ## Run the Ownership Transfer scenario
 
@@ -65,6 +65,16 @@ Or provide explicit repository paths:
 
 Reports are written to `reports/ownership_transfer/<timestamp>/` and mirrored
 via `reports/ownership_transfer/latest/`.
+
+## Run the Charter Gate scenario
+
+```bash
+make demo-charter
+```
+
+The scenario copies its project into the run output directory, locks the
+reviewed dosage charter there, and records gate and per-atom results in
+`reports/charter_gate_demo/latest/result.json` and `report.md`.
 
 ## Run the RTGS Settlement scenario
 
@@ -181,7 +191,8 @@ make demo
 `nl_to_verified`, `no_mm_audit`, `spec_code_verification_suite`,
 `mumei_develop_audit`, `smart_contract_audit`, `blockchain_audit`,
 `medical_device`, `aviation_control`, `merkle_tree_verification`,
-`defi_invariant`, `arklib_style_audit`, and `self_correction_demo` in order.
+`defi_invariant`, `arklib_style_audit`, `charter_gate_demo`, and
+`self_correction_demo` in order.
 `make demo-all` remains a compatibility alias. `CI_FIXTURE_MODE=1 make demo-ci`
 runs the same scenario set with deterministic CI fixtures and summary generation.
 

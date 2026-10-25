@@ -132,6 +132,22 @@ the Streamlit dashboard. A scenario is `COMPLIANT` when:
 - every executed step exposes `harness_stage`, `artifact_contract`, and
   `verifier_gate`.
 
+## Charter Gate reports
+
+A scenario step opts into charter report capture with `"charter_gate": true`.
+The runner parses the complete stdout as JSON, then falls back to the outermost
+JSON object for commands that print a short message before the report. It
+requires the `mumei.charter-report/v1` schema; malformed output, a different
+schema, or missing atom results is recorded as `unavailable`. A step that is
+`SKIPPED` or `FAIL` records a `skipped` entry instead.
+
+Each `result.json` entry contains `step`, `status`, `gate_status`,
+`lock_status`, and the reported atom names, charter paths, statuses, and
+optional effective grades. The `charter_gate.totals` object aggregates
+`checks`, `passed`, `failed`, and `by_atom_status` from `ok` entries only.
+`report.md` renders a Charter Gate table and a single highlights line; the
+cross-scenario summary table keeps its existing columns.
+
 ## Scenario-to-gate mapping
 
 | Scenario | L1 evidence | L2 evidence | L3 evidence | Dashboard evidence |

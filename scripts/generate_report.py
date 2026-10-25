@@ -25,6 +25,7 @@ SCENARIO_ORDER = [
     "merkle_tree_verification",
     "defi_invariant",
     "arklib_style_audit",
+    "charter_gate_demo",
     "self_correction_demo",
 ]
 LAYER_LABELS = {
@@ -216,6 +217,9 @@ def scenario_code_paths(root: Path, scenario: str) -> tuple[Path, Path]:
     scenario_dir = root / "scenarios" / scenario
     if scenario == "blockchain_audit":
         return scenario_dir / "buggy_contract.mm", scenario_dir / "correct_contract.mm"
+    if scenario == "charter_gate_demo":
+        project_dir = scenario_dir / "project"
+        return project_dir / "weakened_ensures.mm", project_dir / "correct.mm"
     return scenario_dir / "buggy_code.mm", scenario_dir / "correct_code.mm"
 
 
@@ -366,6 +370,28 @@ def claim_book_label(data: dict) -> str:
     drifted = int(freshness.get("drifted", 0) or 0)
     uncertified = int(freshness.get("uncertified", 0) or 0)
     return f"{g4plus}/{total} machine-sealed · {drifted} drifted · {uncertified} uncertified"
+
+
+def charter_gate_label(data: dict) -> str:
+    charter_gate = data.get("charter_gate")
+    if not isinstance(charter_gate, dict):
+        return "N/A"
+    totals = charter_gate.get("totals", {})
+    if not isinstance(totals, dict):
+        return "unavailable"
+    checks = int(totals.get("checks", 0) or 0)
+    passed = int(totals.get("passed", 0) or 0)
+    failed = int(totals.get("failed", 0) or 0)
+    statuses = totals.get("by_atom_status", {})
+    if not isinstance(statuses, dict):
+        statuses = {}
+    status_text = " · ".join(
+        f"{status}: {count}"
+        for status, count in sorted(statuses.items())
+        if isinstance(status, str) and int(count or 0) > 0
+    )
+    label = f"{passed}/{checks} checks passed · {failed} failed"
+    return f"{label} · {status_text}" if status_text else label
 
 
 def render_artifact_contract_payloads(data: dict) -> str:
@@ -564,6 +590,49 @@ def render_claim_book_markdown(data: dict) -> str:
     return "\n".join(lines)
 
 
+def render_charter_gate_markdown(data: dict) -> str:
+    charter_gate = data.get("charter_gate", {})
+    entries = charter_gate.get("entries", []) if isinstance(charter_gate, dict) else []
+    lines = [
+        "## Charter Gate",
+        "",
+        "| Step | Entry status | Gate status | Lock status | Atom statuses |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for entry in entries if isinstance(entries, list) else []:
+        if not isinstance(entry, dict):
+            continue
+        step = str(entry.get("step", "")).replace("|", "\\|")
+        entry_status = str(entry.get("status", "unavailable"))
+        detail = str(entry.get("detail", "")).replace("|", "\\|").replace("\n", " ")
+        if detail:
+            entry_status = f"{entry_status}: {detail}"
+        gate_status = str(entry.get("gate_status") or "-")
+        lock_status = str(entry.get("lock_status") or "-")
+        atoms = entry.get("atoms", [])
+        atom_statuses = []
+        for atom in atoms if isinstance(atoms, list) else []:
+            if not isinstance(atom, dict):
+                continue
+            name = str(atom.get("name", ""))
+            charter = str(atom.get("charter", ""))
+            status = str(atom.get("status", "unknown"))
+            grade = atom.get("effective_grade")
+            label = f"{name} (`{charter}`): {status}"
+            if isinstance(grade, str):
+                label += f" ({grade})"
+            atom_statuses.append(label.replace("|", "\\|"))
+        lines.append(
+            f"| {step} | {entry_status} | {gate_status} | {lock_status} | "
+            f"{'; '.join(atom_statuses) if atom_statuses else '-'} |"
+        )
+    lines.extend([
+        "",
+        f"- Highlights: {charter_gate_label(data)}",
+    ])
+    return "\n".join(lines)
+
+
 def render_duration_markdown(data: dict) -> str:
     lines = [
         "## Duration",
@@ -610,6 +679,8 @@ def render_scenario_markdown(data: dict, root: Path) -> str:
     ]
     if "claim_book" in data:
         lines.extend(["", render_claim_book_markdown(data)])
+    if "charter_gate" in data:
+        lines.extend(["", render_charter_gate_markdown(data)])
     lines.extend([
         "",
         render_harness_contract_markdown(data),
@@ -718,6 +789,8 @@ def write_highlights(
         lines.append(f"- Harness contract compliance: {compliance_label(data)}")
         lines.append(f"- Intent fidelity: {intent_fidelity_label(data)}")
         lines.append(f"- Claim Book: {claim_book_label(data)}")
+        if "charter_gate" in data:
+            lines.append(f"- Charter Gate: {charter_gate_label(data)}")
         lines.extend([
             "",
             bug_detection_moment(data, root, "### Bug Detection Moment", "####"),

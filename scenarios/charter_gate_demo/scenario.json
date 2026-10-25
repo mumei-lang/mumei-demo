@@ -1,0 +1,272 @@
+{
+  "name": "Charter Gate: Reviewed Dosage Contract",
+  "version": "1.0.0",
+  "description": "Shows mumei rejecting weakened, narrowed, under-graded, and unpinned dosage repairs.",
+  "layers": [
+    "l1_z3"
+  ],
+  "narrative": {
+    "intro": [
+      "Step 1: Copy the reviewed dosage project and lock its charter.",
+      "Step 2: Compare candidate repairs with the charter and their proof grades."
+    ],
+    "before": "A repair can verify against a weakened contract or depend on an untrusted shortcut.",
+    "after": "The charter gate accepts the correctly proved implementation and rejects weaker, narrower, under-graded, or unpinned candidates.",
+    "steps": {
+      "detect_weakened_ensures": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "Charter Gate: postcondition weakened",
+          "follow_up": [
+            "  The candidate verifies against its own weaker contract.",
+            "  The reviewed dosage bound is still required."
+          ]
+        }
+      },
+      "detect_tightened_requires": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "Charter Gate: accepted inputs narrowed"
+        }
+      },
+      "charter_pass": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Charter Gate: the proved repair meets the reviewed contract"
+        }
+      },
+      "detect_trusted_shortcut": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "Charter Gate: proof grade is below the requirement"
+        }
+      },
+      "detect_charter_edit": {
+        "rejected": {
+          "icon": "❌",
+          "headline": "Charter Gate: changed charter text is unpinned"
+        }
+      }
+    }
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate that mumei accepts a properly proved dosage repair and rejects candidates that weaken or exceed the reviewed charter.",
+    "artifact_contracts": [
+      "The first step copies scenarios/charter_gate_demo/project into {output_dir}/project and writes the charter lock only in that copy.",
+      "Every charter check runs from the copied project directory, except the deliberate edit check, which runs from its separate output_dir/project_edit copy.",
+      "The weakened-ensures candidate first verifies against its own contract, then the charter check rejects it.",
+      "The correct implementation writes charter_gate.proof.json and passes the default G4 charter gate.",
+      "The trusted-shortcut implementation writes its own certificate and is rejected below the default Seal Grade.",
+      "The changed-charter check reports an unpinned result without changing the source project.",
+      "result.json and report.md record charter-gate entries and totals."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "A repair must preserve the reviewed dosage contract and meet the proof-grade requirement.",
+    "success_criteria": [
+      "The candidate with a weakened ensures clause verifies by itself and is rejected as post_weakened.",
+      "The candidate with a stronger requires clause is rejected as pre_weakened.",
+      "The correctly proved candidate passes the charter check with its certificate.",
+      "The trusted-shortcut candidate is rejected as grade_below.",
+      "Editing the charter after locking it results in an unpinned rejection."
+    ],
+    "drift_risk": "Low: each expected outcome is tied to a concrete charter check and the copied project lock."
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "lock_charter",
+        "name": "Lock the reviewed dosage charter",
+        "repo": "mumei",
+        "command": "rm -rf {output_dir}/project && cp -R {root_dir}/scenarios/charter_gate_demo/project {output_dir}/project && cd {output_dir}/project && {mumei_bin} charter lock",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Charter lock written"
+        ],
+        "artifacts": [
+          "project/charter.lock"
+        ],
+        "harness_stage": "S1_charter_lock",
+        "artifact_contract": [
+          "The input project is copied to {output_dir}/project before mumei charter lock runs.",
+          "The resulting charter.lock exists only in the output copy."
+        ],
+        "verifier_gate": "mumei charter lock exits 0 and writes the deterministic project lock."
+      },
+      {
+        "id": "detect_weakened_ensures",
+        "name": "Reject a repair that weakens ensures",
+        "repo": "mumei",
+        "command": "cd {output_dir}/project && {mumei_bin} verify weakened_ensures.mm && {mumei_bin} charter check weakened_ensures.mm --json",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": [
+          "Verification passed",
+          "post_weakened"
+        ],
+        "artifacts": [],
+        "depends_on": [
+          "lock_charter"
+        ],
+        "charter_gate": true,
+        "harness_stage": "S1_charter_rejection_weakened_ensures",
+        "artifact_contract": [
+          "weakened_ensures.mm verifies against its own weaker contract.",
+          "The JSON charter report rejects the missing result <= max_dose guarantee."
+        ],
+        "verifier_gate": "The implementation verifies, then mumei charter check exits 1 with post_weakened.",
+        "failure_taxonomy": "postcondition_weakened"
+      },
+      {
+        "id": "detect_tightened_requires",
+        "name": "Reject a repair that narrows requires",
+        "repo": "mumei",
+        "command": "cd {output_dir}/project && {mumei_bin} charter check tightened_requires.mm --json",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": [
+          "pre_weakened"
+        ],
+        "artifacts": [],
+        "depends_on": [
+          "lock_charter"
+        ],
+        "charter_gate": true,
+        "harness_stage": "S1_charter_rejection_tightened_requires",
+        "artifact_contract": [
+          "The JSON charter report rejects the additional max_dose > 0 requirement."
+        ],
+        "verifier_gate": "mumei charter check exits 1 with pre_weakened.",
+        "failure_taxonomy": "precondition_strengthened"
+      },
+      {
+        "id": "verify_correct",
+        "name": "Verify the correct dosage repair",
+        "repo": "mumei",
+        "command": "cd {output_dir}/project && {mumei_bin} verify correct.mm --proof-cert --output {output_dir}/charter_gate.proof.json",
+        "claim_book": {
+          "source": "{output_dir}/project/correct.mm",
+          "cert": "charter_gate.proof.json"
+        },
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Verification passed",
+          "clamp_dose"
+        ],
+        "artifacts": [
+          "charter_gate.proof.json"
+        ],
+        "depends_on": [
+          "lock_charter"
+        ],
+        "harness_stage": "S1_charter_acceptance_verify_correct",
+        "artifact_contract": [
+          "The verifier writes {output_dir}/charter_gate.proof.json.",
+          "The step records a Claim Book entry for correct.mm and its certificate."
+        ],
+        "verifier_gate": "mumei verify exits 0, verifies clamp_dose, and emits a proof certificate."
+      },
+      {
+        "id": "charter_pass",
+        "name": "Accept the correctly proved repair",
+        "repo": "mumei",
+        "command": "cd {output_dir}/project && {mumei_bin} charter check correct.mm --cert {output_dir}/charter_gate.proof.json --json",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "\"status\": \"pass\"",
+          "clamp_dose"
+        ],
+        "artifacts": [],
+        "depends_on": [
+          "verify_correct"
+        ],
+        "charter_gate": true,
+        "harness_stage": "S1_charter_acceptance_grade_g4",
+        "artifact_contract": [
+          "The JSON charter report has top-level status pass and records the implementation atom grade."
+        ],
+        "verifier_gate": "mumei charter check exits 0 after refinement and the default G4 evidence gate."
+      },
+      {
+        "id": "verify_trusted_shortcut",
+        "name": "Verify the trusted-shortcut dosage repair",
+        "repo": "mumei",
+        "command": "cd {output_dir}/project && {mumei_bin} verify trusted_shortcut.mm --proof-cert --output {output_dir}/charter_gate.trusted.proof.json",
+        "claim_book": {
+          "source": "{output_dir}/project/trusted_shortcut.mm",
+          "cert": "charter_gate.trusted.proof.json"
+        },
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Verification passed",
+          "clamp_dose"
+        ],
+        "artifacts": [
+          "charter_gate.trusted.proof.json"
+        ],
+        "depends_on": [
+          "lock_charter"
+        ],
+        "harness_stage": "S1_charter_acceptance_verify_trusted_shortcut",
+        "artifact_contract": [
+          "The verifier writes {output_dir}/charter_gate.trusted.proof.json.",
+          "The step records a Claim Book entry for the trusted-shortcut implementation and certificate."
+        ],
+        "verifier_gate": "mumei verify accepts the candidate implementation and writes a proof certificate."
+      },
+      {
+        "id": "detect_trusted_shortcut",
+        "name": "Reject proof below the default Seal Grade",
+        "repo": "mumei",
+        "command": "cd {output_dir}/project && {mumei_bin} charter check trusted_shortcut.mm --cert {output_dir}/charter_gate.trusted.proof.json --json",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": [
+          "grade_below"
+        ],
+        "artifacts": [],
+        "depends_on": [
+          "verify_trusted_shortcut"
+        ],
+        "charter_gate": true,
+        "harness_stage": "S1_charter_rejection_grade_below",
+        "artifact_contract": [
+          "The JSON charter report rejects the trusted-helper dependency below the default G4 threshold."
+        ],
+        "verifier_gate": "mumei charter check exits 1 with grade_below for clamp_dose.",
+        "failure_taxonomy": "seal_grade_below_requirement"
+      },
+      {
+        "id": "detect_charter_edit",
+        "name": "Reject an edited, unpinned charter",
+        "repo": "mumei",
+        "command": "cd {output_dir}/project && rm -rf {output_dir}/project_edit && cp -R {output_dir}/project {output_dir}/project_edit && printf '\\n// Deliberate unpinned edit.\\n' >> {output_dir}/project_edit/specs/dosage.charter.mm && cd {output_dir}/project_edit && {mumei_bin} charter check correct.mm --json",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": [
+          "unpinned"
+        ],
+        "artifacts": [
+          "project_edit/charter_report.json"
+        ],
+        "depends_on": [
+          "lock_charter"
+        ],
+        "charter_gate": true,
+        "harness_stage": "S1_charter_rejection_unpinned_edit",
+        "artifact_contract": [
+          "The edited project is a separate copy under {output_dir}/project_edit.",
+          "The JSON charter report records the lock mismatch and unpinned atom status."
+        ],
+        "verifier_gate": "mumei charter check exits 1 and reports the changed charter as unpinned.",
+        "failure_taxonomy": "charter_lock_mismatch"
+      }
+    ]
+  }
+}
