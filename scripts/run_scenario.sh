@@ -968,6 +968,25 @@ def main(argv: list[str]) -> int:
                     if stdout:
                         print(f"[stdout] {step_id}:\n{stdout}", file=sys.stderr)
 
+            charter_gate_entry = None
+            charter_gate_detail = None
+            if step.get("charter_gate") is True:
+                charter_gate_entry = parse_charter_gate_entry(step_id, status, stdout)
+                if (
+                    status in {"PASS", "REJECTED"}
+                    and charter_gate_entry.get("status") == "unavailable"
+                ):
+                    charter_gate_detail = (
+                        "charter gate report unavailable: "
+                        f"{charter_gate_entry.get('detail', 'unknown error')}"
+                    )
+                    status = "FAIL"
+                    overall_status = "FAIL"
+                    stderr = "\n".join(part for part in (stderr, charter_gate_detail) if part)
+                    with log_path.open("a", encoding="utf-8") as handle:
+                        handle.write(f"\n[{charter_gate_detail}]\n")
+                    print(f"[{step_id}] {charter_gate_detail}", file=sys.stderr)
+
             step_result = {
                 "id": step_id,
                 "name": step.get("name", step_id),
@@ -991,6 +1010,8 @@ def main(argv: list[str]) -> int:
                 step_result["verifier_gate"] = step["verifier_gate"]
             if "failure_taxonomy" in step:
                 step_result["failure_taxonomy"] = step["failure_taxonomy"]
+            if charter_gate_detail is not None:
+                step_result["detail"] = charter_gate_detail
             if "claim_book" in step:
                 claim_book_entries.append(
                     run_claim_book_entry(
@@ -1004,10 +1025,8 @@ def main(argv: list[str]) -> int:
                         cwd,
                     )
                 )
-            if step.get("charter_gate") is True:
-                charter_gate_entries.append(
-                    parse_charter_gate_entry(step_id, status, stdout)
-                )
+            if charter_gate_entry is not None:
+                charter_gate_entries.append(charter_gate_entry)
             for artifact in step.get("artifacts", []):
                 if (output_dir / artifact).exists():
                     artifacts.append(artifact)

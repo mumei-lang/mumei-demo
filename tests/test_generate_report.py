@@ -9,9 +9,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from generate_report import (  # noqa: E402
+    bug_detection_moment,
     charter_gate_label,
     claim_book_label,
     render_scenario_markdown,
+    scenario_code_paths,
     write_summary,
     write_highlights,
 )
@@ -139,6 +141,40 @@ def test_old_result_does_not_render_charter_gate_section(tmp_path):
     assert "## Charter Gate" not in report
 
 
+def test_charter_gate_demo_has_a_nonempty_before_after_diff():
+    root = Path(__file__).resolve().parents[1]
+    before_path, after_path = scenario_code_paths(root, "charter_gate_demo")
+
+    assert before_path.relative_to(root).as_posix() == (
+        "scenarios/charter_gate_demo/project/weakened_ensures.mm"
+    )
+    assert after_path.relative_to(root).as_posix() == (
+        "scenarios/charter_gate_demo/project/correct.mm"
+    )
+    report = bug_detection_moment(
+        {
+            "scenario": "charter_gate_demo",
+            "layers": {
+                "l1_z3": {
+                    "steps": [
+                        {
+                            "id": "detect_weakened_ensures",
+                            "status": "REJECTED",
+                            "expect_failure": True,
+                            "stdout": "post_weakened",
+                        }
+                    ]
+                }
+            },
+        },
+        root,
+        "### Evidence",
+        "####",
+    )
+
+    assert "#### BEFORE → AFTER diff" in report
+
+
 def test_write_highlights_adds_one_charter_gate_line(tmp_path):
     reports = tmp_path / "reports"
     result_dir = reports / "charter_gate_demo" / "20260101T000000Z"
@@ -211,6 +247,12 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
     spec = importlib.util.spec_from_file_location("claim_book_dashboard_app", app_path)
     app = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(app)
+    charter_index = app.SCENARIO_ORDER.index("charter_gate_demo")
+    assert app.SCENARIO_ORDER[charter_index - 1 : charter_index + 2] == [
+        "arklib_style_audit",
+        "charter_gate_demo",
+        "self_correction_demo",
+    ]
     data = {
         "claim_book": {
             "entries": [{"status": "ok"}],

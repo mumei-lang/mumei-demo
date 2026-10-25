@@ -217,6 +217,9 @@ def scenario_code_paths(root: Path, scenario: str) -> tuple[Path, Path]:
     scenario_dir = root / "scenarios" / scenario
     if scenario == "blockchain_audit":
         return scenario_dir / "buggy_contract.mm", scenario_dir / "correct_contract.mm"
+    if scenario == "charter_gate_demo":
+        project_dir = scenario_dir / "project"
+        return project_dir / "weakened_ensures.mm", project_dir / "correct.mm"
     return scenario_dir / "buggy_code.mm", scenario_dir / "correct_code.mm"
 
 

@@ -425,6 +425,7 @@ def test_charter_gate_result_is_written_for_declared_step(tmp_path, monkeypatch)
 
     assert exit_code == 0
     assert result["overall_status"] == "PASS"
+    assert result["layers"]["l1_z3"]["steps"][0]["status"] == "REJECTED"
     assert result["charter_gate"]["entries"][0]["status"] == "ok"
     assert result["charter_gate"]["totals"] == {
         "checks": 1,
@@ -432,6 +433,76 @@ def test_charter_gate_result_is_written_for_declared_step(tmp_path, monkeypatch)
         "failed": 1,
         "by_atom_status": {"post_weakened": 1},
     }
+
+
+def test_unavailable_charter_report_fails_passing_step(tmp_path, monkeypatch):
+    step = {
+        "id": "charter_pass",
+        "command": "{mumei_bin} charter check source.mm --json",
+        "expected_exit": 0,
+        "charter_gate": True,
+    }
+    exit_code, result, _ = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+        charter_stdout="not a charter report",
+    )
+
+    step_result = result["layers"]["l1_z3"]["steps"][0]
+    assert exit_code == 1
+    assert result["overall_status"] == "FAIL"
+    assert step_result["status"] == "FAIL"
+    assert step_result["detail"].startswith("charter gate report unavailable:")
+    assert result["charter_gate"]["entries"][0]["status"] == "unavailable"
+
+
+def test_unavailable_charter_report_fails_rejected_step(tmp_path, monkeypatch):
+    step = {
+        "id": "charter_reject",
+        "command": "{mumei_bin} charter check source.mm --json",
+        "expected_exit": 1,
+        "expect_failure": True,
+        "charter_gate": True,
+    }
+    exit_code, result, _ = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+        charter_stdout="not a charter report",
+        charter_exit=1,
+    )
+
+    step_result = result["layers"]["l1_z3"]["steps"][0]
+    assert exit_code == 1
+    assert result["overall_status"] == "FAIL"
+    assert step_result["status"] == "FAIL"
+    assert step_result["detail"].startswith("charter gate report unavailable:")
+    assert result["charter_gate"]["entries"][0]["status"] == "unavailable"
+
+
+def test_unavailable_charter_report_keeps_failed_step_skipped(tmp_path, monkeypatch):
+    step = {
+        "id": "charter_failed",
+        "command": "{mumei_bin} charter check source.mm --json",
+        "expected_exit": 0,
+        "charter_gate": True,
+    }
+    _, result, _ = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+        charter_stdout="not a charter report",
+        charter_exit=1,
+    )
+
+    step_result = result["layers"]["l1_z3"]["steps"][0]
+    assert step_result["status"] == "FAIL"
+    assert "detail" not in step_result
+    assert result["charter_gate"]["entries"][0]["status"] == "skipped"
 
 
 def test_claim_book_totals_aggregate_freshness_and_grades(tmp_path, monkeypatch):
