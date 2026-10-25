@@ -559,6 +559,53 @@ def test_claims_weak_gate_fails_on_certificate_error(tmp_path, monkeypatch):
     assert not (output_dir / "claims_weak" / "claimbook.json").exists()
 
 
+def test_claims_weak_gate_rejects_wrong_artifact_under_pythonoptimize(
+    tmp_path, monkeypatch
+):
+    scenario_path = (
+        Path(__file__).resolve().parents[1]
+        / "scenarios"
+        / "negative_controls_demo"
+        / "scenario.json"
+    )
+    scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+    step = next(
+        step
+        for step in scenario["l1_z3"]["steps"]
+        if step["id"] == "claims_weak_gate"
+    )
+    step["cwd"] = "{root_dir}"
+    step.pop("depends_on", None)
+    monkeypatch.setenv("PYTHONOPTIMIZE", "1")
+
+    exit_code, result, _ = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [],
+        scenario_steps=[step],
+        fixtures={
+            "weak_spec": {
+                "claims": [
+                    {
+                        "atom": "next_dose",
+                        "discrimination": {"status": "discriminating"},
+                    }
+                ]
+            }
+        },
+    )
+
+    step_result = result["layers"]["l1_z3"]["steps"][0]
+    assert exit_code == 1
+    assert result["overall_status"] == "FAIL"
+    assert step_result["status"] == "FAIL"
+    assert step_result["exit_code"] == 2
+    assert (
+        "Claim Book discrimination check failed: expected next_dose status weak"
+        in step_result["stderr"]
+    )
+
+
 def test_step_narratives_render_for_new_and_existing_ids(tmp_path, monkeypatch, capsys):
     new_step = {
         "id": "controls_weak",

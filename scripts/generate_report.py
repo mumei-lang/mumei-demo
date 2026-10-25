@@ -136,11 +136,11 @@ def rejected_step_subcommand(data: dict, step: dict) -> str:
 
     if not isinstance(command, str):
         return "verify"
-    match = re.search(
+    matches = re.findall(
         r"(?:^|[\s;&|])(?:\S*/)?mumei\s+(verify|controls|claims|charter)(?=\s|$)",
         command,
     )
-    return match.group(1) if match else "verify"
+    return matches[-1] if matches else "verify"
 
 
 def rejected_step_label(data: dict, step: dict) -> str:

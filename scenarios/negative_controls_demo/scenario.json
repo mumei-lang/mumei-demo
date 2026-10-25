@@ -202,7 +202,7 @@
         "name": "Reject weak discrimination in the Claim Book",
         "repo": "mumei",
         "cwd": "{output_dir}/project",
-        "command": "{mumei_bin} claims weak_spec.mm --cert {output_dir}/weak.proof.json --controls --require-discriminating --format json --out-dir {output_dir}/claims_weak; claims_status=$?; python3 -c 'import json,sys; data=json.load(open(sys.argv[1], encoding=\"utf-8\")); matches=[claim for claim in data[\"claims\"] if claim.get(\"atom\")==\"next_dose\"]; assert len(matches)==1 and matches[0].get(\"discrimination\",{}).get(\"status\")==\"weak\"; print(\"Claim Book discrimination status verified: weak\")' {output_dir}/claims_weak/claimbook.json || exit 2; exit \"$claims_status\"",
+        "command": "{mumei_bin} claims weak_spec.mm --cert {output_dir}/weak.proof.json --controls --require-discriminating --format json --out-dir {output_dir}/claims_weak; claims_status=$?; python3 -c 'import json,sys; data=json.load(open(sys.argv[1], encoding=\"utf-8\")); matches=[claim for claim in data[\"claims\"] if claim.get(\"atom\")==\"next_dose\"]; valid=len(matches)==1 and matches[0].get(\"discrimination\",{}).get(\"status\")==\"weak\"; (sys.stderr.write(\"Claim Book discrimination check failed: expected next_dose status weak\\n\"),sys.exit(2)) if not valid else print(\"Claim Book discrimination status verified: weak\")' {output_dir}/claims_weak/claimbook.json || exit 2; exit \"$claims_status\"",
         "expected_exit": 1,
         "expect_failure": true,
         "expected_patterns": [
@@ -227,7 +227,7 @@
         "name": "Accept discriminating evidence in the Claim Book",
         "repo": "mumei",
         "cwd": "{output_dir}/project",
-        "command": "{mumei_bin} claims strong_spec.mm --cert {output_dir}/strong.proof.json --controls --require-discriminating --format json --out-dir {output_dir}/claims_strong; claims_status=$?; python3 -c 'import json,sys; data=json.load(open(sys.argv[1], encoding=\"utf-8\")); matches=[claim for claim in data[\"claims\"] if claim.get(\"atom\")==\"next_dose\"]; assert len(matches)==1 and matches[0].get(\"discrimination\",{}).get(\"status\")==\"discriminating\"; print(\"controls discriminating: next_dose\")' {output_dir}/claims_strong/claimbook.json || exit 2; exit \"$claims_status\"",
+        "command": "{mumei_bin} claims strong_spec.mm --cert {output_dir}/strong.proof.json --controls --require-discriminating --format json --out-dir {output_dir}/claims_strong; claims_status=$?; python3 -c 'import json,sys; data=json.load(open(sys.argv[1], encoding=\"utf-8\")); matches=[claim for claim in data[\"claims\"] if claim.get(\"atom\")==\"next_dose\"]; valid=len(matches)==1 and matches[0].get(\"discrimination\",{}).get(\"status\")==\"discriminating\"; (sys.stderr.write(\"Claim Book discrimination check failed: expected next_dose status discriminating\\n\"),sys.exit(2)) if not valid else print(\"controls discriminating: next_dose\")' {output_dir}/claims_strong/claimbook.json || exit 2; exit \"$claims_status\"",
         "expected_exit": 0,
         "expected_patterns": [
           "controls discriminating: next_dose"

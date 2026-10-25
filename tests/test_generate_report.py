@@ -320,6 +320,10 @@ def test_negative_controls_demo_diff_uses_weak_and_strong_specs():
         ("mumei controls weak_spec.mm --json", "mumei controls → WEAK SPEC DETECTED"),
         ("mumei claims weak_spec.mm --controls", "mumei claims → GATE REJECTED"),
         ("mumei charter weak_spec.mm --json", "mumei charter → CHARTER REJECTED"),
+        (
+            "mumei verify weak_spec.mm && mumei charter check weak_spec.mm",
+            "mumei charter → CHARTER REJECTED",
+        ),
     ],
 )
 def test_rejected_step_labels_follow_the_mumei_subcommand(tmp_path, command, label):
