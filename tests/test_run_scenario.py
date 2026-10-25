@@ -536,6 +536,46 @@ def test_test_observations_parser_records_verdict_totals_and_contradictions(tmp_
     ]
 
 
+def test_unknown_test_observation_verdict_fails_without_expected_totals(tmp_path):
+    report_path = tmp_path / "observations.json"
+    report_path.write_text(
+        json.dumps(_observation_report([{"verdict": "future_verdict"}])),
+        encoding="utf-8",
+    )
+
+    entry = _load_runner()["parse_test_observations_entry"](
+        "observe",
+        "PASS",
+        report_path,
+        {},
+    )
+
+    assert entry["status"] == "unavailable"
+    assert entry["detail"] == "unknown test observation verdict 'future_verdict'"
+
+
+def test_known_test_observation_verdicts_pass_without_expected_totals(tmp_path):
+    report_path = tmp_path / "observations.json"
+    report_path.write_text(
+        json.dumps(_observation_report([
+            {"verdict": "consistent"},
+            {"verdict": "rejection_explained"},
+        ])),
+        encoding="utf-8",
+    )
+
+    entry = _load_runner()["parse_test_observations_entry"](
+        "observe",
+        "PASS",
+        report_path,
+        {},
+    )
+
+    assert entry["status"] == "ok"
+    assert entry["verdict_totals"]["consistent"] == 1
+    assert entry["verdict_totals"]["rejection_explained"] == 1
+
+
 @pytest.mark.parametrize(
     ("payload", "expected_detail"),
     [

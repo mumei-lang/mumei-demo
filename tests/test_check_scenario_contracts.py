@@ -1,6 +1,7 @@
 """Tests for scripts/check_scenario_contracts.py docs alias checking."""
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -114,6 +115,48 @@ def test_test_observations_flag_accepts_valid_shape_and_rejects_invalid_shapes()
         {"report": "observe.json", "unexpected": True},
     ):
         assert _validate_test_observations(value, "$.test_observations")
+
+
+def test_test_observation_demo_runs_agent_commands_from_repo_with_absolute_paths():
+    scenario_path = (
+        Path(__file__).resolve().parents[1]
+        / "scenarios"
+        / "test_observation_demo"
+        / "scenario.json"
+    )
+    scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+    agent_steps = [
+        step
+        for layer_name in scenario["layers"]
+        for step in scenario[layer_name]["steps"]
+        if step.get("repo") == "mumei-agent"
+    ]
+
+    assert agent_steps
+    assert all(step.get("cwd") == "{mumei_agent_repo}" for step in agent_steps)
+    expected_paths = {
+        "harvest_tests": [
+            "{output_dir}/project/test_late_fee.py",
+            "{output_dir}/project/late_fee.py",
+            "{output_dir}/project/late_fee.rs",
+        ],
+        "observe_wrong": [
+            "{output_dir}/project/wrong_spec.json",
+            "{output_dir}/project/test_late_fee.py",
+            "{output_dir}/project/late_fee.py",
+            "{output_dir}/project/late_fee.rs",
+        ],
+        "observe_aligned": [
+            "{output_dir}/project/aligned_spec.json",
+            "{output_dir}/project/test_late_fee.py",
+            "{output_dir}/project/late_fee.py",
+            "{output_dir}/project/late_fee.rs",
+        ],
+    }
+    steps_by_id = {step["id"]: step for step in agent_steps}
+    for step_id, paths in expected_paths.items():
+        command = steps_by_id[step_id]["command"]
+        assert all(path in command for path in paths)
 
 
 def test_in_code_fence_detection():

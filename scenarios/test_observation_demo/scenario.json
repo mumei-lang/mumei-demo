@@ -70,6 +70,7 @@
         "id": "prepare_project",
         "name": "Copy the late-fee fixture project",
         "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
         "command": "cp -R {root_dir}/scenarios/test_observation_demo/project {output_dir}/project",
         "expected_exit": 0,
         "artifacts": [],
@@ -106,8 +107,8 @@
         "id": "observe_wrong",
         "name": "Reject the wrong spec against test observations",
         "repo": "mumei-agent",
-        "cwd": "{output_dir}/project",
-        "command": "{mumei_agent_python} -m agent observe-tests --spec wrong_spec.json test_late_fee.py late_fee.py late_fee.rs --output {output_dir}/observe_wrong.json",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent observe-tests --spec {output_dir}/project/wrong_spec.json {output_dir}/project/test_late_fee.py {output_dir}/project/late_fee.py {output_dir}/project/late_fee.rs --output {output_dir}/observe_wrong.json",
         "expected_exit": 1,
         "expect_failure": true,
         "artifacts": [
@@ -166,8 +167,8 @@
         "id": "observe_aligned",
         "name": "Check the aligned spec against test observations",
         "repo": "mumei-agent",
-        "cwd": "{output_dir}/project",
-        "command": "{mumei_agent_python} -m agent observe-tests --spec aligned_spec.json test_late_fee.py late_fee.py late_fee.rs --output {output_dir}/observe_aligned.json",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent observe-tests --spec {output_dir}/project/aligned_spec.json {output_dir}/project/test_late_fee.py {output_dir}/project/late_fee.py {output_dir}/project/late_fee.rs --output {output_dir}/observe_aligned.json",
         "expected_exit": 0,
         "artifacts": [
           "observe_aligned.json"

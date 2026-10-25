@@ -768,6 +768,9 @@ def parse_test_observations_entry(
         if not isinstance(verdict, str) or not verdict:
             entry["detail"] = "test observations report result verdict must be a string"
             return entry
+        if verdict not in TEST_OBSERVATION_VERDICTS:
+            entry["detail"] = f"unknown test observation verdict '{verdict}'"
+            return entry
         normalized_results.append(result)
         verdict_totals[verdict] = verdict_totals.get(verdict, 0) + 1
         if verdict in TEST_OBSERVATION_CONTRADICTIONS:
