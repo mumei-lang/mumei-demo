@@ -44,6 +44,9 @@ Detailed descriptions of every demo scenario. For run commands see
   contracts; a surviving mutation exposes the weak contract, while the strong
   contract is discriminating. Phase 1i and the Claim Book discrimination gate
   provide complementary evidence; survivors still need human judgment.
+- **Test Observations** — harvested Python and Rust tests are checked against a
+  deliberately wrong and an aligned late-fee contract. The observations can
+  expose contradictions or explain rejected inputs, but are not proofs.
 - **ArkLib-Style Audit** — Z3 rejects a contradictory top-level theorem, then
   verifies the reviewed audit theorem and proof certificate.
 - **Aviation Control** — Z3 verifies ordered runway allocation and the agent
@@ -141,6 +144,17 @@ the function body identical while changing only `ensures`. It records the
 weak contract's surviving mutant, the strong contract's discriminating result,
 Phase 1i's rejection, and the weak/strong Claim Book gates. A surviving mutant
 is evidence for review, not a semantic-equivalence proof.
+
+### Test Observations
+
+```bash
+make demo-test-observation
+```
+
+The scenario harvests example, relation, and rejected-input tests from Python
+and Rust. It checks that the wrong late-fee contract contradicts the examples
+and admits rejected inputs, while the aligned contract agrees with the tests.
+The tests are observations about behavior, not a proof of the contract.
 
 `make demo-ownership` (Phase 1 Ownership Transfer Protocol):
 
@@ -255,21 +269,24 @@ without live LLM credentials or a live Lean build. If
 `make demo` runs every scenario in presentation order and regenerates
 `dashboard/summary.md` and `dashboard/highlights.md`:
 
-1. Phase 1 Ownership Transfer Protocol
-2. Phase 2 RTGS Settlement Protocol
-3. Phase 3 RegTech Compliance Protocol
-4. P11 Natural Language to Verified Mumei
-5. No-.mm Audit
-6. Phase 7 Spec-Code Verification Suite
-7. Mumei Develop Audit
-8. Smart Contract Audit
-9. Blockchain Audit
-10. Medical Device Control
-11. Aviation Control
-12. Phase 4 Merkle Tree Verification
-13. Phase 5 DeFi Invariant
-14. Phase 6 ArkLib-Style Audit
-15. Self-Correction Demo
+1. `ownership_transfer` — Phase 1 Ownership Transfer Protocol
+2. `rtgs_settlement` — Phase 2 RTGS Settlement Protocol
+3. `regtech_compliance` — Phase 3 RegTech Compliance Protocol
+4. `nl_to_verified` — P11 Natural Language to Verified Mumei
+5. `no_mm_audit` — No-.mm Audit
+6. `spec_code_verification_suite` — Phase 7 Spec-Code Verification Suite
+7. `mumei_develop_audit` — Mumei Develop Audit
+8. `smart_contract_audit` — Smart Contract Audit
+9. `blockchain_audit` — Blockchain Audit
+10. `medical_device` — Medical Device Control
+11. `aviation_control` — Aviation Control
+12. `merkle_tree_verification` — Phase 4 Merkle Tree Verification
+13. `defi_invariant` — Phase 5 DeFi Invariant
+14. `arklib_style_audit` — Phase 6 ArkLib-Style Audit
+15. `charter_gate_demo` — Charter Gate
+16. `negative_controls_demo` — Negative Controls
+17. `test_observation_demo` — Test Observations
+18. `self_correction_demo` — Self-Correction Demo
 
 `make demo-all` is a compatibility alias. Each run writes
 `harness_contract_compliance` into `reports/<scenario>/latest/result.json`;
@@ -295,6 +312,7 @@ catching it; per-scenario breakdowns follow in the sections above.
 | Phase 7 Spec-Code Verification Suite | A reviewer has only `spec.txt` and existing Python code, with no `.mm` entry yet. | V1-A through V1-D run in one flow: `spec_health_issues`, `verification_violations`, `traceability_matrix`, `drift_score`, and `next_steps`. |
 | Charter Gate | A dosage repair weakens the reviewed contract, narrows accepted inputs, or relies on a low-grade proof. | The charter gate rejects weaker contracts, under-graded evidence, and edits to locked charter text. |
 | Negative Controls | A verified dosage body is paired with a contract that permits other results. | A surviving mutant and Phase 1i expose weak evidence; the strong contract discriminates. |
+| Test Observations | A late-fee contract predicts the wrong result or admits a rejected input. | Harvested Python and Rust tests expose contradictions and confirm an aligned spec and `.mm` atom. |
 | Mumei Develop Audit | The project's own tooling drifts from its spec. | Dogfooding: `mumei-agent audit` runs on `mumei/scripts/generate_stdlib_metrics.py`. |
 | Medical Device Control | An insulin pump skips hourly dosage safety checks. | Z3 catches the invalid delivery state, then optional Lean proof certifies cumulative dosage safety. |
 | Aviation Control | Runway allocation has inconsistent lock ordering. | Z3 verifies ordered allocation, and the agent validates the generation task. |
