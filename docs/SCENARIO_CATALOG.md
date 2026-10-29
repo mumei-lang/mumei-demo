@@ -269,21 +269,24 @@ without live LLM credentials or a live Lean build. If
 `make demo` runs every scenario in presentation order and regenerates
 `dashboard/summary.md` and `dashboard/highlights.md`:
 
-1. Phase 1 Ownership Transfer Protocol
-2. Phase 2 RTGS Settlement Protocol
-3. Phase 3 RegTech Compliance Protocol
-4. P11 Natural Language to Verified Mumei
-5. No-.mm Audit
-6. Phase 7 Spec-Code Verification Suite
-7. Mumei Develop Audit
-8. Smart Contract Audit
-9. Blockchain Audit
-10. Medical Device Control
-11. Aviation Control
-12. Phase 4 Merkle Tree Verification
-13. Phase 5 DeFi Invariant
-14. Phase 6 ArkLib-Style Audit
-15. Self-Correction Demo
+1. `ownership_transfer` — Phase 1 Ownership Transfer Protocol
+2. `rtgs_settlement` — Phase 2 RTGS Settlement Protocol
+3. `regtech_compliance` — Phase 3 RegTech Compliance Protocol
+4. `nl_to_verified` — P11 Natural Language to Verified Mumei
+5. `no_mm_audit` — No-.mm Audit
+6. `spec_code_verification_suite` — Phase 7 Spec-Code Verification Suite
+7. `mumei_develop_audit` — Mumei Develop Audit
+8. `smart_contract_audit` — Smart Contract Audit
+9. `blockchain_audit` — Blockchain Audit
+10. `medical_device` — Medical Device Control
+11. `aviation_control` — Aviation Control
+12. `merkle_tree_verification` — Phase 4 Merkle Tree Verification
+13. `defi_invariant` — Phase 5 DeFi Invariant
+14. `arklib_style_audit` — Phase 6 ArkLib-Style Audit
+15. `charter_gate_demo` — Charter Gate
+16. `negative_controls_demo` — Negative Controls
+17. `test_observation_demo` — Test Observations
+18. `self_correction_demo` — Self-Correction Demo
 
 `make demo-all` is a compatibility alias. Each run writes
 `harness_contract_compliance` into `reports/<scenario>/latest/result.json`;
