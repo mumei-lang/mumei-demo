@@ -1,0 +1,24 @@
+name: Mumei gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/mumei-gate.yml
+      - scenarios/charter_gate_demo/project/**
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  charter-gate:
+    uses: mumei-lang/mumei/.github/workflows/mumei-gate.yml@develop
+    with:
+      working-directory: scenarios/charter_gate_demo/project
+      sources: correct.mm
+      require-grade: G4
+      charter: true
+      artifact-name: charter-gate-demo-reports
