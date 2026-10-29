@@ -44,6 +44,9 @@ Detailed descriptions of every demo scenario. For run commands see
   contracts; a surviving mutation exposes the weak contract, while the strong
   contract is discriminating. Phase 1i and the Claim Book discrimination gate
   provide complementary evidence; survivors still need human judgment.
+- **Test Observations** — harvested Python and Rust tests are checked against a
+  deliberately wrong and an aligned late-fee contract. The observations can
+  expose contradictions or explain rejected inputs, but are not proofs.
 - **ArkLib-Style Audit** — Z3 rejects a contradictory top-level theorem, then
   verifies the reviewed audit theorem and proof certificate.
 - **Aviation Control** — Z3 verifies ordered runway allocation and the agent
@@ -141,6 +144,17 @@ the function body identical while changing only `ensures`. It records the
 weak contract's surviving mutant, the strong contract's discriminating result,
 Phase 1i's rejection, and the weak/strong Claim Book gates. A surviving mutant
 is evidence for review, not a semantic-equivalence proof.
+
+### Test Observations
+
+```bash
+make demo-test-observation
+```
+
+The scenario harvests example, relation, and rejected-input tests from Python
+and Rust. It checks that the wrong late-fee contract contradicts the examples
+and admits rejected inputs, while the aligned contract agrees with the tests.
+The tests are observations about behavior, not a proof of the contract.
 
 `make demo-ownership` (Phase 1 Ownership Transfer Protocol):
 
@@ -295,6 +309,7 @@ catching it; per-scenario breakdowns follow in the sections above.
 | Phase 7 Spec-Code Verification Suite | A reviewer has only `spec.txt` and existing Python code, with no `.mm` entry yet. | V1-A through V1-D run in one flow: `spec_health_issues`, `verification_violations`, `traceability_matrix`, `drift_score`, and `next_steps`. |
 | Charter Gate | A dosage repair weakens the reviewed contract, narrows accepted inputs, or relies on a low-grade proof. | The charter gate rejects weaker contracts, under-graded evidence, and edits to locked charter text. |
 | Negative Controls | A verified dosage body is paired with a contract that permits other results. | A surviving mutant and Phase 1i expose weak evidence; the strong contract discriminates. |
+| Test Observations | A late-fee contract predicts the wrong result or admits a rejected input. | Harvested Python and Rust tests expose contradictions and confirm an aligned spec and `.mm` atom. |
 | Mumei Develop Audit | The project's own tooling drifts from its spec. | Dogfooding: `mumei-agent audit` runs on `mumei/scripts/generate_stdlib_metrics.py`. |
 | Medical Device Control | An insulin pump skips hourly dosage safety checks. | Z3 catches the invalid delivery state, then optional Lean proof certifies cumulative dosage safety. |
 | Aviation Control | Runway allocation has inconsistent lock ordering. | Z3 verifies ordered allocation, and the agent validates the generation task. |

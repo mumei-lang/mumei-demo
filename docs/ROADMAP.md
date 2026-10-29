@@ -21,6 +21,19 @@ python3 -m pytest tests/test_check_scenario_contracts.py -q
 
 CI enforces the same gate through `.github/workflows/contract-vocabulary.yml` on pull requests into `main`. This is the mumei-demo complement to the canonical `mumei/scripts/check_contract_vocabulary.py` gate.
 
+## 2026-10: Claim Book, charter, controls, and test-observation scenarios (#78–#81)
+
+- **#78 — Claim Book reporting:** certificate-writing steps may opt into Claim Book reporting. Per-step claim counts, grades, freshness, and incomplete dependency coverage appear in reports and summaries; this evidence is informational and never changes step or scenario status. This extends existing scenarios rather than adding a separate Claim Book scenario.
+- **#79 — Charter Gate (`make demo-charter`):** locks a reviewed dosage Charter and records expected rejection of weakened or narrowed contracts, a trusted shortcut below the required grade, and edited Charter text. Scenario commands run on an output-directory copy.
+- **#80 — Negative Controls (`make demo-negative-controls`):** holds the dosage implementation constant while contrasting weak and strong contracts. The report records controls, vacuity, and Claim Book gate evidence; a surviving mutant still requires human review.
+- **#81 — Test Observations (`make demo-test-observation`):** harvests Python and Rust tests, then compares the observations with a deliberately wrong and an aligned contract using `mumei observe`. Missing or malformed reports fail closed; the fixture-mode scenario does not require an LLM.
+- Current specimen scoreboard, copied verbatim from the README:
+
+  `Latest — no LLM: 10/171 detected (6%), 29/171 detected or function-flagged · with LLM: not run yet`
+
+Regression gate: `python3 scripts/check_scenario_contracts.py` and
+`python3 -m pytest tests/test_check_scenario_contracts.py -q`.
+
 ## Priority 16: 大規模ケースでの atom-local proof obligation 合成性検証 — ✅ Implemented
 
 canonical 上位ロードマップは `mumei-lang/mumei/docs/CROSS_PROJECT_ROADMAP.md` の
