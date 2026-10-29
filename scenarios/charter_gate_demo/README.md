@@ -7,7 +7,10 @@ on a trusted shortcut below the required Seal Grade. It also reports when the
 charter text has changed since its lock was written.
 
 The scenario copies its project into the run's output directory before writing
-the charter lock or running checks. Its source project remains unchanged.
+the charter lock or running checks. Its source project remains unchanged. The
+source project also keeps a committed `charter.lock`, which the `mumei-gate.yml`
+CI workflow checks in place; regenerate it with `mumei charter lock` after
+editing `specs/dosage.charter.mm`.
 
 ## Run
 

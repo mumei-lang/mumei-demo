@@ -25,6 +25,7 @@ CI enforces the same gate through `.github/workflows/contract-vocabulary.yml` on
 
 - **#78 — Claim Book reporting:** certificate-writing steps may opt into Claim Book reporting. Per-step claim counts, grades, freshness, and incomplete dependency coverage appear in reports and summaries; this evidence is informational and never changes step or scenario status. This extends existing scenarios rather than adding a separate Claim Book scenario.
 - **#79 — Charter Gate (`make demo-charter`):** locks a reviewed dosage Charter and records expected rejection of weakened or narrowed contracts, a trusted shortcut below the required grade, and edited Charter text. Scenario commands run on an output-directory copy.
+- CI dogfood: run `mumei-lang/mumei/.github/workflows/mumei-gate.yml@develop` on `charter_gate_demo`'s `correct.mm` at G4 with Charter enabled.
 - **#80 — Negative Controls (`make demo-negative-controls`):** holds the dosage implementation constant while contrasting weak and strong contracts. The report records controls, vacuity, and Claim Book gate evidence; a surviving mutant still requires human review.
 - **#81 — Test Observations (`make demo-test-observation`):** harvests Python and Rust tests, then compares the observations with a deliberately wrong and an aligned contract using `mumei observe`. Missing or malformed reports fail closed; the fixture-mode scenario does not require an LLM.
 - Current specimen scoreboard, copied verbatim from the README:

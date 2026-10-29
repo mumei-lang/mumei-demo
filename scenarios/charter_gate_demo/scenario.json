@@ -58,7 +58,7 @@
     "state_file": "{output_dir}/harness_state.json",
     "intent": "Demonstrate that mumei accepts a properly proved dosage repair and rejects candidates that weaken or exceed the reviewed charter.",
     "artifact_contracts": [
-      "The first step copies scenarios/charter_gate_demo/project into {output_dir}/project and writes the charter lock only in that copy.",
+      "The first step copies scenarios/charter_gate_demo/project into {output_dir}/project and rewrites the charter lock in that copy; the committed source lock, used by the CI gate, is never modified.",
       "Every charter check runs from the copied project directory, except the deliberate edit check, which runs from its separate output_dir/project_edit copy.",
       "The weakened-ensures candidate first verifies against its own contract, then the charter check rejects it.",
       "The correct implementation writes charter_gate.proof.json and passes the default G4 charter gate.",
@@ -95,7 +95,7 @@
         "harness_stage": "S1_charter_lock",
         "artifact_contract": [
           "The input project is copied to {output_dir}/project before mumei charter lock runs.",
-          "The resulting charter.lock exists only in the output copy."
+          "The rewritten charter.lock is written to the output copy; the committed source lock stays unchanged."
         ],
         "verifier_gate": "mumei charter lock exits 0 and writes the deterministic project lock."
       },
