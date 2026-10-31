@@ -26,7 +26,7 @@ def _object(pairs: list[tuple]) -> dict:
 def _json(path: Path) -> dict:
     try:
         value = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_object)
-    except (OSError, UnicodeError, ValueError):
+    except (OSError, UnicodeError, ValueError, RecursionError):
         raise EvidenceError("missing or invalid JSON artifact") from None
     if not isinstance(value, dict):
         raise EvidenceError("artifact must contain an object")
@@ -37,8 +37,11 @@ def _path(root: Path, name: str) -> Path:
     if not isinstance(name, str) or not name or Path(name).is_absolute() or ".." in Path(name).parts:
         raise EvidenceError("artifact path must be relative to the report directory")
     path = root.resolve() / name
-    if not path.resolve().is_relative_to(root.resolve()):
-        raise EvidenceError("artifact path escapes the report directory")
+    try:
+        if not path.resolve().is_relative_to(root.resolve()):
+            raise EvidenceError("artifact path escapes the report directory")
+    except (OSError, ValueError, RuntimeError):
+        raise EvidenceError("invalid artifact path") from None
     return path
 
 
@@ -205,7 +208,7 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
         "unverified_connections": [],
         "out_of_scope": [],
         "issues": [],
-        "identities": dict(sorted(identities.items())) if isinstance(identities, dict) else {},
+        "identities": dict(sorted(identities.items())) if isinstance(identities, dict) and all(isinstance(key, str) and isinstance(value, str) for key, value in identities.items()) else {},
     }
     issues = summary["issues"]
     try:
@@ -326,7 +329,7 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
 
 def load_result(path: Path) -> dict:
     data = _json(path)
-    if "evidence_requirements" in data:
+    if any(key in data for key in ("evidence_requirements", "evidence_identities", "evidence_summary")):
         data["evidence_summary"] = aggregate_evidence(data, path.parent)
         if data["evidence_summary"]["status"] != "satisfied":
             data["overall_status"] = "FAIL"

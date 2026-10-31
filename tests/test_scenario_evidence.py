@@ -249,7 +249,7 @@ def test_required_stages_and_gates_cannot_be_waived(evidence, mutation):
     assert aggregate_evidence(data, root)["status"] == "incomplete"
 
 
-@pytest.mark.parametrize("path", ["../external.mm", "/external.mm", ""])
+@pytest.mark.parametrize("path", ["../external.mm", "/external.mm", "", "invalid\0path"])
 def test_source_and_artifact_paths_cannot_escape_the_report(evidence, path):
     data, _, _, root = evidence
     data["evidence_requirements"]["artifacts"] = [path]
@@ -339,3 +339,21 @@ def test_unsupported_summary_cannot_override_artifact_evidence(evidence):
     data["evidence_requirements"]["claims"][0]["atom"] = "missing"
     snapshot()
     assert load_result(root / "result.json")["evidence_summary"]["status"] == "incomplete"
+
+
+@pytest.mark.parametrize("field", ["evidence_requirements", "evidence_identities"])
+def test_deleted_evidence_metadata_does_not_turn_a_result_into_legacy_success(evidence, field):
+    data, _, _, root = evidence
+    data.pop(field)
+    (root / "result.json").write_text(json.dumps(data))
+    assert load_result(root / "result.json")["overall_status"] == "FAIL"
+
+
+def test_deep_dependency_chains_do_not_use_recursive_walks(evidence):
+    data, book, snapshot, root = evidence
+    book["claims"][0]["dependencies"] = ["helper_0"]
+    book["claims"].extend(claim(f"helper_{i}", dependencies=[f"helper_{i+1}"] if i < 1099 else []) for i in range(1100))
+    snapshot()
+    summary = aggregate_evidence(data, root)
+    assert summary["status"] == "satisfied"
+    assert len(summary["claims"][0]["dependency_coverage"]["reachable"]) == 1101
