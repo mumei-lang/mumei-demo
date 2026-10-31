@@ -298,7 +298,7 @@ def test_markdown_cli_summary_and_highlights_share_revalidation(evidence, tmp_pa
     (root / "proof.json").unlink()
     updated = load_result(root / "result.json")
     assert "Required evidence: **incomplete**" in render(updated)
-    assert write_summary(root, root / "reports", root / "summary.md", ["fixture"], True) == 0
+    assert write_summary(root / "reports", root / "summary.md", ["fixture"], True) == 0
     assert write_highlights(root, root / "reports", root / "highlights.md", ["fixture"], True) == 0
     assert "| `fixture` | FAIL |" in (root / "summary.md").read_text()
     assert "required evidence **incomplete**" in (root / "summary.md").read_text()
