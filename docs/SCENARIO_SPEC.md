@@ -39,9 +39,10 @@ Grade or compiler DSL. Other result fields retain their existing meanings.
   also be available and match the expected pass/rejection. A rejection is an
   execution observation, not a proof of its candidate.
 - Every selected claim and reachable recorded dependency must have fresh
-  evidence at or above `minimum_grade`. `require_complete` additionally rejects
-  unresolved, transitive, and non-exact dependency coverage, without changing
-  the Claim Book grades. Cycles terminate; completeness is only about the
+  evidence at or above `minimum_grade`. Required claims always reject unresolved,
+  transitive, and non-exact dependency coverage, without changing the Claim Book
+  grades. `require_complete` defaults to true and cannot be disabled. Cycles
+  terminate; completeness is only about the
   dependencies recorded in the Claim Book, not a new whole-program analysis.
 - `require_discriminating` requires non-empty, fully killed controls; otherwise
   controls are displayed without claiming they ran. Missing observations are

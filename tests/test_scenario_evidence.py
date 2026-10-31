@@ -349,6 +349,24 @@ def test_deleted_evidence_metadata_does_not_turn_a_result_into_legacy_success(ev
     assert load_result(root / "result.json")["overall_status"] == "FAIL"
 
 
+@pytest.mark.parametrize("complete", [None, True, False])
+@pytest.mark.parametrize("transitive", [False, True])
+def test_g0_cannot_waive_missing_dependency_evidence(evidence, complete, transitive):
+    data, book, snapshot, root = evidence
+    requirement = data["evidence_requirements"]["claims"][0]
+    requirement["minimum_grade"] = "G0"
+    if complete is None:
+        requirement.pop("require_complete")
+    else:
+        requirement["require_complete"] = complete
+    top = book["claims"][0]
+    top.update(dependencies=["helper" if transitive else "missing"], effective_grade_complete=False)
+    if transitive:
+        book["claims"].append(claim("helper", dependencies=["missing"], effective_grade_complete=False))
+    snapshot()
+    assert aggregate_evidence(data, root)["status"] == "incomplete"
+
+
 def test_deep_dependency_chains_do_not_use_recursive_walks(evidence):
     data, book, snapshot, root = evidence
     book["claims"][0]["dependencies"] = ["helper_0"]

@@ -278,6 +278,8 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
                 minimum = requirement.get("minimum_grade")
                 if minimum not in GRADES or not all(isinstance(requirement.get(key, False), bool) for key in ("require_complete", "require_discriminating")):
                     raise EvidenceError("invalid claim gate requirements")
+                if requirement.get("require_complete", True) is not True:
+                    raise EvidenceError("dependency completeness cannot be disabled for required claims")
                 book, claims = _claim_book(data, root, books.get(step_id, {}), source)
                 if name not in claims:
                     raise EvidenceError("required fully qualified claim was not found")
@@ -290,7 +292,7 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
                     problems.append("effective grade is below the requirement")
                 if any(GRADES.index(claims[dependency]["effective_grade"]) < GRADES.index(minimum) for dependency in coverage["reachable"] if dependency != name):
                     problems.append("dependency grade is below the requirement")
-                if requirement.get("require_complete") and not coverage["complete"]:
+                if not coverage["complete"]:
                     problems.append("dependency coverage is incomplete")
                 discrimination = claim.get("discrimination")
                 if requirement.get("require_discriminating") and (not isinstance(discrimination, dict) or discrimination.get("status") != "discriminating" or discrimination["tested"] == 0 or discrimination["killed"] != discrimination["tested"]):
