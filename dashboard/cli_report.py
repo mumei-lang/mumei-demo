@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 
@@ -14,6 +15,9 @@ LAYER_LABELS = {
 
 
 ROOT = Path(__file__).resolve().parent.parent
+
+sys.path.insert(0, str(ROOT / "scripts"))
+from scenario_evidence import load_result, render_evidence
 
 
 def step_status(layer: str, step: dict) -> str:
@@ -158,7 +162,10 @@ def render(data: dict) -> str:
         "  Moment:        Proof failure → Bug found",
     ])
     lines = [title, *table]
-    return box(lines, width=max(68, min(max(map(len, lines)) + 4, 120)))
+    output = box(lines, width=max(68, min(max(map(len, lines)) + 4, 120)))
+    if "evidence_summary" in data:
+        output += "\n\n" + render_evidence(data)
+    return output
 
 
 def latest_result(scenario_dir: Path) -> Path | None:
@@ -182,7 +189,7 @@ def render_all() -> str:
         if path is None:
             lines.append(f"{scenario_dir.name[:24]:<24}  MISSING     -             -                   -               -                  -                        -")
             continue
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = load_result(path)
         layers = data.get("layers", {})
         verification = "Z3 + Lean 4" if "l3_lean" in layers else "Z3 Only"
         density = data.get("proof_density", {})
@@ -219,7 +226,7 @@ def main() -> int:
         return 0
     if not args.result_json:
         parser.error("result_json is required unless --all is used")
-    data = json.loads(Path(args.result_json).read_text(encoding="utf-8"))
+    data = load_result(Path(args.result_json))
     print(render(data))
     return 0
 
