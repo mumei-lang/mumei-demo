@@ -8,7 +8,7 @@ import streamlit as st
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
-from scenario_evidence import load_result
+from scenario_evidence import load_result, render_evidence
 
 SCENARIOS = ROOT / "scenarios"
 REPORTS = ROOT / "reports"
@@ -317,6 +317,8 @@ def main() -> None:
     has_lean = "l3_lean" in layers
     verification_type = "Z3 + Lean 4" if has_lean else "Z3 Only"
     st.caption(f"Verification: **{verification_type}**")
+    if "evidence_summary" in data:
+        st.markdown(render_evidence(data))
 
     cols = st.columns(len(layers) or 1)
     for col, (layer, payload) in zip(cols, layers.items()):
