@@ -1,5 +1,91 @@
 # Scenario Specification
 
+## Opt-in scenario evidence
+
+`charter_gate_demo` opts into evidence aggregation; existing scenarios need no
+new configuration. This is an additive `result.json` contract, identified by
+`evidence_summary.schema = "mumei-demo.scenario-evidence/v1"`, not a new Seal
+Grade or compiler DSL. Other result fields retain their existing meanings.
+
+```json
+{
+  "evidence_requirements": {
+    "claims": [{
+      "step": "verify_correct",
+      "source": "project/correct.mm",
+      "atom": "clamp_dose",
+      "minimum_grade": "G4",
+      "require_complete": true,
+      "require_discriminating": false
+    }],
+    "steps": {"verify_correct": "S1_charter_acceptance_verify_correct"},
+    "charter_steps": [],
+    "artifacts": ["project/charter.lock"],
+    "declared_assumptions": ["The reviewed contract captures the requirement."],
+    "unverified_connections": ["The deployed implementation is not connected."],
+    "out_of_scope": ["Production deployment."]
+  }
+}
+```
+
+- `claims` and `steps` must be non-empty. Every selector uses an exact step,
+  output-relative source, and fully qualified atom name; no fuzzy resolution.
+  Duplicate selectors, duplicate Claim Book atom names, and duplicate step or
+  evidence-entry identifiers are rejected. The same atom name in two different
+  source files is not ambiguous when each selector names its source and step.
+- Required claim steps must be `PASS`. Required execution steps must be
+  `PASS`, `REJECTED`, or `CERTIFIED` and have the exact declared `harness_stage`.
+  `charter_steps` is a subset of required steps whose parsed Charter report must
+  also be available and match the expected pass/rejection. A rejection is an
+  execution observation, not a proof of its candidate.
+- Every selected claim and reachable recorded dependency must have fresh
+  evidence at or above `minimum_grade`. Required claims always reject unresolved,
+  transitive, and non-exact dependency coverage, without changing the Claim Book
+  grades. `require_complete` defaults to true and cannot be disabled. Cycles
+  terminate; completeness is only about the
+  dependencies recorded in the Claim Book, not a new whole-program analysis.
+- `require_discriminating` requires non-empty, fully killed controls; otherwise
+  controls are displayed without claiming they ran. Missing observations are
+  shown as unavailable; reported contradictions remain failures. Assumed
+  clauses and the verifier's trusted base remain visible even on a satisfied
+  limited model check.
+- `artifacts` are additional mandatory inputs/reports (for example the Charter,
+  lock, and project configuration). All source/certificate/Claim Book/step-log
+  identities are also collected. Paths must stay within the output directory;
+  escaping symlinks are rejected. No environment variables or credentials are
+  added to the evidence report.
+- All description fields are arrays of text, not verdicts. They cannot waive a
+  missing required step, claim, control, or artifact. Unknown configuration keys
+  (including `optional` claim overrides) are rejected. Requirement changes are
+  reviewable specification changes, not evidence that the old requirement was
+  met; the report includes a canonical requirements SHA-256 for comparison.
+
+The runner writes `evidence_requirements`, `evidence_identities` (relative path
+to SHA-256), and `evidence_summary` into the result and saves the summary in
+`harness_state.json` before returning failure. The summary contains `status`
+(`satisfied` or `incomplete`), selected `claims`, `execution_observations`,
+`declared_assumptions`, `reported_trusted_base`, `unverified_connections`,
+`out_of_scope`, `identities`, and diagnostic `issues`. Source contracts, control
+results, observation counts, certificate version/integrity, generator versions,
+and direct/transitive dependency diagnostics are retained per claim.
+
+The summary's version governs these additional fields; older results without
+`evidence_requirements` keep the previous behavior. Unsupported Claim Book
+schemas and certificate versions fail closed. Markdown, compact JSON, summary,
+highlights, and CLI readers recompute the summary from the local artifacts and
+never trust a previously saved `satisfied` string. Deletion or substitution of
+bound artifacts downgrades the displayed overall status to `FAIL`; it cannot
+upgrade a prior failure. Report-generation exit codes retain their previous
+meaning (rendering success is not scenario acceptance).
+
+Hashes are local snapshot correspondence checks, not signatures, proof of
+semantic equivalence, or evidence of a deployed execution. The collector and
+reviewed requirements are trusted. Editing both an artifact and its snapshot
+metadata is outside this integrity check. Keep the result with its original
+output tree (including its symlink target); recollect after moving inputs.
+The initial report adds no absolute paths or timestamps to its summary and
+uses stable ordering. Existing raw runner metadata is unchanged.
+
 Each scenario lives under `scenarios/<name>/` and is driven by `scenario.json`.
 
 ## Top-level fields

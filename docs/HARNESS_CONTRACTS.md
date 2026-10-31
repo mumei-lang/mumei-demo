@@ -198,6 +198,43 @@ the actual rejecting command, such as `observe-tests` or `mumei observe`.
 | `defi_invariant` | Uint256 precondition rejection and `defi_invariant.proof.json` | Not used | Not used | Summary row with 2/2 proof density |
 | `arklib_style_audit` | Contradictory theorem rejection and `arklib_audit.proof.json` | Not used | `MumeiLean.ArkLibAudit` build and `arklib_audit.lean-cert.json` when available | Summary row with 4/4 proof density |
 
+## Scenario evidence and guarantee boundaries
+
+The opt-in `evidence_requirements` contract in
+[SCENARIO_SPEC.md](SCENARIO_SPEC.md#opt-in-scenario-evidence) ties required
+claims, exact harness stages, Charter results, and local artifacts together.
+`charter_gate_demo` uses it to show the correct model alongside the deliberately
+trusted shortcut, without treating a rejected candidate as a successful proof.
+
+The `mumei-demo.scenario-evidence/v1` summary separates:
+
+1. **Model evidence:** selected Claim Book contracts, existing effective grades,
+   freshness, certificate integrity, and recorded dependency coverage.
+2. **Finite observations:** scenario execution, expected rejections, controls,
+   and test-observation counts. A passing test is not promoted to formal proof;
+   absent or weak controls do not become discriminating evidence.
+3. **Assumptions:** declared requirements/tooling assumptions, reported trusted
+   atoms, assumed clauses (including reachable dependencies), translators, and
+   permitted axioms. Declared text is not a checked fact.
+4. **Unverified connections:** correspondence to host code, runtime adapters,
+   and deployed artifacts that this demo has not established.
+5. **Out of scope:** excluded systems and follow-up references, never a way to
+   waive a required claim or gate.
+
+`satisfied` means only that the declared local evidence requirements were met.
+It is compatible with explicitly unverified deployment connections and is not
+an application safety rating. For example, G4 with incomplete dependencies,
+passing executions with weak controls, and fresh model evidence with no runtime
+connection remain distinct facts. The summary is additive: existing Claim Book,
+Charter, negative-control, observation, audit, and `next_steps` keys are not
+renamed or replaced.
+
+The runner fails closed on unavailable required evidence and saves diagnostics.
+Report/CLI readers recheck artifact digests and structures on every load. These
+digests bind a local snapshot, not an authenticated provenance chain. They do
+not verify arbitrary code, external services, HTTP, databases, deployment,
+distributed transactions, or the business adequacy of the reviewed contract.
+
 ## Intent fidelity
 
 `intent_fidelity` records how the harness preserves the original user/audit

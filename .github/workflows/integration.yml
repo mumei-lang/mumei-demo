@@ -8,6 +8,16 @@ on:
     branches: [main]
 
 jobs:
+  evidence-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pytest
+      - run: python -m pytest tests/test_scenario_evidence.py tests/test_run_scenario.py tests/test_generate_report.py -q
+
   demo:
     runs-on: ubuntu-24.04
     steps:

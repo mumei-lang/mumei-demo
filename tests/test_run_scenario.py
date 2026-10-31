@@ -125,6 +125,7 @@ def _run_scenario(
     controls_exit: int = 0,
     claims_stderr: str = "fixture claims failed",
     narrative: dict | None = None,
+    evidence_requirements: dict | None = None,
 ) -> tuple[int, dict, Path]:
     root = tmp_path / "root"
     scenario_name = "claim_book_test"
@@ -132,6 +133,9 @@ def _run_scenario(
     scenario_dir.mkdir(parents=True)
     (root / "scripts").mkdir()
     (root / "scripts" / "generate_report.py").write_text("", encoding="utf-8")
+    (root / "scripts" / "scenario_evidence.py").write_text(
+        SCRIPT.with_name("scenario_evidence.py").read_text(encoding="utf-8"), encoding="utf-8"
+    )
     fixture_dir = root / "fixtures"
     fixture_dir.mkdir()
     for name, payload in (fixtures or {}).items():
@@ -161,6 +165,8 @@ def _run_scenario(
     }
     if narrative is not None:
         scenario["narrative"] = narrative
+    if evidence_requirements is not None:
+        scenario["evidence_requirements"] = evidence_requirements
     (scenario_dir / "scenario.json").write_text(json.dumps(scenario), encoding="utf-8")
 
     stub = _make_mumei_stub(root)
@@ -214,6 +220,20 @@ def _run_scenario(
     ])
     result_path = root / "reports" / scenario_name / "latest" / "result.json"
     return exit_code, json.loads(result_path.read_text(encoding="utf-8")), marker
+
+
+def test_incomplete_scenario_evidence_fails_after_saving_diagnostics(tmp_path, monkeypatch):
+    exit_code, result, _ = _run_scenario(
+        tmp_path, monkeypatch, [None], evidence_requirements={}
+    )
+    assert exit_code == 1
+    assert result["overall_status"] == "FAIL"
+    assert result["layers"]["l1_z3"]["status"] == "PASS"
+    assert result["evidence_summary"]["status"] == "incomplete"
+    assert result["evidence_summary"]["issues"]
+    state = json.loads(Path(result["harness_state_file"]).read_text())
+    assert state["overall_status"] == "FAIL"
+    assert state["evidence_summary"] == result["evidence_summary"]
 
 
 def test_generated_code_from_spec_has_no_return_statement():
