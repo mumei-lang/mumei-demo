@@ -292,6 +292,8 @@ def test_markdown_cli_summary_and_highlights_share_revalidation(evidence, tmp_pa
     report = load_result(root / "result.json")
     assert "Required evidence: **satisfied**" in render_scenario_markdown(report, root)
     assert "Unverified connections" in render(report)
+    assert "TRUSTLESS" not in render(report)
+    assert "LIMITED MODEL EVIDENCE" in render(report)
     reports = root / "reports" / "fixture" / "latest"
     reports.parent.mkdir(parents=True)
     reports.symlink_to(root, target_is_directory=True)

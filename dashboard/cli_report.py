@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -144,6 +143,8 @@ def render(data: dict) -> str:
     verified = density.get("verified", 0)
     total = density.get("total", 0)
     audit_status = "TRUSTLESS" if data.get("overall_status") == "PASS" else "ATTENTION"
+    if "evidence_summary" in data and data.get("overall_status") == "PASS":
+        audit_status = "LIMITED MODEL EVIDENCE"
     table.extend([
         "",
         f"  Proof Density: [{proof_density_bar(float(pct))}] {pct:g}%",
