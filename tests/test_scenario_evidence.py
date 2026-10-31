@@ -375,3 +375,19 @@ def test_deep_dependency_chains_do_not_use_recursive_walks(evidence):
     summary = aggregate_evidence(data, root)
     assert summary["status"] == "satisfied"
     assert len(summary["claims"][0]["dependency_coverage"]["reachable"]) == 1101
+
+
+def test_dashboard_data_reader_revalidates_artifacts_without_running_ui(evidence, monkeypatch):
+    import runpy
+    import types
+
+    monkeypatch.setitem(sys.modules, "streamlit", types.ModuleType("streamlit"))
+    namespace = runpy.run_path(str(Path(__file__).resolve().parents[1] / "dashboard" / "app.py"))
+    _, _, _, root = evidence
+    read = namespace["load_json"]
+    assert read(root / "result.json")["evidence_summary"]["status"] == "satisfied"
+    (root / "proof.json").unlink()
+    assert read(root / "result.json")["overall_status"] == "FAIL"
+    legacy = {"scenario": "legacy", "overall_status": "PASS"}
+    (root / "legacy.json").write_text(json.dumps(legacy))
+    assert read(root / "legacy.json") == legacy

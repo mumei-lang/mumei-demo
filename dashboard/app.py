@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-import json
+import sys
 from pathlib import Path
 
 import streamlit as st
 
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+from scenario_evidence import load_result
+
 SCENARIOS = ROOT / "scenarios"
 REPORTS = ROOT / "reports"
 SCENARIO_ORDER = [
@@ -49,7 +52,7 @@ def latest_result(scenario: str) -> Path | None:
 
 
 def load_json(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return load_result(path)
 
 
 def layer_density_values(data: dict, layer: str) -> tuple[int, int, float]:
