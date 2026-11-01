@@ -682,11 +682,14 @@ def mumei_label(coverages: list[dict]) -> str:
             frozenset({True}): "Mumei (with LLM)"}.get(frozenset(modes), "Mumei (mixed LLM runs)")
 
 
-def comparison(coverages: list[dict], records: list[dict]) -> dict:
+def comparison(coverages: list[dict], records: list[dict],
+               tool_languages: dict[str, set[str]] | None = None) -> dict:
     """Mumei's audit next to each baseline, per language and over the corpus.
 
     The corpus is the specimens with audit output; complement counts split the
     defects by whether Mumei, any baseline, both or neither detected them."""
+    if tool_languages is None:
+        tool_languages = {name: t.languages for name, t in TOOLS.items()}
     langs: dict[str, dict] = {}
     hashes = {}
     for c in coverages:
@@ -706,6 +709,10 @@ def comparison(coverages: list[dict], records: list[dict]) -> dict:
             stale.add(rec["specimen"])
         _add_side(lang["tools"].setdefault(rec["tool"], _empty_side()), rec)
         lang["b"] |= _detected(rec)
+    have = {(rec["specimen"], rec["tool"]) for rec in records}
+    missing = sorted(f"{c['specimen']} ({tool})" for c in coverages
+                     for tool, languages in tool_languages.items()
+                     if c["language"] in languages and (c["specimen"], tool) not in have)
     total = {"language": "total", "defects": 0, "mumei": _empty_side(), "tools": {},
              "m": set(), "b": set()}
     rows = []
@@ -729,7 +736,7 @@ def comparison(coverages: list[dict], records: list[dict]) -> dict:
                               "both": len(m & b), "neither": lang["defects"] - len(m | b)}
         out.append(lang)
     return {"mumei": mumei_label(coverages), "languages": out[:-1], "total": out[-1],
-            "stale_specimens": sorted(stale)}
+            "stale_specimens": sorted(stale), "missing_baselines": missing}
 
 
 def _cmp_row(label: str, side: dict) -> str:
@@ -745,10 +752,15 @@ def _complement_line(row: dict) -> str:
 
 
 def _stale_note(comp: dict) -> list[str]:
-    if not comp["stale_specimens"]:
-        return []
-    return ["", f"Audit and baseline output come from different specimen sources for "
-                f"{', '.join(comp['stale_specimens'])}; re-run both before comparing them."]
+    lines = []
+    if comp["stale_specimens"]:
+        lines += ["", f"Audit and baseline output come from different specimen sources for "
+                      f"{', '.join(comp['stale_specimens'])}; re-run both before comparing them."]
+    if comp["missing_baselines"]:
+        lines += ["", f"No baseline output for {', '.join(comp['missing_baselines'])}; the "
+                      "complement counts treat those defects as missed by that baseline. Run "
+                      "`python3 scripts/run_baselines.py` for them."]
+    return lines
 
 
 def render_comparison(comp: dict) -> list[str]:

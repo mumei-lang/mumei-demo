@@ -1185,5 +1185,24 @@ def test_committed_comparison_matches_records():
     comp = rb.comparison(rb.mumei_coverages(root), rb.committed_records(root))
     assert json.loads((root / "scoreboard" / "comparison.json").read_text()) == comp
     assert comp["stale_specimens"] == []
+    assert comp["missing_baselines"] == []
     readme = (root / "README.md").read_text()
     assert rb.readme_block(comp) in readme, "run `python3 scripts/run_baselines.py --rescore`"
+
+
+
+def test_comparison_lists_missing_baselines():
+    langs = {"semgrep": {"python", "go"}, "bandit": {"python"}, "gosec": {"go"}}
+    comp = rb.comparison([_cov(), _cov("go-01-x", "go")], [_brec()], langs)
+    assert comp["missing_baselines"] == ["go-01-x (gosec)", "go-01-x (semgrep)", "py-01-x (bandit)"]
+    note = rb.readme_block(comp)
+    assert "No baseline output for go-01-x (gosec), go-01-x (semgrep), py-01-x (bandit)" in note
+    assert "No baseline output" in "\n".join(rb.render_comparison(comp))
+    full = rb.comparison([_cov()], [_brec(), _brec("bandit")], langs)
+    assert full["missing_baselines"] == []
+    assert "No baseline output" not in rb.readme_block(full)
+
+
+def test_comparison_default_tool_languages_come_from_tools():
+    comp = rb.comparison([_cov()], [_brec()])
+    assert comp["missing_baselines"] == ["py-01-x (bandit)"]
