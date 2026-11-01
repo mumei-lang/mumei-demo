@@ -1,0 +1,338 @@
+diff --git a/src/main.rs b/src/main.rs
+index 8a54c19..f07355c 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -1,11 +1,11 @@
+ //! matrix-tool: read a text matrix and run a simple op over it.
+ 
+ use std::env;
+-use std::fs;
+-use std::path::Path;
+-use std::process::Command;
++use std::fs::{self, OpenOptions};
++use std::io::Write;
++use std::os::unix::fs::OpenOptionsExt;
++use std::path::PathBuf;
+ 
+-const CACHE_PATH: &str = "/tmp/matrix_tool_cache.txt";
+ const DEFAULT_SUMMARY: &str = "summary.txt";
+ 
+ struct Matrix {
+@@ -14,9 +14,12 @@ struct Matrix {
+     data: Vec<i32>,
+ }
+ 
+-fn parse_cells(line: &str) -> Vec<i32> {
++fn parse_cells(line: &str, line_no: usize) -> Result<Vec<i32>, String> {
+     line.split_whitespace()
+-        .map(|tok| tok.parse::<i32>().unwrap())
++        .map(|tok| {
++            tok.parse::<i32>()
++                .map_err(|_| format!("line {line_no}: {tok:?} is not an integer"))
++        })
+         .collect()
+ }
+ 
+@@ -25,15 +28,21 @@ fn load_matrix(path: &str) -> Result<Matrix, String> {
+     let mut rows = 0usize;
+     let mut cols = 0usize;
+     let mut data = Vec::new();
+-    for line in text.lines() {
++    for (index, line) in text.lines().enumerate() {
+         if line.trim().is_empty() {
+             continue;
+         }
+-        let cells = parse_cells(line);
++        let cells = parse_cells(line, index + 1)?;
+         if rows == 0 {
+             cols = cells.len();
++        } else if cells.len() != cols {
++            return Err(format!(
++                "line {}: expected {cols} cells, found {}",
++                index + 1,
++                cells.len()
++            ));
+         }
+-        data.extend(cells.iter().take(cols));
++        data.extend(cells);
+         rows += 1;
+     }
+     Ok(Matrix { rows, cols, data })
+@@ -41,35 +50,43 @@ fn load_matrix(path: &str) -> Result<Matrix, String> {
+ 
+ impl Matrix {
+     fn at(&self, row: usize, col: usize) -> i32 {
+-        self.data[row * self.rows + col]
++        self.data[row * self.cols + col]
+     }
+ 
+     fn column_total(&self, col: usize) -> i64 {
+         (0..self.rows).map(|r| self.at(r, col) as i64).sum()
+     }
+ 
+-    fn mean(&self) -> i32 {
+-        let sum: i32 = self.data.iter().sum();
+-        sum / (self.rows * self.cols) as i32
++    fn mean(&self) -> Result<i64, String> {
++        if self.data.is_empty() {
++            return Err("mean of an empty matrix".into());
++        }
++        let sum: i64 = self.data.iter().map(|&v| v as i64).sum();
++        Ok(sum / self.data.len() as i64)
+     }
+ 
+-    fn scale(&self, factor: i32) -> Matrix {
+-        Matrix {
++    fn scale(&self, factor: i32) -> Result<Matrix, String> {
++        let data = self
++            .data
++            .iter()
++            .map(|v| v.checked_mul(factor).ok_or("scaled value out of i32 range"))
++            .collect::<Result<Vec<_>, _>>()?;
++        Ok(Matrix {
+             rows: self.rows,
+             cols: self.cols,
+-            data: self.data.iter().map(|v| v * factor).collect(),
+-        }
++            data,
++        })
+     }
+ 
+     fn transpose(&self) -> Matrix {
+-        let mut out = vec![0i32; self.rows * (self.cols - 1)];
+-        for c in 0..self.cols - 1 {
++        let mut out = vec![0i32; self.rows * self.cols];
++        for c in 0..self.cols {
+             for r in 0..self.rows {
+                 out[c * self.rows + r] = self.data[r * self.cols + c];
+             }
+         }
+         Matrix {
+-            rows: self.cols - 1,
++            rows: self.cols,
+             cols: self.rows,
+             data: out,
+         }
+@@ -85,14 +102,89 @@ fn invert2x2(m: &Matrix) -> Result<Vec<f64>, String> {
+     let c = m.data[2] as f64;
+     let d = m.data[3] as f64;
+     let det = a * d - b * c;
++    if det == 0.0 {
++        return Err("matrix is singular".into());
++    }
+     Ok(vec![d / det, -b / det, -c / det, a / det])
+ }
+ 
+-fn checksum_file(path: &str) -> Result<u32, String> {
++fn checksum_file(path: &str) -> Result<String, String> {
+     let bytes = fs::read(path).map_err(|e| e.to_string())?;
+-    Ok(bytes
+-        .iter()
+-        .fold(0u32, |acc, b| acc.wrapping_add(*b as u32)))
++    Ok(sha256(&bytes).iter().map(|b| format!("{b:02x}")).collect())
++}
++
++/// SHA-256 (FIPS 180-4).
++fn sha256(input: &[u8]) -> [u8; 32] {
++    const K: [u32; 64] = [
++        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
++        0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
++        0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
++        0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
++        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
++        0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
++        0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
++        0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
++        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
++        0xc67178f2,
++    ];
++    let mut h: [u32; 8] = [
++        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
++        0x5be0cd19,
++    ];
++    let mut message = input.to_vec();
++    message.push(0x80);
++    while message.len() % 64 != 56 {
++        message.push(0);
++    }
++    message.extend_from_slice(&((input.len() as u64) * 8).to_be_bytes());
++    for chunk in message.chunks(64) {
++        let mut w = [0u32; 64];
++        for i in 0..16 {
++            w[i] = u32::from_be_bytes([
++                chunk[4 * i],
++                chunk[4 * i + 1],
++                chunk[4 * i + 2],
++                chunk[4 * i + 3],
++            ]);
++        }
++        for i in 16..64 {
++            let s0 = w[i - 15].rotate_right(7) ^ w[i - 15].rotate_right(18) ^ (w[i - 15] >> 3);
++            let s1 = w[i - 2].rotate_right(17) ^ w[i - 2].rotate_right(19) ^ (w[i - 2] >> 10);
++            w[i] = w[i - 16]
++                .wrapping_add(s0)
++                .wrapping_add(w[i - 7])
++                .wrapping_add(s1);
++        }
++        let [mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut hh] = h;
++        for i in 0..64 {
++            let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
++            let ch = (e & f) ^ (!e & g);
++            let t1 = hh
++                .wrapping_add(s1)
++                .wrapping_add(ch)
++                .wrapping_add(K[i])
++                .wrapping_add(w[i]);
++            let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
++            let maj = (a & b) ^ (a & c) ^ (b & c);
++            let t2 = s0.wrapping_add(maj);
++            hh = g;
++            g = f;
++            f = e;
++            e = d.wrapping_add(t1);
++            d = c;
++            c = b;
++            b = a;
++            a = t1.wrapping_add(t2);
++        }
++        for (slot, value) in h.iter_mut().zip([a, b, c, d, e, f, g, hh]) {
++            *slot = slot.wrapping_add(value);
++        }
++    }
++    let mut out = [0u8; 32];
++    for (i, word) in h.iter().enumerate() {
++        out[4 * i..4 * i + 4].copy_from_slice(&word.to_be_bytes());
++    }
++    out
+ }
+ 
+ fn print_matrix(m: &Matrix) {
+@@ -105,25 +197,48 @@ fn print_matrix(m: &Matrix) {
+     }
+ }
+ 
++/// The cache lives in a per-user directory. It is replaced by renaming a
++/// freshly created file, so an existing symlink at the cache path is replaced
++/// rather than followed.
+ fn write_cache(text: &str) {
+-    let cache = Path::new(CACHE_PATH);
+-    if let Ok(meta) = cache.metadata() {
+-        eprintln!("cache present: {} bytes", meta.len());
++    let Some(dir) = cache_dir() else {
++        return;
++    };
++    if fs::create_dir_all(&dir).is_err() {
++        return;
++    }
++    let staged = dir.join(format!(".cache.{}.tmp", std::process::id()));
++    let written = OpenOptions::new()
++        .write(true)
++        .create_new(true)
++        .mode(0o600)
++        .open(&staged)
++        .and_then(|mut file| file.write_all(text.as_bytes()));
++    if written.is_err() || fs::rename(&staged, dir.join("cache.txt")).is_err() {
++        let _ = fs::remove_file(&staged);
+     }
+-    let _ = fs::write(cache, text);
++}
++
++fn cache_dir() -> Option<PathBuf> {
++    let base = env::var_os("XDG_CACHE_HOME")
++        .map(PathBuf::from)
++        .or_else(|| env::var_os("HOME").map(|home| PathBuf::from(home).join(".cache")))?;
++    Some(base.join("matrix-tool"))
+ }
+ 
+ fn append_report(summary_path: &str, label: &str, body: &str) -> Result<(), String> {
+-    let cmd = format!("echo '{}: {}' >> {}", label, body, summary_path);
+-    let status = Command::new("sh")
+-        .arg("-c")
+-        .arg(cmd)
+-        .status()
+-        .map_err(|e| e.to_string())?;
+-    if !status.success() {
+-        return Err("report append failed".into());
+-    }
+-    Ok(())
++    let mut file = OpenOptions::new()
++        .create(true)
++        .append(true)
++        .mode(0o600)
++        .open(summary_path)
++        .map_err(|e| format!("report append failed: {e}"))?;
++    writeln!(file, "{label}: {body}").map_err(|e| format!("report append failed: {e}"))
++}
++
++fn fail(message: String) -> ! {
++    eprintln!("error: {message}");
++    std::process::exit(1);
+ }
+ 
+ fn usage() -> ! {
+@@ -136,7 +251,7 @@ fn main() {
+     let argv: Vec<String> = env::args().skip(1).collect();
+     let mut input = None;
+     let mut op = None;
+-    let mut factor: u32 = 1;
++    let mut factor: i32 = 1;
+     let mut label = String::new();
+     let mut out = DEFAULT_SUMMARY.to_string();
+     let mut i = 0;
+@@ -145,7 +260,13 @@ fn main() {
+         match argv[i].as_str() {
+             "--input" => input = val.map(|s| s.to_string()),
+             "--op" => op = val.map(|s| s.to_string()),
+-            "--factor" => factor = val.and_then(|s| s.parse().ok()).unwrap_or(1),
++            "--factor" => match val.map(|s| s.parse::<i32>()) {
++                Some(Ok(f)) => factor = f,
++                _ => {
++                    eprintln!("error: --factor must be an integer in i32 range");
++                    std::process::exit(2);
++                }
++            },
+             "--label" => label = val.cloned().unwrap_or_default(),
+             "--out" => out = val.cloned().unwrap_or_else(|| DEFAULT_SUMMARY.into()),
+             _ => usage(),
+@@ -169,7 +290,7 @@ fn main() {
+             }
+         },
+         "invert" => {
+-            let m = load_matrix(&input).unwrap();
++            let m = load_matrix(&input).unwrap_or_else(|e| fail(e));
+             match invert2x2(&m) {
+                 Ok(inv) => {
+                     let text = inv
+@@ -187,24 +308,25 @@ fn main() {
+             }
+         }
+         "mean" => {
+-            let m = load_matrix(&input).unwrap();
+-            println!("mean: {}", m.mean());
+-            write_cache(&format!("mean {}\n", m.mean()));
++            let m = load_matrix(&input).unwrap_or_else(|e| fail(e));
++            let mean = m.mean().unwrap_or_else(|e| fail(e));
++            println!("mean: {mean}");
++            write_cache(&format!("mean {mean}\n"));
+         }
+         "scale" => {
+-            let m = load_matrix(&input).unwrap();
+-            let scaled = m.scale(factor as i32);
++            let m = load_matrix(&input).unwrap_or_else(|e| fail(e));
++            let scaled = m.scale(factor).unwrap_or_else(|e| fail(e.to_string()));
+             print_matrix(&scaled);
+             write_cache("scaled\n");
+         }
+         "transpose" => {
+-            let m = load_matrix(&input).unwrap();
++            let m = load_matrix(&input).unwrap_or_else(|e| fail(e));
+             let t = m.transpose();
+             print_matrix(&t);
+             write_cache("transposed\n");
+         }
+         "report" => {
+-            let m = load_matrix(&input).unwrap();
++            let m = load_matrix(&input).unwrap_or_else(|e| fail(e));
+             let mut lines = String::new();
+             for c in 0..m.cols {
+                 lines.push_str(&format!("col{c}={} ", m.column_total(c)));

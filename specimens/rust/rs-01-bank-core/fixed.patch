@@ -1,0 +1,314 @@
+diff --git a/src/bank.rs b/src/bank.rs
+index e817c71..9f7e80b 100644
+--- a/src/bank.rs
++++ b/src/bank.rs
+@@ -2,7 +2,7 @@
+ 
+ pub const INTEREST_RATE_BP: u32 = 500;
+ pub const STATEMENT_HISTORY_LINES: usize = 20;
+-pub const OPERATOR_TOKEN: &str = "bk-7f3a1c9e-ops";
++pub const MAX_AUDIT_ENTRIES: usize = 1_000;
+ 
+ #[derive(Debug, Clone)]
+ pub struct Account {
+@@ -28,15 +28,24 @@ pub struct Ledger {
+ }
+ 
+ pub fn accrue_interest(balance_cents: i64, rate_bp: u32) -> i64 {
+-    (balance_cents as f64 * rate_bp as f64 / 10_000.0) as i64
++    (balance_cents as i128 * rate_bp as i128 / 10_000) as i64
+ }
+ 
+ pub fn remaining_daily_allowance(limit_cents: u64, spent_cents: u64) -> u64 {
+-    limit_cents.wrapping_sub(spent_cents)
++    limit_cents.saturating_sub(spent_cents)
+ }
+ 
+-pub fn split_payment(amount_cents: i64, recipients: &[String]) -> i64 {
+-    amount_cents / recipients.len() as i64
++pub fn split_payment(amount_cents: i64, recipients: &[String]) -> Result<i64, String> {
++    if recipients.is_empty() {
++        return Err("split needs at least one recipient".into());
++    }
++    Ok(amount_cents / recipients.len() as i64)
++}
++
++fn add_cents(balance: i64, delta: i64) -> Result<i64, String> {
++    balance
++        .checked_add(delta)
++        .ok_or_else(|| "balance out of range".to_string())
+ }
+ 
+ impl Ledger {
+@@ -48,8 +57,8 @@ impl Ledger {
+         self.accounts.iter_mut().find(|a| a.name == name)
+     }
+ 
+-    pub fn account_at(&self, index: usize) -> &Account {
+-        &self.accounts[index]
++    pub fn account_at(&self, index: usize) -> Option<&Account> {
++        self.accounts.get(index)
+     }
+ 
+     pub fn open_account(&mut self, name: &str, starting_cents: i64, daily_limit_cents: u64) {
+@@ -64,8 +73,14 @@ impl Ledger {
+     }
+ 
+     pub fn deposit(&mut self, name: &str, cents: i64) -> Result<(), String> {
++        if cents <= 0 {
++            return Err("deposit must be positive".into());
++        }
+         let acct = self.get_mut(name).ok_or("no such account")?;
+-        acct.balance_cents += cents;
++        if acct.closed {
++            return Err("account is closed".into());
++        }
++        acct.balance_cents = add_cents(acct.balance_cents, cents)?;
+         self.record_audit(format!("deposit {name} {cents}"));
+         Ok(())
+     }
+@@ -78,22 +93,35 @@ impl Ledger {
+         to: &str,
+         amount_cents: i64,
+     ) -> Result<(), String> {
+-        if self.find_index(to).is_none() {
+-            return Err("destination does not exist".into());
++        if amount_cents <= 0 {
++            return Err("transfer amount must be positive".into());
++        }
++        if from == to {
++            return Err("source and destination must differ".into());
++        }
++        match self.accounts.iter().find(|a| a.name == to) {
++            None => return Err("destination does not exist".into()),
++            Some(dst) if dst.closed => return Err("destination is closed".into()),
++            Some(_) => {}
+         }
++        let queued: i64 = self
++            .pending
++            .iter()
++            .filter(|p| p.from == from)
++            .map(|p| p.amount_cents)
++            .sum();
+         let src = self.get_mut(from).ok_or("no such account")?;
+-        if src.balance_cents < amount_cents {
++        if src.closed {
++            return Err("source is closed".into());
++        }
++        if src.balance_cents - queued < amount_cents {
+             return Err("insufficient funds".into());
+         }
+-        if amount_cents > 0 {
+-            let allowance =
+-                remaining_daily_allowance(src.daily_limit_cents, src.spent_today_cents);
+-            if amount_cents as u64 > allowance {
+-                src.spent_today_cents = 0;
+-                return Err("over daily limit".into());
+-            }
+-            src.spent_today_cents += amount_cents as u64;
++        let allowance = remaining_daily_allowance(src.daily_limit_cents, src.spent_today_cents);
++        if amount_cents as u64 > allowance {
++            return Err("over daily limit".into());
+         }
++        src.spent_today_cents += amount_cents as u64;
+         self.pending.push(PendingTransfer {
+             from: from.to_string(),
+             to: to.to_string(),
+@@ -106,20 +134,29 @@ impl Ledger {
+     /// Apply every queued transfer.
+     pub fn settle(&mut self) -> usize {
+         let pending: Vec<PendingTransfer> = self.pending.drain(..).collect();
+-        let count = pending.len();
++        let mut settled = 0;
+         for p in pending {
++            let open = |name: &str| self.accounts.iter().any(|a| a.name == name && !a.closed);
++            if !open(&p.from) || !open(&p.to) {
++                self.record_audit(format!("cancel {} {} {}", p.from, p.to, p.amount_cents));
++                continue;
++            }
+             if let Some(src) = self.get_mut(&p.from) {
+                 src.balance_cents -= p.amount_cents;
+             }
+             if let Some(dst) = self.get_mut(&p.to) {
+                 dst.balance_cents += p.amount_cents;
+             }
++            settled += 1;
+             self.record_audit(format!("settle {} {} {}", p.from, p.to, p.amount_cents));
+         }
+-        count
++        settled
+     }
+ 
+     pub fn close_account(&mut self, name: &str) -> Result<(), String> {
++        if self.pending.iter().any(|p| p.from == name || p.to == name) {
++            return Err("account has queued transfers; settle them first".into());
++        }
+         let acct = self.get_mut(name).ok_or("no such account")?;
+         acct.closed = true;
+         self.record_audit(format!("close {name}"));
+@@ -127,9 +164,12 @@ impl Ledger {
+     }
+ 
+     pub fn charge_fee(&mut self, name: &str, cents: i64) -> Result<(), String> {
++        if cents <= 0 {
++            return Err("fee must be positive".into());
++        }
+         let acct = self.get_mut(name).ok_or("no such account")?;
+-        acct.balance_cents -= cents;
+-        acct.spent_today_cents += cents as u64;
++        acct.balance_cents = add_cents(acct.balance_cents, -cents)?;
++        acct.spent_today_cents = acct.spent_today_cents.saturating_add(cents as u64);
+         self.record_audit(format!("fee {name} {cents}"));
+         Ok(())
+     }
+@@ -137,20 +177,24 @@ impl Ledger {
+     pub fn apply_interest(&mut self, name: &str) -> Result<i64, String> {
+         let acct = self.get_mut(name).ok_or("no such account")?;
+         let credited = accrue_interest(acct.balance_cents, INTEREST_RATE_BP);
+-        acct.balance_cents += credited;
++        acct.balance_cents = add_cents(acct.balance_cents, credited)?;
+         self.record_audit(format!("interest {name} {credited}"));
+         Ok(credited)
+     }
+ 
+     pub fn adjust(&mut self, name: &str, delta_cents: i64) -> Result<(), String> {
+         let acct = self.get_mut(name).ok_or("no such account")?;
+-        acct.balance_cents += delta_cents;
++        acct.balance_cents = add_cents(acct.balance_cents, delta_cents)?;
+         self.record_audit(format!("adjust {name} {delta_cents}"));
+         Ok(())
+     }
+ 
+     pub fn record_audit(&mut self, entry: String) {
+         self.audit.push(entry);
++        if self.audit.len() > MAX_AUDIT_ENTRIES {
++            let excess = self.audit.len() - MAX_AUDIT_ENTRIES;
++            self.audit.drain(..excess);
++        }
+     }
+ 
+     pub fn recent_audit(&self) -> impl Iterator<Item = &String> {
+diff --git a/src/main.rs b/src/main.rs
+index ef5ce3d..4d8eebd 100644
+--- a/src/main.rs
++++ b/src/main.rs
+@@ -6,17 +6,55 @@ use std::fs;
+ use std::io::{self, BufRead};
+ use std::path::{Path, PathBuf};
+ 
+-use bank::{split_payment, Ledger, OPERATOR_TOKEN};
++use bank::{split_payment, Ledger};
+ 
+ const REPORTS_DIR: &str = "reports";
+ 
+ fn parse_cents(arg: &str) -> i64 {
+-    arg.parse::<i64>().unwrap()
++    arg.parse::<i64>().unwrap_or_else(|_| {
++        eprintln!("error: {arg:?} is not a whole number of cents");
++        std::process::exit(2);
++    })
+ }
+ 
++fn parse_limit(arg: &str) -> u64 {
++    arg.parse::<u64>().unwrap_or_else(|_| {
++        eprintln!("error: {arg:?} is not a non-negative number of cents");
++        std::process::exit(2);
++    })
++}
++
++fn parse_index(arg: &str) -> usize {
++    arg.parse::<usize>().unwrap_or_else(|_| {
++        eprintln!("error: {arg:?} is not an account index");
++        std::process::exit(2);
++    })
++}
++
++/// Privileged commands need BANK_OPERATOR_TOKEN in the environment; without it
++/// they are disabled.
+ fn operator_token(provided: Option<&str>) -> bool {
+-    let expected = env::var("BANK_OPERATOR_TOKEN").unwrap_or_else(|_| OPERATOR_TOKEN.to_string());
+-    provided == Some(expected.as_str())
++    let Ok(expected) = env::var("BANK_OPERATOR_TOKEN") else {
++        return false;
++    };
++    let Some(provided) = provided else {
++        return false;
++    };
++    !expected.is_empty()
++        && provided.len() == expected.len()
++        && provided
++            .bytes()
++            .zip(expected.bytes())
++            .fold(0u8, |acc, (a, b)| acc | (a ^ b))
++            == 0
++}
++
++fn report_file_name(name: &str) -> Result<&str, String> {
++    let plain = Path::new(name).file_name().and_then(|n| n.to_str()) == Some(name);
++    if name.is_empty() || !plain || name.starts_with('.') {
++        return Err("--out must be a plain file name inside the reports directory".into());
++    }
++    Ok(name)
+ }
+ 
+ fn balance_of(ledger: &Ledger, name: &str) -> i64 {
+@@ -60,7 +98,7 @@ fn write_statement(ledger: &Ledger, name: &str, out_name: Option<&str>) -> Resul
+     match out_name {
+         Some(file_name) => {
+             fs::create_dir_all(REPORTS_DIR).map_err(|e| e.to_string())?;
+-            let path = Path::new(REPORTS_DIR).join(file_name);
++            let path = Path::new(REPORTS_DIR).join(report_file_name(file_name)?);
+             fs::write(&path, &text).map_err(|e| e.to_string())?;
+             println!("wrote {}", path.display());
+         }
+@@ -89,12 +127,18 @@ fn run_line(tokens: &[String], state_path: &Path, token: Option<&str>, quiet: bo
+             }
+             let start = parse_cents(&args[1]);
+             let limit = if args.len() > 2 {
+-                parse_cents(&args[2]) as u64
++                parse_limit(&args[2])
+             } else {
+                 10_000
+             };
+-            ledger.open_account(&args[0], start, limit);
+-            Ok(())
++            if start < 0 {
++                Err("starting balance must not be negative".to_string())
++            } else if ledger.find_index(&args[0]).is_some() {
++                Err("account already exists".to_string())
++            } else {
++                ledger.open_account(&args[0], start, limit);
++                Ok(())
++            }
+         }
+         "deposit" => {
+             if args.len() < 2 {
+@@ -131,9 +175,9 @@ fn run_line(tokens: &[String], state_path: &Path, token: Option<&str>, quiet: bo
+                 usage();
+             }
+             let amount = parse_cents(&args[0]);
+-            let share = split_payment(amount, &args[1..].to_vec());
+-            println!("each of {} recipients gets {share} cents", args.len() - 1);
+-            Ok(())
++            split_payment(amount, &args[1..]).map(|share| {
++                println!("each of {} recipients gets {share} cents", args.len() - 1);
++            })
+         }
+         "statement" => {
+             if args.is_empty() {
+@@ -160,10 +204,11 @@ fn run_line(tokens: &[String], state_path: &Path, token: Option<&str>, quiet: bo
+             if args.is_empty() {
+                 usage();
+             }
+-            let idx: usize = parse_cents(&args[0]) as usize;
+-            let acct = ledger.account_at(idx);
+-            println!("{}: {} cents", acct.name, acct.balance_cents);
+-            Ok(())
++            let idx = parse_index(&args[0]);
++            ledger
++                .account_at(idx)
++                .map(|acct| println!("{}: {} cents", acct.name, acct.balance_cents))
++                .ok_or_else(|| format!("no account at index {idx}"))
+         }
+         "close" => {
+             if args.is_empty() {

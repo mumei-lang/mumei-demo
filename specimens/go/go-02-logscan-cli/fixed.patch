@@ -1,0 +1,227 @@
+diff --git a/main.go b/main.go
+index 631700b..c839c84 100644
+--- a/main.go
++++ b/main.go
+@@ -2,9 +2,10 @@ package main
+ 
+ import (
+ 	"bufio"
+-	"bytes"
++	"errors"
+ 	"flag"
+ 	"fmt"
++	"math"
+ 	"os"
+ 	"os/exec"
+ 	"sort"
+@@ -13,10 +14,11 @@ import (
+ 	"time"
+ )
+ 
+-type record struct {
+-	timestamp time.Time
+-	path      string
+-	latency   int64
++// fileStats holds what the summary needs from one input file: the latency of
++// every selected request and the request count per path.
++type fileStats struct {
++	latencies []int64
++	counts    map[string]int
+ }
+ 
+ func main() {
+@@ -37,6 +39,12 @@ func run(args []string) error {
+ 	if err := flags.Parse(args); err != nil {
+ 		return err
+ 	}
++	if *top < 0 {
++		return errors.New("-top must not be negative")
++	}
++	if *workers < 1 {
++		return errors.New("-workers must be at least 1")
++	}
+ 
+ 	var since time.Time
+ 	hasSince := *sinceText != ""
+@@ -56,19 +64,24 @@ func run(args []string) error {
+ 	}
+ 
+ 	paths := strings.Split(*input, ",")
+-	records, counts, err := readFiles(paths, *workers, since, hasSince)
++	latencies, counts, err := readFiles(paths, *workers, since, hasSince)
+ 	if err != nil {
+ 		return err
+ 	}
+-	summary, err := formatSummary(records, counts, *top, percentiles)
++	summary, err := formatSummary(latencies, counts, *top, percentiles)
+ 	if err != nil {
+ 		return err
+ 	}
+ 	fmt.Print(summary)
+-	if err := os.WriteFile(*out, []byte(summary), 0666); err != nil {
++	if err := os.WriteFile(*out, []byte(summary), 0600); err != nil {
+ 		return err
+ 	}
+-	exec.Command("sh", "-c", "gzip "+*out).Run()
++	if err := os.Chmod(*out, 0600); err != nil {
++		return err
++	}
++	if output, err := exec.Command("gzip", "-f", "--", *out).CombinedOutput(); err != nil {
++		return fmt.Errorf("gzip %s: %v: %s", *out, err, strings.TrimSpace(string(output)))
++	}
+ 	return nil
+ }
+ 
+@@ -80,19 +93,21 @@ func parsePercentiles(text string) ([]float64, error) {
+ 		if err != nil {
+ 			return nil, err
+ 		}
++		if value < 0 || value > 100 {
++			return nil, fmt.Errorf("percentile %d is outside 0..100", value)
++		}
+ 		values = append(values, float64(value)/100)
+ 	}
+ 	return values, nil
+ }
+ 
+-func readFiles(paths []string, workers int, since time.Time, hasSince bool) ([]record, map[string]int, error) {
++func readFiles(paths []string, workers int, since time.Time, hasSince bool) ([]int64, map[string]int, error) {
+ 	type fileResult struct {
+-		records []record
+-		err     error
++		stats fileStats
++		err   error
+ 	}
+ 	jobs := make(chan string)
+ 	results := make(chan fileResult, len(paths))
+-	counts := make(map[string]int)
+ 	for worker := 0; worker < workers; worker++ {
+ 		go func() {
+ 			for path := range jobs {
+@@ -101,17 +116,9 @@ func readFiles(paths []string, workers int, since time.Time, hasSince bool) ([]r
+ 					results <- fileResult{err: err}
+ 					continue
+ 				}
+-				defer file.Close()
+-				parsed, err := parseFile(file)
+-				filtered := make([]record, 0, len(parsed))
+-				for _, entry := range parsed {
+-					if hasSince && !entry.timestamp.After(since) {
+-						continue
+-					}
+-					counts[entry.path]++
+-					filtered = append(filtered, entry)
+-				}
+-				results <- fileResult{records: filtered, err: err}
++				stats, err := parseFile(file, since, hasSince)
++				file.Close()
++				results <- fileResult{stats: stats, err: err}
+ 			}
+ 		}()
+ 	}
+@@ -122,53 +129,57 @@ func readFiles(paths []string, workers int, since time.Time, hasSince bool) ([]r
+ 		close(jobs)
+ 	}()
+ 
+-	all := make([]record, 0)
++	latencies := make([]int64, 0)
++	counts := make(map[string]int)
+ 	var firstErr error
+ 	for range paths {
+ 		result := <-results
+-		all = append(all, result.records...)
++		latencies = append(latencies, result.stats.latencies...)
++		for path, count := range result.stats.counts {
++			counts[path] += count
++		}
+ 		if firstErr == nil && result.err != nil {
+ 			firstErr = result.err
+ 		}
+ 	}
+-	return all, counts, firstErr
++	return latencies, counts, firstErr
+ }
+ 
+-func parseFile(file *os.File) ([]record, error) {
+-	var raw bytes.Buffer
++func parseFile(file *os.File, since time.Time, hasSince bool) (fileStats, error) {
+ 	scanner := bufio.NewScanner(file)
+ 	scanner.Buffer(make([]byte, 64*1024), 2*1024*1024)
+-	entries := make([]record, 0)
++	stats := fileStats{counts: make(map[string]int)}
+ 	for scanner.Scan() {
+-		line := scanner.Text()
+-		raw.WriteString(line)
+-		raw.WriteByte('\n')
+-		fields := strings.Fields(line)
++		fields := strings.Fields(scanner.Text())
+ 		if len(fields) < 5 {
+ 			continue
+ 		}
+-		timestamp, _ := time.Parse(time.RFC3339, fields[0])
+-		latencyText := strings.TrimSuffix(fields[4], "ms")
+-		latency, err := strconv.ParseInt(latencyText, 10, 64)
++		timestamp, err := time.Parse(time.RFC3339, fields[0])
+ 		if err != nil {
+ 			continue
+ 		}
+-		entries = append(entries, record{timestamp: timestamp, path: fields[2], latency: latency})
+-	}
+-	if err := scanner.Err(); err != nil {
+-		return entries, err
++		if hasSince && timestamp.Before(since) {
++			continue
++		}
++		latency, err := strconv.ParseInt(strings.TrimSuffix(fields[4], "ms"), 10, 64)
++		if err != nil {
++			continue
++		}
++		stats.latencies = append(stats.latencies, latency)
++		stats.counts[fields[2]]++
+ 	}
+-	return entries, nil
++	return stats, scanner.Err()
+ }
+ 
+-func formatSummary(records []record, counts map[string]int, top int, percentiles []float64) (string, error) {
+-	latencies := make([]int64, 0, len(records))
++func formatSummary(latencies []int64, counts map[string]int, top int, percentiles []float64) (string, error) {
+ 	var total int64
+-	for _, entry := range records {
+-		latencies = append(latencies, entry.latency)
+-		total += entry.latency
++	for _, latency := range latencies {
++		total += latency
++	}
++	var average int64
++	if len(latencies) > 0 {
++		average = total / int64(len(latencies))
+ 	}
+-	average := total / int64(len(records))
+ 	sort.Slice(latencies, func(i, j int) bool {
+ 		return latencies[i] < latencies[j]
+ 	})
+@@ -183,10 +194,10 @@ func formatSummary(records []record, counts map[string]int, top int, percentiles
+ 		}
+ 		return counts[paths[i]] > counts[paths[j]]
+ 	})
+-	paths = paths[:top]
++	paths = paths[:min(top, len(paths))]
+ 
+ 	var output strings.Builder
+-	fmt.Fprintf(&output, "Requests: %d\nAverage latency: %dms\n", len(records), average)
++	fmt.Fprintf(&output, "Requests: %d\nAverage latency: %dms\n", len(latencies), average)
+ 	for _, path := range paths {
+ 		fmt.Fprintf(&output, "%s %d\n", path, counts[path])
+ 	}
+@@ -198,5 +209,9 @@ func formatSummary(records []record, counts map[string]int, top int, percentiles
+ }
+ 
+ func percentileAt(sorted []int64, percentile float64) int64 {
+-	return sorted[int(float64(len(sorted))*percentile)]
++	if len(sorted) == 0 {
++		return 0
++	}
++	rank := int(math.Ceil(float64(len(sorted))*percentile)) - 1
++	return sorted[max(0, min(rank, len(sorted)-1))]
+ }
