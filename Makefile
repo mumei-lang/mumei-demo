@@ -157,5 +157,9 @@ demo-ownership-scale:
 report:
 	@python3 scripts/generate_report.py --summary --highlights --require-all
 
+.PHONY: test-record-execution
+test-record-execution:
+	@python3 -m pytest tests/test_record_execution.py -q
+
 setup:
 	@./scripts/setup_repos.sh

@@ -21,7 +21,23 @@ Claim Book and Charter gates; `mumei-agent` owns test harvesting and repair tool
 `mumei-lean` remains an optional proof backend; `mumei-demo` binds and presents
 scenario evidence. No compiler DSL, alternate grade, audit-key alias, mandatory
 LLM step, or new Lean guarantee is introduced. Production/runtime correspondence
-and an authority-aware execution experiment remain out of scope.
+remains outside that Charter example.
+
+## Limited single-record execution experiment
+
+The independent [fixed execution adapter](RECORD_EXECUTION.md) now accepts only
+data proposals for single-record reads/value updates. Current authority and
+version checks run in the same single-process lock as publication. Typed,
+copied initial state, strict JSON parsing, serialized policy configuration,
+minimal audit events and fail-closed fault/concurrency regressions are included.
+`make test-record-execution` runs this separately; no existing scenario is
+changed or promoted to a new proof grade.
+
+The next step is a scenario joining the adapter with local `.mm` contracts,
+independent Lean model evidence, negative controls and Phase A's evidence
+display. Formal model/Python correspondence, production authentication/storage,
+distributed operations and arbitrary-code confinement remain unproved and
+outside this experiment. The adapter alone is not a completed scenario chain.
 
 ## Cross-project no-.mm scenario contract
 
