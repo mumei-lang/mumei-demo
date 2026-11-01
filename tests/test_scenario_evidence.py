@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -12,6 +13,94 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 from scenario_evidence import (  # noqa: E402
     aggregate_evidence, capture_identities, load_result, render_evidence,
 )
+
+
+@pytest.fixture
+def model_evidence(evidence):
+    data, _, snapshot, root = evidence
+    (root / "model.lean").write_text("theorem model_property : True := trivial\n")
+    model = {"schema": "mumei-demo.independent-model/v1", "status": "passed",
+             "axiom_allowlist": ["Classical.choice", "Quot.sound", "propext"],
+             "inputs": {"model.lean": hashlib.sha256((root / "model.lean").read_bytes()).hexdigest()},
+             "theorems": {"model_property": {"status": "passed", "axioms": [], "disallowed": []}}}
+    data["evidence_requirements"]["artifacts"] = ["model.json", "model.lean"]
+    data["evidence_requirements"]["independent_models"] = [{"step": "verify", "report": "model.json",
+        "required_theorems": ["model_property"], "sources": ["model.lean"]}]
+
+    def save():
+        (root / "model.json").write_text(json.dumps(model))
+        snapshot()
+
+    save()
+    return data, model, save, root
+
+
+def test_independent_model_proofs_remain_separate_from_grades_and_finite_observations(model_evidence):
+    data, _, _, root = model_evidence
+    data["evidence_summary"] = aggregate_evidence(data, root)
+    assert data["evidence_summary"]["status"] == "satisfied"
+    model = data["evidence_summary"]["independent_models"][0]
+    assert model["theorem_count"] == 1
+    assert not {"effective_grade", "evidence_kind", "lean_verified"} & set(model)
+    rendered = render_evidence(data)
+    assert "Independent Lean model proofs (not implementation correspondence)" in rendered
+    assert "Execution observations (not formal proof)" in rendered
+    assert "not Python correspondence or an application grade" in rendered
+
+
+@pytest.mark.parametrize("field,value", [
+    ("schema", "future"), ("status", "error"), ("status", True),
+    ("axiom_allowlist", ["sorryAx"]), ("inputs", {}), ("inputs", []),
+    ("inputs", {"model.lean": "wrong"}), ("theorems", {}), ("theorems", []),
+    ("theorems", {"other": {"status": "passed", "axioms": [], "disallowed": []}}),
+    ("theorems", {"model_property": {"status": "rejected", "axioms": [], "disallowed": []}}),
+    ("theorems", {"model_property": {"status": "passed", "axioms": ["sorryAx"], "disallowed": []}}),
+    ("theorems", {"model_property": {"status": "passed", "axioms": [], "disallowed": ["sorryAx"]}}),
+    ("theorems", {"model_property": {"status": "passed", "axioms": None, "disallowed": []}}),
+    ("theorems", {"model_property": {"status": "passed", "axioms": [{}], "disallowed": []}}),
+    ("theorems", {"model_property": None}),
+])
+def test_invalid_model_semantics_fail_even_with_recaptured_identities(model_evidence, field, value):
+    data, model, save, root = model_evidence
+    model[field] = value
+    save()
+    assert aggregate_evidence(data, root)["status"] == "incomplete"
+
+
+@pytest.mark.parametrize("name", ["model.json", "model.lean"])
+@pytest.mark.parametrize("action", ["delete", "replace"])
+def test_reopening_rechecks_model_report_and_source_identities(model_evidence, name, action):
+    data, _, _, root = model_evidence
+    assert aggregate_evidence(data, root)["status"] == "satisfied"
+    if action == "delete":
+        (root / name).unlink()
+    else:
+        (root / name).write_text("replacement")
+    assert load_result(root / "result.json")["overall_status"] == "FAIL"
+
+
+@pytest.mark.parametrize("field,value", [
+    ("step", "unknown"), ("report", "../outside.json"), ("report", None),
+    ("required_theorems", []), ("required_theorems", [None]),
+    ("required_theorems", ["Model.safety", "Model.safety"]),
+    ("sources", []), ("sources", ["model.lean", "model.lean"]),
+    ("sources", ["../model.lean"]), ("extra", "unknown"),
+])
+def test_invalid_model_selectors_fail_closed(model_evidence, field, value):
+    data, _, save, root = model_evidence
+    data["evidence_requirements"]["independent_models"][0][field] = value
+    save()
+    assert aggregate_evidence(data, root)["status"] == "incomplete"
+
+
+@pytest.mark.parametrize("status", ["REJECTED", "SKIPPED", "FAIL", "unknown", None])
+def test_model_rejection_skip_or_unknown_status_never_counts_as_proof(model_evidence, status):
+    data, _, _, root = model_evidence
+    data["layers"]["l1_z3"]["steps"][0]["status"] = status
+    summary = aggregate_evidence(data, root)
+    assert summary["status"] == "incomplete"
+    assert "required independent model step is not successful" in summary["issues"]
+    assert not summary["independent_models"]
 
 
 def claim(name="clamp_dose", **changes):

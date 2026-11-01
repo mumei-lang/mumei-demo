@@ -2,7 +2,7 @@
 
 ## Opt-in scenario evidence
 
-`charter_gate_demo` opts into evidence aggregation; existing scenarios need no
+`charter_gate_demo` and the optional `record_execution_demo` opt into evidence aggregation; other scenarios need no
 new configuration. This is an additive `result.json` contract, identified by
 `evidence_summary.schema = "mumei-demo.scenario-evidence/v1"`, not a new Seal
 Grade or compiler DSL. Other result fields retain their existing meanings.
@@ -64,7 +64,7 @@ The runner writes `evidence_requirements`, `evidence_identities` (relative path
 to SHA-256), and `evidence_summary` into the result and saves the summary in
 `harness_state.json` before returning failure. The summary contains `status`
 (`satisfied` or `incomplete`), selected `claims`, `execution_observations`,
-`declared_assumptions`, `reported_trusted_base`, `unverified_connections`,
+`independent_models`, `declared_assumptions`, `reported_trusted_base`, `unverified_connections`,
 `out_of_scope`, `identities`, and diagnostic `issues`. Source contracts, control
 results, observation counts, certificate version/integrity, generator versions,
 and direct/transitive dependency diagnostics are retained per claim.
@@ -85,6 +85,41 @@ metadata is outside this integrity check. Keep the result with its original
 output tree (including its symlink target); recollect after moving inputs.
 The initial report adds no absolute paths or timestamps to its summary and
 uses stable ordering. Existing raw runner metadata is unchanged.
+
+### Optional independent model reports
+
+`evidence_requirements.independent_models` is an optional list of exact
+selectors. It does not change claim grades or the existing observation schema:
+
+```json
+{
+  "step": "audit_model",
+  "report": "model/model.json",
+  "required_theorems": ["MumeiLean.AuthorizationModel.accepted_authorized"],
+  "sources": ["source/MumeiLean/AuthorizationModel.lean"]
+}
+```
+
+The step must also be required in `steps` and succeed as `PASS` or `CERTIFIED`,
+not an expected rejection or skip. The report and every source must be listed
+in mandatory `artifacts`; source names are relative to the model report's
+directory. The report schema is `mumei-demo.independent-model/v1`, with
+`status: "passed"`, an `inputs` map from those exact source names to SHA-256,
+and a nonempty `theorems` object. Every theorem needs `status: "passed"`,
+`axioms` containing only the standard `propext`, `Classical.choice`, `Quot.sound`
+allowlist, and empty `disallowed`. Required theorem names must be present, and
+the report must declare exactly that `axiom_allowlist` in sorted order.
+Unknown schemas, incomplete source sets, mismatched identities, absent required
+theorems and any rejected theorem fail closed. The record-model collector also
+checks its complete current named theorem set against a fresh upstream audit.
+
+The summary adds an `independent_models` array containing audited theorem
+counts, selected source identities and kernel axioms, **without an effective
+grade**. Shared Markdown/CLI/dashboard rendering labels it independent model
+proof, not implementation correspondence. Descriptions, local hashes and a
+successful model audit cannot upgrade finite Python observations to proof.
+The collector and its imported tools remain trusted; these reports are not
+authenticated certificates or complete dependency/toolchain archives.
 
 Each scenario lives under `scenarios/<name>/` and is driven by `scenario.json`.
 

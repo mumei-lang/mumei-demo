@@ -11,6 +11,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from generate_report import (  # noqa: E402
+    OPTIONAL_SCENARIOS,
     SCENARIO_ORDER,
     bug_detection_moment,
     charter_gate_label,
@@ -514,6 +515,10 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
     makefile_order = scenario_line.split(":=", 1)[1].split()
     assert SCENARIO_ORDER == makefile_order
     assert app.SCENARIO_ORDER == makefile_order
+    optional_line = next(line for line in makefile.read_text(encoding="utf-8").splitlines()
+                         if line.startswith("OPTIONAL_SCENARIOS :="))
+    assert OPTIONAL_SCENARIOS == app.OPTIONAL_SCENARIOS == optional_line.split(":=", 1)[1].split()
+    assert app.scenario_names().index("record_execution_demo") == len(SCENARIO_ORDER)
     data = {
         "claim_book": {
             "entries": [{"status": "ok"}],
@@ -528,6 +533,14 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
 
     assert cli_claim_book_label(data) == expected
     assert app.claim_book_label(data) == expected
+
+
+def test_record_operation_before_after_uses_its_local_contracts():
+    root = Path(__file__).resolve().parents[1]
+    before, after = scenario_code_paths(root, "record_execution_demo")
+    assert before.name == "broken_contract.mm" and after.name == "local_contract.mm"
+    assert "body: { version };" in before.read_text()
+    assert "body: { version + 1 };" in after.read_text()
 
 
 def test_write_summary_includes_claim_book_label(tmp_path):

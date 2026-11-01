@@ -33,6 +33,7 @@ SCENARIO_ORDER = [
     "test_observation_demo",
     "self_correction_demo",
 ]
+OPTIONAL_SCENARIOS = ["record_execution_demo"]
 LAYER_LABELS = {
     "l1_z3": "L1 / Z3",
     "l2_agent": "L2 / Agent",
@@ -256,6 +257,8 @@ def code_fence(content: str, language: str = "text") -> str:
 
 def scenario_code_paths(root: Path, scenario: str) -> tuple[Path, Path]:
     scenario_dir = root / "scenarios" / scenario
+    if scenario == "record_execution_demo":
+        return scenario_dir / "broken_contract.mm", scenario_dir / "local_contract.mm"
     if scenario == "blockchain_audit":
         return scenario_dir / "buggy_contract.mm", scenario_dir / "correct_contract.mm"
     if scenario == "charter_gate_demo":
@@ -1078,7 +1081,7 @@ def main() -> int:
         "--scenarios",
         nargs="*",
         default=SCENARIO_ORDER,
-        help="Scenario names to include in summary",
+        help="Scenario names to include in summary; defaults exclude optional targets: " + ", ".join(OPTIONAL_SCENARIOS),
     )
     parser.add_argument(
         "--require-all",

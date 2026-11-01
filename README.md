@@ -77,6 +77,11 @@ record changes and concurrent execution. These are implementation observations,
 not a formal Python proof; the existing scenario set and evidence grades are
 unchanged.
 
+The optional [`make demo-record-execution`](scenarios/record_execution_demo/README.md)
+connects those finite checks to an independent Lean model audit and a small
+`.mm` contract, keeping all three evidence categories separate. It requires
+the pinned Lean toolchain, but leaves the default 18-scenario sequence intact.
+
 ## Running scenarios
 
 ```bash

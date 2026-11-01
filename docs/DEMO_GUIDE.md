@@ -1,5 +1,22 @@
 # Demo Guide
 
+## Optional fixed record-operation experiment
+
+With a built sibling `mumei` and the sibling `mumei-lean` pinned toolchain:
+
+```bash
+export PATH="$HOME/.elan/bin:$PATH"
+make demo-record-execution
+```
+
+This no-LLM target is outside the normal 18-scenario sequence. It requires
+successful local `.mm` verification, fresh independent model/kernel audit,
+finite current-state execution checks and detection of four named broken-host
+variants. Missing model evidence fails closed. The model does not upgrade the
+Python checks into proof or any new grade. See the
+[runbook](../scenarios/record_execution_demo/README.md) for assumptions,
+unverified connections, retained artifacts and an optional separate summary.
+
 ## Prerequisites
 
 - Rust and Cargo for building `mumei`.
