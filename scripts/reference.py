@@ -179,6 +179,12 @@ def _option_strings(action: argparse.Action) -> str:
 
 
 def _value_placeholder(action: argparse.Action) -> str:
+    if action.choices is not None:
+        choices = action.choices
+        if isinstance(choices, (set, frozenset)):
+            choices = sorted(choices, key=str)
+        label = "{" + ", ".join(str(choice) for choice in choices) + "}"
+        return f"`{_markdown_cell(label)}`"
     if action.option_strings and action.nargs == 0:
         return "—"
     name = action.metavar or action.dest.upper()

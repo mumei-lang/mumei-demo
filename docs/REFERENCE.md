@@ -77,7 +77,7 @@ Render a Mumei demo result.
 | Option | Value | Required | Default | Description |
 |---|---|---|---|---|
 | `result_json` | `<RESULT_JSON>` | no | — | Path to result.json |
-| `--format` | `<FORMAT>` | no | `table` | — |
+| `--format` | `{table, json, markdown}` | no | `table` | — |
 | `--summary` | — | no | `false` | Aggregate latest scenario result.json files into dashboard/summary.md |
 | `--highlights` | — | no | `false` | Aggregate bug detection moments into dashboard/highlights.md |
 | `--reports-dir` | `<REPORTS_DIR>` | no | `reports` | Directory containing scenario reports |
@@ -110,7 +110,7 @@ Finite record-operation checks and intentionally broken host variants.
 
 | Option | Value | Required | Default | Description |
 |---|---|---|---|---|
-| `--variant` | `<VARIANT>` | no | `baseline` | — |
+| `--variant` | `{baseline, missing_organization, missing_ownership, changed_identity, direct_write}` | no | `baseline` | — |
 | `--output` | `<OUTPUT>` | yes | — | — |
 
 ### `scripts/record_model_evidence.py`

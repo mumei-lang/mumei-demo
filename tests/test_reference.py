@@ -34,6 +34,10 @@ def test_render_is_independent_of_environment_defaults(monkeypatch) -> None:
     assert render_reference() == committed
 
 
+def test_generate_report_format_choices_are_rendered() -> None:
+    assert "| `--format` | `{table, json, markdown}` |" in render_reference()
+
+
 def test_check_rejects_tampered_copy(tmp_path, capsys) -> None:
     copy = tmp_path / "REFERENCE.md"
     copy.write_text("tampered", encoding="utf-8")
