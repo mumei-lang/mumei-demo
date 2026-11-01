@@ -15,14 +15,16 @@ from review_charter_baseline import PATHS, review
 @pytest.fixture
 def baseline_repo(tmp_path):
     root = tmp_path / "repo"
-    root.mkdir()
     source = Path(__file__).resolve().parents[1]
+    subprocess.run(
+        ["git", "clone", "--shared", "--no-checkout", "--quiet", str(source), str(root)],
+        check=True, capture_output=True,
+    )
+    subprocess.run(["git", "read-tree", "HEAD"], cwd=root, check=True, capture_output=True)
     for name in PATHS:
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source / name, path)
-    for args in (["init", "-q"], ["add", "."], ["commit", "-qm", "Reviewed baseline"]):
-        subprocess.run(["git", *args], cwd=root, check=True, capture_output=True)
     return root
 
 

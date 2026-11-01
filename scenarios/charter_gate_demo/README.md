@@ -79,8 +79,10 @@ Integration CI publishes `charter-baseline-review` with a Git diff and current
 snapshot. On PRs the comparison is against the base commit; a manual run
 without a base explicitly reports that no comparison was requested. A green
 baseline-review job means the review material was produced, **not approved**.
-The separate reusable Charter gate verifies the committed lock in place and
-requires both G4 and complete dependencies. Test diagnostics and real scenario
+The separate release-compatible reusable Charter gate verifies the committed
+lock in place at G4. Source-built integration runs the independent dependency
+completeness gate, which is not yet available in the installed release binary.
+Test diagnostics and real scenario
 artifacts are uploaded even on failure.
 
 `CI_FIXTURE_MODE=1` avoids live LLM generation; it does not replace the Charter
