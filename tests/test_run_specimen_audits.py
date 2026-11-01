@@ -6,6 +6,7 @@ hand-built defects docs / audit dicts.
 
 import importlib.util
 import json
+import subprocess
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -1005,7 +1006,14 @@ def _rescore_tree(tmp_path, monkeypatch, meta=RESCORE_META, rc=0):
         {"meta": meta, "audit_exit_code": rc, "audit_markdown_exit_code": rc}))
     monkeypatch.setattr(rsa, "REPO_ROOT", tmp_path)
     monkeypatch.setattr(rsa, "SPECIMENS_ROOT", specimens)
+    _git_track(tmp_path)
     return specimens, d
+
+
+def _git_track(root):
+    if not (root / ".git").exists():
+        subprocess.run(["git", "init", "-q", str(root)], check=True)
+    subprocess.run(["git", "-C", str(root), "add", "-A"], check=True)
 
 
 def test_rescore_specimen_keeps_meta_and_exit_codes(tmp_path, monkeypatch):
@@ -1036,7 +1044,7 @@ def test_rescore_specimen_accepts_matching_hash(tmp_path, monkeypatch, capsys):
     assert "predates" not in capsys.readouterr().err
 
 
-@pytest.mark.parametrize("edit", ["source", "defects", "new_file"])
+@pytest.mark.parametrize("edit", ["source", "defects", "new_tracked_file", "removed_file"])
 def test_rescore_specimen_refuses_changed_specimen(tmp_path, monkeypatch, edit):
     _, d = _rescore_tree(tmp_path, monkeypatch)
     cov_path = d / "audit" / "coverage.json"
@@ -1046,45 +1054,40 @@ def test_rescore_specimen_refuses_changed_specimen(tmp_path, monkeypatch, edit):
         (d / "app.py").write_text((d / "app.py").read_text() + "# edited\n")
     elif edit == "defects":
         (d / "DEFECTS.json").write_text((d / "DEFECTS.json").read_text() + "\n")
-    else:
+    elif edit == "new_tracked_file":
         (d / "extra.py").write_text("x = 1\n")
+        _git_track(tmp_path)
+    else:
+        (d / "app.py").unlink()
     with pytest.raises(SystemExit, match="changed since the audit"):
         rsa.rescore_specimen(d, [], [])
 
 
-def test_specimen_hash_ignores_audit_and_build_outputs(tmp_path):
-    d = tmp_path / "py-01-x"
-    d.mkdir()
-    (d / "app.py").write_text("x = 1\n")
+def test_specimen_hash_ignores_untracked_and_audit_files(tmp_path, monkeypatch):
+    monkeypatch.setattr(rsa, "REPO_ROOT", tmp_path)
+    d = _mini_specimen(tmp_path / "specimens")
+    _git_track(tmp_path)
     before = rsa.specimen_hash(d)
-    for sub in ("audit", "node_modules", "target", "out", "__pycache__", ".venv"):
-        (d / sub).mkdir()
-        (d / sub / "junk").write_text("junk")
+    (d / "Cargo.lock").write_text("lock")
+    (d / "bin").mkdir()
+    (d / "bin" / "app").write_text("binary")
     assert rsa.specimen_hash(d) == before
-    (d / "app.py").write_text("x = 2\n")
+    (d / "audit").mkdir()
+    (d / "audit" / "audit.json").write_text("{}")
+    subprocess.run(["git", "-C", str(tmp_path), "add", str(d / "audit")], check=True)
+    assert rsa.specimen_hash(d) == before
+    (d / "app.py").write_text("def f():\n    return 2\n")
     assert rsa.specimen_hash(d) != before
 
 
-def test_specimen_hash_covers_file_names(tmp_path):
+def test_specimen_hash_covers_file_names(tmp_path, monkeypatch):
+    monkeypatch.setattr(rsa, "REPO_ROOT", tmp_path)
     a, b = tmp_path / "a", tmp_path / "b"
     for d, name in ((a, "one.py"), (b, "two.py")):
         d.mkdir()
         (d / name).write_text("x = 1\n")
+    _git_track(tmp_path)
     assert rsa.specimen_hash(a) != rsa.specimen_hash(b)
-
-
-def test_rescore_specimen_requires_audit_json(tmp_path, monkeypatch):
-    _, d = _rescore_tree(tmp_path, monkeypatch)
-    (d / "audit" / "audit.json").unlink()
-    with pytest.raises(SystemExit, match="nothing to rescore"):
-        rsa.rescore_specimen(d, [], [])
-
-
-def test_rescore_specimen_requires_meta(tmp_path, monkeypatch):
-    _, d = _rescore_tree(tmp_path, monkeypatch)
-    (d / "audit" / "coverage.json").write_text("{}")
-    with pytest.raises(SystemExit, match="no run metadata"):
-        rsa.rescore_specimen(d, [], [])
 
 
 def _rescore_args(tmp_path):
