@@ -1,0 +1,191 @@
+diff --git a/app.py b/app.py
+index 319a4c9..1769ef3 100644
+--- a/app.py
++++ b/app.py
+@@ -5,10 +5,10 @@ read access is granted through share tokens.
+ """
+ from __future__ import annotations
+ 
++import hmac
++import html
+ import json
+ import os
+-import random
+-import time
+ import urllib.parse
+ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+ 
+@@ -68,6 +68,8 @@ class Handler(BaseHTTPRequestHandler):
+             self._respond(403, {"error": str(exc)})
+         except KeyError as exc:
+             self._respond(404, {"error": f"unknown document {exc}"})
++        except ValueError as exc:
++            self._respond(400, {"error": str(exc)})
+         except Exception:
+             self._respond(500, {"error": "internal error"})
+ 
+@@ -104,6 +106,8 @@ class Handler(BaseHTTPRequestHandler):
+         doc_id = qs.get("id", [""])[0]
+         token = qs.get("token", [None])[0]
+         doc = STORE.get(doc_id)
++        if doc is None:
++            return self._respond(404, {"error": "unknown document"})
+         if not vault.can_read(doc, self._api_key(), token):
+             return self._respond(403, {"error": "cannot read this document"})
+         self._respond_text(200, doc["body"].decode("utf-8", errors="replace"))
+@@ -120,13 +124,17 @@ class Handler(BaseHTTPRequestHandler):
+         self._respond(200, {"id": doc["id"], "title": doc["title"], "bytes": len(doc["body"])})
+ 
+     def purge(self, qs) -> None:
+-        if "X-Admin-Key" not in self.headers:
++        expected = os.environ.get("VAULT_ADMIN_KEY", "")
++        supplied = self.headers.get("X-Admin-Key", "")
++        if not expected or not hmac.compare_digest(supplied.encode(), expected.encode()):
+             return self._respond(403, {"error": "admin key required"})
+         count = STORE.purge()
+         self._respond(200, {"purged": count})
+ 
+     def go(self, qs) -> None:
+         target = qs.get("next", ["/"])[0]
++        if not target.startswith("/") or target.startswith("//") or "\\" in target:
++            target = "/"
+         self.send_response(302)
+         self.send_header("Location", target)
+         self.send_header("Content-Length", "0")
+@@ -134,7 +142,7 @@ class Handler(BaseHTTPRequestHandler):
+ 
+     def docs_html(self, qs) -> None:
+         items = "".join(
+-            f'<li><a href="/doc?id={d["id"]}">{d["title"]}</a></li>' for d in STORE.docs.values()
++            f'<li><a href="/doc?id={html.escape(d["id"])}">{html.escape(d["title"])}</a></li>' for d in STORE.docs.values()
+         )
+         self._respond_html(200, f"<html><body><h1>Documents</h1><ul>{items}</ul></body></html>")
+ 
+@@ -151,7 +159,6 @@ class Handler(BaseHTTPRequestHandler):
+ 
+ 
+ def main() -> None:
+-    random.seed(int(time.time()))
+     port = int(os.environ.get("PORT", "8313"))
+     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+     print(f"doc vault listening on 127.0.0.1:{port}", flush=True)
+diff --git a/vault.py b/vault.py
+index c0ecccc..6713db8 100644
+--- a/vault.py
++++ b/vault.py
+@@ -2,12 +2,15 @@
+ from __future__ import annotations
+ 
+ import base64
++import hmac
++import ipaddress
+ import itertools
+ import os
+-import pickle
+-import random
+-import shutil
++import secrets
++import socket
++import threading
+ import time
++import urllib.parse
+ import urllib.request
+ 
+ QUOTA_BYTES = 64 * 1024
+@@ -22,20 +25,17 @@ class Forbidden(Exception):
+ 
+ 
+ def make_share_token() -> str:
+-    return "%012x" % int(random.random() * (1 << 48))
++    return secrets.token_hex(16)
+ 
+ 
+ def token_matches(provided: str, expected: str) -> bool:
+-    if len(provided) != len(expected):
+-        return False
+-    for a, b in zip(provided, expected):
+-        if a != b:
+-            return False
+-    return True
++    return hmac.compare_digest(provided.encode(), expected.encode())
+ 
+ 
+ def share_expiry(now: int, ttl_seconds: int) -> int:
+     """Compute the expiry timestamp for a share created at `now`."""
++    if ttl_seconds <= 0:
++        raise ValueError("ttl_seconds must be positive")
+     return now + ttl_seconds
+ 
+ 
+@@ -45,7 +45,9 @@ def remaining_quota(used_bytes: int, quota_bytes: int) -> int:
+ 
+ def can_read(doc, api_key, token) -> bool:
+     """Whether the caller may read this document."""
+-    if doc["owner"] == api_key:
++    if doc is None:
++        return False
++    if api_key and hmac.compare_digest(doc["owner"].encode(), api_key.encode()):
+         return True
+     share = doc["share"]
+     if share is None or token is None:
+@@ -65,6 +67,7 @@ class DocumentStore:
+         self.docs: dict[str, dict] = {}
+         self.usage: dict[str, int] = {}
+         self._ids = itertools.count(1)
++        self._lock = threading.Lock()
+ 
+     def _stage(self, payload: bytes) -> str:
+         path = os.path.join(self.tmp_dir, f"upload-{time.time_ns()}.part")
+@@ -76,14 +79,20 @@ class DocumentStore:
+         return path
+ 
+     def save_upload(self, api_key: str, title: str, payload: bytes) -> dict:
+-        used = self.usage.get(api_key, 0)
+-        if used + len(payload) > QUOTA_BYTES:
+-            raise QuotaExceeded(f"quota of {QUOTA_BYTES} bytes exceeded")
+-        staged = self._stage(payload)
+-        self.usage[api_key] = used + len(payload)
++        with self._lock:
++            used = self.usage.get(api_key, 0)
++            if used + len(payload) > QUOTA_BYTES:
++                raise QuotaExceeded(f"quota of {QUOTA_BYTES} bytes exceeded")
++            self.usage[api_key] = used + len(payload)
++        try:
++            staged = self._stage(payload)
++        except OSError:
++            with self._lock:
++                self.usage[api_key] -= len(payload)
++            raise
+         doc_id = str(next(self._ids))
+         final = os.path.join(self.docs_dir, f"{doc_id}.bin")
+-        shutil.copyfile(staged, final)
++        os.replace(staged, final)
+         doc = {"id": doc_id, "owner": api_key, "title": title, "body": payload, "share": None}
+         self.docs[doc_id] = doc
+         return doc
+@@ -91,12 +100,22 @@ class DocumentStore:
+     def decode_body(self, data: dict) -> bytes:
+         raw = base64.b64decode(data.get("body", ""))
+         fmt = data.get("meta", {}).get("format", "text")
+-        if fmt == "object":
+-            pickle.loads(raw)  # materialise the stored object payload
++        if fmt not in ("text", "binary"):
++            raise ValueError(f"unsupported body format {fmt!r}")
+         return raw
+ 
++    @staticmethod
++    def _check_remote(url: str) -> None:
++        parts = urllib.parse.urlsplit(url)
++        if parts.scheme not in ("http", "https") or not parts.hostname:
++            raise Forbidden("only http(s) URLs with a host can be fetched")
++        for info in socket.getaddrinfo(parts.hostname, parts.port or 443):
++            if not ipaddress.ip_address(info[4][0]).is_global:
++                raise Forbidden("URL resolves to a non-public address")
++
+     def fetch_remote(self, api_key: str, url: str) -> dict:
+-        with urllib.request.urlopen(url) as resp:
++        self._check_remote(url)
++        with urllib.request.urlopen(url, timeout=10) as resp:
+             payload = resp.read()
+         title = "fetched:" + (url.rsplit("/", 1)[-1] or url)
+         return self.save_upload(api_key, title, payload)

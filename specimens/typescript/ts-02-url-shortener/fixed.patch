@@ -1,0 +1,209 @@
+diff --git a/links.ts b/links.ts
+index f7d17e7..56e4814 100644
+--- a/links.ts
++++ b/links.ts
+@@ -3,6 +3,8 @@
+  * statistics. The store is a plain Map owned by the HTTP layer.
+  */
+ 
++import { randomInt } from "node:crypto";
++
+ export interface Link {
+   code: string;
+   target: string;
+@@ -27,24 +29,33 @@ const SECONDS_PER_DAY = 86400;
+ 
+ export class ValidationError extends Error {}
+ 
++export class NotFoundError extends Error {}
++
+ export function nowSeconds(): number {
+   return Math.floor(Date.now() / 1000);
+ }
+ 
+ /** Random base36 code for links created without an alias. */
+ export function generateCode(): string {
+-  return Math.random().toString(36).slice(2, 2 + CODE_LENGTH);
++  const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz";
++  let code = "";
++  for (let i = 0; i < CODE_LENGTH; i++) code += alphabet[randomInt(alphabet.length)];
++  return code;
+ }
+ 
+ export function validateTarget(target: unknown): string {
+   if (typeof target !== "string" || target.length === 0 || target.length > 2048) {
+     throw new ValidationError("url must be a non-empty string of at most 2048 characters");
+   }
++  let parsed: URL;
+   try {
+-    new URL(target);
++    parsed = new URL(target);
+   } catch {
+     throw new ValidationError("url must be an absolute URL");
+   }
++  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
++    throw new ValidationError("url must use http or https");
++  }
+   return target;
+ }
+ 
+@@ -60,8 +71,7 @@ export function validateAlias(alias: unknown): string {
+ 
+ /** Aliases are case-insensitive; store them in canonical form. */
+ export function normalizeAlias(alias: string): string {
+-  const canonical = alias.toLowerCase();
+-  return canonical.slice(0, CODE_LENGTH);
++  return alias.toLowerCase();
+ }
+ 
+ export function createLink(
+@@ -71,12 +81,24 @@ export function createLink(
+   ttlSeconds: number | undefined,
+ ): Link {
+   const url = validateTarget(target);
+-  const code = alias === undefined ? generateCode() : normalizeAlias(validateAlias(alias));
++  let code: string;
++  if (alias === undefined) {
++    do {
++      code = generateCode();
++    } while (links.has(code));
++  } else {
++    code = normalizeAlias(validateAlias(alias));
++    if (links.has(code)) throw new ValidationError(`alias ${code} is already taken`);
++  }
++  if (ttlSeconds !== undefined && (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0)) {
++    throw new ValidationError("ttlSeconds must be a positive integer");
++  }
++  const createdAt = nowSeconds();
+   const link: Link = {
+     code,
+     target: url,
+-    createdAt: nowSeconds(),
+-    expiresAt: ttlSeconds ? Date.now() + ttlSeconds * 1000 : null,
++    createdAt,
++    expiresAt: ttlSeconds ? createdAt + ttlSeconds : null,
+     clicks: 0,
+   };
+   links.set(code, link);
+@@ -89,25 +111,26 @@ export function isExpired(link: Link, now: number): boolean {
+ 
+ /** Look up a live link by code; returns null when unknown or expired. */
+ export function resolveLink(links: Map<string, Link>, code: string, now: number): Link | null {
+-  const link = links.get(code);
++  const link = links.get(code.toLowerCase());
+   if (!link || isExpired(link, now)) return null;
+   return link;
+ }
+ 
+ /** Average clicks per full day since creation, rounded to two decimals. */
+ export function clicksPerDay(clicks: number, createdAt: number, now: number): number {
+-  const days = Math.floor((now - createdAt) / SECONDS_PER_DAY);
++  const days = Math.max(1, Math.floor((now - createdAt) / SECONDS_PER_DAY));
+   return Math.round((clicks / days) * 100) / 100;
+ }
+ 
+ export function linkStats(links: Map<string, Link>, code: string, now: number): LinkStats {
+-  const link = links.get(code) as Link;
++  const link = links.get(code.toLowerCase());
++  if (link === undefined) throw new NotFoundError(`unknown link ${code}`);
+   return {
+     code: link.code,
+     target: link.target,
+     clicks: link.clicks,
+     createdAt: new Date(link.createdAt * 1000).toISOString(),
+-    expiresAt: link.expiresAt === null ? null : new Date(link.expiresAt).toISOString(),
++    expiresAt: link.expiresAt === null ? null : new Date(link.expiresAt * 1000).toISOString(),
+     clicksPerDay: clicksPerDay(link.clicks, link.createdAt, now),
+   };
+ }
+diff --git a/server.ts b/server.ts
+index 08ee505..e52b64d 100644
+--- a/server.ts
++++ b/server.ts
+@@ -8,16 +8,20 @@
+  */
+ import { createServer } from "node:http";
+ import type { IncomingMessage, ServerResponse } from "node:http";
++import { timingSafeEqual } from "node:crypto";
++import { lookup } from "node:dns/promises";
+ import { mkdirSync } from "node:fs";
+ import { appendFile } from "node:fs/promises";
++import { BlockList, isIP } from "node:net";
+ import { dirname } from "node:path";
+-import { ValidationError, createLink, linkStats, nowSeconds, resolveLink } from "./links.ts";
++import { NotFoundError, ValidationError, createLink, linkStats, nowSeconds, resolveLink } from "./links.ts";
+ import type { Link } from "./links.ts";
+ 
+ const HOST = "127.0.0.1";
+ const PORT = Number(process.env.PORT ?? 8322);
+ const CLICK_LOG = process.env.CLICK_LOG ?? "out/clicks.log";
+-const ADMIN_TOKEN = "sl-admin-7f3c9e21";
++/** Empty disables the admin endpoint. */
++const ADMIN_TOKEN = process.env.ADMIN_TOKEN ?? "";
+ const MAX_BODY = 64 * 1024;
+ 
+ const links = new Map<string, Link>();
+@@ -64,18 +68,37 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
+ }
+ 
+ /** Fetch the target once so the client can show a title next to the short link. */
++const NON_PUBLIC = new BlockList();
++for (const [net, bits] of [["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8],
++  ["169.254.0.0", 16], ["172.16.0.0", 12], ["192.168.0.0", 16], ["224.0.0.0", 3]] as const) {
++  NON_PUBLIC.addSubnet(net, bits, "ipv4");
++}
++for (const [net, bits] of [["::", 127], ["::ffff:0:0", 96], ["fc00::", 7], ["fe80::", 10], ["ff00::", 8]] as const) {
++  NON_PUBLIC.addSubnet(net, bits, "ipv6");
++}
++
++async function assertPublicHost(target: string): Promise<void> {
++  const host = new URL(target).hostname.replace(/^\[|\]$/g, "");
++  const addresses = isIP(host) ? [{ address: host, family: isIP(host) }] : await lookup(host, { all: true });
++  for (const { address, family } of addresses) {
++    if (NON_PUBLIC.check(address, family === 6 ? "ipv6" : "ipv4")) {
++      throw new ValidationError("preview target resolves to a non-public address");
++    }
++  }
++}
++
+ async function fetchPreview(target: string): Promise<Preview> {
+-  const res = await fetch(target, { signal: AbortSignal.timeout(3000) });
++  await assertPublicHost(target);
++  const res = await fetch(target, { signal: AbortSignal.timeout(3000), redirect: "manual" });
+   const text = await res.text();
+   const match = /<title>([^<]*)<\/title>/i.exec(text);
+   return { status: res.status, title: match ? match[1].trim() : null, snippet: text.slice(0, 200) };
+ }
+ 
+ async function recordClick(link: Link, req: IncomingMessage): Promise<void> {
+-  const clicks = link.clicks;
++  link.clicks += 1;
+   const referer = req.headers.referer ?? "-";
+   await appendFile(CLICK_LOG, `${new Date().toISOString()} ${link.code} ${referer}\n`);
+-  link.clicks = clicks + 1;
+ }
+ 
+ async function handleShorten(req: IncomingMessage, res: ServerResponse): Promise<void> {
+@@ -95,11 +118,20 @@ async function handleRedirect(req: IncomingMessage, res: ServerResponse, code: s
+ }
+ 
+ function handleStats(res: ServerResponse, code: string): void {
+-  sendJson(res, 200, linkStats(links, code, nowSeconds()));
++  try {
++    sendJson(res, 200, linkStats(links, code, nowSeconds()));
++  } catch (err) {
++    if (err instanceof NotFoundError) return sendJson(res, 404, { error: err.message });
++    throw err;
++  }
+ }
+ 
+ async function handleAdminDelete(req: IncomingMessage, res: ServerResponse): Promise<void> {
+-  if (req.headers["x-admin"] !== ADMIN_TOKEN) return sendJson(res, 403, { error: "admin only" });
++  const supplied = Buffer.from(String(req.headers["x-admin"] ?? ""));
++  const expected = Buffer.from(ADMIN_TOKEN);
++  if (expected.length === 0 || supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) {
++    return sendJson(res, 403, { error: "admin only" });
++  }
+   const body = await readJson(req);
+   const code = String(body.code ?? "");
+   const deleted = links.delete(code);

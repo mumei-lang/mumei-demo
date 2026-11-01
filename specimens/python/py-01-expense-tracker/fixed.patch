@@ -1,0 +1,163 @@
+diff --git a/app.py b/app.py
+index 8fd5a70..586161a 100644
+--- a/app.py
++++ b/app.py
+@@ -7,12 +7,12 @@ from __future__ import annotations
+ 
+ import json
+ import os
+-import traceback
+ import urllib.parse
+ from datetime import date
+ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+ 
+ import config
++import hmac
+ import ledger
+ from store import Database
+ 
+@@ -81,7 +81,7 @@ class Handler(BaseHTTPRequestHandler):
+         try:
+             handler(qs)
+         except Exception:
+-            self._respond_text(500, traceback.format_exc())
++            self._respond(500, {"error": "internal error"})
+ 
+     def do_GET(self) -> None:
+         self._dispatch("GET")
+@@ -89,8 +89,16 @@ class Handler(BaseHTTPRequestHandler):
+     def do_POST(self) -> None:
+         self._dispatch("POST")
+ 
++    def _caller(self) -> str:
++        return self.headers.get("X-User", "")
++
++    def _require_self(self, user: str) -> bool:
++        if not user or user != self._caller():
++            self._respond(403, {"error": "X-User must match ?user="})
++            return False
++        return True
++
+     def create_expense(self, qs) -> None:
+-        request_id, conn = DB.acquire()
+         try:
+             data = self._read_json()
+         except Exception:
+@@ -101,7 +109,12 @@ class Handler(BaseHTTPRequestHandler):
+         except ValueError:
+             self._respond(400, {"error": "day must be YYYY-MM-DD"})
+             return
+-        amount = ledger.parse_amount(data.get("amount_cents", 0))
++        try:
++            amount = ledger.parse_amount(data.get("amount_cents", 0))
++        except (TypeError, ValueError):
++            self._respond(400, {"error": "amount_cents must be a positive integer"})
++            return
++        request_id, conn = DB.acquire()
+         conn.execute(
+             "INSERT INTO expenses (user, amount_cents, category, day, note) VALUES (?, ?, ?, ?, ?)",
+             (
+@@ -118,18 +131,22 @@ class Handler(BaseHTTPRequestHandler):
+ 
+     def list_expenses(self, qs) -> None:
+         user = qs.get("user", [""])[0]
++        if not self._require_self(user):
++            return
+         request_id, conn = DB.acquire()
+-        query = (
++        rows = conn.execute(
+             "SELECT id, user, amount_cents, category, day, note FROM expenses "
+-            "WHERE user = '%s' ORDER BY day" % user
+-        )
+-        rows = conn.execute(query).fetchall()
++            "WHERE user = ? ORDER BY day",
++            (user,),
++        ).fetchall()
+         DB.release(request_id)
+         self._respond(200, {"expenses": [row_to_dict(r) for r in rows]})
+ 
+     def summary(self, qs) -> None:
+         user = qs.get("user", [""])[0]
+         month = qs.get("month", [""])[0]
++        if not self._require_self(user):
++            return
+         request_id, conn = DB.acquire()
+         rows = conn.execute(
+             "SELECT amount_cents, category, day FROM expenses WHERE user = ? AND day LIKE ?",
+@@ -205,12 +222,17 @@ class Handler(BaseHTTPRequestHandler):
+ 
+     def export(self, qs) -> None:
+         name = qs.get("path", [""])[0]
+-        full = os.path.join(REPORTS_DIR, name)
++        root = os.path.realpath(REPORTS_DIR)
++        full = os.path.realpath(os.path.join(root, name))
++        if os.path.dirname(full) != root:
++            self._respond(400, {"error": "path must name a report"})
++            return
+         with open(full, "r", encoding="utf-8") as f:
+             self._respond_text(200, f.read())
+ 
+     def admin_stats(self, qs) -> None:
+-        if self.headers.get("X-Admin-Token") != config.ADMIN_TOKEN:
++        supplied = self.headers.get("X-Admin-Token", "")
++        if not config.ADMIN_TOKEN or not hmac.compare_digest(supplied, config.ADMIN_TOKEN):
+             self._respond(403, {"error": "forbidden"})
+             return
+         request_id, conn = DB.acquire()
+diff --git a/config.py b/config.py
+index 0af9a2e..194e3c8 100644
+--- a/config.py
++++ b/config.py
+@@ -1,5 +1,8 @@
+ """Static configuration for the expense tracker service."""
+ 
+-ADMIN_TOKEN = "exp-admin-7f3d92a1"
++import os
++
++# Empty disables the admin endpoint.
++ADMIN_TOKEN = os.environ.get("EXPENSE_ADMIN_TOKEN", "")
+ DEFAULT_DB = "expenses.db"
+ REPORTS_SUBDIR = "reports"
+diff --git a/ledger.py b/ledger.py
+index e3a29d0..967aac0 100644
+--- a/ledger.py
++++ b/ledger.py
+@@ -3,25 +3,33 @@ from __future__ import annotations
+ 
+ 
+ def parse_amount(value) -> int:
+-    """Convert a JSON amount field into integer cents."""
+-    return int(value)
++    """Convert a JSON amount field into integer cents; must be positive."""
++    amount = int(value)
++    if amount <= 0:
++        raise ValueError("amount_cents must be positive")
++    return amount
+ 
+ 
+ def daily_average(total_cents: int, days: int) -> int:
+     """Average spend per active day in the period."""
++    if days <= 0:
++        return 0
+     return total_cents // days
+ 
+ 
+ def average_expense(amounts: list[int]) -> int:
+     """Mean expense size in cents, rounded to a whole cent."""
+-    return round(sum(amounts) / len(amounts))
++    if not amounts:
++        return 0
++    return (2 * sum(amounts) + len(amounts)) // (2 * len(amounts))
+ 
+ 
+ def is_over_budget(spent_cents: int, limit_cents: int) -> bool:
+     """Whether the month's spend has used up the budget."""
+-    return spent_cents > limit_cents
++    return spent_cents >= limit_cents
+ 
+ 
+ def subcategory(label: str) -> str:
+     """The part of a category label after the group prefix, e.g. 'food:groceries' -> 'groceries'."""
+-    return label.split(":")[1]
++    _, sep, rest = label.partition(":")
++    return rest if sep else label

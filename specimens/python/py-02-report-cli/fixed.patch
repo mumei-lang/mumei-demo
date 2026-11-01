@@ -1,0 +1,129 @@
+diff --git a/report.py b/report.py
+index d01043a..d07ff3f 100644
+--- a/report.py
++++ b/report.py
+@@ -9,6 +9,7 @@ import csv
+ import subprocess
+ import sys
+ from datetime import date
++from decimal import Decimal, InvalidOperation
+ 
+ import timesheet
+ 
+@@ -25,6 +26,8 @@ def parse_args(argv=None) -> argparse.Namespace:
+ 
+ def parse_row(row: list[str]) -> dict:
+     """One CSV row: worker,date,project,duration[,notes]."""
++    if len(row) < 4:
++        raise ValueError(f"expected at least 4 columns, got {len(row)}")
+     worker = row[0].strip()
+     day = date.fromisoformat(row[1].strip())
+     project = row[2].strip()
+@@ -36,13 +39,13 @@ def parse_row(row: list[str]) -> dict:
+ def load_entries(path: str) -> list[dict]:
+     entries = []
+     with open(path, newline="") as f:
+-        for row in csv.reader(f):
++        for lineno, row in enumerate(csv.reader(f), start=1):
+             if not row or row[0].strip() == "worker" or row[0].startswith("#"):
+                 continue
+             try:
+                 entries.append(parse_row(row))
+-            except Exception:
+-                break
++            except ValueError as exc:
++                raise SystemExit(f"{path}:{lineno}: {exc}")
+     return entries
+ 
+ 
+@@ -57,13 +60,13 @@ def aggregate(entries: list[dict]) -> dict:
+     return per_worker
+ 
+ 
+-def render(per_worker: dict, rate) -> str:
++def render(per_worker: dict, rate: Decimal) -> str:
+     lines = ["BILLING REPORT", "==============", ""]
+-    total_amount = 0.0
++    total_amount = Decimal("0.00")
+     for worker in sorted(per_worker):
+         w = per_worker[worker]
+         hours = w["total"] / 60
+-        amount = hours * rate
++        amount = (Decimal(w["total"]) * rate / 60).quantize(Decimal("0.01"))
+         total_amount += amount
+         overtime = timesheet.overtime_minutes(list(w["daily"].values()), DAILY_THRESHOLD_MINUTES)
+         overtime_pct = timesheet.share_of_total(overtime, w["total"]) * 100
+@@ -78,14 +81,18 @@ def render(per_worker: dict, rate) -> str:
+ 
+ 
+ def post_process(out_path: str) -> None:
+-    subprocess.run(f"wc -l {out_path}", shell=True, check=False)
++    subprocess.run(["wc", "-l", "--", out_path], check=False)
+ 
+ 
+ def main(argv=None) -> int:
+     args = parse_args(argv)
+     entries = load_entries(args.input)
+     per_worker = aggregate(entries)
+-    report = render(per_worker, float(args.rate))
++    try:
++        rate = Decimal(args.rate)
++    except InvalidOperation:
++        raise SystemExit(f"--rate must be a number: {args.rate!r}")
++    report = render(per_worker, rate)
+     print(report)
+     with open(args.out, "w", encoding="utf-8") as f:
+         f.write(report + "\n")
+diff --git a/timesheet.py b/timesheet.py
+index 3efdad8..b60d6ce 100644
+--- a/timesheet.py
++++ b/timesheet.py
+@@ -4,31 +4,35 @@ from __future__ import annotations
+ import re
+ from datetime import date
+ 
+-DURATION_RE = re.compile(r"^(-?\d+h?)*(-?\d+m?)*$")
++DURATION_RE = re.compile(r"^(?:\d{1,4}h)?(?:\d{1,5}m)?$")
+ 
+ 
+ def parse_duration(text: str) -> int:
+     """Parse a duration like '7h30m', '45m' or '8h' into minutes."""
+-    if not DURATION_RE.match(text):
++    if not text or not DURATION_RE.match(text):
+         raise ValueError(f"unrecognised duration: {text!r}")
+     total = 0
+-    for value, unit in re.findall(r"(-?\d+)(h|m)", text):
++    for value, unit in re.findall(r"(\d+)(h|m)", text):
+         minutes = int(value)
+         if unit == "h":
+             minutes *= 60
+         total += minutes
++    if total <= 0:
++        raise ValueError(f"duration must be positive: {text!r}")
+     return total
+ 
+ 
+ def share_of_total(part: int, whole: int) -> float:
+     """part as a fraction of whole."""
++    if whole == 0:
++        return 0.0
+     return part / whole
+ 
+ 
+ def overtime_minutes(daily_minutes: list[int], threshold: int) -> int:
+     """Minutes worked beyond the daily threshold."""
+     extra = 0
+-    for minutes in daily_minutes[1:]:
++    for minutes in daily_minutes:
+         if minutes > threshold:
+             extra += minutes - threshold
+     return extra
+@@ -36,7 +40,7 @@ def overtime_minutes(daily_minutes: list[int], threshold: int) -> int:
+ 
+ def is_weekend(day: date) -> bool:
+     """Whether a worked day counts as weekend work."""
+-    return day.weekday() > 5
++    return day.weekday() >= 5
+ 
+ 
+ def format_minutes(minutes: int) -> str:
