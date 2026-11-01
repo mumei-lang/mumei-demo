@@ -134,7 +134,7 @@ index e4617f1..8780c47 100644
  	state.count++
  	limits[address] = state
 diff --git a/handlers.go b/handlers.go
-index 464f6fb..3565a4b 100644
+index 464f6fb..e97b784 100644
 --- a/handlers.go
 +++ b/handlers.go
 @@ -1,12 +1,16 @@
@@ -268,7 +268,7 @@ index 464f6fb..3565a4b 100644
  	})
  }
  
-@@ -109,3 +138,44 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
+@@ -109,3 +138,58 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
  	w.WriteHeader(status)
  	json.NewEncoder(w).Encode(value)
  }
@@ -300,11 +300,25 @@ index 464f6fb..3565a4b 100644
 +
 +func publicAddress(addr netip.Addr) bool {
 +	addr = addr.Unmap()
-+	return addr.IsGlobalUnicast() && !addr.IsPrivate() && !addr.IsLoopback() &&
-+		!addr.IsLinkLocalUnicast() && !sharedAddressSpace.Contains(addr)
++	if !addr.IsGlobalUnicast() || addr.IsPrivate() || addr.IsLoopback() || addr.IsLinkLocalUnicast() {
++		return false
++	}
++	for _, prefix := range nonPublicPrefixes {
++		if prefix.Contains(addr) {
++			return false
++		}
++	}
++	return true
 +}
 +
-+var sharedAddressSpace = netip.MustParsePrefix("100.64.0.0/10")
++// Special-purpose IPv4 ranges that are not covered by the netip predicates.
++var nonPublicPrefixes = []netip.Prefix{
++	netip.MustParsePrefix("0.0.0.0/8"),
++	netip.MustParsePrefix("100.64.0.0/10"),
++	netip.MustParsePrefix("192.0.0.0/24"),
++	netip.MustParsePrefix("198.18.0.0/15"),
++	netip.MustParsePrefix("240.0.0.0/4"),
++}
 +
 +func localPath(next string) bool {
 +	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.ContainsAny(next, "\\\r\n") {
