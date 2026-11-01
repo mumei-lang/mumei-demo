@@ -63,6 +63,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 |---|---:|---|
 | `scripts/generate_report.py` | 9 | Render a Mumei demo result. |
 | `scripts/run_specimen_audits.py` | 10 | Run `mumei-agent audit` over every specimen and score it against DEFECTS.json. |
+| `scripts/run_baselines.py` | 8 | Run off-the-shelf static analyzers over the specimens and score them like the audit. |
 | `scripts/record_scenario.py` | 2 | Finite record-operation checks and intentionally broken host variants. |
 | `scripts/record_model_evidence.py` | 2 | Collect independent Lean model evidence; never promote a Python operation. |
 | `scripts/check_specimens.py` | 2 | Validate specimen directories. |
@@ -104,6 +105,21 @@ Run `mumei-agent audit` over every specimen and score it against DEFECTS.json.
 | `--top-readme` | `<TOP_README>` | no | `README.md` | — |
 | `--render-only` | — | no | `false` | re-render scoreboard SVGs and README blocks from history.json without running any audits |
 | `--rescore` | — | no | `false` | re-score the committed audit/audit.json files with the current adjudications.json and record the result, without running any audits |
+
+### `scripts/run_baselines.py`
+
+Run off-the-shelf static analyzers over the specimens and score them like the audit.
+
+| Option | Value | Required | Default | Description |
+|---|---|---|---|---|
+| `--tools` | `<TOOLS>` | no | `semgrep,bandit` | comma-separated tools to run (default: semgrep,bandit) |
+| `--semgrep-bin` | `<SEMGREP_BIN>` | no | — | semgrep executable (default: .cache/baselines/venv, then PATH) |
+| `--bandit-bin` | `<BANDIT_BIN>` | no | — | bandit executable (default: .cache/baselines/venv, then PATH) |
+| `--semgrep-rules` | `<SEMGREP_RULES>` | no | `.cache/baselines/semgrep-rules` | semgrep-rules checkout at the pinned commit |
+| `--timeout` | `<TIMEOUT>` | no | `900` | per-run timeout in seconds |
+| `--summary` | `<SUMMARY>` | no | `specimens/BASELINES.md` | — |
+| `--scoreboard-dir` | `<SCOREBOARD_DIR>` | no | `specimens/scoreboard` | — |
+| `--rescore` | — | no | `false` | re-score the committed baselines/<tool>.json findings with the current baseline_reviews.json, without running any tool |
 
 ### `scripts/record_scenario.py`
 

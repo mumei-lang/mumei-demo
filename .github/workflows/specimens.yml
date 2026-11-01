@@ -9,6 +9,8 @@ on:
       - "tests/test_check_specimens.py"
       - "scripts/run_specimen_audits.py"
       - "tests/test_run_specimen_audits.py"
+      - "scripts/run_baselines.py"
+      - "tests/test_run_baselines.py"
       - ".github/workflows/specimens.yml"
   workflow_dispatch:
 
@@ -28,3 +30,5 @@ jobs:
         run: python3 -m pytest tests/test_check_specimens.py -q
       - name: Run audit-runner tests
         run: python3 -m pytest tests/test_run_specimen_audits.py -q
+      - name: Run baseline-runner tests
+        run: python3 -m pytest tests/test_run_baselines.py -q

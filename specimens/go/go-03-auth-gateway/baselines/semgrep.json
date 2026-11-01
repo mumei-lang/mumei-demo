@@ -1,0 +1,363 @@
+{
+  "specimen": "go-03-auth-gateway",
+  "language": "go",
+  "tool": "semgrep",
+  "version": "1.150.0",
+  "rules_commit": "16b9e6d45f10649f6a531ec4838ed9924372c3bc",
+  "rule_categories": [
+    "correctness",
+    "security"
+  ],
+  "generated_at": "2026-11-01T18:19:10Z",
+  "source_hash": "a7f22803f92f10a530668fdb2e95355a4ad0869e0f8ea6c9418121ac5cba70a5",
+  "tool_errors": 0,
+  "raw_findings": [
+    {
+      "file": "auth.go",
+      "line": 25,
+      "rule": "go.lang.security.audit.crypto.use-of-sha1",
+      "severity": "warning",
+      "cwe": [
+        328
+      ],
+      "message": "Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead.",
+      "function": null
+    },
+    {
+      "file": "auth.go",
+      "line": 26,
+      "rule": "go.lang.security.audit.crypto.use-of-sha1",
+      "severity": "warning",
+      "cwe": [
+        328
+      ],
+      "message": "Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead.",
+      "function": null
+    },
+    {
+      "file": "auth.go",
+      "line": 27,
+      "rule": "go.lang.security.audit.crypto.use-of-sha1",
+      "severity": "warning",
+      "cwe": [
+        328
+      ],
+      "message": "Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead.",
+      "function": null
+    },
+    {
+      "file": "handlers.go",
+      "line": 29,
+      "rule": "go.lang.security.audit.crypto.use-of-sha1",
+      "severity": "warning",
+      "cwe": [
+        328
+      ],
+      "message": "Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead.",
+      "function": "loginHandler"
+    },
+    {
+      "file": "handlers.go",
+      "line": 39,
+      "rule": "go.lang.security.injection.open-redirect",
+      "severity": "warning",
+      "cwe": [
+        601
+      ],
+      "message": "An HTTP redirect was found to be crafted from user-input `r`. This can lead to open redirect vulnerabilities, potentially allowing attackers to redirect users to malicious web sites. It is recommend where possible to not allow user-input to craft the redirect URL. When user-input is necessary to craft the request, it is recommended to follow OWASP best practices to restrict the URL to domains in an allowlist.",
+      "function": "loginHandler"
+    },
+    {
+      "file": "handlers.go",
+      "line": 68,
+      "rule": "go.lang.security.injection.tainted-url-host",
+      "severity": "warning",
+      "cwe": [
+        918
+      ],
+      "message": "A request was found to be crafted from user-input `r`. This can lead to Server-Side Request Forgery (SSRF) vulnerabilities, potentially exposing sensitive data. It is recommend where possible to not allow user-input to craft the base request, but to be treated as part of the path or query parameter. When user-input is necessary to craft the request, it is recommended to follow OWASP best practices to prevent abuse, including using an allowlist.",
+      "function": "proxyHandler"
+    },
+    {
+      "file": "main.go",
+      "line": 23,
+      "rule": "go.lang.security.audit.net.use-tls",
+      "severity": "warning",
+      "cwe": [
+        319
+      ],
+      "message": "Found an HTTP server without TLS. Use 'http.ListenAndServeTLS' instead. See https://golang.org/pkg/net/http/#ListenAndServeTLS for more information.",
+      "function": "main"
+    }
+  ],
+  "defects": [
+    {
+      "id": "GO03-D01",
+      "file": "handlers.go",
+      "function": "loginHandler",
+      "category": "insecure-randomness",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "go.lang.security.audit.crypto.use-of-sha1 in `loginHandler` (line 29, CWE-328): Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead.",
+        "go.lang.security.injection.open-redirect in `loginHandler` (line 39, CWE-601): An HTTP redirect was found to be crafted from user-input `r`. This can lead to open redirect vulnerabilities, potentially allowing attackers to redirect users to malicious web sites. It is recommend where possible to not allow user-input to craft the redirect URL. When user-input is necessary to craft the request, it is recommended to follow OWASP best practices to restrict the URL to domains in an allowlist."
+      ]
+    },
+    {
+      "id": "GO03-D02",
+      "file": "auth.go",
+      "function": "tokenMatches",
+      "category": "timing-side-channel",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D03",
+      "file": "handlers.go",
+      "function": "proxyHandler",
+      "category": "ssrf",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "go.lang.security.injection.tainted-url-host in `proxyHandler` (line 68, CWE-918): A request was found to be crafted from user-input `r`. This can lead to Server-Side Request Forgery (SSRF) vulnerabilities, potentially exposing sensitive data. It is recommend where possible to not allow user-input to craft the base request, but to be treated as part of the path or query parameter. When user-input is necessary to craft the request, it is recommended to follow OWASP best practices to prevent abuse, including using an allowlist."
+      ]
+    },
+    {
+      "id": "GO03-D04",
+      "file": "handlers.go",
+      "function": "profileHandler",
+      "category": "idor",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D05",
+      "file": "handlers.go",
+      "function": "profileHandler",
+      "category": "weak-crypto",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D06",
+      "file": "handlers.go",
+      "function": "rotateHandler",
+      "category": "invalid-state-transition",
+      "class": "design",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D07",
+      "file": "handlers.go",
+      "function": "loginHandler",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "go.lang.security.audit.crypto.use-of-sha1 in `loginHandler` (line 29, CWE-328): Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead.",
+        "go.lang.security.injection.open-redirect in `loginHandler` (line 39, CWE-601): An HTTP redirect was found to be crafted from user-input `r`. This can lead to open redirect vulnerabilities, potentially allowing attackers to redirect users to malicious web sites. It is recommend where possible to not allow user-input to craft the redirect URL. When user-input is necessary to craft the request, it is recommended to follow OWASP best practices to restrict the URL to domains in an allowlist."
+      ]
+    },
+    {
+      "id": "GO03-D08",
+      "file": "auth.go",
+      "function": "allowAttempt",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D09",
+      "file": "main.go",
+      "function": "main",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "go.lang.security.audit.net.use-tls in `main` (line 23, CWE-319): Found an HTTP server without TLS. Use 'http.ListenAndServeTLS' instead. See https://golang.org/pkg/net/http/#ListenAndServeTLS for more information."
+      ]
+    },
+    {
+      "id": "GO03-D10",
+      "file": "handlers.go",
+      "function": "healthHandler",
+      "category": "information-exposure",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D11",
+      "file": "handlers.go",
+      "function": "loginHandler",
+      "category": "open-redirect",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "go.lang.security.injection.open-redirect in `loginHandler` (line 39, CWE-601): An HTTP redirect was found to be crafted from user-input `r`. This can lead to open redirect vulnerabilities, potentially allowing attackers to redirect users to malicious web sites. It is recommend where possible to not allow user-input to craft the redirect URL. When user-input is necessary to craft the request, it is recommended to follow OWASP best practices to restrict the URL to domains in an allowlist."
+      ]
+    }
+  ],
+  "counts": {
+    "total": 11,
+    "detected": 2,
+    "function_flagged": 3,
+    "missed": 6
+  },
+  "findings": [
+    {
+      "file": "auth.go",
+      "kind": "baseline",
+      "text": "go.lang.security.audit.crypto.use-of-sha1 (line 25, CWE-328): Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead.",
+      "status": "real",
+      "reason": "The seeded accounts store unsalted SHA-1 password digests, which is the planted weak-crypto defect; the finding sits on the seed data, not in the function the ground truth names."
+    },
+    {
+      "file": "auth.go",
+      "kind": "baseline",
+      "text": "go.lang.security.audit.crypto.use-of-sha1 (line 26, CWE-328): Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead.",
+      "status": "real",
+      "reason": "The seeded accounts store unsalted SHA-1 password digests, which is the planted weak-crypto defect; the finding sits on the seed data, not in the function the ground truth names."
+    },
+    {
+      "file": "auth.go",
+      "kind": "baseline",
+      "text": "go.lang.security.audit.crypto.use-of-sha1 (line 27, CWE-328): Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead.",
+      "status": "real",
+      "reason": "The seeded accounts store unsalted SHA-1 password digests, which is the planted weak-crypto defect; the finding sits on the seed data, not in the function the ground truth names."
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "go.lang.security.audit.crypto.use-of-sha1 in `loginHandler` (line 29, CWE-328): Detected SHA1 hash algorithm which is considered insecure. SHA1 is not collision resistant and is therefore not suitable as a cryptographic signature. Use SHA256 or SHA3 instead.",
+      "status": "real",
+      "reason": "Login compares unsalted SHA-1 password digests, which is the planted weak-crypto defect reported outside the function the ground truth names."
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "go.lang.security.injection.open-redirect in `loginHandler` (line 39, CWE-601): An HTTP redirect was found to be crafted from user-input `r`. This can lead to open redirect vulnerabilities, potentially allowing attackers to redirect users to malicious web sites. It is recommend where possible to not allow user-input to craft the redirect URL. When user-input is necessary to craft the request, it is recommended to follow OWASP best practices to restrict the URL to domains in an allowlist.",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "go.lang.security.injection.tainted-url-host in `proxyHandler` (line 68, CWE-918): A request was found to be crafted from user-input `r`. This can lead to Server-Side Request Forgery (SSRF) vulnerabilities, potentially exposing sensitive data. It is recommend where possible to not allow user-input to craft the base request, but to be treated as part of the path or query parameter. When user-input is necessary to craft the request, it is recommended to follow OWASP best practices to prevent abuse, including using an allowlist.",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "main.go",
+      "kind": "baseline",
+      "text": "go.lang.security.audit.net.use-tls in `main` (line 23, CWE-319): Found an HTTP server without TLS. Use 'http.ListenAndServeTLS' instead. See https://golang.org/pkg/net/http/#ListenAndServeTLS for more information.",
+      "status": "false_positive",
+      "reason": "The service binds a plain HTTP listener for local use; TLS termination is a deployment choice, not a defect in this code."
+    }
+  ],
+  "finding_counts": {
+    "total": 7,
+    "defect_evidence": 2,
+    "real": 4,
+    "false_positive": 1,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "go-03-auth-gateway",
+      "auth.go",
+      "go.lang.security.audit.crypto.use-of-sha1"
+    ],
+    [
+      "go-03-auth-gateway",
+      "handlers.go",
+      "use-of-sha1 in `loginHandler`"
+    ],
+    [
+      "go-03-auth-gateway",
+      "main.go",
+      "go.lang.security.audit.net.use-tls"
+    ]
+  ],
+  "fixed_raw_findings": [
+    {
+      "file": "handlers.go",
+      "line": 51,
+      "rule": "go.lang.security.injection.open-redirect",
+      "severity": "warning",
+      "cwe": [
+        601
+      ],
+      "message": "An HTTP redirect was found to be crafted from user-input `r`. This can lead to open redirect vulnerabilities, potentially allowing attackers to redirect users to malicious web sites. It is recommend where possible to not allow user-input to craft the redirect URL. When user-input is necessary to craft the request, it is recommended to follow OWASP best practices to restrict the URL to domains in an allowlist.",
+      "function": "loginHandler"
+    },
+    {
+      "file": "main.go",
+      "line": 21,
+      "rule": "go.lang.security.audit.net.use-tls",
+      "severity": "warning",
+      "cwe": [
+        319
+      ],
+      "message": "Found an HTTP server without TLS. Use 'http.ListenAndServeTLS' instead. See https://golang.org/pkg/net/http/#ListenAndServeTLS for more information.",
+      "function": "main"
+    }
+  ],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 11,
+    "still_reported": [
+      "GO03-D11"
+    ],
+    "false_alarms": 2,
+    "findings": [
+      {
+        "file": "handlers.go",
+        "kind": "baseline",
+        "text": "go.lang.security.injection.open-redirect in `loginHandler` (line 51, CWE-601): An HTTP redirect was found to be crafted from user-input `r`. This can lead to open redirect vulnerabilities, potentially allowing attackers to redirect users to malicious web sites. It is recommend where possible to not allow user-input to craft the redirect URL. When user-input is necessary to craft the request, it is recommended to follow OWASP best practices to restrict the URL to domains in an allowlist.",
+        "status": "false_positive",
+        "reason": "On the fixed code `next` is rejected unless localPath accepts it as a same-site path."
+      },
+      {
+        "file": "main.go",
+        "kind": "baseline",
+        "text": "go.lang.security.audit.net.use-tls in `main` (line 21, CWE-319): Found an HTTP server without TLS. Use 'http.ListenAndServeTLS' instead. See https://golang.org/pkg/net/http/#ListenAndServeTLS for more information.",
+        "status": "false_positive",
+        "reason": "The service binds a plain HTTP listener for local use; TLS termination is a deployment choice, not a defect in this code."
+      }
+    ],
+    "finding_counts": {
+      "total": 2,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 2,
+      "unreviewed": 0
+    },
+    "reviews_used": [
+      [
+        "go-03-auth-gateway",
+        "handlers.go",
+        "open-redirect in `loginHandler`"
+      ],
+      [
+        "go-03-auth-gateway",
+        "main.go",
+        "go.lang.security.audit.net.use-tls"
+      ]
+    ]
+  }
+}

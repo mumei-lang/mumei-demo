@@ -1,0 +1,140 @@
+{
+  "finding_reviews": [
+    {
+      "tool": "semgrep",
+      "specimen": "go-01-inventory-api",
+      "file": "main.go",
+      "finding_contains": "go.lang.security.audit.net.use-tls",
+      "verdict": "false_positive",
+      "reason": "The service binds a plain HTTP listener for local use; TLS termination is a deployment choice, not a defect in this code."
+    },
+    {
+      "tool": "semgrep",
+      "specimen": "go-03-auth-gateway",
+      "file": "main.go",
+      "finding_contains": "go.lang.security.audit.net.use-tls",
+      "verdict": "false_positive",
+      "reason": "The service binds a plain HTTP listener for local use; TLS termination is a deployment choice, not a defect in this code."
+    },
+    {
+      "tool": "semgrep",
+      "specimen": "go-01-inventory-api",
+      "file": "handlers.go",
+      "finding_contains": "no-fprintf-to-responsewriter in `searchHandler`",
+      "verdict": "false_positive",
+      "reason": "On the fixed code the query is passed through html.EscapeString before Fprintf writes it."
+    },
+    {
+      "tool": "semgrep",
+      "specimen": "go-03-auth-gateway",
+      "file": "auth.go",
+      "finding_contains": "go.lang.security.audit.crypto.use-of-sha1",
+      "verdict": "real",
+      "reason": "The seeded accounts store unsalted SHA-1 password digests, which is the planted weak-crypto defect; the finding sits on the seed data, not in the function the ground truth names."
+    },
+    {
+      "tool": "semgrep",
+      "specimen": "go-03-auth-gateway",
+      "file": "handlers.go",
+      "finding_contains": "use-of-sha1 in `loginHandler`",
+      "verdict": "real",
+      "reason": "Login compares unsalted SHA-1 password digests, which is the planted weak-crypto defect reported outside the function the ground truth names."
+    },
+    {
+      "tool": "semgrep",
+      "specimen": "go-03-auth-gateway",
+      "file": "handlers.go",
+      "finding_contains": "open-redirect in `loginHandler`",
+      "verdict": "false_positive",
+      "reason": "On the fixed code `next` is rejected unless localPath accepts it as a same-site path."
+    },
+    {
+      "tool": "bandit",
+      "specimen": "py-02-report-cli",
+      "file": "report.py",
+      "finding_contains": "B404:blacklist",
+      "verdict": "false_positive",
+      "reason": "Importing subprocess is not a defect by itself; the call sites are scored separately."
+    },
+    {
+      "tool": "bandit",
+      "specimen": "py-02-report-cli",
+      "file": "report.py",
+      "finding_contains": "B603:subprocess_without_shell_equals_true in `post_process`",
+      "verdict": "false_positive",
+      "reason": "On the fixed code gzip runs with a fixed argument list and no shell; the output path is passed after `--`."
+    },
+    {
+      "tool": "bandit",
+      "specimen": "py-02-report-cli",
+      "file": "report.py",
+      "finding_contains": "B607:start_process_with_partial_path in `post_process`",
+      "verdict": "false_positive",
+      "reason": "Resolving gzip through PATH is the normal way to run a system tool; the arguments are fixed and no shell is involved."
+    },
+    {
+      "tool": "semgrep",
+      "specimen": "py-03-ledger-api",
+      "file": "app.py",
+      "finding_contains": "string-concat-in-list in `statement_html`",
+      "verdict": "false_positive",
+      "reason": "The two adjacent f-strings intentionally form one table row inside a generator; there is no missing comma."
+    },
+    {
+      "tool": "bandit",
+      "specimen": "py-04-doc-vault",
+      "file": "vault.py",
+      "finding_contains": "B403:blacklist",
+      "verdict": "real",
+      "reason": "The module unpickles untrusted data (the planted insecure-deserialization defect); the finding sits on the import, so it is not located at the defect."
+    },
+    {
+      "tool": "bandit",
+      "specimen": "py-04-doc-vault",
+      "file": "vault.py",
+      "finding_contains": "B310:blacklist in `fetch_remote`",
+      "verdict": "real",
+      "reason": "fetch_remote opens a caller-supplied URL without restricting the scheme or host, the planted request-forgery defect in that function."
+    },
+    {
+      "tool": "semgrep",
+      "specimen": "py-04-doc-vault",
+      "file": "vault.py",
+      "finding_contains": "dynamic-urllib-use-detected in `fetch_remote`",
+      "verdict": "real",
+      "reason": "fetch_remote opens a caller-supplied URL without restricting the scheme or host, the planted request-forgery defect in that function."
+    },
+    {
+      "tool": "semgrep",
+      "specimen": "rs-01-bank-core",
+      "file": "src/main.rs",
+      "finding_contains": "rust.lang.security.args in `main`",
+      "verdict": "false_positive",
+      "reason": "Command-line arguments are only parsed as CLI input; nothing trusts argv[0] or uses the arguments for a security decision."
+    },
+    {
+      "tool": "semgrep",
+      "specimen": "rs-03-matrix-tool",
+      "file": "src/main.rs",
+      "finding_contains": "rust.lang.security.args in `main`",
+      "verdict": "false_positive",
+      "reason": "Command-line arguments are only parsed as CLI input; nothing trusts argv[0] or uses the arguments for a security decision."
+    },
+    {
+      "tool": "semgrep",
+      "specimen": "ts-01-task-board",
+      "file": "board.ts",
+      "finding_contains": "html-in-template-string in `renderResults`",
+      "verdict": "false_positive",
+      "reason": "On the fixed code the title is HTML-escaped, the id is a number and the status is one of the fixed Status values."
+    },
+    {
+      "tool": "semgrep",
+      "specimen": "ts-03-invoice-cli",
+      "file": "invoice.ts",
+      "finding_contains": "no-replaceall in `invoiceId`",
+      "verdict": "false_positive",
+      "reason": "replaceAll is supported by every Node.js version the specimen targets; the browser-compatibility warning does not apply to a CLI."
+    }
+  ]
+}
