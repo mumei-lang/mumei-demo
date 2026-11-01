@@ -136,9 +136,15 @@ def finding_text(f: dict) -> str:
 
 
 def normalize(raw: list[dict], scratch: Path, language: str) -> list[dict]:
-    """Attach the enclosing function and sort findings into a stable order."""
+    """Attach the enclosing function, drop exact duplicates (a rule loaded from
+    two config directories reports twice) and sort into a stable order."""
     out = []
+    seen = set()
     for f in raw:
+        key = (f["file"], f["line"], f["rule"], f["message"])
+        if key in seen:
+            continue
+        seen.add(key)
         rel = f["file"]
         path = scratch / rel
         try:
@@ -267,6 +273,11 @@ def check_rules_dir(rules_dir: Path) -> None:
     head = rsa.git_rev(rules_dir)
     if head != SEMGREP_RULES_COMMIT:
         raise SystemExit(f"{rules_dir}: semgrep-rules is at {head}, expected {SEMGREP_RULES_COMMIT}")
+    status = subprocess.run(["git", "-C", str(rules_dir), "status", "--porcelain"],
+                            capture_output=True, text=True)
+    if status.returncode != 0 or status.stdout.strip():
+        raise SystemExit(f"{rules_dir}: semgrep-rules checkout has local changes; "
+                         "re-run scripts/setup_baselines.sh on a clean checkout")
 
 
 def load_reviews(root: Path, tools: set[str]) -> list[dict]:
@@ -396,6 +407,11 @@ def rescore_record(specimen_dir: Path, tool: Tool, reviews: list[dict]) -> dict:
         previous = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
         raise SystemExit(f"{specimen_dir.name}: {path.name} missing; run the baselines first")
+    pinned = tool.meta()
+    recorded = {k: previous.get(k) for k in pinned}
+    if recorded != pinned:
+        raise SystemExit(f"{specimen_dir.name}: {path.name} was produced with {recorded}, "
+                         f"but the current pins are {pinned}; run the baselines again")
     current = baseline_hash(specimen_dir)
     if previous.get("source_hash") != current:
         raise SystemExit(f"{specimen_dir.name}: specimen changed since the {tool.name} run; "

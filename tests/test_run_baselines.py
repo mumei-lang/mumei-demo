@@ -268,6 +268,13 @@ def test_normalize_adds_function_and_sorts(tmp_path):
         ("app.py", 1, None), ("app.py", 4, "f"), ("gone.py", 1, None)]
 
 
+def test_normalize_drops_exact_duplicates(tmp_path):
+    (tmp_path / "a.ts").write_text("const x = 1;\n")
+    f = {"file": "a.ts", "line": 1, "rule": "r", "severity": "", "cwe": [], "message": "m"}
+    out = rb.normalize([f, dict(f), dict(f, message="other"), dict(f, line=2)], tmp_path, "typescript")
+    assert len(out) == 3
+
+
 def test_finding_text():
     f = {"rule": "B608:sql", "function": "list_expenses", "line": 7, "cwe": [89], "message": "SQL"}
     assert rb.finding_text(f) == "B608:sql in `list_expenses` (line 7, CWE-89): SQL"
@@ -507,6 +514,28 @@ def test_rescore_record_roundtrip(tmp_path, monkeypatch):
     assert out["generated_at"] == "then" and out["tool_errors"] == 2
 
 
+@pytest.mark.parametrize("field,value", [
+    ("version", "0.0.1"), ("rules_commit", "0" * 40), ("rule_categories", ["security"]),
+    ("tool", "bandit"),
+])
+def test_rescore_record_refuses_other_pins(tmp_path, monkeypatch, field, value):
+    _, d = _git_tree(tmp_path, monkeypatch)
+    rec = rb.build_record(rb.TOOLS["semgrep"], DOC, [], 0, None, [], rb.baseline_hash(d), "then")
+    rec[field] = value
+    rb.write_json(d / "baselines" / "semgrep.json", rec)
+    with pytest.raises(SystemExit, match="current pins"):
+        rb.rescore_record(d, rb.TOOLS["semgrep"], [])
+
+
+def test_rescore_record_refuses_missing_pin(tmp_path, monkeypatch):
+    _, d = _git_tree(tmp_path, monkeypatch)
+    rec = rb.build_record(rb.TOOLS["bandit"], DOC, [], 0, None, [], rb.baseline_hash(d), "then")
+    del rec["version"]
+    rb.write_json(d / "baselines" / "bandit.json", rec)
+    with pytest.raises(SystemExit, match="current pins"):
+        rb.rescore_record(d, rb.TOOLS["bandit"], [])
+
+
 def test_baseline_outputs_do_not_change_hashes(tmp_path, monkeypatch):
     _, d = _git_tree(tmp_path, monkeypatch)
     before = rsa.specimen_hash(d)
@@ -602,7 +631,16 @@ def test_check_rules_dir(tmp_path, monkeypatch):
     with pytest.raises(SystemExit, match="expected"):
         rb.check_rules_dir(tmp_path)
     monkeypatch.setattr(rsa, "git_rev", lambda p: rb.SEMGREP_RULES_COMMIT)
+
+    class P:
+        def __init__(self, rc, out):
+            self.returncode, self.stdout = rc, out
+    monkeypatch.setattr(rb.subprocess, "run", lambda *a, **k: P(0, ""))
     rb.check_rules_dir(tmp_path)
+    for proc in (P(0, " M python/lang/security/rule.yaml\n"), P(0, "?? extra.yaml\n"), P(128, "")):
+        monkeypatch.setattr(rb.subprocess, "run", lambda *a, _p=proc, **k: _p)
+        with pytest.raises(SystemExit, match="local changes"):
+            rb.check_rules_dir(tmp_path)
 
 
 def test_find_binary_override_and_missing(monkeypatch, tmp_path):
