@@ -1032,28 +1032,65 @@ def test_cwe_equivalents_for_gosec(a, b, related):
     assert rb.cwe_related(a, b) is related
 
 
-def test_main_partial_run_keeps_other_tools_in_summary(monkeypatch, tmp_path):
-    root, _ = _tree(tmp_path)
+def test_main_partial_run_rescores_other_tools(monkeypatch, tmp_path):
+    root, d = _tree(tmp_path)
     monkeypatch.setattr(rb, "SPECIMENS_ROOT", root)
     monkeypatch.setattr(rb, "find_binary", lambda name, override, *rest: "/bin/" + name)
     monkeypatch.setattr(rb, "installed_version", lambda b: rb.BANDIT_VERSION)
-    monkeypatch.setattr(rb, "check_rules_dir", lambda d: None)
-    other = root / "python" / "py-01-x" / "baselines" / "semgrep.json"
-    other.parent.mkdir(parents=True, exist_ok=True)
-    other.write_text(json.dumps(_record("semgrep", fixed=False)))
+    (d / "baselines").mkdir()
+    (d / "baselines" / "semgrep.json").write_text("{}")
+    rescored = []
+
+    def fake_rescore(dd, tool, reviews):
+        rescored.append(tool.name)
+        return dict(_record("semgrep", fixed=False), finding_counts=dict(
+            rb.rsa.empty_finding_counts(), total=5, real=5))
+
+    monkeypatch.setattr(rb, "rescore_record", fake_rescore)
     monkeypatch.setattr(rb, "run_specimen", lambda d, tool, reviews, timeout, at: rb.build_record(
         tool, DOC, [], 0, None, reviews, "h", at))
     sb = tmp_path / "sb"
     rb.main(["--tools", "bandit", "--summary", str(tmp_path / "s.md"), "--scoreboard-dir", str(sb)])
-    tools = [t["tool"] for t in json.loads((sb / "baselines.json").read_text())["tools"]]
-    assert tools == ["bandit", "semgrep"]
+    assert rescored == ["semgrep"]
+    tools = {t["tool"]: t for t in json.loads((sb / "baselines.json").read_text())["tools"]}
+    assert sorted(tools) == ["bandit", "semgrep"]
+    assert tools["semgrep"]["findings"]["real"] == 5
+    assert json.loads((d / "baselines" / "semgrep.json").read_text())["finding_counts"]["real"] == 5
     assert "| semgrep |" in (tmp_path / "s.md").read_text()
 
 
-def test_committed_records(tmp_path):
-    assert rb.committed_records(tmp_path) == []
-    p = tmp_path / "go" / "g" / "baselines" / "gosec.json"
-    p.parent.mkdir(parents=True)
-    p.write_text('{"tool": "gosec"}')
-    (tmp_path / "go" / "g" / "baselines" / "notes.txt").write_text("x")
-    assert rb.committed_records(tmp_path) == [{"tool": "gosec"}]
+def test_main_partial_run_refuses_stale_records_of_other_tools(monkeypatch, tmp_path):
+    root, d = _tree(tmp_path)
+    monkeypatch.setattr(rb, "SPECIMENS_ROOT", root)
+    monkeypatch.setattr(rb, "find_binary", lambda name, override, *rest: "/bin/" + name)
+    monkeypatch.setattr(rb, "installed_version", lambda b: rb.BANDIT_VERSION)
+    (d / "baselines").mkdir()
+    (d / "baselines" / "semgrep.json").write_text(json.dumps(dict(
+        rb.TOOLS["semgrep"].meta(), source_hash="old", raw_findings=[])))
+    monkeypatch.setattr(rb, "baseline_hash", lambda d: "new")
+    monkeypatch.setattr(rb, "run_specimen", lambda *a: pytest.fail("ran a tool"))
+    with pytest.raises(SystemExit, match="specimen changed since the semgrep run"):
+        rb.main(["--tools", "bandit", "--summary", str(tmp_path / "s.md"),
+                 "--scoreboard-dir", str(tmp_path / "sb")])
+
+
+@pytest.mark.parametrize("rule,category,hit", [
+    ("reentrancy-eth", "reentrancy", True),
+    ("reentrancy-benign", "invariant-violation", False),
+    ("reentrancy-no-eth", "invariant-violation", False),
+    ("tx-origin", "access-control", True),
+])
+def test_slither_reentrancy_is_evidence_only_for_reentrancy(rule, category, hit):
+    f = {"rule": rule, "message": "x", "cwe": rb.slither_cwes(rule), "cwe_only": True}
+    d = {"cwe": f"CWE-{f['cwe'][0]}", "category": category}
+    assert rb.category_evidence(f, d) is hit
+
+
+def test_category_restriction_only_applies_to_slither_findings():
+    f = {"rule": "reentrancy-check", "message": "x", "cwe": [841]}
+    assert rb.category_evidence(f, {"cwe": "CWE-841", "category": "invariant-violation"})
+
+
+def test_slither_category():
+    assert rb.slither_category("reentrancy-events") == "reentrancy"
+    assert rb.slither_category("tx-origin") is None
