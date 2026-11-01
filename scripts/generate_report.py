@@ -301,6 +301,19 @@ def bug_detection_moment(data: dict, root: Path, heading: str, subheading: str) 
     for index, (layer, step) in enumerate(steps):
         if len(steps) > 1:
             lines.extend([f"{subheading} Step {index + 1}: `{layer}/{step.get('id')}`", ""])
+        if scenario == "record_execution_demo" and layer == "l2_agent":
+            lines.extend([
+                f"{subheading} Finite Python host-variant observation (not formal proof)",
+                "",
+                f"`{layer}/{step.get('id')}` violated a fixed reference check as expected.",
+                "",
+                code_fence(extract_error_message(data, step)),
+                "",
+                "The Python reference harness detected a host deviation. This is not "
+                "local contract verification or model/implementation correspondence.",
+                "",
+            ])
+            continue
         lines.extend([
             f"{subheading} BEFORE: LLM alone (bug missed)",
             "",

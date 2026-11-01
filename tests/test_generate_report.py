@@ -545,6 +545,30 @@ def test_record_operation_before_after_uses_its_local_contracts():
     assert "body: { version + 1 };" in after.read_text()
 
 
+@pytest.mark.parametrize("step", ["missing_organization", "missing_ownership", "changed_identity", "direct_write"])
+def test_record_host_highlights_do_not_reuse_the_local_arithmetic_proof(step):
+    root = Path(__file__).resolve().parents[1]
+    data = {"scenario": "record_execution_demo", "layers": {"l2_agent": {"steps": [
+        {"id": f"detect_{step}", "status": "REJECTED", "expect_failure": True},
+    ]}}}
+    report = bug_detection_moment(data, root, "## Highlights", "###")
+    assert "Finite Python host-variant observation (not formal proof)" in report
+    assert f"detect_{step}" in report
+    assert "broken_contract.mm" not in report and "local_contract.mm" not in report
+    assert "BEFORE → AFTER diff" not in report and "LLM" not in report
+
+
+def test_record_local_rejection_highlight_keeps_only_the_local_contract_diff():
+    root = Path(__file__).resolve().parents[1]
+    data = {"scenario": "record_execution_demo", "layers": {"l1_z3": {"steps": [
+        {"id": "reject_broken_local", "status": "REJECTED", "expect_failure": True},
+    ]}}}
+    report = bug_detection_moment(data, root, "## Highlights", "###")
+    assert "broken_contract.mm" in report and "local_contract.mm" in report
+    assert "BEFORE → AFTER diff" in report
+    assert "Finite Python host-variant observation" not in report
+
+
 def test_write_summary_includes_claim_book_label(tmp_path):
     reports = tmp_path / "reports"
     result_dir = reports / "medical_device" / "20260101T000000Z"
