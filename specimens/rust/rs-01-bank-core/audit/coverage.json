@@ -175,13 +175,59 @@
       "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64`"
     ]
   ],
-  "source_hash": "3bb1bf397d0e0acb17ff5db6dcef8c4a46ca4a48ca609e061e40ce2e86ed2efa",
+  "source_hash": "23e72d7fe705d7e036d0896d0ccc31ac903508965e6536d2f0b270bd6b3126f6",
   "meta": {
     "mumei_agent_commit": "dffe7e834bd86603c79f213fc1de77f1af4e9d5f",
     "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
-    "generated_at": "2026-11-01T16:57:51Z"
+    "generated_at": "2026-11-01T17:19:47Z"
+  },
+  "fixed": {
+    "defects": 12,
+    "still_reported": [
+      "RS01-D12"
+    ],
+    "still_function_flagged": [
+      "RS01-D03",
+      "RS01-D06"
+    ],
+    "false_alarms": 2,
+    "findings": [
+      {
+        "file": "src/bank.rs",
+        "kind": "verification_violations",
+        "text": "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64` without a range contract (amount_cents outside 0..=18446744073709551615 wraps)",
+        "status": "false_positive",
+        "reason": "Both casts sit inside `if amount_cents > 0`, so the i64 value is always in u64 range."
+      },
+      {
+        "file": "src/bank.rs",
+        "kind": "verification_violations",
+        "text": "Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)",
+        "status": "false_positive",
+        "reason": "On the fixed code, charge_fee rejects cents <= 0 before the cast, so the i64 value is always in u64 range."
+      }
+    ],
+    "finding_counts": {
+      "total": 2,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 2,
+      "unreviewed": 0
+    },
+    "reviews_used": [
+      [
+        "rs-01-bank-core",
+        "src/bank.rs",
+        "Rust function `charge_fee` can truncate `cents` in cast to `u64`"
+      ],
+      [
+        "rs-01-bank-core",
+        "src/bank.rs",
+        "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64`"
+      ]
+    ]
   }
 }

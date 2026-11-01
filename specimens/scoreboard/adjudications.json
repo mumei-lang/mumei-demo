@@ -217,6 +217,20 @@
       "finding_contains": "TypeScript function `handlePatch` indexes with the result of `.indexOf(",
       "verdict": "real",
       "reason": "handlePatch awaits the request body between find and indexOf, and replaces the task object. A concurrent PATCH of the same task makes indexOf return -1, so `tasks[-1] = updated` silently drops one update. The ground truth does not list this."
+    },
+    {
+      "specimen": "go-01-inventory-api",
+      "file": "calc.go",
+      "finding_contains": "Go function `reorderPoint` can divide by `int32(len(locations))`",
+      "verdict": "false_positive",
+      "reason": "On the fixed code, reorderPoint returns 0 when locations is empty, so the divisor is never zero."
+    },
+    {
+      "specimen": "rs-01-bank-core",
+      "file": "src/bank.rs",
+      "finding_contains": "Rust function `charge_fee` can truncate `cents` in cast to `u64`",
+      "verdict": "false_positive",
+      "reason": "On the fixed code, charge_fee rejects cents <= 0 before the cast, so the i64 value is always in u64 range."
     }
   ]
 }
