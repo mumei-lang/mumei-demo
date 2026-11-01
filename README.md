@@ -70,6 +70,13 @@ requirements, candidate rejection, contract-strength checks, finite observations
 and evidence-reader regressions. These remain distinct models and evidence
 types, not an application-wide safety claim; no LLM credentials are needed.
 
+For the separate single-process record execution experiment, see
+[the adapter runbook](docs/RECORD_EXECUTION.md). `make test-record-execution`
+checks data-only proposals, current authority/version checks, rejection without
+record changes and concurrent execution. These are implementation observations,
+not a formal Python proof; the existing scenario set and evidence grades are
+unchanged.
+
 ## Running scenarios
 
 ```bash
