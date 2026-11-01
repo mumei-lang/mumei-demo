@@ -13,7 +13,7 @@ index f125703..7ebb42f 100644
  }
  
 diff --git a/handlers.go b/handlers.go
-index 5382f10..5b353ca 100644
+index 5382f10..5341a90 100644
 --- a/handlers.go
 +++ b/handlers.go
 @@ -2,8 +2,10 @@ package main
@@ -125,7 +125,7 @@ index 5382f10..5b353ca 100644
 -	item.Reserved += input.Qty
 -	writeJSON(w, http.StatusOK, item)
 +	item, err := inventory.Update(input.SKU, func(item *Item) error {
-+		if item.Stock < input.Qty {
++		if item.Stock < input.Qty || int64(item.Reserved)+int64(input.Qty) > 1<<31-1 {
 +			return errConflict
 +		}
 +		item.Stock -= input.Qty
