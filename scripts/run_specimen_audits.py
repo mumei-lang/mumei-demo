@@ -394,18 +394,15 @@ def audit_failure(rc_json: int, rc_md: int, audit: dict) -> str | None:
     return None
 
 
-SPECIMEN_HASH_SKIP = {"audit", "node_modules", "target", "out", "__pycache__", ".venv"}
-
-
 def specimen_hash(specimen_dir: Path) -> str:
-    """Hash of the specimen files an audit reads (build outputs and audit/ excluded),
-    so --rescore can tell when the sources changed after the audit."""
+    """Hash of the git-tracked specimen files (the files an audit reads, audit/
+    excluded), so --rescore can tell when they changed after the audit.
+    Untracked build outputs such as Cargo.lock or bin/ do not count."""
     h = hashlib.sha256()
-    for f in sorted(specimen_dir.rglob("*")):
-        rel = f.relative_to(specimen_dir)
-        if not f.is_file() or SPECIMEN_HASH_SKIP & set(rel.parts):
-            continue
-        h.update(rel.as_posix().encode() + b"\0" + f.read_bytes() + b"\0")
+    for f in sorted(tracked_files(specimen_dir)):
+        rel = f.relative_to(specimen_dir).as_posix()
+        data = f.read_bytes() if f.is_file() else b"<missing>"
+        h.update(rel.encode() + b"\0" + data + b"\0")
     return h.hexdigest()
 
 
