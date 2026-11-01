@@ -53,6 +53,7 @@ FORBIDDEN_RE = re.compile("|".join(FORBIDDEN_HINTS), re.IGNORECASE)
 FIXED_PATCH = "fixed.patch"
 PATCH_FILE_RE = re.compile(r"^diff --git a/(\S+) b/(\S+)$", re.MULTILINE)
 REPRODUCED_RE = re.compile(r"^\[REPRODUCED\]", re.MULTILINE)
+NOT_REPRODUCED_RE = re.compile(r"^\[NOT REPRODUCED\]")
 PORT_RE = re.compile(r"^Default port: (\d+)$", re.MULTILINE)
 
 
@@ -196,9 +197,19 @@ def check_fixed_patch(specimen_dir: Path, errors: list) -> None:
             errors.append(f"{prefix}: does not apply cleanly: {proc.stderr.strip()}")
 
 
+def defect_ids(specimen_dir: Path) -> list[str]:
+    try:
+        doc = json.loads((specimen_dir / "DEFECTS.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    return [d["id"] for d in doc.get("defects") or [] if isinstance(d, dict) and "id" in d]
+
+
 def run_fixed_variant(specimen_dir: Path, errors: list, timeout: int = 600) -> None:
     """Apply fixed.patch to a scratch copy and require that run.sh succeeds
-    and repro.sh reports no defect as reproduced."""
+    and repro.sh reports every defect as not reproduced. repro.sh exits
+    non-zero on the fixed variant by design, so the per-defect lines are what
+    shows that it ran each check rather than stopping early."""
     patch = specimen_dir / FIXED_PATCH
     if not patch.is_file():
         return
@@ -222,9 +233,15 @@ def run_fixed_variant(specimen_dir: Path, errors: list, timeout: int = 600) -> N
                 errors.append(f"{prefix}: run.sh exited {proc.returncode} on the fixed variant: "
                               f"{(proc.stderr or proc.stdout).strip()[-300:]}")
             if script == "repro.sh":
-                hits = [ln for ln in proc.stdout.splitlines() if REPRODUCED_RE.match(ln)]
+                lines = proc.stdout.splitlines()
+                hits = [ln for ln in lines if REPRODUCED_RE.match(ln)]
                 for ln in hits:
                     errors.append(f"{prefix}: still reproduces on the fixed variant: {ln[:160]}")
+                missing = [i for i in defect_ids(specimen_dir)
+                           if not any(NOT_REPRODUCED_RE.match(ln) and i in ln.split() for ln in lines)]
+                if missing:
+                    errors.append(f"{prefix}: repro.sh did not report [NOT REPRODUCED] on the fixed "
+                                  f"variant for: {', '.join(missing)}")
 
 
 def check_specimen(specimen_dir: Path, schema: dict, errors: list) -> int:

@@ -338,6 +338,52 @@ def test_run_fixed_ignores_not_reproduced_lines(tmp_path):
     assert errors == []
 
 
+@pytest.mark.parametrize("repro", [
+    "#!/usr/bin/env bash\nset -e\nfalse\necho '[NOT REPRODUCED] PY01-D01 add'\n",
+    "#!/usr/bin/env bash\necho 'nothing to report'\n",
+    "#!/usr/bin/env bash\necho '[NOT REPRODUCED] PY01-D011 add'\n",
+    "#!/usr/bin/env bash\necho 'note: [NOT REPRODUCED] PY01-D01 mid-line'\n",
+])
+def test_run_fixed_requires_a_not_reproduced_line_per_defect(tmp_path, repro):
+    d = _with_patch(tmp_path)
+    _make_runnable(d, repro=repro)
+    errors = []
+    check_specimens.run_fixed_variant(d, errors)
+    assert any("did not report [NOT REPRODUCED]" in e and "PY01-D01" in e for e in errors), errors
+
+
+def test_run_fixed_accepts_non_zero_repro_exit(tmp_path):
+    d = _with_patch(tmp_path)
+    _make_runnable(d, repro=REPRO_CHECKS_SOURCE + "echo 'repro.sh: 0/1 defects reproduced'\nexit 1\n")
+    errors = []
+    check_specimens.run_fixed_variant(d, errors)
+    assert errors == []
+
+
+def test_run_fixed_lists_only_the_missing_defects(tmp_path):
+    d = _with_patch(tmp_path)
+    doc = json.loads((d / "DEFECTS.json").read_text())
+    doc["defects"].append(dict(doc["defects"][0], id="PY01-D02"))
+    (d / "DEFECTS.json").write_text(json.dumps(doc))
+    _make_runnable(d)
+    errors = []
+    check_specimens.run_fixed_variant(d, errors)
+    assert [e for e in errors if "did not report" in e] and all(
+        "PY01-D01" not in e.split("for:")[1] for e in errors if "did not report" in e)
+
+
+@pytest.mark.parametrize("content,expected", [
+    (None, []),
+    ("not json", []),
+    ('{"defects": null}', []),
+    ('{"defects": [{"id": "A"}, {"x": 1}, "B", {"id": "C"}]}', ["A", "C"]),
+])
+def test_defect_ids(tmp_path, content, expected):
+    if content is not None:
+        (tmp_path / "DEFECTS.json").write_text(content)
+    assert check_specimens.defect_ids(tmp_path) == expected
+
+
 def test_run_fixed_reports_run_sh_failure(tmp_path):
     d = _with_patch(tmp_path)
     _make_runnable(d, run_sh="#!/usr/bin/env bash\necho broken >&2\nexit 3\n")

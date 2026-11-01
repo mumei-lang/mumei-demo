@@ -30,18 +30,18 @@ mkacct() {  # owner label initial -> prints id
         -d "{\"owner\": \"$1\", \"label\": \"$2\", \"initial_cents\": $3}" \
         | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])'
 }
-balance() {  # id -> cents
-    curl -s "$BASE/accounts/$1" | python3 -c 'import json,sys; print(json.load(sys.stdin)["balance_cents"])'
+balance() {  # id owner -> cents
+    curl -s -H "X-Owner: $2" "$BASE/accounts/$1" | python3 -c 'import json,sys; print(json.load(sys.stdin)["balance_cents"])'
 }
-total() {
-    curl -s "$BASE/accounts" | python3 -c 'import json,sys; print(sum(a["balance_cents"] for a in json.load(sys.stdin)["accounts"]))'
+total() {  # owner -> cents across the accounts the owner can list
+    curl -s -H "X-Owner: $1" "$BASE/accounts" | python3 -c 'import json,sys; print(sum(a["balance_cents"] for a in json.load(sys.stdin)["accounts"]))'
 }
 
 # PY03-D01 negative_transfer: a negative amount pulls money from the destination
 c=$(mkacct carol a1 100); d=$(mkacct dave a2 100)
 curl -s -o /dev/null -X POST "$BASE/transfer" -H 'X-Owner: carol' -H 'Content-Type: application/json' \
     -d "{\"from\": $c, \"to\": $d, \"amount_cents\": -50}"
-cb=$(balance "$c"); db=$(balance "$d")
+cb=$(balance "$c" carol); db=$(balance "$d" dave)
 if [[ "$cb" == "125" && "$db" == "50" ]]; then
     echo "[REPRODUCED] PY03-D01 negative_transfer: amount -50 -> src=$cb dst=$db"
     REPRODUCED=$((REPRODUCED + 1))
@@ -53,7 +53,7 @@ fi
 e=$(mkacct erin a3 100); f=$(mkacct fred a4 0)
 curl -s -o /dev/null -X POST "$BASE/transfer" -H 'X-Owner: erin' -H 'Content-Type: application/json' \
     -d "{\"from\": $e, \"to\": $f, \"amount_cents\": 100}"
-eb=$(balance "$e")
+eb=$(balance "$e" erin)
 if [[ "$eb" == "-25" ]]; then
     echo "[REPRODUCED] PY03-D02 fee_overdraft: transfer 100 of 100 -> balance $eb (fee uncovered)"
     REPRODUCED=$((REPRODUCED + 1))
@@ -65,7 +65,7 @@ fi
 g=$(mkacct gina a5 40)
 curl -s -o /dev/null -X POST "$BASE/close" -H 'X-Owner: gina' -H 'Content-Type: application/json' -d "{\"id\": $g}"
 curl -s -o /dev/null -X POST "$BASE/close" -H 'X-Owner: gina' -H 'Content-Type: application/json' -d "{\"id\": $g}"
-closes=$(curl -s "$BASE/statement/$g" | python3 -c 'import json,sys; print(sum(1 for e in json.load(sys.stdin)["entries"] if e["kind"]=="close"))')
+closes=$(curl -s -H 'X-Owner: gina' "$BASE/statement/$g" | python3 -c 'import json,sys; print(sum(1 for e in json.load(sys.stdin)["entries"] if e["kind"]=="close"))')
 if [[ "$closes" == "2" ]]; then
     echo "[REPRODUCED] PY03-D03 double_close: statement has $closes close entries after two closes"
     REPRODUCED=$((REPRODUCED + 1))
@@ -75,10 +75,11 @@ fi
 
 # PY03-D04 transfer_lost_update: 50 parallel transfers of 1 cent lose updates
 h=$(mkacct hank a6 1000); i=$(mkacct ivy a7 0)
-python3 - "$BASE" "$h" "$i" <<'EOF'
+ok=$(python3 - "$BASE" "$h" "$i" <<'EOF'
 import json, sys, threading, urllib.request
 base, src, dst = sys.argv[1], sys.argv[2], sys.argv[3]
 barrier = threading.Barrier(50)
+done = []
 def fire(_):
     barrier.wait()
     req = urllib.request.Request(
@@ -88,18 +89,22 @@ def fire(_):
     )
     try:
         urllib.request.urlopen(req).read()
+        done.append(1)
     except Exception:
         pass
 threads = [threading.Thread(target=fire, args=(n,)) for n in range(50)]
 for t in threads: t.start()
 for t in threads: t.join()
+print(len(done))
 EOF
-hb=$(balance "$h"); ib=$(balance "$i")
-if [[ "$hb" != "-300" ]]; then
-    echo "[REPRODUCED] PY03-D04 transfer_lost_update: after 50x(1+25) debits src=$hb (expected -300), dst=$ib"
+)
+hb=$(balance "$h" hank); ib=$(balance "$i" ivy)
+# Each accepted transfer moves 1 cent and charges a 25-cent fee.
+if [[ "$hb" != "$((1000 - 26 * ok))" || "$ib" != "$ok" ]]; then
+    echo "[REPRODUCED] PY03-D04 transfer_lost_update: after $ok accepted transfers src=$hb (expected $((1000 - 26 * ok))), dst=$ib (expected $ok)"
     REPRODUCED=$((REPRODUCED + 1))
 else
-    echo "[NOT REPRODUCED] PY03-D04 transfer_lost_update: src=$hb dst=$ib look correct"
+    echo "[NOT REPRODUCED] PY03-D04 transfer_lost_update: $ok accepted transfers, src=$hb dst=$ib look correct"
 fi
 
 # PY03-D05 negative_page_offset: offset=-2&limit=10 returns the tail entries
@@ -109,8 +114,8 @@ for _ in 1 2 3; do
         -d "{\"from\": $h, \"to\": $j, \"amount_cents\": 1}" || true
 done
 # transfers may fail on balance; use close entries instead if needed: top up via house->jack
-count=$(curl -s "$BASE/statement/$j" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["entries"]))')
-tail=$(curl -s "$BASE/statement/$j?offset=-2&limit=10" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["entries"]))')
+count=$(curl -s -H 'X-Owner: jack' "$BASE/statement/$j" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["entries"]))')
+tail=$(curl -s -H 'X-Owner: jack' "$BASE/statement/$j?offset=-2&limit=10" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d["entries"]) if "entries" in d else "rejected")')
 if [[ "$count" -ge 3 && "$tail" == "2" ]]; then
     echo "[REPRODUCED] PY03-D05 negative_page_offset: offset=-2 limit=10 returned $tail tail entries of $count"
     REPRODUCED=$((REPRODUCED + 1))
@@ -120,10 +125,10 @@ fi
 
 # PY03-D06 debit_without_rollback: failed destination leg keeps the debit
 k=$(mkacct kate a9 200)
-before=$(total)
+before=$(total kate)
 status=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/transfer" -H 'X-Owner: kate' \
     -H 'Content-Type: application/json' -d "{\"from\": $k, \"to\": 999, \"amount_cents\": 50}" || true)
-after=$(total)
+after=$(total kate)
 if [[ "$status" == "404" && $((before - after)) -eq 50 ]]; then
     echo "[REPRODUCED] PY03-D06 debit_without_rollback: HTTP $status but total $before -> $after (50 destroyed)"
     REPRODUCED=$((REPRODUCED + 1))
@@ -144,7 +149,7 @@ fi
 x=$(curl -s -X POST "$BASE/accounts" -H 'X-Owner: luke' -H 'Content-Type: application/json' \
     -d '{"owner": "luke", "label": "<script>alert(1)</script>", "initial_cents": 10}' \
     | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
-html=$(curl -s "$BASE/statement/$x.html" || true)
+html=$(curl -s -H 'X-Owner: luke' "$BASE/statement/$x.html" || true)
 if [[ "$html" == *'<script>alert(1)</script>'* ]]; then
     echo "[REPRODUCED] PY03-D08 label_xss: statement HTML contains raw <script> label"
     REPRODUCED=$((REPRODUCED + 1))
@@ -166,7 +171,7 @@ fi
 l=$(mkacct lisa a10 500); m=$(mkacct mike a11 0)
 status=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$BASE/transfer" -H 'X-Owner: eve' \
     -H 'Content-Type: application/json' -d "{\"from\": $l, \"to\": $m, \"amount_cents\": 100}" || true)
-lb=$(balance "$l")
+lb=$(balance "$l" lisa)
 if [[ "$status" == "200" && "$lb" == "375" ]]; then
     echo "[REPRODUCED] PY03-D10 unowned_debit: X-Owner eve debited lisa's account ($lb) successfully"
     REPRODUCED=$((REPRODUCED + 1))
