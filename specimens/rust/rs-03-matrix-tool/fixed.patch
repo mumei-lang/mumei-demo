@@ -1,5 +1,5 @@
 diff --git a/src/main.rs b/src/main.rs
-index 8a54c19..f07355c 100644
+index 8a54c19..b625492 100644
 --- a/src/main.rs
 +++ b/src/main.rs
 @@ -1,11 +1,11 @@
@@ -207,7 +207,7 @@ index 8a54c19..f07355c 100644
  }
  
  fn print_matrix(m: &Matrix) {
-@@ -105,25 +197,48 @@ fn print_matrix(m: &Matrix) {
+@@ -105,25 +197,50 @@ fn print_matrix(m: &Matrix) {
      }
  }
  
@@ -225,6 +225,8 @@ index 8a54c19..f07355c 100644
 +        return;
 +    }
 +    let staged = dir.join(format!(".cache.{}.tmp", std::process::id()));
++    // A run killed mid-write can leave this file behind.
++    let _ = fs::remove_file(&staged);
 +    let written = OpenOptions::new()
 +        .write(true)
 +        .create_new(true)
@@ -270,7 +272,7 @@ index 8a54c19..f07355c 100644
  }
  
  fn usage() -> ! {
-@@ -136,7 +251,7 @@ fn main() {
+@@ -136,7 +253,7 @@ fn main() {
      let argv: Vec<String> = env::args().skip(1).collect();
      let mut input = None;
      let mut op = None;
@@ -279,7 +281,7 @@ index 8a54c19..f07355c 100644
      let mut label = String::new();
      let mut out = DEFAULT_SUMMARY.to_string();
      let mut i = 0;
-@@ -145,7 +260,13 @@ fn main() {
+@@ -145,7 +262,13 @@ fn main() {
          match argv[i].as_str() {
              "--input" => input = val.map(|s| s.to_string()),
              "--op" => op = val.map(|s| s.to_string()),
@@ -294,7 +296,7 @@ index 8a54c19..f07355c 100644
              "--label" => label = val.cloned().unwrap_or_default(),
              "--out" => out = val.cloned().unwrap_or_else(|| DEFAULT_SUMMARY.into()),
              _ => usage(),
-@@ -169,7 +290,7 @@ fn main() {
+@@ -169,7 +292,7 @@ fn main() {
              }
          },
          "invert" => {
@@ -303,7 +305,7 @@ index 8a54c19..f07355c 100644
              match invert2x2(&m) {
                  Ok(inv) => {
                      let text = inv
-@@ -187,24 +308,25 @@ fn main() {
+@@ -187,24 +310,25 @@ fn main() {
              }
          }
          "mean" => {
