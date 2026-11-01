@@ -65,7 +65,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/run_specimen_audits.py` | 10 | Run `mumei-agent audit` over every specimen and score it against DEFECTS.json. |
 | `scripts/record_scenario.py` | 2 | Finite record-operation checks and intentionally broken host variants. |
 | `scripts/record_model_evidence.py` | 2 | Collect independent Lean model evidence; never promote a Python operation. |
-| `scripts/check_specimens.py` | 1 | Validate specimen directories. |
+| `scripts/check_specimens.py` | 2 | Validate specimen directories. |
 | `scripts/check_evidence_regressions.py` | 1 | Exercise an evidence reader on isolated, explicitly synthetic snapshots. |
 | `scripts/review_charter_baseline.py` | 2 | Publish the reviewed Charter inputs and their Git diff, not an approval verdict. |
 | `dashboard/cli_report.py` | 1 | Render a Mumei verification report. |
@@ -131,6 +131,7 @@ Validate specimen directories.
 |---|---|---|---|---|
 | `--root` | `<ROOT>` | no | `specimens` | specimens root directory (default: %(default)s) |
 | `specimens` | `<SPECIMENS>...` | no | — | specimen directories to check |
+| `--run-fixed` | — | no | `false` | also apply each fixed.patch to a scratch copy and require run.sh to pass and repro.sh to reproduce nothing (needs the specimen toolchains) |
 
 ### `scripts/check_evidence_regressions.py`
 

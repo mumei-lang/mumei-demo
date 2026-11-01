@@ -1116,3 +1116,295 @@ def test_committed_finding_reviews_load_and_are_not_stale():
     for cov in coverages:
         fc = cov["finding_counts"]
         assert fc["total"] == sum(fc[s] for s in rsa.FINDING_STATUSES)
+
+
+# --- fixed variants ----------------------------------------------------------
+
+def test_score_fixed_reports_still_reported_and_false_alarms():
+    fx = rsa.score_fixed(_doc(), _audit(), LABEL)
+    assert fx["defects"] == 4
+    assert fx["still_reported"] == ["PY01-D01"]
+    assert fx["still_function_flagged"] == ["PY01-D02"]
+    assert fx["finding_counts"] == _fc(3, 0, 0, 0, 3)
+    assert fx["false_alarms"] == 3
+
+
+def test_score_fixed_never_counts_category_evidence():
+    fx = rsa.score_fixed(_doc(), _audit(), LABEL)
+    assert "defect_evidence" not in {f["status"] for f in fx["findings"]}
+
+
+def test_score_fixed_real_review_is_not_a_false_alarm():
+    fx = rsa.score_fixed(_doc(), _audit(), LABEL, [], [_review("`stray` has no caller", "real")])
+    assert fx["finding_counts"] == _fc(3, 0, 1, 0, 2)
+    assert fx["false_alarms"] == 2
+    assert fx["reviews_used"] == [["py-01-demo", "app.py", "`stray` has no caller"]]
+
+
+def test_score_fixed_false_positive_review_still_a_false_alarm():
+    fx = rsa.score_fixed(_doc(), _audit(), LABEL, [], [_review("`stray` has no caller")])
+    assert fx["finding_counts"]["false_positive"] == 1
+    assert fx["false_alarms"] == 3
+
+
+def test_score_fixed_review_can_mark_still_reported_finding_real():
+    fx = rsa.score_fixed(_doc(), _audit(), LABEL, [],
+                         [_review("`transfer` can cause integer overflow", "real")])
+    assert fx["still_reported"] == ["PY01-D01"]
+    assert fx["false_alarms"] == 2
+
+
+def test_score_fixed_honours_not_category_evidence():
+    adj = [{"defect": "PY01-D01", "verdict": "not_category_evidence",
+            "finding_contains": "integer overflow", "reason": "x"}]
+    fx = rsa.score_fixed(_doc(), _audit(), LABEL, adj)
+    assert fx["still_reported"] == []
+    assert "PY01-D01" in fx["still_function_flagged"]
+
+
+def test_score_fixed_clean_audit():
+    fx = rsa.score_fixed(_doc(), {"file_results": [{"source_file": f"{LABEL}/app.py"}]}, LABEL)
+    assert fx["still_reported"] == [] and fx["still_function_flagged"] == []
+    assert fx["finding_counts"] == _fc(0, 0, 0, 0, 0)
+    assert fx["false_alarms"] == 0
+
+
+def test_score_fixed_reviews_scoped_to_specimen():
+    fx = rsa.score_fixed(_doc(), _audit(), LABEL, [],
+                         [_review("`stray` has no caller", "real", specimen="py-02-other")])
+    assert fx["finding_counts"]["real"] == 0
+
+
+def _fixed(defects=4, still=("PY01-D01",), fc=None, false_alarms=None):
+    fc = fc or _fc(3, 0, 1, 0, 2)
+    return {"defects": defects, "still_reported": list(still), "still_function_flagged": [],
+            "finding_counts": fc, "findings": [], "reviews_used": [],
+            "false_alarms": fc["total"] - fc["real"] if false_alarms is None else false_alarms}
+
+
+def test_aggregate_fixed_totals():
+    a = {**_coverage("py-01-a", "python", []), "fixed": _fixed()}
+    b = {**_coverage("ts-01-b", "typescript", []),
+         "fixed": _fixed(defects=2, still=(), fc=_fc(1, 0, 0, 0, 1))}
+    plain = _coverage("go-01-c", "go", [])
+    fx = rsa.aggregate([a, b, plain])["fixed"]
+    assert fx == {"specimens": 2, "defects": 6, "still_reported": 1, "findings": 4,
+                  "real": 1, "false_alarms": 3}
+
+
+def test_aggregate_fixed_empty():
+    fx = rsa.aggregate([_coverage("go-01-c", "go", [])])["fixed"]
+    assert fx["specimens"] == 0 and fx["false_alarms"] == 0
+
+
+def test_write_summary_fixed_section(tmp_path):
+    cov = {**_coverage("py-01-a", "python", []), "finding_counts": _fc(0, 0, 0, 0, 0),
+           "findings": [], "fixed": _fixed()}
+    plain = {**_coverage("go-01-c", "go", []), "finding_counts": _fc(0, 0, 0, 0, 0), "findings": []}
+    out = tmp_path / "AUDIT_SUMMARY.md"
+    rsa.write_summary([cov, plain], _summary_meta(), out)
+    text = out.read_text()
+    assert "## Fixed variants" in text
+    assert "(python/py-01-a/audit/fixed/audit.md) | 4 | 3 | 1 | 2 | PY01-D01 |" in text
+    assert "Fixed variants: 1 of 2 specimens; 2 false alarms on fixed code." in text
+    assert "go-01-c" not in text.split("## Fixed variants")[1].split("## Per language")[0]
+
+
+def test_write_summary_without_fixed_has_no_fixed_table(tmp_path):
+    cov = {**_coverage("py-01-a", "python", []), "finding_counts": _fc(0, 0, 0, 0, 0), "findings": []}
+    out = tmp_path / "AUDIT_SUMMARY.md"
+    rsa.write_summary([cov], _summary_meta(), out)
+    assert "## Fixed variants" not in out.read_text()
+
+
+def test_history_entry_fixed_only_when_present():
+    corpus = {"specimens": 1, "defects": 0, "hash": "h"}
+    cov = {**_coverage("py-01-a", "python", []), "fixed": _fixed()}
+    entry = rsa.history_entry([cov], _summary_meta(), corpus, "s")
+    assert entry["fixed"]["specimens"] == 1 and entry["fixed"]["false_alarms"] == 2
+    plain = rsa.history_entry([_coverage("py-01-a", "python", [])], _summary_meta(), corpus, "s")
+    assert "fixed" not in plain
+
+
+def test_stale_reviews_counts_fixed_variant_usage():
+    key = ["py-01-a", "app.py", "only on fixed"]
+    cov = {**_coverage("py-01-a", "python", []), "reviews_used": [],
+           "fixed": {**_fixed(), "reviews_used": [key]}}
+    review = _review("only on fixed", specimen="py-01-a")
+    assert rsa.stale_reviews([cov], [review]) == []
+    assert rsa.stale_reviews([_coverage("py-01-a", "python", [])], [review]) == [review]
+
+
+def test_fmt_fixed():
+    assert rsa.fmt_fixed(None) == "—"
+    assert rsa.fmt_fixed({"false_alarms": 5, "specimens": 7}) == "5 / 7 specimens"
+
+
+def test_readme_blocks_show_fixed_variants():
+    old = _run(date="2025-01-01", llm=False)
+    new = {**_run(date="2025-01-02", llm=False),
+           "fixed": {"specimens": 7, "defects": 70, "still_reported": 2, "findings": 9,
+                     "real": 1, "false_alarms": 8}}
+    spec = rsa.readme_block_specimens({"schema": 2, "runs": [old, new]})
+    assert "| False alarms on fixed code |" in spec
+    assert "| 8 / 7 specimens |" in spec
+    assert "Fixed variants — no LLM: 7 specimens (70 defects fixed)" in spec
+    assert "8 false alarms in 9 findings on fixed code" in spec
+    old_row = [ln for ln in spec.splitlines() if ln.startswith("| 2025-01-01")][0]
+    assert old_row.endswith("| — |")
+    top = rsa.readme_block_top({"schema": 2, "runs": [old, new]})
+    assert "8 false alarms on fixed code (7 specimens)" in top
+
+
+def test_readme_block_top_omits_fixed_for_runs_without_it():
+    assert "fixed code" not in rsa.readme_block_top({"schema": 2, "runs": [_run(llm=False)]})
+
+
+def _write_fixed_audit(d, violations):
+    (d / "fixed.patch").write_text("x")
+    (d / "audit" / "fixed").mkdir(parents=True, exist_ok=True)
+    (d / "audit" / "fixed" / "audit.json").write_text(json.dumps({"file_results": [{
+        "source_file": "specimens/python/py-01-x/app.py",
+        "verification_violations": violations,
+    }]}))
+
+
+def test_rescore_specimen_scores_fixed_audit(tmp_path, monkeypatch):
+    _, d = _rescore_tree(tmp_path, monkeypatch)
+    _write_fixed_audit(d, ["Python function `f` returns a constant"])
+    cov = rsa.rescore_specimen(d, [], [])
+    assert cov["fixed"]["finding_counts"]["total"] == 1
+    assert cov["fixed"]["false_alarms"] == 1
+    written = json.loads((d / "audit" / "coverage.json").read_text())
+    assert written["fixed"]["false_alarms"] == 1
+
+
+def test_rescore_specimen_requires_fixed_audit_when_patch_exists(tmp_path, monkeypatch):
+    _, d = _rescore_tree(tmp_path, monkeypatch)
+    (d / "fixed.patch").write_text("x")
+    with pytest.raises(SystemExit, match="no audit/fixed/audit.json"):
+        rsa.rescore_specimen(d, [], [])
+
+
+def test_rescore_specimen_without_patch_has_no_fixed(tmp_path, monkeypatch):
+    _, d = _rescore_tree(tmp_path, monkeypatch)
+    assert "fixed" not in rsa.rescore_specimen(d, [], [])
+
+
+def test_main_rescore_records_fixed_and_review_used_only_on_fixed(tmp_path, monkeypatch, capsys):
+    specimens, d = _rescore_tree(tmp_path, monkeypatch)
+    _write_fixed_audit(d, ["Python function `h` is reported only after the patch"])
+    _write_finding_reviews(specimens, [
+        _review("only after the patch", "real", specimen="py-01-x"),
+    ])
+    assert rsa.main(_rescore_args(tmp_path)) == 0
+    assert "stale finding review" not in capsys.readouterr().err
+    run = json.loads((specimens / "scoreboard" / "history.json").read_text())["runs"][-1]
+    assert run["fixed"] == {"specimens": 1, "defects": 1, "still_reported": 0, "findings": 1,
+                            "real": 1, "false_alarms": 0}
+    assert "## Fixed variants" in (tmp_path / "AUDIT_SUMMARY.md").read_text()
+    assert "0 false alarms on fixed code (1 specimens)" in (tmp_path / "README.md").read_text()
+
+
+# --- fixed variant audit plumbing -------------------------------------------
+
+def _git_specimen(tmp_path, monkeypatch, patch: str | None):
+    import subprocess as sp
+    specimens = tmp_path / "specimens"
+    d = _mini_specimen(specimens)
+    if patch is not None:
+        (d / "fixed.patch").write_text(patch)
+    sp.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    sp.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    monkeypatch.setattr(rsa, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(rsa, "SPECIMENS_ROOT", specimens)
+    return d
+
+
+MINI_FIX = """diff --git a/app.py b/app.py
+--- a/app.py
++++ b/app.py
+@@ -1,2 +1,2 @@
+ def f():
+-    return 1
++    return 2
+"""
+
+
+def test_audit_files_excludes_fixed_patch(tmp_path, monkeypatch):
+    d = _git_specimen(tmp_path, monkeypatch, MINI_FIX)
+    names = {f.relative_to(d).as_posix() for f in rsa.audit_files(d)}
+    assert names == {"DEFECTS.json", "app.py"}
+    assert "fixed.patch" in {f.name for f in rsa.tracked_files(d)}
+
+
+def test_apply_fixed_patch(tmp_path):
+    work = tmp_path / "w"
+    work.mkdir()
+    (work / "app.py").write_text("def f():\n    return 1\n")
+    patch = tmp_path / "fixed.patch"
+    patch.write_text(MINI_FIX)
+    rsa.apply_fixed_patch(patch, work)
+    assert "return 2" in (work / "app.py").read_text()
+
+
+def test_apply_fixed_patch_failure(tmp_path):
+    work = tmp_path / "w"
+    work.mkdir()
+    (work / "app.py").write_text("def f():\n    return 9\n")
+    patch = tmp_path / "fixed.patch"
+    patch.write_text(MINI_FIX)
+    with pytest.raises(SystemExit, match="does not apply"):
+        rsa.apply_fixed_patch(patch, work)
+
+
+def _fake_run_audit(seen):
+    def fake(agent_repo, mumei_bin, target, fmt, timeout):
+        src = (target / "app.py").read_text()
+        seen.append((fmt, "return 2" in src, (target / "fixed.patch").exists()))
+        text = ("Python function `f` returns a constant" if "return 1" in src
+                else "Python function `f` is reported after the patch")
+        if fmt == "markdown":
+            return 0, f"# report for {target}\n{text}\n", ""
+        return 0, json.dumps({"file_results": [{"source_file": f"{target}/app.py",
+                                                "verification_violations": [text]}]}), ""
+    return fake
+
+
+def test_audit_specimen_audits_original_and_fixed(tmp_path, monkeypatch):
+    d = _git_specimen(tmp_path, monkeypatch, MINI_FIX)
+    seen = []
+    monkeypatch.setattr(rsa, "run_audit", _fake_run_audit(seen))
+    cov = rsa.audit_specimen(d, tmp_path, "mumei", 5, RESCORE_META)
+    assert seen == [("json", False, False), ("markdown", False, False),
+                    ("json", True, False), ("markdown", True, False)]
+    assert cov["finding_counts"]["total"] == 1
+    assert cov["fixed"]["finding_counts"]["total"] == 1
+    assert cov["fixed"]["false_alarms"] == 1
+    fixed_json = json.loads((d / "audit" / "fixed" / "audit.json").read_text())
+    assert fixed_json["file_results"][0]["source_file"] == "specimens/python/py-01-x/app.py"
+    md = (d / "audit" / "fixed" / "audit.md").read_text()
+    assert "specimens/python/py-01-x" in md and str(tmp_path / "w") not in md
+    assert "return 1" in (d / "app.py").read_text()
+
+
+def test_audit_specimen_without_patch_skips_fixed(tmp_path, monkeypatch):
+    d = _git_specimen(tmp_path, monkeypatch, None)
+    seen = []
+    monkeypatch.setattr(rsa, "run_audit", _fake_run_audit(seen))
+    cov = rsa.audit_specimen(d, tmp_path, "mumei", 5, RESCORE_META)
+    assert len(seen) == 2 and "fixed" not in cov
+    assert not (d / "audit" / "fixed").exists()
+
+
+def test_audit_specimen_fixed_audit_failure_is_fatal(tmp_path, monkeypatch):
+    d = _git_specimen(tmp_path, monkeypatch, MINI_FIX)
+    good = _fake_run_audit([])
+
+    def flaky(agent_repo, mumei_bin, target, fmt, timeout):
+        if "return 2" in (target / "app.py").read_text():
+            return 2, "", "boom"
+        return good(agent_repo, mumei_bin, target, fmt, timeout)
+    monkeypatch.setattr(rsa, "run_audit", flaky)
+    with pytest.raises(SystemExit, match=r"\(fixed\)"):
+        rsa.audit_specimen(d, tmp_path, "mumei", 5, RESCORE_META)

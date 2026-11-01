@@ -117,6 +117,7 @@ STRONG_KINDS = ("verification_violations", "spec_health_issues", "cross_validati
 FINDING_VERDICTS = ("real", "false_positive")
 FINDING_STATUSES = ("defect_evidence",) + FINDING_VERDICTS + ("unreviewed",)
 HISTORY_SCHEMA = 2
+FIXED_PATCH = "fixed.patch"
 
 
 def short_name(function: str) -> str:
@@ -159,6 +160,19 @@ def tracked_files(specimen_dir: Path) -> list[Path]:
     )
     files = [REPO_ROOT / p for p in out.stdout.split("\0") if p]
     return [f for f in files if "audit" not in f.relative_to(specimen_dir).parts[:1]]
+
+
+def audit_files(specimen_dir: Path) -> list[Path]:
+    """Tracked specimen files the audit sees: everything except fixed.patch."""
+    return [f for f in tracked_files(specimen_dir) if f.relative_to(specimen_dir).as_posix() != FIXED_PATCH]
+
+
+def apply_fixed_patch(patch: Path, scratch: Path) -> None:
+    """Apply a specimen's fixed.patch to a scratch copy (paths relative to the specimen)."""
+    proc = subprocess.run(["git", "apply", "--whitespace=nowarn", str(patch.resolve())],
+                          cwd=scratch, capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise SystemExit(f"{patch}: does not apply: {proc.stderr.strip()}")
 
 
 def run_audit(agent_repo: Path, mumei_bin: str, target: Path, fmt: str, timeout: int) -> tuple[int, str, str]:
@@ -238,15 +252,20 @@ def classify_findings(by_file: dict[str, list[dict]], evidence: set[tuple[str, i
             "reviews_used": [list(k) for k in sorted(used)]}
 
 
-def score(defects_doc: dict, audit: dict, label: str,
-          adjudications: list[dict] | None = None,
-          finding_reviews: list[dict] | None = None) -> dict:
-    adjudications = adjudications or []
+def findings_by_file(audit: dict, label: str) -> dict[str, list[dict]]:
     by_file: dict[str, list[dict]] = {}
     for fr in audit.get("file_results") or []:
         src = str(fr.get("source_file", ""))
         rel = src[len(label) + 1:] if src.startswith(label + "/") else src
         by_file.setdefault(rel, []).extend(collect_findings(fr))
+    return by_file
+
+
+def score(defects_doc: dict, audit: dict, label: str,
+          adjudications: list[dict] | None = None,
+          finding_reviews: list[dict] | None = None) -> dict:
+    adjudications = adjudications or []
+    by_file = findings_by_file(audit, label)
 
     matched_finding_ids: set[tuple[str, int]] = set()
     evidence_ids: set[tuple[str, int]] = set()
@@ -302,6 +321,28 @@ def score(defects_doc: dict, audit: dict, label: str,
     return {"defects": results, "unmatched_findings": unmatched, **classified}
 
 
+def score_fixed(defects_doc: dict, audit: dict, label: str,
+                adjudications: list[dict] | None = None,
+                finding_reviews: list[dict] | None = None) -> dict:
+    """Score the audit of a specimen with its fixed.patch applied.
+
+    Every planted defect is gone, so category evidence no longer counts as a
+    hit: a defect that would still be `detected` is reported in
+    `still_reported`, and its finding is a false alarm unless a ruling marks
+    it `real` (an issue the patch leaves in place)."""
+    scored = score(defects_doc, audit, label, adjudications)
+    classified = classify_findings(findings_by_file(audit, label), set(),
+                                   defects_doc.get("specimen"), finding_reviews or [])
+    fc = classified["finding_counts"]
+    return {
+        "defects": len(defects_doc["defects"]),
+        "still_reported": [d["id"] for d in scored["defects"] if d["status"] == "detected"],
+        "still_function_flagged": [d["id"] for d in scored["defects"] if d["status"] == "function_flagged"],
+        "false_alarms": fc["total"] - fc["real"],
+        **classified,
+    }
+
+
 def counts(results: list[dict]) -> dict[str, int]:
     c = {"total": len(results), "detected": 0, "function_flagged": 0, "missed": 0}
     for r in results:
@@ -319,9 +360,19 @@ def aggregate(coverages: list[dict]) -> dict:
     by_lang: dict[str, dict[str, int]] = {}
     by_cat: dict[str, dict[str, Any]] = {}
     findings = empty_finding_counts()
+    fixed = {"specimens": 0, "defects": 0, "still_reported": 0, "findings": 0,
+             "real": 0, "false_alarms": 0}
     for cov in coverages:
         for k, v in (cov.get("finding_counts") or {}).items():
             findings[k] = findings.get(k, 0) + v
+        fx = cov.get("fixed")
+        if fx:
+            fixed["specimens"] += 1
+            fixed["defects"] += fx["defects"]
+            fixed["still_reported"] += len(fx["still_reported"])
+            fixed["findings"] += fx["finding_counts"]["total"]
+            fixed["real"] += fx["finding_counts"]["real"]
+            fixed["false_alarms"] += fx["false_alarms"]
         c = cov["counts"]
         for k in ("total", "detected", "function_flagged", "missed"):
             totals[k] += c[k]
@@ -344,7 +395,7 @@ def aggregate(coverages: list[dict]) -> dict:
             bc["total"] += 1
             bc[r["status"]] += 1
     return {"totals": totals, "by_language": by_lang, "by_category": by_cat,
-            "findings": findings}
+            "findings": findings, "fixed": fixed}
 
 
 def precision_range(fc: dict | None) -> tuple[float, float] | None:
@@ -366,11 +417,18 @@ def fmt_precision(fc: dict | None) -> str:
     return lo if lo == hi else f"{lo}–{hi}"
 
 
+def fmt_fixed(fx: dict | None) -> str:
+    if not fx:
+        return "—"
+    return f"{fx['false_alarms']} / {fx['specimens']} specimens"
+
+
 def stale_reviews(coverages: list[dict], finding_reviews: list[dict]) -> list[dict]:
     """Rulings for a scored specimen that matched no finding. Tool wording
     changes make rulings stop applying; listing them keeps that visible."""
     scored = {cov["specimen"] for cov in coverages}
-    used = {tuple(k) for cov in coverages for k in cov.get("reviews_used") or []}
+    used = {tuple(k) for cov in coverages
+            for k in (cov.get("reviews_used") or []) + ((cov.get("fixed") or {}).get("reviews_used") or [])}
     return [r for r in finding_reviews
             if r["specimen"] in scored and review_key(r) not in used]
 
@@ -396,8 +454,10 @@ def audit_failure(rc_json: int, rc_md: int, audit: dict) -> str | None:
 
 def build_coverage(specimen_dir: Path, defects_doc: dict, audit: dict, rc_json: int, rc_md: int,
                    meta: dict, adjudications: list[dict] | None,
-                   finding_reviews: list[dict] | None) -> dict:
-    """Score an audit result and write audit/coverage.json."""
+                   finding_reviews: list[dict] | None,
+                   fixed_audit: dict | None = None) -> dict:
+    """Score an audit result (and the fixed-variant audit, if any) and write
+    audit/coverage.json."""
     label = str(specimen_dir.relative_to(REPO_ROOT))
     scored = score(defects_doc, audit, label, adjudications, finding_reviews)
     coverage = {
@@ -412,6 +472,8 @@ def build_coverage(specimen_dir: Path, defects_doc: dict, audit: dict, rc_json: 
         **scored,
         "meta": meta,
     }
+    if fixed_audit is not None:
+        coverage["fixed"] = score_fixed(defects_doc, fixed_audit, label, adjudications, finding_reviews)
     out_dir = specimen_dir / "audit"
     out_dir.mkdir(exist_ok=True)
     (out_dir / "coverage.json").write_text(json.dumps(coverage, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -432,10 +494,17 @@ def rescore_specimen(specimen_dir: Path, adjudications: list[dict] | None,
     if "meta" not in previous:
         raise SystemExit(f"{specimen_dir.name}: coverage.json has no run metadata; run a full audit first")
     defects_doc = json.loads((specimen_dir / "DEFECTS.json").read_text(encoding="utf-8"))
+    fixed_audit = None
+    if (specimen_dir / FIXED_PATCH).is_file():
+        try:
+            fixed_audit = json.loads((out_dir / "fixed" / "audit.json").read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            raise SystemExit(f"{specimen_dir.name}: {FIXED_PATCH} has no audit/fixed/audit.json; "
+                             "run a full audit first")
     return build_coverage(specimen_dir, defects_doc, audit,
                           previous.get("audit_exit_code", 0),
                           previous.get("audit_markdown_exit_code", 0),
-                          previous["meta"], adjudications, finding_reviews)
+                          previous["meta"], adjudications, finding_reviews, fixed_audit)
 
 
 def audit_specimen(specimen_dir: Path, agent_repo: Path, mumei_bin: str, timeout: int,
@@ -443,32 +512,49 @@ def audit_specimen(specimen_dir: Path, agent_repo: Path, mumei_bin: str, timeout
                    finding_reviews: list[dict] | None = None) -> dict:
     label = str(specimen_dir.relative_to(REPO_ROOT))
     defects_doc = json.loads((specimen_dir / "DEFECTS.json").read_text(encoding="utf-8"))
-    files = tracked_files(specimen_dir)
+    files = audit_files(specimen_dir)
     if not files:
         raise SystemExit(f"{label}: no git-tracked files; commit the specimen first")
-    out_dir = specimen_dir / "audit"
-    out_dir.mkdir(exist_ok=True)
+    patch = specimen_dir / FIXED_PATCH
+    audit = _audit_copy(specimen_dir, files, label, agent_repo, mumei_bin, timeout,
+                        specimen_dir / "audit", None)
+    fixed_audit = None
+    if patch.is_file():
+        fixed_audit = _audit_copy(specimen_dir, files, label, agent_repo, mumei_bin, timeout,
+                                  specimen_dir / "audit" / "fixed", patch)
+    return build_coverage(specimen_dir, defects_doc, audit, 0, 0, meta,
+                          adjudications, finding_reviews, fixed_audit)
+
+
+def _audit_copy(specimen_dir: Path, files: list[Path], label: str, agent_repo: Path,
+                mumei_bin: str, timeout: int, out_dir: Path, patch: Path | None) -> dict:
+    """Audit a scratch copy of the specimen (with `patch` applied, if given),
+    write audit.json/audit.md to out_dir and return the audit with scratch
+    paths rewritten to the specimen label."""
     with tempfile.TemporaryDirectory(prefix="specimen-audit-") as tmp:
         scratch = Path(tmp) / specimen_dir.name
         for f in files:
             dest = scratch / f.relative_to(specimen_dir)
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(f, dest)
+        if patch is not None:
+            apply_fixed_patch(patch, scratch)
         scratch_str = str(scratch.resolve())
         rc_json, out_json, err_json = run_audit(agent_repo, mumei_bin, scratch, "json", timeout)
         rc_md, out_md, _ = run_audit(agent_repo, mumei_bin, scratch, "markdown", timeout)
+    what = f"{label} (fixed)" if patch is not None else label
     try:
         audit = json.loads(out_json)
     except json.JSONDecodeError:
-        raise SystemExit(f"{label}: audit did not return JSON (exit {rc_json}):\n{err_json[-2000:]}")
+        raise SystemExit(f"{what}: audit did not return JSON (exit {rc_json}):\n{err_json[-2000:]}")
     failure = audit_failure(rc_json, rc_md, audit)
     if failure:
-        raise SystemExit(f"{label}: {failure}")
+        raise SystemExit(f"{what}: {failure}")
     audit = rewrite_paths(audit, scratch_str, label)
+    out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (out_dir / "audit.md").write_text(out_md.replace(scratch_str, label), encoding="utf-8")
-    return build_coverage(specimen_dir, defects_doc, audit, rc_json, rc_md, meta,
-                          adjudications, finding_reviews)
+    return audit
 
 
 def pct(n: int, d: int) -> str:
@@ -546,6 +632,14 @@ def write_summary(coverages: list[dict], meta: dict, path: Path,
         "it does not — or `unreviewed`. Precision is (defect evidence + real) / findings. While findings are",
         "unreviewed it is shown as a range: unreviewed counted as false positives, then as real.",
         "",
+        "## How fixed variants are scored",
+        "",
+        "A specimen may ship a `fixed.patch` that repairs every planted defect without other changes; its",
+        "`repro.sh` then reproduces none of them. The fixed copy is audited the same way (output in",
+        "`audit/fixed/`). Every finding on it is a false alarm unless a `finding_reviews` ruling marks it",
+        "`real` (a problem the patch leaves in place). \"Still reported\" counts planted defects whose",
+        "category evidence the audit keeps reporting after the fix.",
+        "",
         "## Per specimen",
         "",
         "| Specimen | Defects | Detected | Function flagged | Missed | Target-category detected | Unmatched findings | Findings | Precision |",
@@ -583,6 +677,32 @@ def write_summary(coverages: list[dict], meta: dict, path: Path,
         f"real {fc_total['real']}, false positive {fc_total['false_positive']}, "
         f"unreviewed {fc_total['unreviewed']}; precision {fmt_precision(fc_total)}.",
         "",
+    ]
+    fixed_covs = [cov for cov in coverages if cov.get("fixed")]
+    if fixed_covs:
+        fx_total = agg["fixed"]
+        lines += [
+            "## Fixed variants",
+            "",
+            "| Specimen | Defects fixed | Findings on fixed code | Reviewed real | False alarms | Still reported |",
+            "|---|---:|---:|---:|---:|---|",
+        ]
+        for cov in fixed_covs:
+            fx = cov["fixed"]
+            lines.append(
+                f"| [{cov['specimen']}]({cov['language']}/{cov['specimen']}/audit/fixed/audit.md) | "
+                f"{fx['defects']} | {fx['finding_counts']['total']} | {fx['finding_counts']['real']} | "
+                f"{fx['false_alarms']} | {', '.join(fx['still_reported']) or '—'} |"
+            )
+        lines += [
+            f"| **Total** | **{fx_total['defects']}** | **{fx_total['findings']}** | **{fx_total['real']}** | "
+            f"**{fx_total['false_alarms']}** | **{fx_total['still_reported']}** |",
+            "",
+            f"Fixed variants: {fx_total['specimens']} of {len(coverages)} specimens; "
+            f"{fx_total['false_alarms']} false alarms on fixed code.",
+            "",
+        ]
+    lines += [
         "## Per language",
         "",
         "| Language | Defects | Detected | Detected or function flagged | Target-category detected |",
@@ -818,6 +938,8 @@ def history_entry(coverages: list[dict], meta: dict, corpus: dict,
         "findings": agg["findings"],
         "stale_finding_reviews": stale_count,
     }
+    if agg["fixed"]["specimens"]:
+        entry["fixed"] = agg["fixed"]
     if meta.get("rescored_at"):
         entry["rescored_at"] = meta["rescored_at"]
     return entry
@@ -1125,6 +1247,13 @@ def readme_block_specimens(history: dict) -> str:
                         f"real {fc['real']}, false positive {fc['false_positive']}, "
                         f"unreviewed {fc['unreviewed']}) · precision {fmt_precision(fc)}"
                     )
+                fx = run.get("fixed")
+                if fx:
+                    lines.append(
+                        f"Fixed variants — {label}: {fx['specimens']} specimens ({fx['defects']} defects fixed) · "
+                        f"{fx['false_alarms']} false alarms in {fx['findings']} findings on fixed code · "
+                        f"{fx['still_reported']} defects still reported"
+                    )
                 lines.append("")
         lines += [
             "",
@@ -1189,8 +1318,8 @@ def readme_block_specimens(history: dict) -> str:
             "",
             "Recent runs:",
             "",
-            "| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision |",
-            "|---|---|---|---|---|---:|---:|---:|---:|",
+            "| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code |",
+            "|---|---|---|---|---|---:|---:|---:|---:|---:|",
         ]
         for r in reversed(runs[-10:]):
             rt = r["totals"]
@@ -1205,7 +1334,7 @@ def readme_block_specimens(history: dict) -> str:
                 f"{pct(rt['detected'], rt['total'])} | "
                 f"{pct(rt['target_detected'], rt['target_total'])} | "
                 f"{pct(rt['detected'] + rt['function_flagged'], rt['total'])} | "
-                f"{fmt_precision(r.get('findings'))} |"
+                f"{fmt_precision(r.get('findings'))} | {fmt_fixed(r.get('fixed'))} |"
             )
         lines.append("")
     lines += [
@@ -1229,6 +1358,9 @@ def readme_block_specimens(history: dict) -> str:
         "findings are unreviewed, and `—` for runs recorded before findings were classified. Review",
         "verdicts live under `finding_reviews` in `scoreboard/adjudications.json`; after editing them, run",
         "`python3 scripts/run_specimen_audits.py --rescore` to re-score the committed audit output.",
+        "",
+        "False alarms on fixed code count findings on specimens with their `fixed.patch` applied (every",
+        "planted defect repaired) that no ruling marks as real, shown as false alarms / specimens covered.",
     ]
     return "\n".join(lines)
 
@@ -1257,6 +1389,10 @@ def readme_block_top(history: dict) -> str:
             fc = run.get("findings")
             if fc and fc.get("total"):
                 frag += f", precision {fmt_precision(fc)} of {fc['total']} findings"
+            fx = run.get("fixed")
+            if fx:
+                frag += (f", {fx['false_alarms']} false alarms on fixed code "
+                         f"({fx['specimens']} specimens)")
             return frag
 
         modes = latest_by_mode(runs)
@@ -1334,9 +1470,14 @@ def finish_run(coverages: list[dict], meta: dict, finding_reviews: list[dict],
 def _print_coverage(cov: dict) -> None:
     c = cov["counts"]
     fc = cov.get("finding_counts") or {}
-    print(f"{cov['specimen']}: {c['detected']}/{c['total']} detected, {c['function_flagged']} function-flagged, "
-          f"{c['missed']} missed, {len(cov['unmatched_findings'])} unmatched, "
-          f"{fc.get('total', 0)} findings ({fc.get('unreviewed', 0)} unreviewed)")
+    line = (f"{cov['specimen']}: {c['detected']}/{c['total']} detected, {c['function_flagged']} function-flagged, "
+            f"{c['missed']} missed, {len(cov['unmatched_findings'])} unmatched, "
+            f"{fc.get('total', 0)} findings ({fc.get('unreviewed', 0)} unreviewed)")
+    fx = cov.get("fixed")
+    if fx:
+        line += (f"; fixed: {fx['false_alarms']} false alarms, "
+                 f"{len(fx['still_reported'])} still reported")
+    print(line)
 
 
 def main(argv: list[str]) -> int:

@@ -166,7 +166,7 @@ def test_parser_option_strings_match_golden_lists() -> None:
         ],
         "scripts/record_scenario.py": ["--variant", "--output"],
         "scripts/record_model_evidence.py": ["--repo", "--output"],
-        "scripts/check_specimens.py": ["--root"],
+        "scripts/check_specimens.py": ["--root", "--run-fixed"],
         "scripts/check_evidence_regressions.py": ["--out-dir"],
         "scripts/review_charter_baseline.py": ["--base", "--out-dir"],
         "dashboard/cli_report.py": ["--all"],
