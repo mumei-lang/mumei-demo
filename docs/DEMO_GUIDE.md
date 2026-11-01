@@ -77,6 +77,18 @@ The scenario copies its project into the run output directory, locks the
 reviewed dosage charter there, and records gate and per-atom results in
 `reports/charter_gate_demo/latest/result.json` and `report.md`.
 
+For the complete regression runbook, use:
+
+```bash
+CI_FIXTURE_MODE=1 make demo-charter-regression
+```
+
+This runs Charter Gate, Negative Controls, and Test Observations, then isolated
+synthetic artifact mutations against the real Charter report. Each model keeps
+its own evidence; controls and observations from other models do not strengthen
+the dosage claim. See the [Charter runbook](../scenarios/charter_gate_demo/README.md)
+for the matrix, diagnostics, reviewed-baseline diff, and proof boundaries.
+
 ## Run the Negative Controls scenario
 
 ```bash

@@ -133,6 +133,12 @@ accepts a correctly proved implementation, and records expected rejections
 for weaker, narrower, under-graded, and unpinned candidates in `result.json`
 and `report.md`.
 
+`CI_FIXTURE_MODE=1 make demo-charter-regression` also runs the existing controls
+and observation examples and eleven synthetic artifact-reader cases. These are
+separate models, not controls or observations for `clamp_dose`. The
+[Charter runbook](../scenarios/charter_gate_demo/README.md) distinguishes actual
+verifier gates from synthetic metadata/substitution regressions.
+
 ### Negative Controls
 
 ```bash

@@ -1,5 +1,28 @@
 # mumei-demo Roadmap
 
+## Scenario evidence: requirements-to-CI example
+
+The Charter scenario opts into `mumei-demo.scenario-evidence/v1`. Readers
+revalidate the required claims and artifacts, independently display proof grades
+and dependency completeness, and separate model evidence, finite observations,
+declared assumptions, unverified connections, and exclusions. Existing scenarios
+without the evidence configuration keep their existing contract.
+
+`make demo-charter-regression` connects the existing Charter, negative-control,
+and test-observation scenarios without pretending they prove a single model.
+The real binary checks G4, complete dependencies, and stale-certificate rejection;
+eleven explicitly synthetic reader cases cover missing/replaced evidence,
+staleness, missing dependencies, required artifact omissions, and failure preservation.
+CI saves diagnostics, current reviewed inputs, and the baseline Git diff.
+The [runbook](../scenarios/charter_gate_demo/README.md) is the executable reference.
+
+Cross-repo responsibilities remain unchanged: `mumei` owns verification, grades,
+Claim Book and Charter gates; `mumei-agent` owns test harvesting and repair tools;
+`mumei-lean` remains an optional proof backend; `mumei-demo` binds and presents
+scenario evidence. No compiler DSL, alternate grade, audit-key alias, mandatory
+LLM step, or new Lean guarantee is introduced. Production/runtime correspondence
+and an authority-aware execution experiment remain out of scope.
+
 ## Cross-project no-.mm scenario contract
 
 `mumei-lang/mumei/docs/CROSS_PROJECT_ROADMAP.md` owns the global V1 order. Demo scenarios that cover the no-`.mm` path must keep the same `audit -> migrate-suggest -> heal` gate order as `mumei-agent audit --auto-migrate --auto-heal` and MCP `scan_and_fix`.
