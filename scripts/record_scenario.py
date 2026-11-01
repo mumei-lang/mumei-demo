@@ -147,10 +147,15 @@ def run_checks(factory=RecordExecutor) -> dict:
             "cases": rows, "failed_cases": failed, "scope": "finite implementation observations, not proof"}
 
 
-def main(argv=None) -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--variant", choices=VARIANTS, default="baseline")
     parser.add_argument("--output", type=Path, required=True)
+    return parser
+
+
+def main(argv=None) -> int:
+    parser = build_parser()
     args = parser.parse_args(argv)
     # Variant selection belongs to the trusted test harness, never proposal JSON.
     report = run_checks(VARIANTS[args.variant])

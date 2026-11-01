@@ -1057,7 +1057,7 @@ def write_highlights(
     return 0
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Render a Mumei demo result.")
     parser.add_argument("result_json", nargs="?", help="Path to result.json")
     parser.add_argument("--format", choices=("table", "json", "markdown"), default="table")
@@ -1101,6 +1101,11 @@ def main() -> int:
         action="store_true",
         help="Return a non-zero exit code when any requested scenario result is missing",
     )
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parent.parent

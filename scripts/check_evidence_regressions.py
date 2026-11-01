@@ -124,10 +124,15 @@ def run_suite(result_path: Path, out_dir: Path) -> dict:
     return summary
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("result", type=Path)
     parser.add_argument("--out-dir", type=Path, required=True)
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
     args = parser.parse_args()
     args.out_dir.mkdir(parents=True, exist_ok=True)
     output = Path(tempfile.mkdtemp(prefix="run-", dir=args.out_dir))

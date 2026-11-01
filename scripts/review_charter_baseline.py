@@ -41,10 +41,15 @@ def review(root: Path, base: str | None, out_dir: Path) -> dict:
     return snapshot
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base")
     parser.add_argument("--out-dir", type=Path, required=True)
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
     args = parser.parse_args()
     review(Path(__file__).resolve().parents[1], args.base, args.out_dir)
     return 0

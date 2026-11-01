@@ -1045,7 +1045,7 @@ def discover(root: Path) -> list[Path]:
     return sorted(p.parent for p in root.glob("*/*/DEFECTS.json"))
 
 
-def main(argv: list[str]) -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("specimens", nargs="*", help="specimen dirs (default: all)")
     parser.add_argument("--mumei-agent-repo", default=str(REPO_ROOT.parent / "mumei-agent"))
@@ -1059,6 +1059,11 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--render-only", action="store_true",
                         help="re-render scoreboard SVGs and README blocks from history.json "
                              "without running any audits")
+    return parser
+
+
+def main(argv: list[str]) -> int:
+    parser = build_parser()
     args = parser.parse_args(argv)
 
     if args.render_only:

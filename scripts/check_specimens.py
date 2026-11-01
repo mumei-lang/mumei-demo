@@ -322,7 +322,7 @@ def discover_specimens(root: Path) -> list[Path]:
     )
 
 
-def main(argv: list[str]) -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Validate specimen directories.")
     parser.add_argument(
         "--root",
@@ -330,6 +330,11 @@ def main(argv: list[str]) -> int:
         help="specimens root directory (default: %(default)s)",
     )
     parser.add_argument("specimens", nargs="*", help="specimen directories to check")
+    return parser
+
+
+def main(argv: list[str]) -> int:
+    parser = build_parser()
     args = parser.parse_args(argv)
 
     root = Path(args.root)
