@@ -159,7 +159,7 @@ def tracked_files(specimen_dir: Path) -> list[Path]:
         capture_output=True, text=True, check=True,
     )
     files = [REPO_ROOT / p for p in out.stdout.split("\0") if p]
-    return [f for f in files if "audit" not in f.relative_to(specimen_dir).parts[:1]]
+    return [f for f in files if f.relative_to(specimen_dir).parts[:1] not in (("audit",), ("baselines",))]
 
 
 def audit_files(specimen_dir: Path) -> list[Path]:
@@ -806,16 +806,16 @@ SCOREBOARD_END = "<!-- scoreboard:end -->"
 
 
 def _specimen_files(specimen_dir: Path) -> list[Path]:
-    """Files that make up a specimen, excluding audit/ output.
+    """Files that make up a specimen, excluding audit/ and baselines/ output.
 
     Git-tracked files when specimen_dir lives under the repo; everything on
-    disk (except audit/) otherwise, so corpus_info also works on scratch dirs.
+    disk (except audit/ and baselines/) otherwise, so corpus_info also works on scratch dirs.
     """
     try:
         return tracked_files(specimen_dir)
     except (OSError, subprocess.CalledProcessError, ValueError):
         return sorted(f for f in specimen_dir.rglob("*")
-                      if f.is_file() and "audit" not in f.relative_to(specimen_dir).parts)
+                      if f.is_file() and f.relative_to(specimen_dir).parts[0] not in ("audit", "baselines"))
 
 
 def corpus_info(root: Path) -> dict:
@@ -873,20 +873,23 @@ def load_adjudications(root: Path) -> list[dict]:
     return entries
 
 
-def load_finding_reviews(root: Path) -> list[dict]:
+def load_finding_reviews(root: Path, filename: str = ADJUDICATIONS_FILE,
+                         extra_fields: tuple[str, ...] = ()) -> list[dict]:
     """Reviewed verdicts for findings that are not category evidence.
 
     Validated eagerly: a ruling for an unknown specimen or file, with an
     unsupported verdict, a missing field, or a duplicate key fails loudly.
+    `extra_fields` are further required fields that are part of the key
+    (the baseline reviews add `tool`).
     """
-    path = root / "scoreboard" / ADJUDICATIONS_FILE
+    path = root / "scoreboard" / filename
     if not path.is_file():
         return []
     entries = json.loads(path.read_text(encoding="utf-8")).get("finding_reviews") or []
     specimen_dirs = {d.name: d for d in root.glob("*/*") if (d / "DEFECTS.json").is_file()}
-    seen: set[tuple[str, str, str]] = set()
+    seen: set[tuple[str, ...]] = set()
     for r in entries:
-        for field in ("specimen", "file", "finding_contains", "verdict", "reason"):
+        for field in extra_fields + ("specimen", "file", "finding_contains", "verdict", "reason"):
             if not isinstance(r.get(field), str) or not r[field].strip():
                 raise SystemExit(f"{path}: finding review {r!r}: missing or empty {field!r}")
         if r["verdict"] not in FINDING_VERDICTS:
@@ -898,7 +901,7 @@ def load_finding_reviews(root: Path) -> list[dict]:
         if not (sdir / r["file"]).is_file():
             raise SystemExit(f"{path}: finding review references unknown file "
                              f"{r['specimen']}/{r['file']}")
-        key = review_key(r)
+        key = tuple(r[f] for f in extra_fields) + review_key(r)
         if key in seen:
             raise SystemExit(f"{path}: duplicate finding review {key!r}")
         seen.add(key)

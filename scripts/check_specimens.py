@@ -160,7 +160,7 @@ def scan_forbidden_hints(specimen_dir: Path, errors: list) -> None:
 
 
 def _copy_specimen(specimen_dir: Path, dest: Path) -> None:
-    shutil.copytree(specimen_dir, dest, ignore=shutil.ignore_patterns("audit", FIXED_PATCH, "__pycache__",
+    shutil.copytree(specimen_dir, dest, ignore=shutil.ignore_patterns("audit", "baselines", FIXED_PATCH, "__pycache__",
                                                                         "node_modules", "out", "target"))
 
 
