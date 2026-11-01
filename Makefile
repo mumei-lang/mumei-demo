@@ -100,6 +100,16 @@ demo-arklib:
 demo-charter:
 	@./scripts/run_scenario.sh charter_gate_demo
 
+.PHONY: demo-charter-regression
+demo-charter-regression:
+	@status=0; \
+	for scenario in charter_gate_demo negative_controls_demo test_observation_demo; do \
+		./scripts/run_scenario.sh "$$scenario" || status=1; \
+	done; \
+	python3 scripts/check_evidence_regressions.py reports/charter_gate_demo/latest/result.json \
+		--out-dir reports/charter_regressions || status=1; \
+	exit "$$status"
+
 demo-negative-controls:
 	@./scripts/run_scenario.sh negative_controls_demo
 

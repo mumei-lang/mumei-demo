@@ -63,6 +63,13 @@ make setup && make demo
 
 Use `make demo-ci` for deterministic fixture-mode validation. Detailed setup, per-target commands, dashboards, and troubleshooting are in [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md).
 
+For a focused requirements-to-CI example, run
+`CI_FIXTURE_MODE=1 make demo-charter-regression`. The
+[Charter runbook](scenarios/charter_gate_demo/README.md) connects reviewed
+requirements, candidate rejection, contract-strength checks, finite observations,
+and evidence-reader regressions. These remain distinct models and evidence
+types, not an application-wide safety claim; no LLM credentials are needed.
+
 ## Running scenarios
 
 ```bash

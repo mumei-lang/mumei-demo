@@ -1,7 +1,8 @@
 {
   "name": "Charter Gate: Reviewed Dosage Contract",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Shows mumei rejecting weakened, narrowed, under-graded, and unpinned dosage repairs.",
+  "result_message": "Result: Reviewed model gates passed; assumptions and runtime correspondence still require review.",
   "evidence_requirements": {
     "claims": [
       {
@@ -24,6 +25,8 @@
       "detect_weakened_ensures": "S1_charter_rejection_weakened_ensures",
       "detect_tightened_requires": "S1_charter_rejection_tightened_requires",
       "verify_correct": "S1_charter_acceptance_verify_correct",
+      "claims_complete": "S1_claim_dependency_completeness",
+      "detect_stale_certificate": "S1_stale_certificate_rejection",
       "charter_pass": "S1_charter_acceptance_grade_g4",
       "verify_trusted_shortcut": "S1_charter_acceptance_verify_trusted_shortcut",
       "detect_trusted_shortcut": "S1_charter_rejection_grade_below",
@@ -33,7 +36,9 @@
       "project/mumei.toml",
       "project/charter.lock",
       "project/specs/dosage.charter.mm",
-      "project_edit/charter_report.json"
+      "project_edit/charter_report.json",
+      "claims_complete/claimbook.json",
+      "claims_stale/claimbook.json"
     ],
     "charter_steps": [
       "detect_weakened_ensures",
@@ -224,6 +229,36 @@
           "The step records a Claim Book entry for correct.mm and its certificate."
         ],
         "verifier_gate": "mumei verify exits 0, verifies clamp_dose, and emits a proof certificate."
+      },
+      {
+        "id": "claims_complete",
+        "name": "Require G4 and complete dependencies independently",
+        "repo": "mumei",
+        "cwd": "{output_dir}/project",
+        "command": "{mumei_bin} claims correct.mm --cert {output_dir}/charter_gate.proof.json --require-grade G4 --require-complete --format json --out-dir {output_dir}/claims_complete",
+        "expected_exit": 0,
+        "expected_patterns": ["Claim Book: 1 atoms", "fresh=1"],
+        "artifacts": ["claims_complete/claimbook.json"],
+        "depends_on": ["verify_correct"],
+        "harness_stage": "S1_claim_dependency_completeness",
+        "artifact_contract": ["The real claims command saves a fresh Claim Book before evaluating the independent grade and dependency gates."],
+        "verifier_gate": "mumei claims exits 0 with both --require-grade G4 and --require-complete."
+      },
+      {
+        "id": "detect_stale_certificate",
+        "name": "Reject a certificate from a different candidate",
+        "repo": "mumei",
+        "cwd": "{output_dir}/project",
+        "command": "{mumei_bin} claims weakened_ensures.mm --cert {output_dir}/charter_gate.proof.json --require-grade G4 --require-complete --format json --out-dir {output_dir}/claims_stale; claims_status=$?; python3 -c 'import json,sys; data=json.load(open(sys.argv[1], encoding=\"utf-8\")); matches=[c for c in data.get(\"claims\",[]) if c.get(\"atom\")==\"clamp_dose\"]; valid=len(matches)==1 and matches[0].get(\"freshness\")==\"drifted\"; sys.exit(0 if valid else 2)' {output_dir}/claims_stale/claimbook.json || exit 2; exit \"$claims_status\"",
+        "expected_exit": 1,
+        "expect_failure": true,
+        "expected_patterns": ["drifted=1", "clamp_dose", "required G4"],
+        "artifacts": ["claims_stale/claimbook.json"],
+        "depends_on": ["verify_correct"],
+        "harness_stage": "S1_stale_certificate_rejection",
+        "artifact_contract": ["The rejected candidate keeps its Claim Book, including drifted freshness and existing next_steps."],
+        "verifier_gate": "mumei claims exits 1 and its saved Claim Book identifies clamp_dose as drifted; input errors are not accepted.",
+        "failure_taxonomy": "stale_certificate"
       },
       {
         "id": "charter_pass",
