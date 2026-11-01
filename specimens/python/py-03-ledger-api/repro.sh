@@ -108,12 +108,11 @@ else
 fi
 
 # PY03-D05 negative_page_offset: offset=-2&limit=10 returns the tail entries
-j=$(mkacct jack a8 0)
+j=$(mkacct jack a8 1000)
 for _ in 1 2 3; do
     curl -s -o /dev/null -X POST "$BASE/transfer" -H 'X-Owner: jack' -H 'Content-Type: application/json' \
-        -d "{\"from\": $h, \"to\": $j, \"amount_cents\": 1}" || true
+        -d "{\"from\": $j, \"to\": $i, \"amount_cents\": 1}" || true
 done
-# transfers may fail on balance; use close entries instead if needed: top up via house->jack
 count=$(curl -s -H 'X-Owner: jack' "$BASE/statement/$j" | python3 -c 'import json,sys; print(len(json.load(sys.stdin)["entries"]))')
 tail=$(curl -s -H 'X-Owner: jack' "$BASE/statement/$j?offset=-2&limit=10" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(len(d["entries"]) if "entries" in d else "rejected")')
 if [[ "$count" -ge 3 && "$tail" == "2" ]]; then
