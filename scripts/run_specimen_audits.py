@@ -394,10 +394,31 @@ def audit_failure(rc_json: int, rc_md: int, audit: dict) -> str | None:
     return None
 
 
+SPECIMEN_HASH_SKIP = {"audit", "node_modules", "target", "out", "__pycache__", ".venv"}
+
+
+def specimen_hash(specimen_dir: Path) -> str:
+    """Hash of the specimen files an audit reads (build outputs and audit/ excluded),
+    so --rescore can tell when the sources changed after the audit."""
+    h = hashlib.sha256()
+    for f in sorted(specimen_dir.rglob("*")):
+        rel = f.relative_to(specimen_dir)
+        if not f.is_file() or SPECIMEN_HASH_SKIP & set(rel.parts):
+            continue
+        h.update(rel.as_posix().encode() + b"\0" + f.read_bytes() + b"\0")
+    return h.hexdigest()
+
+
+def write_coverage(specimen_dir: Path, coverage: dict) -> None:
+    out_dir = specimen_dir / "audit"
+    out_dir.mkdir(exist_ok=True)
+    (out_dir / "coverage.json").write_text(json.dumps(coverage, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def build_coverage(specimen_dir: Path, defects_doc: dict, audit: dict, rc_json: int, rc_md: int,
                    meta: dict, adjudications: list[dict] | None,
-                   finding_reviews: list[dict] | None) -> dict:
-    """Score an audit result and write audit/coverage.json."""
+                   finding_reviews: list[dict] | None, source_hash: str) -> dict:
+    """Score an audit result into the audit/coverage.json record (not written here)."""
     label = str(specimen_dir.relative_to(REPO_ROOT))
     scored = score(defects_doc, audit, label, adjudications, finding_reviews)
     coverage = {
@@ -410,18 +431,17 @@ def build_coverage(specimen_dir: Path, defects_doc: dict, audit: dict, rc_json: 
         "files_with_issues": audit.get("files_with_issues"),
         "counts": counts(scored["defects"]),
         **scored,
+        "source_hash": source_hash,
         "meta": meta,
     }
-    out_dir = specimen_dir / "audit"
-    out_dir.mkdir(exist_ok=True)
-    (out_dir / "coverage.json").write_text(json.dumps(coverage, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return coverage
 
 
 def rescore_specimen(specimen_dir: Path, adjudications: list[dict] | None,
                      finding_reviews: list[dict] | None) -> dict:
     """Re-score the committed audit/audit.json with the current rulings,
-    keeping the audit's exit codes and run metadata from coverage.json."""
+    keeping the audit's exit codes and run metadata from coverage.json.
+    Refuses when the specimen changed since the audit. Nothing is written."""
     out_dir = specimen_dir / "audit"
     try:
         audit = json.loads((out_dir / "audit.json").read_text(encoding="utf-8"))
@@ -431,11 +451,18 @@ def rescore_specimen(specimen_dir: Path, adjudications: list[dict] | None,
                          "run a full audit first")
     if "meta" not in previous:
         raise SystemExit(f"{specimen_dir.name}: coverage.json has no run metadata; run a full audit first")
+    current = specimen_hash(specimen_dir)
+    recorded = previous.get("source_hash")
+    if recorded is None:
+        print(f"warning: {specimen_dir.name}: coverage.json predates source hashes; "
+              "assuming the sources match the audit", file=sys.stderr)
+    elif recorded != current:
+        raise SystemExit(f"{specimen_dir.name}: specimen changed since the audit; run a full audit first")
     defects_doc = json.loads((specimen_dir / "DEFECTS.json").read_text(encoding="utf-8"))
     return build_coverage(specimen_dir, defects_doc, audit,
                           previous.get("audit_exit_code", 0),
                           previous.get("audit_markdown_exit_code", 0),
-                          previous["meta"], adjudications, finding_reviews)
+                          previous["meta"], adjudications, finding_reviews, current)
 
 
 def audit_specimen(specimen_dir: Path, agent_repo: Path, mumei_bin: str, timeout: int,
@@ -467,8 +494,10 @@ def audit_specimen(specimen_dir: Path, agent_repo: Path, mumei_bin: str, timeout
     audit = rewrite_paths(audit, scratch_str, label)
     (out_dir / "audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (out_dir / "audit.md").write_text(out_md.replace(scratch_str, label), encoding="utf-8")
-    return build_coverage(specimen_dir, defects_doc, audit, rc_json, rc_md, meta,
-                          adjudications, finding_reviews)
+    coverage = build_coverage(specimen_dir, defects_doc, audit, rc_json, rc_md, meta,
+                              adjudications, finding_reviews, specimen_hash(specimen_dir))
+    write_coverage(specimen_dir, coverage)
+    return coverage
 
 
 def pct(n: int, d: int) -> str:
@@ -1360,6 +1389,8 @@ def main(argv: list[str]) -> int:
         if len(metas) != 1:
             raise SystemExit("--rescore: audit outputs come from different runs; "
                              "run a full audit first")
+        for d, cov in zip(discover(SPECIMENS_ROOT), coverages):
+            write_coverage(d, cov)
         meta = dict(coverages[0]["meta"])
         meta["rescored_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
         for cov in coverages:
