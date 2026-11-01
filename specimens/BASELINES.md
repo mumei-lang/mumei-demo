@@ -7,7 +7,7 @@ is over the specimens in the tool's languages only.
 | Tool | Version | Languages | Specimens | Detected | Function-flagged | Findings | Precision | Fixed-code false alarms |
 |---|---|---|---|---|---|---|---|---|
 | bandit | 1.8.6 | python | 4 | 5/41 (12%) | 2 | 8 | 88% | 3 / 4 specimens |
-| semgrep | 1.150.0 | go, python, rust, solidity, typescript | 16 | 9/171 (5%) | 8 | 21 | 81% | 10 / 16 specimens |
+| semgrep | 1.150.0 | go, python, rust, solidity, typescript | 16 | 9/171 (5%) | 8 | 21 | 81% | 9 / 16 specimens |
 
 semgrep rules: semgrep-rules `16b9e6d45f10`, categories correctness, security.
 

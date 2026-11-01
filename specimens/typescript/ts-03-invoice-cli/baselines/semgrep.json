@@ -8,7 +8,7 @@
     "correctness",
     "security"
   ],
-  "generated_at": "2026-11-01T17:44:58Z",
+  "generated_at": "2026-11-01T18:19:10Z",
   "source_hash": "5396ff32534c2c3f16cf3056b604f7965d4b98f394899d0788623e75f3d44b9a",
   "tool_errors": 0,
   "raw_findings": [],
@@ -138,30 +138,14 @@
       "cwe": [],
       "message": "The string method replaceAll is not supported in all versions of javascript, and is not supported by older browser versions. Consider using replace() with a regex as the first argument instead like mystring.replace(/bad/g, \"good\") instead of mystring.replaceAll(\"bad\", \"good\") (https://discourse.threejs.org/t/replaceall-is-not-a-function/14585)",
       "function": "invoiceId"
-    },
-    {
-      "file": "invoice.ts",
-      "line": 63,
-      "rule": "javascript.lang.correctness.no-replaceall",
-      "severity": "warning",
-      "cwe": [],
-      "message": "The string method replaceAll is not supported in all versions of javascript, and is not supported by older browser versions. Consider using replace() with a regex as the first argument instead like mystring.replace(/bad/g, \"good\") instead of mystring.replaceAll(\"bad\", \"good\") (https://discourse.threejs.org/t/replaceall-is-not-a-function/14585)",
-      "function": "invoiceId"
     }
   ],
   "fixed_tool_errors": 0,
   "fixed": {
     "defects": 10,
     "still_reported": [],
-    "false_alarms": 2,
+    "false_alarms": 1,
     "findings": [
-      {
-        "file": "invoice.ts",
-        "kind": "baseline",
-        "text": "javascript.lang.correctness.no-replaceall in `invoiceId` (line 63): The string method replaceAll is not supported in all versions of javascript, and is not supported by older browser versions. Consider using replace() with a regex as the first argument instead like mystring.replace(/bad/g, \"good\") instead of mystring.replaceAll(\"bad\", \"good\") (https://discourse.threejs.org/t/replaceall-is-not-a-function/14585)",
-        "status": "false_positive",
-        "reason": "replaceAll is supported by every Node.js version the specimen targets; the browser-compatibility warning does not apply to a CLI."
-      },
       {
         "file": "invoice.ts",
         "kind": "baseline",
@@ -171,10 +155,10 @@
       }
     ],
     "finding_counts": {
-      "total": 2,
+      "total": 1,
       "defect_evidence": 0,
       "real": 0,
-      "false_positive": 2,
+      "false_positive": 1,
       "unreviewed": 0
     },
     "reviews_used": [
