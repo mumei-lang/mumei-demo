@@ -6,6 +6,7 @@ import importlib
 import os
 import re
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 
@@ -82,6 +83,22 @@ INTERNAL_ENV_ALLOWLIST = {
     "MUMEI_STD_PATH": "Internal child-process override for the Mumei standard-library path.",
     "OPENAI_API_KEY": "Credential presence is checked for audit metadata; the value is not reported.",
 }
+
+
+@contextmanager
+def _neutralized_environment():
+    names = {name for name, _, _ in ENVIRONMENT_VARIABLES} | set(INTERNAL_ENV_ALLOWLIST)
+    saved = {name: os.environ[name] for name in names if name in os.environ}
+    for name in names:
+        os.environ.pop(name, None)
+    try:
+        yield
+    finally:
+        for name in names:
+            os.environ.pop(name, None)
+        os.environ.update(saved)
+
+
 MAKE_VARIABLES = (
     "MUMEI_REPO",
     "MUMEI_AGENT_REPO",
@@ -202,11 +219,12 @@ def capture_parsers() -> list[tuple[str, argparse.ArgumentParser]]:
     for directory in (REPO_ROOT, SCRIPTS_DIR, DASHBOARD_DIR):
         if str(directory) not in sys.path:
             sys.path.insert(0, str(directory))
-    captured = []
-    for script_path, module_name in CLI_SCRIPTS:
-        module = importlib.import_module(module_name)
-        captured.append((script_path, module.build_parser()))
-    return captured
+    with _neutralized_environment():
+        captured = []
+        for script_path, module_name in CLI_SCRIPTS:
+            module = importlib.import_module(module_name)
+            captured.append((script_path, module.build_parser()))
+        return captured
 
 
 def _parser_description(parser: argparse.ArgumentParser) -> str:

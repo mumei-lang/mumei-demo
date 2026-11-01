@@ -27,6 +27,13 @@ def test_committed_reference_matches_render() -> None:
     assert (REPO_ROOT / "docs/REFERENCE.md").read_text(encoding="utf-8") == render_reference()
 
 
+def test_render_is_independent_of_environment_defaults(monkeypatch) -> None:
+    monkeypatch.setenv("MUMEI_BIN", "/tmp/x/mumei")
+    monkeypatch.setenv("MUMEI_REPO", "/tmp/y")
+    committed = (REPO_ROOT / "docs/REFERENCE.md").read_text(encoding="utf-8")
+    assert render_reference() == committed
+
+
 def test_check_rejects_tampered_copy(tmp_path, capsys) -> None:
     copy = tmp_path / "REFERENCE.md"
     copy.write_text("tampered", encoding="utf-8")
