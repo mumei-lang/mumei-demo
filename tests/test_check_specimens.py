@@ -202,3 +202,175 @@ def test_missing_defects_json_is_error(tmp_path, capsys):
     assert rc == 1
     assert "checked 1 specimens" in out
     assert "missing DEFECTS.json" in out
+
+
+# --- fixed.patch -------------------------------------------------------------
+
+FIX_PATCH = """diff --git a/app.py b/app.py
+--- a/app.py
++++ b/app.py
+@@ -1,2 +1,2 @@
+ def add(a, b):
+-    return a - b
++    return a + b
+"""
+
+REPRO_CHECKS_SOURCE = (
+    "#!/usr/bin/env bash\n"
+    "if grep -q 'a - b' app.py; then echo '[REPRODUCED] PY01-D01 add'; "
+    "else echo '[NOT REPRODUCED] PY01-D01 add'; fi\n"
+)
+
+
+def _with_patch(tmp_path, patch=FIX_PATCH):
+    d = make_specimen(tmp_path)
+    (d / "fixed.patch").write_text(patch)
+    return d
+
+
+def test_fixed_patch_valid(tmp_path, capsys):
+    _with_patch(tmp_path)
+    rc, out = run(tmp_path, capsys=capsys)
+    assert rc == 0, out
+
+
+def test_fixed_patch_absent_is_fine(tmp_path):
+    d = make_specimen(tmp_path)
+    errors = []
+    check_specimens.check_fixed_patch(d, errors)
+    check_specimens.run_fixed_variant(d, errors)
+    assert errors == []
+
+
+def test_fixed_patch_does_not_modify_working_tree(tmp_path, capsys):
+    d = _with_patch(tmp_path)
+    run(tmp_path, capsys=capsys)
+    assert "a - b" in (d / "app.py").read_text()
+
+
+@pytest.mark.parametrize("target", ["README.md", "DEFECTS.json", "run.sh", "repro.sh", "notes.txt"])
+def test_fixed_patch_rejects_non_source_files(tmp_path, capsys, target):
+    patch = FIX_PATCH + (f"diff --git a/{target} b/{target}\n--- a/{target}\n+++ b/{target}\n"
+                         "@@ -1 +1 @@\n-x\n+y\n")
+    _with_patch(tmp_path, patch)
+    rc, out = run(tmp_path, capsys=capsys)
+    assert rc == 1
+    assert f"may only modify source files, touches {target}" in out
+
+
+def test_fixed_patch_rejects_rename(tmp_path, capsys):
+    _with_patch(tmp_path, FIX_PATCH.replace("diff --git a/app.py b/app.py",
+                                            "diff --git a/app.py b/main.py"))
+    rc, out = run(tmp_path, capsys=capsys)
+    assert rc == 1 and "touches main.py" in out
+
+
+def test_fixed_patch_rejects_missing_file(tmp_path, capsys):
+    _with_patch(tmp_path, FIX_PATCH.replace("app.py", "lib.py"))
+    rc, out = run(tmp_path, capsys=capsys)
+    assert rc == 1 and "lib.py does not exist" in out
+
+
+def test_fixed_patch_rejects_new_file(tmp_path, capsys):
+    patch = FIX_PATCH + ("diff --git a/extra.py b/extra.py\nnew file mode 100644\n--- /dev/null\n"
+                         "+++ b/extra.py\n@@ -0,0 +1 @@\n+x = 1\n")
+    _with_patch(tmp_path, patch)
+    rc, out = run(tmp_path, capsys=capsys)
+    assert rc == 1 and "may not add or delete files" in out
+
+
+def test_fixed_patch_rejects_empty(tmp_path, capsys):
+    _with_patch(tmp_path, "nothing here\n")
+    rc, out = run(tmp_path, capsys=capsys)
+    assert rc == 1 and "no file changes" in out
+
+
+def test_fixed_patch_must_apply(tmp_path, capsys):
+    _with_patch(tmp_path, FIX_PATCH.replace("-    return a - b", "-    return a * b"))
+    rc, out = run(tmp_path, capsys=capsys)
+    assert rc == 1 and "does not apply cleanly" in out
+
+
+def test_fixed_patch_hint_word_in_added_line(tmp_path, capsys):
+    _with_patch(tmp_path, FIX_PATCH.replace("+    return a + b", "+    return a + b  # fixme"))
+    rc, out = run(tmp_path, capsys=capsys)
+    assert rc == 1 and "fixed.patch:7: forbidden hint word" in out
+
+
+def test_fixed_patch_hint_word_in_removed_or_context_line_ok(tmp_path, capsys):
+    patch = FIX_PATCH.replace("-    return a - b", "-    return a - b  # xxx").replace(
+        "@@ -1,2 +1,2 @@", "@@ -1,2 +1,2 @@")
+    d = make_specimen(tmp_path, source="def add(a, b):\n    return a - b  # xxx\n")
+    (d / "fixed.patch").write_text(patch)
+    (d / "app.py").write_text("def add(a, b):\n    return a - b  # xxx\n")
+    errors = []
+    check_specimens.check_fixed_patch(d, errors)
+    assert errors == []
+
+
+def _make_runnable(d, repro=REPRO_CHECKS_SOURCE, run_sh="#!/usr/bin/env bash\necho ok\n"):
+    (d / "repro.sh").write_text(repro)
+    (d / "run.sh").write_text(run_sh)
+
+
+def test_run_fixed_passes_when_nothing_reproduces(tmp_path, capsys):
+    d = _with_patch(tmp_path)
+    _make_runnable(d)
+    rc = check_specimens.main(["--root", str(tmp_path), "--run-fixed"])
+    out = capsys.readouterr().out
+    assert rc == 0, out
+
+
+def test_run_fixed_reports_reproduced_defects(tmp_path):
+    d = _with_patch(tmp_path, FIX_PATCH.replace("+    return a + b", "+    return  a - b"))
+    _make_runnable(d)
+    errors = []
+    check_specimens.run_fixed_variant(d, errors)
+    assert any("still reproduces on the fixed variant: [REPRODUCED] PY01-D01" in e for e in errors)
+
+
+def test_run_fixed_ignores_not_reproduced_lines(tmp_path):
+    d = _with_patch(tmp_path)
+    _make_runnable(d, repro="#!/usr/bin/env bash\necho '[NOT REPRODUCED] PY01-D01 x'\n"
+                            "echo 'summary: [REPRODUCED] appears mid-line'\n")
+    errors = []
+    check_specimens.run_fixed_variant(d, errors)
+    assert errors == []
+
+
+def test_run_fixed_reports_run_sh_failure(tmp_path):
+    d = _with_patch(tmp_path)
+    _make_runnable(d, run_sh="#!/usr/bin/env bash\necho broken >&2\nexit 3\n")
+    errors = []
+    check_specimens.run_fixed_variant(d, errors)
+    assert any("run.sh exited 3" in e and "broken" in e for e in errors)
+
+
+def test_run_fixed_reports_unappliable_patch(tmp_path):
+    d = _with_patch(tmp_path, FIX_PATCH.replace("-    return a - b", "-    return a / b"))
+    errors = []
+    check_specimens.run_fixed_variant(d, errors)
+    assert any("does not apply cleanly" in e for e in errors)
+
+
+def test_run_fixed_timeout(tmp_path):
+    d = _with_patch(tmp_path)
+    _make_runnable(d, run_sh="#!/usr/bin/env bash\nsleep 5\n")
+    errors = []
+    check_specimens.run_fixed_variant(d, errors, timeout=1)
+    assert any("run.sh timed out" in e for e in errors)
+
+
+def test_run_fixed_leaves_specimen_untouched(tmp_path):
+    d = _with_patch(tmp_path)
+    _make_runnable(d, run_sh="#!/usr/bin/env bash\ntouch created.flag\n")
+    check_specimens.run_fixed_variant(d, [])
+    assert not (d / "created.flag").exists()
+    assert "a - b" in (d / "app.py").read_text()
+
+
+def test_run_fixed_flag_off_by_default(tmp_path, capsys):
+    d = _with_patch(tmp_path)
+    _make_runnable(d, run_sh="#!/usr/bin/env bash\nexit 1\n")
+    rc, out = run(tmp_path, capsys=capsys)
+    assert rc == 0, out

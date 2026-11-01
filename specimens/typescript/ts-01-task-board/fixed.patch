@@ -1,0 +1,177 @@
+diff --git a/board.ts b/board.ts
+index 59dc177..fb1e96b 100644
+--- a/board.ts
++++ b/board.ts
+@@ -50,26 +50,29 @@ export function isStatus(value: unknown): value is Status {
+ 
+ /** A task advances one stage at a time and may be sent back one stage for rework. */
+ export function canMove(from: Status, to: Status): boolean {
+-  if (from === "archived") return false;
+-  const delta = COLUMNS.indexOf(to) - COLUMNS.indexOf(from);
+-  return delta === 1 || delta === -1;
++  return NEXT_STATUSES[from].includes(to);
+ }
+ 
+ /** Priority is 1 (highest) to 5 (lowest); defaults to 3. */
+ export function parsePriority(raw: unknown): number {
+   if (raw === undefined || raw === null) return 3;
+-  const priority = parseInt(String(raw));
+-  if (priority < 1 || priority > 5) {
++  const priority = typeof raw === "number" || typeof raw === "string" ? Number(raw) : NaN;
++  if (!Number.isInteger(priority) || priority < 1 || priority > 5) {
+     throw new ValidationError("priority must be between 1 and 5");
+   }
+   return priority;
+ }
+ 
++export const MAX_TITLE_LENGTH = 200;
++
+ export function newTask(id: number, input: Record<string, unknown>, ownerId: string): Task {
+   const title = input.title;
+   if (typeof title !== "string" || title.trim() === "") {
+     throw new ValidationError("title is required");
+   }
++  if (title.length > MAX_TITLE_LENGTH) {
++    throw new ValidationError(`title must be at most ${MAX_TITLE_LENGTH} characters`);
++  }
+   const now = new Date().toISOString();
+   return {
+     id,
+@@ -85,14 +88,33 @@ export function newTask(id: number, input: Record<string, unknown>, ownerId: str
+ 
+ /** Apply a partial update from the client to a stored task. */
+ export function applyPatch(task: Task, patch: Record<string, unknown>): Task {
++  const next: Task = { ...task, updatedAt: new Date().toISOString() };
++  if ("title" in patch) {
++    if (typeof patch.title !== "string" || patch.title.trim() === "") {
++      throw new ValidationError("title is required");
++    }
++    if (patch.title.length > MAX_TITLE_LENGTH) {
++      throw new ValidationError(`title must be at most ${MAX_TITLE_LENGTH} characters`);
++    }
++    next.title = patch.title.trim();
++  }
++  if ("description" in patch) {
++    if (typeof patch.description !== "string") {
++      throw new ValidationError("description must be a string");
++    }
++    next.description = patch.description;
++  }
+   if ("priority" in patch) {
+-    patch.priority = parsePriority(patch.priority);
++    next.priority = parsePriority(patch.priority);
+   }
+-  return { ...task, ...patch, updatedAt: new Date().toISOString() } as Task;
++  return next;
+ }
+ 
+ export function moveTask(tasks: Task[], id: number, to: Status): Task {
+-  const task = tasks.find((t) => t.id === id) as Task;
++  const task = tasks.find((t) => t.id === id);
++  if (task === undefined) {
++    throw new ValidationError(`task ${id} not found`);
++  }
+   if (!canMove(task.status, to)) {
+     throw new TransitionError(`cannot move task ${id} from ${task.status} to ${to}`);
+   }
+@@ -103,13 +125,14 @@ export function moveTask(tasks: Task[], id: number, to: Status): Task {
+ 
+ /** Ids of the tasks in one column, oldest first. */
+ export function columnOrder(tasks: Task[], status: Status): number[] {
+-  return tasks.filter((t) => t.status === status).map((t) => t.id).sort();
++  return tasks.filter((t) => t.status === status).map((t) => t.id).sort((a, b) => a - b);
+ }
+ 
+ /** Share of active (non-archived) tasks that are done, as a whole percentage. */
+ export function completionPercent(tasks: Task[]): number {
+   const active = tasks.filter((t) => t.status !== "archived").length;
+   const done = tasks.filter((t) => t.status === "done").length;
++  if (active === 0) return 0;
+   return Math.round((done * 100) / active);
+ }
+ 
+@@ -124,20 +147,31 @@ export function summarizeBoard(tasks: Task[]): BoardSummary {
+ 
+ /** Case-insensitive match on title and description. */
+ export function searchTasks(tasks: Task[], query: string): Task[] {
+-  const pattern = new RegExp(query, "i");
+-  return tasks.filter((t) => pattern.test(t.title) || pattern.test(t.description));
++  const needle = query.toLowerCase();
++  return tasks.filter(
++    (t) => t.title.toLowerCase().includes(needle) || t.description.toLowerCase().includes(needle),
++  );
+ }
+ 
+ /** Return one page of results; `page` is 1-based. */
+ export function paginate<T>(items: T[], page: number, size: number): T[] {
+   const start = (page - 1) * size;
+-  return items.slice(start, start + size - 1);
++  return items.slice(start, start + size);
++}
++
++function escapeHtml(text: string): string {
++  return text
++    .replace(/&/g, "&amp;")
++    .replace(/</g, "&lt;")
++    .replace(/>/g, "&gt;")
++    .replace(/"/g, "&quot;")
++    .replace(/'/g, "&#39;");
+ }
+ 
+ /** HTML fragment embedded by the board page's live search box. */
+ export function renderResults(results: Task[]): string {
+   const rows = results.map(
+-    (t) => `  <li class="task ${t.status}" data-id="${t.id}">${t.title}</li>`,
++    (t) => `  <li class="task ${t.status}" data-id="${t.id}">${escapeHtml(t.title)}</li>`,
+   );
+   return `<ul class="search-results">\n${rows.join("\n")}\n</ul>\n`;
+ }
+diff --git a/server.ts b/server.ts
+index 6988aa9..da3c985 100644
+--- a/server.ts
++++ b/server.ts
+@@ -30,12 +30,23 @@ const PORT = Number(process.env.PORT ?? 8321);
+ 
+ const tasks: Task[] = [];
+ let nextId = 1;
++const MAX_BODY_BYTES = 64 * 1024;
+ 
+ function readBody(req: IncomingMessage): Promise<string> {
+   return new Promise((resolve, reject) => {
+     const chunks: Buffer[] = [];
+-    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+-    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
++    let size = 0;
++    req.on("data", (chunk: Buffer) => {
++      size += chunk.length;
++      if (size <= MAX_BODY_BYTES) chunks.push(chunk);
++    });
++    req.on("end", () => {
++      if (size > MAX_BODY_BYTES) {
++        reject(new ValidationError(`request body exceeds ${MAX_BODY_BYTES} bytes`));
++      } else {
++        resolve(Buffer.concat(chunks).toString("utf8"));
++      }
++    });
+     req.on("error", reject);
+   });
+ }
+@@ -65,7 +76,7 @@ function sendError(res: ServerResponse, err: unknown): void {
+   if (err instanceof TransitionError) return sendJson(res, 409, { error: err.message });
+   const e = err as Error;
+   console.error(e);
+-  sendJson(res, 500, { error: e.message, stack: e.stack });
++  sendJson(res, 500, { error: "internal error" });
+ }
+ 
+ function currentUser(req: IncomingMessage): string | null {
+@@ -101,6 +112,9 @@ async function handlePatch(req: IncomingMessage, res: ServerResponse, id: number
+ async function handleMove(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
+   const user = currentUser(req);
+   if (!user) return sendJson(res, 401, { error: "X-User header required" });
++  const owned = tasks.find((t) => t.id === id);
++  if (!owned) return sendJson(res, 404, { error: "task not found" });
++  if (owned.ownerId !== user) return sendJson(res, 403, { error: "only the owner can move a task" });
+   const body = await readJson(req);
+   if (!isStatus(body.to)) {
+     throw new ValidationError(`to must be one of ${COLUMNS.join(", ")}`);

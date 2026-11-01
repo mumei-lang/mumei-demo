@@ -1,0 +1,152 @@
+diff --git a/invoice.ts b/invoice.ts
+index 370aaf7..a7398f4 100644
+--- a/invoice.ts
++++ b/invoice.ts
+@@ -7,10 +7,9 @@
+  *
+  * Prints the invoice to stdout, or writes it to --out and checks the written file.
+  */
+-import { execSync } from "node:child_process";
+-import { createHash } from "node:crypto";
++import { randomUUID } from "node:crypto";
+ import { readFileSync, writeFileSync } from "node:fs";
+-import { computeTotals, effectiveTaxRate, lineTotal, money, pageFooters, parseItems, taxAmount } from "./pricing.ts";
++import { computeTotals, effectiveTaxRate, lineTotal, money, pageFooters, parseItems } from "./pricing.ts";
+ import type { LineItem, Totals } from "./pricing.ts";
+ 
+ const LINES_PER_PAGE = 10;
+@@ -52,13 +51,16 @@ function parseArgs(argv: string[]): Options {
+     else throw new Error(`unknown option ${arg}`);
+   }
+   if (!Number.isFinite(opts.tax) || opts.tax < 0) throw new Error("--tax must be a non-negative number");
+-  if (!Number.isFinite(opts.discount)) throw new Error("--discount must be a number");
++  if (!Number.isFinite(opts.discount) || opts.discount < 0 || opts.discount > 100) {
++    throw new Error("--discount must be a number between 0 and 100");
++  }
+   return opts;
+ }
+ 
+-/** Stable invoice number for a customer and invoice date. */
++/** Unique, unguessable invoice number; the date prefix keeps ids sortable. */
+ function invoiceId(customer: string, date: string): string {
+-  return "INV-" + createHash("md5").update(`${customer}:${date}`).digest("hex").slice(0, 12).toUpperCase();
++  void customer;
++  return `INV-${date.replaceAll("-", "")}-${randomUUID().replaceAll("-", "").slice(0, 16).toUpperCase()}`;
+ }
+ 
+ function row(label: string, amount: string): string {
+@@ -76,7 +78,7 @@ function renderInvoice(id: string, opts: Options, items: LineItem[], totals: Tot
+   lines.push("");
+   lines.push(row("Subtotal", money(totals.subtotal)));
+   lines.push(row(`Discount (${opts.discount}%)`, "-" + money(totals.discount)));
+-  lines.push(row(`Tax (${opts.tax}%)`, money(taxAmount(totals.subtotal, opts.tax))));
++  lines.push(row(`Tax (${opts.tax}%)`, money(totals.tax)));
+   lines.push(row("Total", money(totals.total)));
+   lines.push(`Effective tax rate: ${effectiveTaxRate(totals.tax, totals.net).toFixed(2)}%`);
+   const footers = pageFooters(items, LINES_PER_PAGE);
+@@ -86,7 +88,7 @@ function renderInvoice(id: string, opts: Options, items: LineItem[], totals: Tot
+ 
+ function writeInvoice(path: string, text: string): void {
+   writeFileSync(path, text);
+-  const written = execSync("cat " + path, { encoding: "utf8" });
++  const written = readFileSync(path, "utf8");
+   if (written !== text) throw new Error(`verification of ${path} failed`);
+ }
+ 
+diff --git a/pricing.ts b/pricing.ts
+index 2cd349d..40d5084 100644
+--- a/pricing.ts
++++ b/pricing.ts
+@@ -24,7 +24,9 @@ export function parseItem(raw: unknown): LineItem {
+   if (typeof r.unitPrice !== "number" || r.unitPrice < 0) {
+     throw new Error(`${r.sku}: unitPrice must be a non-negative number`);
+   }
+-  if (!Number.isInteger(r.quantity)) throw new Error(`${r.sku}: quantity must be an integer`);
++  if (!Number.isInteger(r.quantity) || (r.quantity as number) <= 0) {
++    throw new Error(`${r.sku}: quantity must be a positive integer`);
++  }
+   return {
+     sku: r.sku,
+     description: typeof r.description === "string" ? r.description : "",
+@@ -34,48 +36,58 @@ export function parseItem(raw: unknown): LineItem {
+ }
+ 
+ export function parseItems(entries: unknown[]): LineItem[] {
+-  const items: LineItem[] = [];
+-  for (const entry of entries) {
++  return entries.map((entry, index) => {
+     try {
+-      items.push(parseItem(entry));
+-    } catch {
+-      continue;
++      return parseItem(entry);
++    } catch (err) {
++      throw new Error(`item ${index + 1}: ${(err as Error).message}`);
+     }
+-  }
+-  return items;
++  });
++}
++
++export function toCents(amount: number): number {
++  return Math.round(amount * 100);
+ }
+ 
+ export function lineTotal(item: LineItem): number {
+-  return item.unitPrice * item.quantity;
++  return (toCents(item.unitPrice) * item.quantity) / 100;
+ }
+ 
+ export function subtotal(items: LineItem[]): number {
+-  let sum = 0;
++  let cents = 0;
+   for (const item of items) {
+-    sum += lineTotal(item);
++    cents += toCents(item.unitPrice) * item.quantity;
+   }
+-  return sum;
++  return cents / 100;
+ }
+ 
+ /** Amount after taking `percent` off. */
+ export function applyDiscount(amount: number, percent: number): number {
+-  return amount - (amount * percent) / 100;
++  if (!(percent >= 0 && percent <= 100)) throw new Error("discount must be between 0 and 100");
++  return (toCents(amount) - Math.round(toCents(amount) * percent / 100)) / 100;
+ }
+ 
+ /** Tax on `amount` at `ratePercent`, in whole cents. */
+ export function taxAmount(amount: number, ratePercent: number): number {
+-  return Math.floor(amount * ratePercent) / 100;
++  return Math.round(amount * ratePercent) / 100;
+ }
+ 
+ export function computeTotals(items: LineItem[], taxRate: number, discountPercent: number): Totals {
+   const sub = subtotal(items);
+   const net = applyDiscount(sub, discountPercent);
+   const tax = taxAmount(net, taxRate);
+-  return { subtotal: sub, discount: sub - net, net, tax, total: net + tax };
++  return {
++    subtotal: sub,
++    discount: (toCents(sub) - toCents(net)) / 100,
++    net,
++    tax,
++    total: (toCents(net) + toCents(tax)) / 100,
++  };
+ }
+ 
+ /** Tax actually charged as a percentage of the net amount. */
+ export function effectiveTaxRate(tax: number, net: number): number {
++  if (net === 0) return 0;
+   return (tax / net) * 100;
+ }
+ 
+@@ -86,7 +98,7 @@ export function pageFooters(items: LineItem[], perPage: number): string[] {
+   const footers: string[] = [];
+   for (let page = 0; page < pages; page++) {
+     const first = items[page * perPage];
+-    const last = items[page * perPage + perPage - 1];
++    const last = items[Math.min(page * perPage + perPage, items.length) - 1];
+     footers.push(`Page ${page + 1}/${pages}: ${first.sku} .. ${last.sku}`);
+   }
+   return footers;

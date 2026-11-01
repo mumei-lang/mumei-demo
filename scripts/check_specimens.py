@@ -14,8 +14,10 @@ import argparse
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -48,6 +50,9 @@ FORBIDDEN_HINTS = [
 ]
 FORBIDDEN_RE = re.compile("|".join(FORBIDDEN_HINTS), re.IGNORECASE)
 
+FIXED_PATCH = "fixed.patch"
+PATCH_FILE_RE = re.compile(r"^diff --git a/(\S+) b/(\S+)$", re.MULTILINE)
+REPRODUCED_RE = re.compile(r"^\[REPRODUCED\]", re.MULTILINE)
 PORT_RE = re.compile(r"^Default port: (\d+)$", re.MULTILINE)
 
 
@@ -153,6 +158,75 @@ def scan_forbidden_hints(specimen_dir: Path, errors: list) -> None:
                 )
 
 
+def _copy_specimen(specimen_dir: Path, dest: Path) -> None:
+    shutil.copytree(specimen_dir, dest, ignore=shutil.ignore_patterns("audit", FIXED_PATCH, "__pycache__",
+                                                                        "node_modules", "out", "target"))
+
+
+def check_fixed_patch(specimen_dir: Path, errors: list) -> None:
+    """A fixed.patch may only modify existing source files, must apply
+    cleanly, and its added lines obey the same hint-word rule as sources."""
+    patch = specimen_dir / FIXED_PATCH
+    if not patch.is_file():
+        return
+    prefix = f"{specimen_dir}: {FIXED_PATCH}"
+    text = patch.read_text(encoding="utf-8", errors="replace")
+    files = PATCH_FILE_RE.findall(text)
+    if not files:
+        errors.append(f"{prefix}: no file changes")
+        return
+    for old, new in files:
+        if old != new or Path(new).suffix not in SOURCE_EXTENSIONS:
+            errors.append(f"{prefix}: may only modify source files, touches {new}")
+        elif not (specimen_dir / new).is_file():
+            errors.append(f"{prefix}: {new} does not exist in the specimen")
+    if re.search(r"^(new|deleted) file mode", text, re.MULTILINE):
+        errors.append(f"{prefix}: may not add or delete files")
+    for lineno, line in enumerate(text.splitlines(), 1):
+        if line.startswith("+") and not line.startswith("+++"):
+            m = FORBIDDEN_RE.search(line)
+            if m:
+                errors.append(f"{prefix}:{lineno}: forbidden hint word {m.group(0)!r}")
+    with tempfile.TemporaryDirectory(prefix="fixed-check-") as tmp:
+        work = Path(tmp) / specimen_dir.name
+        _copy_specimen(specimen_dir, work)
+        proc = subprocess.run(["git", "apply", "--check", str(patch.resolve())],
+                              cwd=work, capture_output=True, text=True)
+        if proc.returncode != 0:
+            errors.append(f"{prefix}: does not apply cleanly: {proc.stderr.strip()}")
+
+
+def run_fixed_variant(specimen_dir: Path, errors: list, timeout: int = 600) -> None:
+    """Apply fixed.patch to a scratch copy and require that run.sh succeeds
+    and repro.sh reports no defect as reproduced."""
+    patch = specimen_dir / FIXED_PATCH
+    if not patch.is_file():
+        return
+    prefix = f"{specimen_dir}: {FIXED_PATCH}"
+    with tempfile.TemporaryDirectory(prefix="fixed-run-") as tmp:
+        work = Path(tmp) / specimen_dir.name
+        _copy_specimen(specimen_dir, work)
+        proc = subprocess.run(["git", "apply", str(patch.resolve())], cwd=work,
+                              capture_output=True, text=True)
+        if proc.returncode != 0:
+            errors.append(f"{prefix}: does not apply cleanly: {proc.stderr.strip()}")
+            return
+        for script in ("run.sh", "repro.sh"):
+            try:
+                proc = subprocess.run(["bash", script], cwd=work, capture_output=True,
+                                      text=True, timeout=timeout)
+            except subprocess.TimeoutExpired:
+                errors.append(f"{prefix}: {script} timed out on the fixed variant")
+                continue
+            if script == "run.sh" and proc.returncode != 0:
+                errors.append(f"{prefix}: run.sh exited {proc.returncode} on the fixed variant: "
+                              f"{(proc.stderr or proc.stdout).strip()[-300:]}")
+            if script == "repro.sh":
+                hits = [ln for ln in proc.stdout.splitlines() if REPRODUCED_RE.match(ln)]
+                for ln in hits:
+                    errors.append(f"{prefix}: still reproduces on the fixed variant: {ln[:160]}")
+
+
 def check_specimen(specimen_dir: Path, schema: dict, errors: list) -> int:
     """Check one specimen dir; return number of defects counted."""
     prefix = str(specimen_dir)
@@ -173,6 +247,8 @@ def check_specimen(specimen_dir: Path, schema: dict, errors: list) -> int:
         ok, stderr = bash_syntax_ok(script)
         if not ok:
             errors.append(f"{prefix}: bash -n {script.name} failed: {stderr}")
+
+    check_fixed_patch(specimen_dir, errors)
 
     if not defects_json.is_file():
         return 0
@@ -330,6 +406,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="specimens root directory (default: %(default)s)",
     )
     parser.add_argument("specimens", nargs="*", help="specimen directories to check")
+    parser.add_argument(
+        "--run-fixed",
+        action="store_true",
+        help="also apply each fixed.patch to a scratch copy and require run.sh to pass and "
+             "repro.sh to reproduce nothing (needs the specimen toolchains)",
+    )
     return parser
 
 
@@ -357,6 +439,8 @@ def main(argv: list[str]) -> int:
 
     for d in dirs:
         total_defects += check_specimen(d, schema, errors)
+        if args.run_fixed:
+            run_fixed_variant(d, errors)
         for port in collect_ports(d):
             if port in port_owners:
                 errors.append(
