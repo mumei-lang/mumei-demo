@@ -43,8 +43,10 @@ def test_cli_exit_and_diagnostic_match_the_saved_observation(tmp_path, variant):
     report = json.loads(output.read_text())
     assert report["variant"] == variant
     assert process.returncode == (0 if report["status"] == "passed" else 1)
-    for name in report["failed_cases"]:
-        assert f"Violated case: {name}" in process.stdout
+    for row in report["cases"]:
+        if not row["passed"]:
+            label = "Unexpected exception in case" if row.get("reason") == "unexpected_exception" else "Violated case"
+            assert f"{label}: {row['name']}" in process.stdout
     assert process.stderr == ""
 
 
@@ -103,3 +105,21 @@ def test_bad_saved_observations_fail_instead_of_satisfying_an_expected_rejection
     assert scenario.main(["--variant", variant, "--output", str(tmp_path / "report.json")]) == 2
     output = capsys.readouterr().out
     assert "Violated case:" not in output and "Fixed record checks:" not in output
+
+
+def test_exception_in_the_required_negative_case_is_not_a_semantic_violation(tmp_path, monkeypatch, capsys):
+    class RaisingHost(scenario.RecordExecutor):
+        def execute(self, principal, payload):
+            if principal == scenario.Principal(8, 10, "administrator"):
+                raise RuntimeError("private exception text")
+            return super().execute(principal, payload)
+
+    monkeypatch.setitem(scenario.VARIANTS, "missing_organization", RaisingHost)
+    output = tmp_path / "report.json"
+    assert scenario.main(["--variant", "missing_organization", "--output", str(output)]) == 1
+    report = json.loads(output.read_text())
+    assert report["failed_cases"] == ["cross_organization"]
+    stdout = capsys.readouterr().out
+    assert "Violated case: cross_organization" not in stdout
+    assert "Unexpected exception in case: cross_organization" in stdout
+    assert "private exception text" not in stdout + output.read_text()

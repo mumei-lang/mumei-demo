@@ -130,6 +130,7 @@ def run_checks(factory=RecordExecutor) -> dict:
         barrier.wait(timeout=10)
         return executor.execute(WRITER, proposal(value=value))
 
+    concurrent_reason = "checked"
     try:
         with ThreadPoolExecutor(max_workers=2) as pool:
             outcomes = list(pool.map(update, [50, 60]))
@@ -139,7 +140,8 @@ def run_checks(factory=RecordExecutor) -> dict:
                   and executor._state.records[2] == INITIAL[2] and executor._state.policy == POLICY)
     except Exception:
         passed = False
-    rows.append({"name": "concurrent_conflict", "passed": passed})
+        concurrent_reason = "unexpected_exception"
+    rows.append({"name": "concurrent_conflict", "passed": passed, "reason": concurrent_reason})
     failed = [row["name"] for row in rows if not row["passed"]]
     return {"schema": "mumei-demo.record-checks/v1", "status": "passed" if not failed else "failed",
             "cases": rows, "failed_cases": failed, "scope": "finite implementation observations, not proof"}
@@ -163,8 +165,10 @@ def main(argv=None) -> int:
         print("Record observation artifact is unavailable or does not match")
         return 2
     print(f"Fixed record checks: {'PASS' if report['status'] == 'passed' else 'FAIL'}")
-    for name in report["failed_cases"]:
-        print(f"Violated case: {name}")
+    for row in report["cases"]:
+        if not row["passed"]:
+            label = "Unexpected exception in case" if row.get("reason") == "unexpected_exception" else "Violated case"
+            print(f"{label}: {row['name']}")
     return 0 if report["status"] == "passed" else 1
 
 
