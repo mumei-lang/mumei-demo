@@ -162,6 +162,7 @@ def test_parser_option_strings_match_golden_lists() -> None:
             "--specimens-readme",
             "--top-readme",
             "--render-only",
+            "--rescore",
         ],
         "scripts/record_scenario.py": ["--variant", "--output"],
         "scripts/record_model_evidence.py": ["--repo", "--output"],

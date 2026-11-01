@@ -148,6 +148,48 @@
       "text": "TypeScript function `handlePatch` indexes with the result of `.indexOf((…)` inline — a miss yields a sentinel (`-1`) used directly as an index"
     }
   ],
+  "findings": [
+    {
+      "file": "board.ts",
+      "kind": "verification_violations",
+      "text": "TypeScript function `moveTask` uses `task` (from `.find(...)`) without an `undefined`/`null` check — `find` returns `undefined` when no element matches",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "server.ts",
+      "kind": "verification_violations",
+      "text": "TypeScript function `handlePatch` uses `task` (from `.find(...)`) without an `undefined`/`null` check — `find` returns `undefined` when no element matches",
+      "status": "false_positive",
+      "reason": "`if (!task) return sendJson(res, 404, ...)` runs right after the find."
+    },
+    {
+      "file": "server.ts",
+      "kind": "verification_violations",
+      "text": "TypeScript function `handlePatch` indexes with the result of `.indexOf((…)` inline — a miss yields a sentinel (`-1`) used directly as an index",
+      "status": "real",
+      "reason": "handlePatch awaits the request body between find and indexOf, and replaces the task object. A concurrent PATCH of the same task makes indexOf return -1, so `tasks[-1] = updated` silently drops one update. The ground truth does not list this."
+    }
+  ],
+  "finding_counts": {
+    "total": 3,
+    "defect_evidence": 1,
+    "real": 1,
+    "false_positive": 1,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "ts-01-task-board",
+      "server.ts",
+      "TypeScript function `handlePatch` indexes with the result of `.indexOf("
+    ],
+    [
+      "ts-01-task-board",
+      "server.ts",
+      "TypeScript function `handlePatch` uses `task` (from `.find(...)`)"
+    ]
+  ],
+  "source_hash": "1a7f2ac8bcc9725a7439cebd7fb54acc28d8605236f6c842661cd8948b22b898",
   "meta": {
     "mumei_agent_commit": "99977fa0eae63783b00e8a89f4e7ba5b0b935a46",
     "mumei_commit": "a6f4a45a780a0c6bbfcb0ddd13b633c369f5b256",

@@ -50,7 +50,7 @@ An executable corpus of deliberately broken Python/TypeScript/Go/Rust/Solidity a
 
 ![Detection by language](specimens/scoreboard/by_language.svg)
 
-Latest — no LLM: 10/171 detected (6%), 29/171 detected or function-flagged · with LLM: not run yet
+Latest — no LLM: 10/171 detected (6%), 29/171 detected or function-flagged, precision 32% of 40 findings · with LLM: not run yet
 
 Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreboard).
 <!-- scoreboard:end -->
