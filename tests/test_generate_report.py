@@ -519,6 +519,8 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
                          if line.startswith("OPTIONAL_SCENARIOS :="))
     assert OPTIONAL_SCENARIOS == app.OPTIONAL_SCENARIOS == optional_line.split(":=", 1)[1].split()
     assert app.scenario_names().index("record_execution_demo") == len(SCENARIO_ORDER)
+    assert app.scenario_names().count("record_execution_demo") == 1
+    assert len(app.scenario_names()) == len(set(app.scenario_names()))
     data = {
         "claim_book": {
             "entries": [{"status": "ok"}],

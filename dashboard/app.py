@@ -41,7 +41,7 @@ def scenario_names() -> list[str]:
         if path.is_dir() and path.name != "_template"
     )
     ordered = [name for name in SCENARIO_ORDER + OPTIONAL_SCENARIOS if name in names]
-    return ordered + [name for name in names if name not in SCENARIO_ORDER]
+    return ordered + [name for name in names if name not in ordered]
 
 
 def latest_result(scenario: str) -> Path | None:
