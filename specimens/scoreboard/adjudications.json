@@ -6,5 +6,217 @@
       "verdict": "not_category_evidence",
       "reason": "The cast in request_transfer only runs under `amount_cents > 0`; the warning does not identify the missing non-negative check at the balance comparison."
     }
+  ],
+  "finding_reviews": [
+    {
+      "specimen": "py-01-expense-tracker",
+      "file": "ledger.py",
+      "finding_contains": "encoding-gap: is_over_budget: spec_lowering_failed",
+      "verdict": "false_positive",
+      "reason": "Tool diagnostic: the extracted ensures clause failed to lower. It names no problem in is_over_budget (the planted off-by-one is not mentioned)."
+    },
+    {
+      "specimen": "rs-01-bank-core",
+      "file": "src/bank.rs",
+      "finding_contains": "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64`",
+      "verdict": "false_positive",
+      "reason": "Both casts sit inside `if amount_cents > 0`, so the i64 value is always in u64 range."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "Solidity function `withdraw` can truncate `shares` in cast to `uint128`",
+      "verdict": "false_positive",
+      "reason": "`require(pos.shares >= shares)` bounds shares by a uint128 value before the cast, so it cannot truncate."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "Solidity function `deposit` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Public deposit entry point. Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "Solidity function `claimRewards` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "real",
+      "reason": "The setter does have a guard, but it authorizes on tx.origin (planted SOL01-D06). The wording is wrong, yet the finding points a reviewer at the real authorization flaw."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/VaultToken.sol",
+      "finding_contains": "Solidity function `approve` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "ERC20 approve. Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/VaultToken.sol",
+      "finding_contains": "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "ERC20 transferFrom is authorized by the allowance, not by an owner check. The planted defect here (SOL01-D02, unchecked allowance underflow) is not what the finding describes."
+    },
+    {
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "Solidity function `bid` may be vulnerable to reentrancy",
+      "verdict": "real",
+      "reason": "The refund call to the previous highestBidder runs before highestBidder/highestBid are updated. That bidder can re-enter bid() and be refunded the same highestBid twice. The planted SOL02-D01 is the related refund DoS on the same call."
+    },
+    {
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "Solidity function `bid` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Public bidding entry point; anyone may bid."
+    },
+    {
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "Solidity function `cancelBid` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "Solidity function `finalize` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Paying the fixed seller after the end is safe to leave permissionless. The planted defect (SOL02-D03, repeated finalize) is a missing state flag, not a missing caller check."
+    },
+    {
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "Solidity function `fundBonus` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Anyone may top up the bonus pool; it only adds funds."
+    },
+    {
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "Solidity function `drawEarlyBirdBonus` may be vulnerable to reentrancy",
+      "verdict": "false_positive",
+      "reason": "bonusPaid is set before the external call, and re-entering drawEarlyBirdBonus reverts on it. The later bonusPool write cannot be exploited."
+    },
+    {
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "Solidity function `drawEarlyBirdBonus` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Triggering the draw after the end is safe to leave permissionless. The planted defect (SOL02-D10) is the predictable seed."
+    },
+    {
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakeToken.sol",
+      "finding_contains": "Solidity function `mint` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "The specimen's token is an open test faucet: the contract has no owner role and documents mint as minting to the caller. Judgement call: not counted as an unlisted defect."
+    },
+    {
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakeToken.sol",
+      "finding_contains": "Solidity function `setReceiveHook` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakeToken.sol",
+      "finding_contains": "Solidity function `approve` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "ERC20 approve. Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakeToken.sol",
+      "finding_contains": "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "ERC20 transferFrom is authorized by the allowance, which is checked."
+    },
+    {
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "Solidity function `earned` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "earned is a `view` function, so it is not state-mutating and needs no access control."
+    },
+    {
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "Solidity function `stake` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "Solidity function `emergencyWithdraw` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "Solidity function `getReward` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "Solidity function `setPayoutAddress` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "Solidity function `claimBonus` is an externally callable state-mutating function with no access-control guard",
+      "verdict": "false_positive",
+      "reason": "Authorized by the operator signature. The planted defect (SOL03-D10) is replay, not a missing caller check."
+    },
+    {
+      "specimen": "ts-01-task-board",
+      "file": "server.ts",
+      "finding_contains": "TypeScript function `handlePatch` uses `task` (from `.find(...)`)",
+      "verdict": "false_positive",
+      "reason": "`if (!task) return sendJson(res, 404, ...)` runs right after the find."
+    },
+    {
+      "specimen": "ts-01-task-board",
+      "file": "server.ts",
+      "finding_contains": "TypeScript function `handlePatch` indexes with the result of `.indexOf(",
+      "verdict": "real",
+      "reason": "handlePatch awaits the request body between find and indexOf, and replaces the task object. A concurrent PATCH of the same task makes indexOf return -1, so `tasks[-1] = updated` silently drops one update. The ground truth does not list this."
+    }
   ]
 }

@@ -62,7 +62,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | Script | Option count | Description |
 |---|---:|---|
 | `scripts/generate_report.py` | 9 | Render a Mumei demo result. |
-| `scripts/run_specimen_audits.py` | 9 | Run `mumei-agent audit` over every specimen and score it against DEFECTS.json. |
+| `scripts/run_specimen_audits.py` | 10 | Run `mumei-agent audit` over every specimen and score it against DEFECTS.json. |
 | `scripts/record_scenario.py` | 2 | Finite record-operation checks and intentionally broken host variants. |
 | `scripts/record_model_evidence.py` | 2 | Collect independent Lean model evidence; never promote a Python operation. |
 | `scripts/check_specimens.py` | 1 | Validate specimen directories. |
@@ -103,6 +103,7 @@ Run `mumei-agent audit` over every specimen and score it against DEFECTS.json.
 | `--specimens-readme` | `<SPECIMENS_README>` | no | `specimens/README.md` | — |
 | `--top-readme` | `<TOP_README>` | no | `README.md` | — |
 | `--render-only` | — | no | `false` | re-render scoreboard SVGs and README blocks from history.json without running any audits |
+| `--rescore` | — | no | `false` | re-score the committed audit/audit.json files with the current adjudications.json and record the result, without running any audits |
 
 ### `scripts/record_scenario.py`
 

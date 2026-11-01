@@ -138,6 +138,107 @@
       "text": "Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
     }
   ],
+  "findings": [
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `withdraw` can truncate `shares` in cast to `uint128` without a range contract (shares outside 0..=340282366920938463463374607431768211455 wraps)",
+      "status": "false_positive",
+      "reason": "`require(pos.shares >= shares)` bounds shares by a uint128 value before the cast, so it cannot truncate."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `deposit` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Public deposit entry point. Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `claimRewards` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `setFeeRecipient` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "real",
+      "reason": "The setter does have a guard, but it authorizes on tx.origin (planted SOL01-D06). The wording is wrong, yet the finding points a reviewer at the real authorization flaw."
+    },
+    {
+      "file": "src/VaultToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "ERC20 approve. Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/VaultToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "ERC20 transferFrom is authorized by the allowance, not by an owner check. The planted defect here (SOL01-D02, unchecked allowance underflow) is not what the finding describes."
+    }
+  ],
+  "finding_counts": {
+    "total": 8,
+    "defect_evidence": 1,
+    "real": 1,
+    "false_positive": 6,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "Solidity function `claimRewards` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "Solidity function `deposit` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "Solidity function `withdraw` can truncate `shares` in cast to `uint128`"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/VaultToken.sol",
+      "Solidity function `approve` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/VaultToken.sol",
+      "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard"
+    ]
+  ],
   "meta": {
     "mumei_agent_commit": "99977fa0eae63783b00e8a89f4e7ba5b0b935a46",
     "mumei_commit": "a6f4a45a780a0c6bbfcb0ddd13b633c369f5b256",

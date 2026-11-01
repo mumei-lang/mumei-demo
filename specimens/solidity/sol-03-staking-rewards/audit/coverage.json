@@ -161,6 +161,167 @@
       "text": "Solidity function `setPayoutAddress` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
     }
   ],
+  "findings": [
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `mint` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "The specimen's token is an open test faucet: the contract has no owner role and documents mint as minting to the caller. Judgement call: not counted as an unlisted defect."
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `setReceiveHook` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "ERC20 approve. Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "ERC20 transferFrom is authorized by the allowance, which is checked."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `earned` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "earned is a `view` function, so it is not state-mutating and needs no access control."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `stake` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `emergencyWithdraw` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `emergencyWithdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `getReward` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `setPayoutAddress` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `claimFor` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `claimBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Authorized by the operator signature. The planted defect (SOL03-D10) is replay, not a missing caller check."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `notifyRewardAmount` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "defect_evidence"
+    }
+  ],
+  "finding_counts": {
+    "total": 14,
+    "defect_evidence": 3,
+    "real": 0,
+    "false_positive": 11,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "sol-03-staking-rewards",
+      "src/StakeToken.sol",
+      "Solidity function `approve` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakeToken.sol",
+      "Solidity function `mint` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakeToken.sol",
+      "Solidity function `setReceiveHook` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakeToken.sol",
+      "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `claimBonus` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `earned` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `emergencyWithdraw` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `getReward` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `setPayoutAddress` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `stake` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard"
+    ]
+  ],
   "meta": {
     "mumei_agent_commit": "99977fa0eae63783b00e8a89f4e7ba5b0b935a46",
     "mumei_commit": "a6f4a45a780a0c6bbfcb0ddd13b633c369f5b256",

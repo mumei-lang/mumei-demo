@@ -19,6 +19,14 @@ a finding matches a defect when it belongs to the defect's file and names the
 defect's function. It counts as `detected` when the finding text also carries
 a keyword for the defect's category, `function_flagged` when it names the
 function but describes something else, and `missed` otherwise.
+
+Every finding is also classified for precision: `defect_evidence` when it is
+the category evidence for a planted defect, otherwise the verdict of a
+reviewed ruling in scoreboard/adjudications.json (`real` or
+`false_positive`), or `unreviewed`.
+
+`--rescore` re-scores the committed audit/audit.json files without running
+any audit, so a ruling change does not need a new audit run.
 """
 from __future__ import annotations
 
@@ -102,6 +110,14 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
 
 STRONG_KINDS = ("verification_violations", "spec_health_issues", "cross_validation_gaps", "trusted_atoms")
 
+# Verdicts a reviewer can give a finding that is not category evidence for a
+# planted defect: `real` points at a real problem (a planted defect it was not
+# keyword-matched to, or an issue the ground truth does not list);
+# `false_positive` does not.
+FINDING_VERDICTS = ("real", "false_positive")
+FINDING_STATUSES = ("defect_evidence",) + FINDING_VERDICTS + ("unreviewed",)
+HISTORY_SCHEMA = 2
+
 
 def short_name(function: str) -> str:
     return re.split(r"\.|::", function)[-1]
@@ -167,8 +183,64 @@ def collect_findings(file_result: dict) -> list[dict]:
     return findings
 
 
+def is_supporting(finding: dict) -> bool:
+    """Counterexample entries back up another finding; they are not separate
+    findings for matching-free buckets or precision."""
+    return finding["kind"] == "counterexample_values" or "Z3 Counter-example:" in finding["text"]
+
+
+def review_key(review: dict) -> tuple[str, str, str]:
+    return (review["specimen"], review["file"], review["finding_contains"])
+
+
+def empty_finding_counts() -> dict[str, int]:
+    return {"total": 0, **{s: 0 for s in FINDING_STATUSES}}
+
+
+def classify_findings(by_file: dict[str, list[dict]], evidence: set[tuple[str, int]],
+                      specimen: str | None, finding_reviews: list[dict]) -> dict:
+    """Give every non-supporting finding a precision status.
+
+    A ruling applies to a finding when specimen and file match and its
+    `finding_contains` is a substring of the finding text. Category evidence
+    is never overridden by a ruling (use a `not_category_evidence` defect
+    ruling for that). Conflicting verdicts on one finding are an error.
+    """
+    reviews = [r for r in finding_reviews if r.get("specimen") == specimen]
+    used: set[tuple[str, str, str]] = set()
+    records = []
+    for rel, findings in sorted(by_file.items()):
+        for i, f in enumerate(findings):
+            if is_supporting(f):
+                continue
+            rec = {"file": rel, "kind": f["kind"], "text": f["text"]}
+            if (rel, i) in evidence:
+                rec["status"] = "defect_evidence"
+            else:
+                hits = [r for r in reviews if r["file"] == rel and r["finding_contains"] in f["text"]]
+                verdicts = {r["verdict"] for r in hits}
+                if len(verdicts) > 1:
+                    raise SystemExit(
+                        f"{specimen}: conflicting finding reviews {sorted(verdicts)} for "
+                        f"{rel}: {f['text'][:120]!r}")
+                if hits:
+                    rec["status"] = hits[0]["verdict"]
+                    rec["reason"] = hits[0]["reason"]
+                    used.update(review_key(r) for r in hits)
+                else:
+                    rec["status"] = "unreviewed"
+            records.append(rec)
+    counts_ = empty_finding_counts()
+    for rec in records:
+        counts_["total"] += 1
+        counts_[rec["status"]] += 1
+    return {"findings": records, "finding_counts": counts_,
+            "reviews_used": [list(k) for k in sorted(used)]}
+
+
 def score(defects_doc: dict, audit: dict, label: str,
-          adjudications: list[dict] | None = None) -> dict:
+          adjudications: list[dict] | None = None,
+          finding_reviews: list[dict] | None = None) -> dict:
     adjudications = adjudications or []
     by_file: dict[str, list[dict]] = {}
     for fr in audit.get("file_results") or []:
@@ -177,6 +249,7 @@ def score(defects_doc: dict, audit: dict, label: str,
         by_file.setdefault(rel, []).extend(collect_findings(fr))
 
     matched_finding_ids: set[tuple[str, int]] = set()
+    evidence_ids: set[tuple[str, int]] = set()
     results = []
     for d in defects_doc["defects"]:
         findings = by_file.get(d["file"], [])
@@ -198,6 +271,7 @@ def score(defects_doc: dict, audit: dict, label: str,
             cat_hits = kept
         if cat_hits:
             status, used = "detected", cat_hits
+            evidence_ids.update((d["file"], i) for i, _ in cat_hits)
         elif hits:
             status, used = "function_flagged", hits
         else:
@@ -221,10 +295,11 @@ def score(defects_doc: dict, audit: dict, label: str,
     unmatched = []
     for rel, findings in sorted(by_file.items()):
         for i, f in enumerate(findings):
-            if (rel, i) not in matched_finding_ids and f["kind"] != "counterexample_values" \
-                    and "Z3 Counter-example:" not in f["text"]:
+            if (rel, i) not in matched_finding_ids and not is_supporting(f):
                 unmatched.append({"file": rel, "kind": f["kind"], "text": f["text"]})
-    return {"defects": results, "unmatched_findings": unmatched}
+    classified = classify_findings(by_file, evidence_ids, defects_doc.get("specimen"),
+                                   finding_reviews or [])
+    return {"defects": results, "unmatched_findings": unmatched, **classified}
 
 
 def counts(results: list[dict]) -> dict[str, int]:
@@ -243,7 +318,10 @@ def aggregate(coverages: list[dict]) -> dict:
               "missed": 0, "target_total": 0, "target_detected": 0, "unmatched": 0}
     by_lang: dict[str, dict[str, int]] = {}
     by_cat: dict[str, dict[str, Any]] = {}
+    findings = empty_finding_counts()
     for cov in coverages:
+        for k, v in (cov.get("finding_counts") or {}).items():
+            findings[k] = findings.get(k, 0) + v
         c = cov["counts"]
         for k in ("total", "detected", "function_flagged", "missed"):
             totals[k] += c[k]
@@ -265,7 +343,36 @@ def aggregate(coverages: list[dict]) -> dict:
                                                    "in_target": r["category"] in TARGET_CATEGORIES})
             bc["total"] += 1
             bc[r["status"]] += 1
-    return {"totals": totals, "by_language": by_lang, "by_category": by_cat}
+    return {"totals": totals, "by_language": by_lang, "by_category": by_cat,
+            "findings": findings}
+
+
+def precision_range(fc: dict | None) -> tuple[float, float] | None:
+    """(lower, upper) precision: unreviewed findings counted as false
+    positives for the lower bound and as real for the upper bound. None when
+    there is nothing to measure (no findings, or a run from before findings
+    were classified)."""
+    if not fc or not fc.get("total"):
+        return None
+    good = fc.get("defect_evidence", 0) + fc.get("real", 0)
+    return good / fc["total"], (good + fc.get("unreviewed", 0)) / fc["total"]
+
+
+def fmt_precision(fc: dict | None) -> str:
+    rng = precision_range(fc)
+    if rng is None:
+        return "n/a" if fc else "—"
+    lo, hi = (f"{100 * x:.0f}%" for x in rng)
+    return lo if lo == hi else f"{lo}–{hi}"
+
+
+def stale_reviews(coverages: list[dict], finding_reviews: list[dict]) -> list[dict]:
+    """Rulings for a scored specimen that matched no finding. Tool wording
+    changes make rulings stop applying; listing them keeps that visible."""
+    scored = {cov["specimen"] for cov in coverages}
+    used = {tuple(k) for cov in coverages for k in cov.get("reviews_used") or []}
+    return [r for r in finding_reviews
+            if r["specimen"] in scored and review_key(r) not in used]
 
 
 def audit_failure(rc_json: int, rc_md: int, audit: dict) -> str | None:
@@ -287,8 +394,53 @@ def audit_failure(rc_json: int, rc_md: int, audit: dict) -> str | None:
     return None
 
 
+def build_coverage(specimen_dir: Path, defects_doc: dict, audit: dict, rc_json: int, rc_md: int,
+                   meta: dict, adjudications: list[dict] | None,
+                   finding_reviews: list[dict] | None) -> dict:
+    """Score an audit result and write audit/coverage.json."""
+    label = str(specimen_dir.relative_to(REPO_ROOT))
+    scored = score(defects_doc, audit, label, adjudications, finding_reviews)
+    coverage = {
+        "specimen": defects_doc["specimen"],
+        "language": defects_doc["language"],
+        "audit_exit_code": rc_json,
+        "audit_markdown_exit_code": rc_md,
+        "verification_status": audit.get("verification_status"),
+        "files_audited": audit.get("total_files"),
+        "files_with_issues": audit.get("files_with_issues"),
+        "counts": counts(scored["defects"]),
+        **scored,
+        "meta": meta,
+    }
+    out_dir = specimen_dir / "audit"
+    out_dir.mkdir(exist_ok=True)
+    (out_dir / "coverage.json").write_text(json.dumps(coverage, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return coverage
+
+
+def rescore_specimen(specimen_dir: Path, adjudications: list[dict] | None,
+                     finding_reviews: list[dict] | None) -> dict:
+    """Re-score the committed audit/audit.json with the current rulings,
+    keeping the audit's exit codes and run metadata from coverage.json."""
+    out_dir = specimen_dir / "audit"
+    try:
+        audit = json.loads((out_dir / "audit.json").read_text(encoding="utf-8"))
+        previous = json.loads((out_dir / "coverage.json").read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise SystemExit(f"{specimen_dir.name}: nothing to rescore ({exc.filename} missing); "
+                         "run a full audit first")
+    if "meta" not in previous:
+        raise SystemExit(f"{specimen_dir.name}: coverage.json has no run metadata; run a full audit first")
+    defects_doc = json.loads((specimen_dir / "DEFECTS.json").read_text(encoding="utf-8"))
+    return build_coverage(specimen_dir, defects_doc, audit,
+                          previous.get("audit_exit_code", 0),
+                          previous.get("audit_markdown_exit_code", 0),
+                          previous["meta"], adjudications, finding_reviews)
+
+
 def audit_specimen(specimen_dir: Path, agent_repo: Path, mumei_bin: str, timeout: int,
-                   meta: dict, adjudications: list[dict] | None = None) -> dict:
+                   meta: dict, adjudications: list[dict] | None = None,
+                   finding_reviews: list[dict] | None = None) -> dict:
     label = str(specimen_dir.relative_to(REPO_ROOT))
     defects_doc = json.loads((specimen_dir / "DEFECTS.json").read_text(encoding="utf-8"))
     files = tracked_files(specimen_dir)
@@ -315,21 +467,8 @@ def audit_specimen(specimen_dir: Path, agent_repo: Path, mumei_bin: str, timeout
     audit = rewrite_paths(audit, scratch_str, label)
     (out_dir / "audit.json").write_text(json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     (out_dir / "audit.md").write_text(out_md.replace(scratch_str, label), encoding="utf-8")
-    scored = score(defects_doc, audit, label, adjudications)
-    coverage = {
-        "specimen": defects_doc["specimen"],
-        "language": defects_doc["language"],
-        "audit_exit_code": rc_json,
-        "audit_markdown_exit_code": rc_md,
-        "verification_status": audit.get("verification_status"),
-        "files_audited": audit.get("total_files"),
-        "files_with_issues": audit.get("files_with_issues"),
-        "counts": counts(scored["defects"]),
-        **scored,
-        "meta": meta,
-    }
-    (out_dir / "coverage.json").write_text(json.dumps(coverage, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    return coverage
+    return build_coverage(specimen_dir, defects_doc, audit, rc_json, rc_md, meta,
+                          adjudications, finding_reviews)
 
 
 def pct(n: int, d: int) -> str:
@@ -370,7 +509,8 @@ def llm_configured(agent_repo: Path) -> bool:
     return any(dotenv.get(key) for key in keys)
 
 
-def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
+def write_summary(coverages: list[dict], meta: dict, path: Path,
+                  stale: list[dict] | None = None) -> None:
     lines = [
         "# Specimen audit summary",
         "",
@@ -382,6 +522,10 @@ def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
         f"- Mode: {'with LLM' if meta['llm_configured'] else 'no LLM'}",
         f"- Command: `{meta['command']}`",
         f"- Generated: {meta['generated_at']}",
+    ]
+    if meta.get("rescored_at"):
+        lines.append(f"- Rescored from the committed audit output: {meta['rescored_at']}")
+    lines += [
         "",
         "## How defects are scored",
         "",
@@ -393,16 +537,26 @@ def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
         "heuristics). Findings that match no planted defect are listed per specimen in `audit/coverage.json`",
         "under `unmatched_findings`; they are either extra real issues or false positives and need human review.",
         "",
+        "## How findings are scored",
+        "",
+        "Each finding (counterexample entries excluded, they support another finding) gets one status:",
+        "`defect_evidence` when it is the category evidence for a planted defect; otherwise the verdict of",
+        "a reviewed ruling under `finding_reviews` in `scoreboard/adjudications.json` — `real` when it points",
+        "at a real problem (including a planted defect it was not keyword-matched to), `false_positive` when",
+        "it does not — or `unreviewed`. Precision is (defect evidence + real) / findings. While findings are",
+        "unreviewed it is shown as a range: unreviewed counted as false positives, then as real.",
+        "",
         "## Per specimen",
         "",
-        "| Specimen | Defects | Detected | Function flagged | Missed | Target-category detected | Unmatched findings |",
-        "|---|---:|---:|---:|---:|---:|---:|",
+        "| Specimen | Defects | Detected | Function flagged | Missed | Target-category detected | Unmatched findings | Findings | Precision |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     agg = aggregate(coverages)
     totals = agg["totals"]
     tgt_total = totals["target_total"]
     tgt_det = totals["target_detected"]
     unmatched_total = totals["unmatched"]
+    fc_total = agg["findings"]
     by_cat = agg["by_category"]
     by_lang = agg["by_language"]
     for cov in coverages:
@@ -412,16 +566,22 @@ def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
         rel = f"{cov['language']}/{cov['specimen']}"
         lines.append(
             f"| [{cov['specimen']}]({rel}/audit/audit.md) | {c['total']} | {c['detected']} | {c['function_flagged']} | "
-            f"{c['missed']} | {td}/{len(tgt)} | {len(cov['unmatched_findings'])} |"
+            f"{c['missed']} | {td}/{len(tgt)} | {len(cov['unmatched_findings'])} | "
+            f"{(cov.get('finding_counts') or {}).get('total', 0)} | {fmt_precision(cov.get('finding_counts'))} |"
         )
     lines.append(
         f"| **Total** | **{totals['total']}** | **{totals['detected']}** | **{totals['function_flagged']}** | "
-        f"**{totals['missed']}** | **{tgt_det}/{tgt_total}** | **{unmatched_total}** |"
+        f"**{totals['missed']}** | **{tgt_det}/{tgt_total}** | **{unmatched_total}** | "
+        f"**{fc_total['total']}** | **{fmt_precision(fc_total)}** |"
     )
     lines += [
         "",
         f"Detected overall: {totals['detected']}/{totals['total']} ({pct(totals['detected'], totals['total'])}); "
         f"target categories: {tgt_det}/{tgt_total} ({pct(tgt_det, tgt_total)}).",
+        "",
+        f"Findings: {fc_total['total']} — defect evidence {fc_total['defect_evidence']}, "
+        f"real {fc_total['real']}, false positive {fc_total['false_positive']}, "
+        f"unreviewed {fc_total['unreviewed']}; precision {fmt_precision(fc_total)}.",
         "",
         "## Per language",
         "",
@@ -446,7 +606,39 @@ def write_summary(coverages: list[dict], meta: dict, path: Path) -> None:
             f"| {cat} | {'yes' if cat in TARGET_CATEGORIES else ''} | {v['total']} | {v['detected']} | "
             f"{v['function_flagged']} | {v['missed']} |"
         )
+    reviewed = [(cov["specimen"], rec) for cov in coverages for rec in cov.get("findings") or []
+                if rec["status"] != "defect_evidence"]
+    if reviewed:
+        lines += [
+            "",
+            "## Findings that are not defect evidence",
+            "",
+            "| Specimen | File | Status | Finding | Reason |",
+            "|---|---|---|---|---|",
+        ]
+        for specimen, rec in reviewed:
+            lines.append(
+                f"| {specimen} | `{rec['file']}` | {rec['status']} | {_md_cell(rec['text'], 160)} | "
+                f"{_md_cell(rec.get('reason', ''), 200)} |"
+            )
+    if stale:
+        lines += [
+            "",
+            "## Stale finding reviews",
+            "",
+            "These rulings matched no finding in this run (tool wording or code changed). Update or remove them.",
+            "",
+            "| Specimen | File | Finding contains | Verdict |",
+            "|---|---|---|---|",
+        ]
+        for r in stale:
+            lines.append(f"| {r['specimen']} | `{r['file']}` | {_md_cell(r['finding_contains'], 160)} | {r['verdict']} |")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _md_cell(text: str, limit: int) -> str:
+    text = " ".join(str(text).split()).replace("|", "\\|")
+    return text if len(text) <= limit else text[:limit - 1] + "…"
 
 
 # ---------------------------------------------------------------------------
@@ -525,10 +717,42 @@ def load_adjudications(root: Path) -> list[dict]:
     return entries
 
 
+def load_finding_reviews(root: Path) -> list[dict]:
+    """Reviewed verdicts for findings that are not category evidence.
+
+    Validated eagerly: a ruling for an unknown specimen or file, with an
+    unsupported verdict, a missing field, or a duplicate key fails loudly.
+    """
+    path = root / "scoreboard" / ADJUDICATIONS_FILE
+    if not path.is_file():
+        return []
+    entries = json.loads(path.read_text(encoding="utf-8")).get("finding_reviews") or []
+    specimen_dirs = {d.name: d for d in root.glob("*/*") if (d / "DEFECTS.json").is_file()}
+    seen: set[tuple[str, str, str]] = set()
+    for r in entries:
+        for field in ("specimen", "file", "finding_contains", "verdict", "reason"):
+            if not isinstance(r.get(field), str) or not r[field].strip():
+                raise SystemExit(f"{path}: finding review {r!r}: missing or empty {field!r}")
+        if r["verdict"] not in FINDING_VERDICTS:
+            raise SystemExit(f"{path}: finding review for {r['specimen']}/{r['file']}: "
+                             f"unsupported verdict {r['verdict']!r}")
+        sdir = specimen_dirs.get(r["specimen"])
+        if sdir is None:
+            raise SystemExit(f"{path}: finding review references unknown specimen {r['specimen']!r}")
+        if not (sdir / r["file"]).is_file():
+            raise SystemExit(f"{path}: finding review references unknown file "
+                             f"{r['specimen']}/{r['file']}")
+        key = review_key(r)
+        if key in seen:
+            raise SystemExit(f"{path}: duplicate finding review {key!r}")
+        seen.add(key)
+    return entries
+
+
 def load_history(path: Path) -> dict:
     if path.is_file():
         return json.loads(path.read_text(encoding="utf-8"))
-    return {"schema": 1, "runs": []}
+    return {"schema": HISTORY_SCHEMA, "runs": []}
 
 
 def scoring_hash(root: Path) -> str:
@@ -560,10 +784,10 @@ def latest_by_mode(runs: list[dict]) -> dict[bool, dict | None]:
 
 
 def history_entry(coverages: list[dict], meta: dict, corpus: dict,
-                  score_hash: str) -> dict:
+                  score_hash: str, stale_count: int = 0) -> dict:
     agg = aggregate(coverages)
     t = agg["totals"]
-    return {
+    entry = {
         "generated_at": meta["generated_at"],
         "mumei_agent_commit": meta["mumei_agent_commit"],
         "mumei_commit": meta["mumei_commit"],
@@ -591,7 +815,12 @@ def history_entry(coverages: list[dict], meta: dict, corpus: dict,
                               "function_flagged": cov["counts"]["function_flagged"]}
             for cov in coverages
         },
+        "findings": agg["findings"],
+        "stale_finding_reviews": stale_count,
     }
+    if meta.get("rescored_at"):
+        entry["rescored_at"] = meta["rescored_at"]
+    return entry
 
 
 def record_run(history_path: Path, entry: dict) -> dict:
@@ -600,6 +829,7 @@ def record_run(history_path: Path, entry: dict) -> dict:
     unchanged."""
     hist = load_history(history_path)
     runs = hist.setdefault("runs", [])
+    hist["schema"] = HISTORY_SCHEMA
     empty_hash = hashlib.sha256(b"").hexdigest()
     key = (entry.get("mumei_agent_commit"), entry.get("mumei_commit"),
            (entry.get("corpus") or {}).get("hash"),
@@ -888,6 +1118,14 @@ def readme_block_specimens(history: dict) -> str:
                     f"mumei `{_sha7(run.get('mumei_commit'))}` ({run.get('mumei_version')}) · "
                     f"{run.get('generated_at')}"
                 )
+                fc = run.get("findings")
+                if fc:
+                    lines.append(
+                        f"Findings — {label}: {fc['total']} (defect evidence {fc['defect_evidence']}, "
+                        f"real {fc['real']}, false positive {fc['false_positive']}, "
+                        f"unreviewed {fc['unreviewed']}) · precision {fmt_precision(fc)}"
+                    )
+                lines.append("")
         lines += [
             "",
             "| Language | Defects | No LLM detected | No LLM detected or flagged | With LLM detected | With LLM detected or flagged |",
@@ -951,19 +1189,23 @@ def readme_block_specimens(history: dict) -> str:
             "",
             "Recent runs:",
             "",
-            "| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % |",
-            "|---|---|---|---|---|---:|---:|---:|",
+            "| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision |",
+            "|---|---|---|---|---|---:|---:|---:|---:|",
         ]
         for r in reversed(runs[-10:]):
             rt = r["totals"]
+            date = (r.get('generated_at') or '')[:10]
+            if r.get("rescored_at"):
+                date += f" (rescored {r['rescored_at'][:10]})"
             lines.append(
-                f"| {(r.get('generated_at') or '')[:10]} | "
+                f"| {date} | "
                 f"{'yes' if entry_llm(r) else 'no'} | "
                 f"`{_sha7(r.get('mumei_agent_commit'))}` | "
                 f"`{_sha7(r.get('mumei_commit'))}` | {rt['total']} | "
                 f"{pct(rt['detected'], rt['total'])} | "
                 f"{pct(rt['target_detected'], rt['target_total'])} | "
-                f"{pct(rt['detected'] + rt['function_flagged'], rt['total'])} |"
+                f"{pct(rt['detected'] + rt['function_flagged'], rt['total'])} | "
+                f"{fmt_precision(r.get('findings'))} |"
             )
         lines.append("")
     lines += [
@@ -982,6 +1224,11 @@ def readme_block_specimens(history: dict) -> str:
         "(or `OPENAI_API_KEY`), plus `LLM_BASE_URL` / `LLM_MODEL` as needed, or a `.env` file in the",
         "agent repo — and re-run the full audit. Each mode keeps its own history entries and the",
         "tables above show the latest run of each side by side.",
+        "",
+        "Precision is (defect evidence + findings reviewed as real) / findings; it is a range while some",
+        "findings are unreviewed, and `—` for runs recorded before findings were classified. Review",
+        "verdicts live under `finding_reviews` in `scoreboard/adjudications.json`; after editing them, run",
+        "`python3 scripts/run_specimen_audits.py --rescore` to re-score the committed audit output.",
     ]
     return "\n".join(lines)
 
@@ -1003,10 +1250,14 @@ def readme_block_top(history: dict) -> str:
     else:
         def _frag(run: dict) -> str:
             t = run["totals"]
-            return (f"{t['detected']}/{t['total']} detected "
+            frag = (f"{t['detected']}/{t['total']} detected "
                     f"({pct(t['detected'], t['total'])}), "
                     f"{t['detected'] + t['function_flagged']}/{t['total']} "
                     f"detected or function-flagged")
+            fc = run.get("findings")
+            if fc and fc.get("total"):
+                frag += f", precision {fmt_precision(fc)} of {fc['total']} findings"
+            return frag
 
         modes = latest_by_mode(runs)
         nollm = f"no LLM: {_frag(modes[False])}" if modes[False] else "no LLM: not run yet"
@@ -1056,10 +1307,36 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--scoreboard-dir", default=str(SPECIMENS_ROOT / "scoreboard"))
     parser.add_argument("--specimens-readme", default=str(SPECIMENS_ROOT / "README.md"))
     parser.add_argument("--top-readme", default=str(REPO_ROOT / "README.md"))
-    parser.add_argument("--render-only", action="store_true",
-                        help="re-render scoreboard SVGs and README blocks from history.json "
-                             "without running any audits")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--render-only", action="store_true",
+                      help="re-render scoreboard SVGs and README blocks from history.json "
+                           "without running any audits")
+    mode.add_argument("--rescore", action="store_true",
+                      help="re-score the committed audit/audit.json files with the current "
+                           "adjudications.json and record the result, without running any audits")
     return parser
+
+
+def finish_run(coverages: list[dict], meta: dict, finding_reviews: list[dict],
+               args: argparse.Namespace) -> None:
+    stale = stale_reviews(coverages, finding_reviews)
+    for r in stale:
+        print(f"warning: stale finding review (matched nothing): {r['specimen']}/{r['file']}: "
+              f"{r['finding_contains'][:80]!r}", file=sys.stderr)
+    write_summary(coverages, meta, Path(args.summary), stale)
+    scoreboard_dir = Path(args.scoreboard_dir)
+    record_run(scoreboard_dir / "history.json",
+               history_entry(coverages, meta, corpus_info(SPECIMENS_ROOT),
+                             scoring_hash(SPECIMENS_ROOT), len(stale)))
+    render_scoreboard(scoreboard_dir, Path(args.specimens_readme), Path(args.top_readme))
+
+
+def _print_coverage(cov: dict) -> None:
+    c = cov["counts"]
+    fc = cov.get("finding_counts") or {}
+    print(f"{cov['specimen']}: {c['detected']}/{c['total']} detected, {c['function_flagged']} function-flagged, "
+          f"{c['missed']} missed, {len(cov['unmatched_findings'])} unmatched, "
+          f"{fc.get('total', 0)} findings ({fc.get('unreviewed', 0)} unreviewed)")
 
 
 def main(argv: list[str]) -> int:
@@ -1069,6 +1346,25 @@ def main(argv: list[str]) -> int:
     if args.render_only:
         render_scoreboard(Path(args.scoreboard_dir), Path(args.specimens_readme),
                           Path(args.top_readme))
+        return 0
+
+    adjudications = load_adjudications(SPECIMENS_ROOT)
+    finding_reviews = load_finding_reviews(SPECIMENS_ROOT)
+
+    if args.rescore:
+        if args.specimens:
+            parser.error("--rescore re-scores the whole corpus; do not pass specimen dirs")
+        coverages = [rescore_specimen(d, adjudications, finding_reviews)
+                     for d in discover(SPECIMENS_ROOT)]
+        metas = {json.dumps(cov["meta"], sort_keys=True) for cov in coverages}
+        if len(metas) != 1:
+            raise SystemExit("--rescore: audit outputs come from different runs; "
+                             "run a full audit first")
+        meta = dict(coverages[0]["meta"])
+        meta["rescored_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        for cov in coverages:
+            _print_coverage(cov)
+        finish_run(coverages, meta, finding_reviews, args)
         return 0
 
     agent_repo = Path(args.mumei_agent_repo).resolve()
@@ -1086,23 +1382,15 @@ def main(argv: list[str]) -> int:
         "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
-    adjudications = load_adjudications(SPECIMENS_ROOT)
     dirs = [Path(d).resolve() for d in args.specimens] or discover(SPECIMENS_ROOT)
     coverages = []
     for d in dirs:
-        cov = audit_specimen(d, agent_repo, mumei_bin, args.timeout, meta, adjudications)
-        c = cov["counts"]
-        print(f"{cov['specimen']}: {c['detected']}/{c['total']} detected, {c['function_flagged']} function-flagged, "
-              f"{c['missed']} missed, {len(cov['unmatched_findings'])} unmatched")
+        cov = audit_specimen(d, agent_repo, mumei_bin, args.timeout, meta, adjudications,
+                             finding_reviews)
+        _print_coverage(cov)
         coverages.append(cov)
     if not args.specimens:
-        write_summary(coverages, meta, Path(args.summary))
-        scoreboard_dir = Path(args.scoreboard_dir)
-        record_run(scoreboard_dir / "history.json",
-                   history_entry(coverages, meta, corpus_info(SPECIMENS_ROOT),
-                                scoring_hash(SPECIMENS_ROOT)))
-        render_scoreboard(scoreboard_dir, Path(args.specimens_readme),
-                          Path(args.top_readme))
+        finish_run(coverages, meta, finding_reviews, args)
     return 0
 
 

@@ -26,6 +26,18 @@ rulings for those cases. Entries are substring-matched against the finding
 text, so when tool wording changes a ruling silently stops applying — review
 new `detected` statuses after each tool update.
 
+Every finding also gets a precision status. It is `defect_evidence` when it is
+the category evidence for a planted defect. Otherwise a reviewer's ruling under
+`finding_reviews` in the same file applies: `real` when the finding points at a
+real problem (including a planted defect it was not keyword-matched to, or an
+issue the ground truth does not list), `false_positive` when it does not. A
+finding with no ruling stays `unreviewed`, and precision is shown as a range
+until none are left. Unlike the defect rulings, a finding ruling that matches
+nothing in a run is reported as stale in `AUDIT_SUMMARY.md` and on stderr.
+After editing rulings, `python3 scripts/run_specimen_audits.py --rescore`
+re-scores the committed `audit/audit.json` files without running any audit; the
+history keeps the original run date and records `rescored_at`.
+
 ## Layout
 
 ```text
@@ -165,6 +177,8 @@ specimens. It exits non-zero listing every problem found.
 ![Detection over runs](scoreboard/history.svg)
 
 Latest run — no LLM: mumei-agent `99977fa` · mumei `a6f4a45` (mumei 0.6.23) · 2026-10-31T01:29:54Z
+Findings — no LLM: 40 (defect evidence 10, real 3, false positive 27, unreviewed 0) · precision 32%
+
 Latest run — with LLM: not run yet.
 
 | Language | Defects | No LLM detected | No LLM detected or flagged | With LLM detected | With LLM detected or flagged |
@@ -180,12 +194,13 @@ _With LLM: not run yet._
 
 Recent runs:
 
-| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % |
-|---|---|---|---|---|---:|---:|---:|
-| 2026-10-31 | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% |
-| 2026-10-29 | no | `336d604` | `fc10933` | 171 | 6% | 13% | 17% |
-| 2026-10-24 | no | `759dcc3` | `d89609c` | 171 | 6% | 13% | 17% |
-| 2026-10-04 | no | `8f85274` | `d5fe4b6` | 171 | 6% | 13% | 17% |
+| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision |
+|---|---|---|---|---|---:|---:|---:|---:|
+| 2026-10-31 (rescored 2026-11-01) | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% | 32% |
+| 2026-10-31 | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% | — |
+| 2026-10-29 | no | `336d604` | `fc10933` | 171 | 6% | 13% | 17% | — |
+| 2026-10-24 | no | `759dcc3` | `d89609c` | 171 | 6% | 13% | 17% | — |
+| 2026-10-04 | no | `8f85274` | `d5fe4b6` | 171 | 6% | 13% | 17% | — |
 
 Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md).
 
@@ -202,4 +217,9 @@ one. To record a with-LLM run, configure an LLM provider for mumei-agent — `LL
 (or `OPENAI_API_KEY`), plus `LLM_BASE_URL` / `LLM_MODEL` as needed, or a `.env` file in the
 agent repo — and re-run the full audit. Each mode keeps its own history entries and the
 tables above show the latest run of each side by side.
+
+Precision is (defect evidence + findings reviewed as real) / findings; it is a range while some
+findings are unreviewed, and `—` for runs recorded before findings were classified. Review
+verdicts live under `finding_reviews` in `scoreboard/adjudications.json`; after editing them, run
+`python3 scripts/run_specimen_audits.py --rescore` to re-score the committed audit output.
 <!-- scoreboard:end -->

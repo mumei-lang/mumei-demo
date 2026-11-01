@@ -127,6 +127,29 @@
     }
   ],
   "unmatched_findings": [],
+  "findings": [
+    {
+      "file": "ledger.py",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: is_over_budget: spec_lowering_failed: failed to lower ensures clause 'result == spent_cents > limit_cents': Verification Error: Expected bool for == (constraints: [\"result == spent_cents > limit_cents\"])",
+      "status": "false_positive",
+      "reason": "Tool diagnostic: the extracted ensures clause failed to lower. It names no problem in is_over_budget (the planted off-by-one is not mentioned)."
+    }
+  ],
+  "finding_counts": {
+    "total": 1,
+    "defect_evidence": 0,
+    "real": 0,
+    "false_positive": 1,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "py-01-expense-tracker",
+      "ledger.py",
+      "encoding-gap: is_over_budget: spec_lowering_failed"
+    ]
+  ],
   "meta": {
     "mumei_agent_commit": "99977fa0eae63783b00e8a89f4e7ba5b0b935a46",
     "mumei_commit": "a6f4a45a780a0c6bbfcb0ddd13b633c369f5b256",

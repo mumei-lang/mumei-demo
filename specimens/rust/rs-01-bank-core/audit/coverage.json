@@ -146,6 +146,35 @@
     }
   ],
   "unmatched_findings": [],
+  "findings": [
+    {
+      "file": "src/bank.rs",
+      "kind": "verification_violations",
+      "text": "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64` without a range contract (amount_cents outside 0..=18446744073709551615 wraps)",
+      "status": "false_positive",
+      "reason": "Both casts sit inside `if amount_cents > 0`, so the i64 value is always in u64 range."
+    },
+    {
+      "file": "src/bank.rs",
+      "kind": "verification_violations",
+      "text": "Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)",
+      "status": "defect_evidence"
+    }
+  ],
+  "finding_counts": {
+    "total": 2,
+    "defect_evidence": 1,
+    "real": 0,
+    "false_positive": 1,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "rs-01-bank-core",
+      "src/bank.rs",
+      "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64`"
+    ]
+  ],
   "meta": {
     "mumei_agent_commit": "99977fa0eae63783b00e8a89f4e7ba5b0b935a46",
     "mumei_commit": "a6f4a45a780a0c6bbfcb0ddd13b633c369f5b256",
