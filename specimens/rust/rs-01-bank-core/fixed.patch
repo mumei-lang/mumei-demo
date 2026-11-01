@@ -1,5 +1,5 @@
 diff --git a/src/bank.rs b/src/bank.rs
-index e817c71..9f7e80b 100644
+index e817c71..df64619 100644
 --- a/src/bank.rs
 +++ b/src/bank.rs
 @@ -2,7 +2,7 @@
@@ -84,18 +84,18 @@ index e817c71..9f7e80b 100644
 +            Some(dst) if dst.closed => return Err("destination is closed".into()),
 +            Some(_) => {}
          }
-+        let queued: i64 = self
++        let queued: i128 = self
 +            .pending
 +            .iter()
 +            .filter(|p| p.from == from)
-+            .map(|p| p.amount_cents)
++            .map(|p| p.amount_cents as i128)
 +            .sum();
          let src = self.get_mut(from).ok_or("no such account")?;
 -        if src.balance_cents < amount_cents {
 +        if src.closed {
 +            return Err("source is closed".into());
 +        }
-+        if src.balance_cents - queued < amount_cents {
++        if (src.balance_cents as i128) - queued < amount_cents as i128 {
              return Err("insufficient funds".into());
          }
 -        if amount_cents > 0 {
