@@ -44,7 +44,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install pytest
-      - run: python -m pytest tests/test_scenario_evidence.py tests/test_run_scenario.py tests/test_generate_report.py tests/test_evidence_regressions.py tests/test_review_charter_baseline.py -q --junitxml=reports/evidence-tests.xml
+      - run: python -m pytest tests/test_scenario_evidence.py tests/test_run_scenario.py tests/test_generate_report.py tests/test_evidence_regressions.py tests/test_review_charter_baseline.py tests/test_record_scenario.py tests/test_record_model_evidence.py -q --junitxml=reports/evidence-tests.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -111,6 +111,19 @@ jobs:
       - name: Generate report
         if: always()
         run: python scripts/generate_report.py --summary --highlights --require-all
+      - name: Install pinned Lean for the optional record experiment
+        run: |
+          curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          ~/.elan/bin/elan toolchain install "$(cat repos/mumei-lean/lean-toolchain)"
+      - name: Check separate record model and execution evidence
+        run: make demo-record-execution
+        env:
+          CI_FIXTURE_MODE: "1"
+          MUMEI_REPO: ${{ github.workspace }}/repos/mumei
+          MUMEI_LEAN_REPO: ${{ github.workspace }}/repos/mumei-lean
+          MUMEI_AGENT_REPO: ${{ github.workspace }}/repos/mumei-agent
+          MUMEI_BIN: ${{ github.workspace }}/repos/mumei/target/release/mumei
       - name: Check synthetic evidence regressions against the real Charter run
         if: always()
         run: python scripts/check_evidence_regressions.py reports/charter_gate_demo/latest/result.json --out-dir reports/charter_regressions

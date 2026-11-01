@@ -32,6 +32,7 @@ SCENARIO_ORDER = [
     "test_observation_demo",
     "self_correction_demo",
 ]
+OPTIONAL_SCENARIOS = ["record_execution_demo"]
 
 
 def scenario_names() -> list[str]:
@@ -39,8 +40,8 @@ def scenario_names() -> list[str]:
         path.name for path in SCENARIOS.iterdir()
         if path.is_dir() and path.name != "_template"
     )
-    ordered = [name for name in SCENARIO_ORDER if name in names]
-    return ordered + [name for name in names if name not in SCENARIO_ORDER]
+    ordered = [name for name in SCENARIO_ORDER + OPTIONAL_SCENARIOS if name in names]
+    return ordered + [name for name in names if name not in ordered]
 
 
 def latest_result(scenario: str) -> Path | None:

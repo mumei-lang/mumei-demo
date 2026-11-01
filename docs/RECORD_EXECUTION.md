@@ -116,6 +116,8 @@ the Python runtime, and correct exclusive use of this instance. Python callers
 can access internals or modify the module; underscore names and frozen data
 classes do not stop arbitrary same-process code. Real authentication, production
 storage, networking, distributed transactions, dynamic delegation, external
-delivery and deployment safety are out of scope. The follow-up scenario will
-connect `.mm` local contracts, model evidence, finite observations and negative
-controls through the existing evidence display without conflating them.
+delivery and deployment safety are out of scope. The optional
+[`make demo-record-execution`](../scenarios/record_execution_demo/README.md)
+connects `.mm` local contracts, independent model evidence, finite observations
+and negative controls through the existing evidence display without conflating
+them. It requires Lean separately; the adapter and its standalone tests do not.

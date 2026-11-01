@@ -33,11 +33,15 @@ minimal audit events and fail-closed fault/concurrency regressions are included.
 `make test-record-execution` runs this separately; no existing scenario is
 changed or promoted to a new proof grade.
 
-The next step is a scenario joining the adapter with local `.mm` contracts,
-independent Lean model evidence, negative controls and Phase A's evidence
-display. Formal model/Python correspondence, production authentication/storage,
-distributed operations and arbitrary-code confinement remain unproved and
-outside this experiment. The adapter alone is not a completed scenario chain.
+The optional [record-operation scenario](../scenarios/record_execution_demo/README.md)
+now joins that adapter with a local `.mm` version contract, fresh independent
+Lean model/kernel audit, finite implementation checks and four detected
+broken-host variants. Existing evidence readers show independent model proofs
+separately, without a new grade or Python promotion. The default 18-scenario
+sequence stays unchanged; the optional target requires the pinned Lean toolchain
+and is exercised separately in source-built CI. Formal model/Python
+correspondence, production authentication/storage, distributed operations and
+arbitrary-code confinement remain unproved and outside this experiment.
 
 ## Cross-project no-.mm scenario contract
 

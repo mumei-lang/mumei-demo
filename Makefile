@@ -2,6 +2,7 @@ SCENARIOS := ownership_transfer rtgs_settlement regtech_compliance nl_to_verifie
 # Large-scale (Priority 16) targets. Kept out of SCENARIOS on purpose: they are
 # separate targets so the deterministic fixture-mode CI run stays unchanged.
 SCALE_SCENARIOS := medical_device_scale rtgs_settlement_scale regtech_compliance_scale defi_invariant_scale ownership_transfer_scale
+OPTIONAL_SCENARIOS := record_execution_demo
 NO_MM_AUDIT_LANGUAGES := python rust typescript go
 MUMEI_REPO ?= ../mumei
 MUMEI_AGENT_REPO ?= ../mumei-agent
@@ -121,6 +122,10 @@ demo-self-correction:
 
 demo-human-review:
 	@./scripts/run_scenario.sh human_review_demo
+
+.PHONY: demo-record-execution
+demo-record-execution:
+	@./scripts/run_scenario.sh record_execution_demo
 
 demo-all: demo
 

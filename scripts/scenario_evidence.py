@@ -194,6 +194,52 @@ def _coverage(claims: dict, atom: str) -> dict:
     }
 
 
+def _independent_model(data: dict, root: Path, selector: dict, steps: dict) -> dict:
+    if not isinstance(selector, dict) or set(selector) != {"step", "report", "required_theorems", "sources"}:
+        raise EvidenceError("invalid independent model selector")
+    if (not isinstance(selector["step"], str) or not selector["step"]
+            or not _strings(selector["required_theorems"]) or not selector["required_theorems"]
+            or len(set(selector["required_theorems"])) != len(selector["required_theorems"])
+            or not _strings(selector["sources"]) or not selector["sources"]
+            or len(set(selector["sources"])) != len(selector["sources"])):
+        raise EvidenceError("independent model needs required theorems and source identities")
+    step = steps.get(selector["step"], {})
+    if (selector["step"] not in data["evidence_requirements"]["steps"]
+            or step.get("status") not in {"PASS", "CERTIFIED"}):
+        raise EvidenceError("required independent model step is not successful")
+    report_path = _checked_path(data, root, selector["report"])
+    report = _json(report_path)
+    allowlist = {"propext", "Classical.choice", "Quot.sound"}
+    if (report.get("schema") != "mumei-demo.independent-model/v1"
+            or report.get("status") != "passed"
+            or report.get("axiom_allowlist") != sorted(allowlist)):
+        raise EvidenceError("independent model did not pass its kernel audit")
+    inputs, theorems = report.get("inputs"), report.get("theorems")
+    if not isinstance(inputs, dict) or set(inputs) != set(selector["sources"]):
+        raise EvidenceError("independent model source set does not match")
+    parent = Path(selector["report"]).parent
+    for name, expected in inputs.items():
+        if not isinstance(name, str) or Path(name).is_absolute() or ".." in Path(name).parts:
+            raise EvidenceError("invalid independent model source path")
+        source = _checked_path(data, root, (parent / name).as_posix())
+        if expected != _digest(source):
+            raise EvidenceError("independent model source identity does not match")
+    if (not isinstance(theorems, dict) or not theorems
+            or not set(selector["required_theorems"]) <= set(theorems)):
+        raise EvidenceError("independent model required theorems are missing")
+    axioms = set()
+    for theorem, result in theorems.items():
+        if (not theorem or not isinstance(result, dict) or result.get("status") != "passed"
+                or result.get("disallowed") != [] or not isinstance(result.get("axioms"), list)
+                or not all(isinstance(a, str) and a in allowlist for a in result["axioms"])):
+            raise EvidenceError("independent model has a rejected theorem")
+        axioms.update(result["axioms"])
+    return {"step": selector["step"], "report": selector["report"], "status": "satisfied",
+            "theorem_count": len(theorems), "kernel_axioms": sorted(axioms),
+            "source_identities": inputs, "required_theorems": selector["required_theorems"],
+            "scope": "Independent model only; not Python correspondence or an application grade."}
+
+
 def aggregate_evidence(data: dict, root: Path) -> dict:
     identities = data.get("evidence_identities", {})
     summary = {
@@ -203,6 +249,7 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
         "status": "incomplete",
         "claims": [],
         "execution_observations": [],
+        "independent_models": [],
         "declared_assumptions": [],
         "reported_trusted_base": [],
         "unverified_connections": [],
@@ -213,7 +260,7 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
     issues = summary["issues"]
     try:
         config = data.get("evidence_requirements")
-        allowed = {"claims", "steps", "charter_steps", "artifacts", "declared_assumptions", "unverified_connections", "out_of_scope"}
+        allowed = {"claims", "steps", "charter_steps", "artifacts", "declared_assumptions", "unverified_connections", "out_of_scope", "independent_models"}
         if not isinstance(config, dict) or set(config) - allowed:
             raise EvidenceError("invalid evidence requirements")
         stages = config.get("steps")
@@ -261,6 +308,15 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
                     issues.append(f"required Charter atoms are unavailable: {step_id}")
                 else:
                     _unique(gate["atoms"], "name")
+        models = config.get("independent_models", [])
+        if not isinstance(models, list):
+            raise EvidenceError("independent models must be an array")
+        _unique(models, "step")
+        for selector in models:
+            try:
+                summary["independent_models"].append(_independent_model(data, root, selector, steps))
+            except EvidenceError as error:
+                issues.append(str(error))
         seen = set()
         for requirement in config["claims"]:
             try:
@@ -364,6 +420,12 @@ def render_evidence(data: dict) -> str:
                       f"- Generator: {cell(json.dumps(claim['generator'], sort_keys=True))}",
                       f"- Certificate: {cell(json.dumps(claim['certificate'], sort_keys=True))}; integrity: {cell(claim['certificate_integrity'])}",
                       f"- Content / proof hashes: {cell(claim['content_hash'])} / {cell(claim['proof_hash'])}"])
+    if summary.get("independent_models"):
+        lines.extend(["", "### Independent Lean model proofs (not implementation correspondence)"])
+        for model in summary["independent_models"]:
+            lines.append(f"- {cell(model['step'])}: {model['theorem_count']} audited theorems; "
+                         f"kernel axioms: {cell(json.dumps(model['kernel_axioms']))}; report: {cell(model['report'])}")
+            lines.append(f"  {cell(model['scope'])}")
     lines.extend(["", "### Execution observations (not formal proof)"])
     lines.extend(f"- {cell(row['step'])} / {cell(row['stage'])}: {cell(row['status'])}" + (f"; Charter: {cell(json.dumps(row['charter'], sort_keys=True))}" if "charter" in row else "") for row in summary["execution_observations"])
     for key, title in (("declared_assumptions", "Declared assumptions (not checked facts)"),

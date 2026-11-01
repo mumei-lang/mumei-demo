@@ -1,0 +1,343 @@
+{
+  "name": "Record Operations: Separate Model, Contract and Execution Evidence",
+  "version": "1.0.0",
+  "description": "Opt-in, fixed record operations with local arithmetic proof, independent Lean model audit, finite implementation checks and detected host variants.",
+  "result_message": "Result: Local contract, independent model and finite checks passed; Python correspondence and production safety remain unproved.",
+  "layers": [
+    "l1_z3",
+    "l2_agent",
+    "l3_lean"
+  ],
+  "narrative": {
+    "intro": [
+      "Step 1: Check a local version contract and its deliberately broken implementation.",
+      "Step 2: Exercise fixed data proposals and detect broken execution paths.",
+      "Step 3: Audit the independent Lean model without promoting Python behavior."
+    ],
+    "before": "A local arithmetic proof cannot establish current authority or prevent a host from bypassing the executor.",
+    "after": "Separate evidence shows what was proved in the model and what was observed in the fixed implementation."
+  },
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3",
+      "l2_agent",
+      "l3_lean"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Keep model proofs, local contracts and finite record-operation observations distinct.",
+    "artifact_contracts": [
+      "Demo .mm and Python execution inputs are copied to the report directory; proposal JSON cannot choose variants or alter reference cases, principal, store or policy.",
+      "No LLM, credentials, external database or certificate promotion is used.",
+      "The model is rebuilt and audited without optional skips; selected source identities and kernel logs are retained."
+    ]
+  },
+  "intent_fidelity": {
+    "source_intent": "Current authority and state must govern fixed record updates, with honest evidence boundaries.",
+    "success_criteria": [
+      "Authorized read/update succeeds and denials preserve records.",
+      "Four named host variants fail their intended reference cases.",
+      "Local version arithmetic verifies while a fixed incorrect body is rejected.",
+      "Independent model theorems pass the kernel axiom audit without claiming Python correspondence."
+    ],
+    "drift_risk": "Source hashes bind local snapshots only; the trusted host and model/implementation correspondence remain explicit boundaries."
+  },
+  "evidence_requirements": {
+    "claims": [
+      {
+        "step": "verify_local",
+        "source": "local_contract.mm",
+        "atom": "advance_version",
+        "minimum_grade": "G4",
+        "require_complete": true
+      }
+    ],
+    "steps": {
+      "prepare_inputs": "S_prepare_inputs",
+      "verify_local": "S_verify_local",
+      "reject_broken_local": "S_reject_broken_local",
+      "check_runtime": "S_check_runtime",
+      "detect_missing_organization": "S_detect_missing_organization",
+      "detect_missing_ownership": "S_detect_missing_ownership",
+      "detect_changed_identity": "S_detect_changed_identity",
+      "detect_direct_write": "S_detect_direct_write",
+      "audit_model": "S_audit_model"
+    },
+    "artifacts": [
+      "local_contract.mm",
+      "broken_contract.mm",
+      "record_execution.py",
+      "record_scenario.py",
+      "runtime.json",
+      "missing_organization.json",
+      "missing_ownership.json",
+      "changed_identity.json",
+      "direct_write.json",
+      "model/model.json",
+      "model/collector.log",
+      "model/audit/axiom_audit.json",
+      "model/source/MumeiLean/AuthorizationModel.lean",
+      "model/source/MumeiLean/AuthorizationExamples.lean",
+      "model/source/lean-toolchain",
+      "model/source/lakefile.lean",
+      "model/source/lake-manifest.json",
+      "model/source/scripts/check_authorization_model.py",
+      "model/source/scripts/axiom_audit.py",
+      "model/source/scripts/bridge.py"
+    ],
+    "independent_models": [
+      {
+        "step": "audit_model",
+        "report": "model/model.json",
+        "required_theorems": [
+          "MumeiLean.AuthorizationModel.accepted_authorized",
+          "MumeiLean.AuthorizationModel.rejected_unchanged",
+          "MumeiLean.AuthorizationModel.execute_preserves_identity",
+          "MumeiLean.AuthorizationModel.execute_preserves_other_record",
+          "MumeiLean.AuthorizationModel.replayed_update_rejected",
+          "MumeiLean.AuthorizationModel.finite_trace_authorized"
+        ],
+        "sources": [
+          "source/MumeiLean/AuthorizationModel.lean",
+          "source/MumeiLean/AuthorizationExamples.lean",
+          "source/lean-toolchain",
+          "source/lakefile.lean",
+          "source/lake-manifest.json",
+          "source/scripts/check_authorization_model.py",
+          "source/scripts/axiom_audit.py",
+          "source/scripts/bridge.py"
+        ]
+      }
+    ],
+    "declared_assumptions": [
+      "The host chooses a truthful, current principal and owns initial state, policy and all code; there is no real authentication.",
+      "The fixed role policy and reference cases express the intended demo requirements; policy quality is not proved.",
+      "Python, Z3, Lean, the kernel axiom allowlist, build scripts and the evidence collector are trusted."
+    ],
+    "unverified_connections": [
+      "The independent Lean model is not proved semantically equivalent to Python parsing, locking, mutation, policy management or failure handling.",
+      "The .mm contract proves only local version arithmetic; it is not a proof of the executor, authorization or the Lean/Python connection.",
+      "Local source/report hashes establish snapshot consistency, not authenticity, deployed artifact identity or safe execution."
+    ],
+    "out_of_scope": [
+      "Real authentication, production storage, HTTP, external delivery, cross-process/distributed transactions and deployment safety.",
+      "Arbitrary host-code confinement, privileged direct writes, dynamic delegation/revocation and persistent audit delivery.",
+      "The l2_agent layer runs only finite Python fixtures, not an LLM, mumei-agent repair or formal test-to-contract translation."
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "prepare_inputs",
+        "name": "prepare inputs",
+        "command": "cp {root_dir}/scenarios/record_execution_demo/local_contract.mm {output_dir}/local_contract.mm && cp {root_dir}/scenarios/record_execution_demo/broken_contract.mm {output_dir}/broken_contract.mm && cp {root_dir}/scripts/record_execution.py {output_dir}/record_execution.py && cp {root_dir}/scripts/record_scenario.py {output_dir}/record_scenario.py && echo 'Record inputs copied'",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Record inputs copied"
+        ],
+        "artifacts": [
+          "local_contract.mm",
+          "broken_contract.mm",
+          "record_execution.py",
+          "record_scenario.py"
+        ],
+        "harness_stage": "S_prepare_inputs",
+        "artifact_contract": [
+          "Artifacts describe only this named proof or finite check; they do not establish implementation correspondence."
+        ],
+        "verifier_gate": "Require the declared exit code, diagnostic and evidence artifacts."
+      },
+      {
+        "id": "verify_local",
+        "name": "verify local",
+        "command": "cd {output_dir} && {mumei_bin} verify local_contract.mm --proof-cert --output local.proof.json",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Verification passed"
+        ],
+        "artifacts": [
+          "local.proof.json"
+        ],
+        "harness_stage": "S_verify_local",
+        "artifact_contract": [
+          "Artifacts describe only this named proof or finite check; they do not establish implementation correspondence."
+        ],
+        "verifier_gate": "Require the declared exit code, diagnostic and evidence artifacts.",
+        "depends_on": [
+          "prepare_inputs"
+        ],
+        "claim_book": {
+          "source": "{output_dir}/local_contract.mm",
+          "cert": "local.proof.json"
+        }
+      },
+      {
+        "id": "reject_broken_local",
+        "name": "reject broken local",
+        "command": "cd {output_dir} && {mumei_bin} verify broken_contract.mm",
+        "expected_exit": 1,
+        "expected_patterns": [
+          "Postcondition (ensures) is not satisfied"
+        ],
+        "artifacts": [],
+        "harness_stage": "S_reject_broken_local",
+        "artifact_contract": [
+          "Artifacts describe only this named proof or finite check; they do not establish implementation correspondence."
+        ],
+        "verifier_gate": "Require the declared exit code, diagnostic and evidence artifacts.",
+        "expect_failure": true,
+        "depends_on": [
+          "prepare_inputs"
+        ]
+      }
+    ]
+  },
+  "l2_agent": {
+    "steps": [
+      {
+        "id": "check_runtime",
+        "name": "check runtime",
+        "command": "python3 {output_dir}/record_scenario.py --output {output_dir}/runtime.json",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Fixed record checks: PASS"
+        ],
+        "artifacts": [
+          "runtime.json"
+        ],
+        "harness_stage": "S_check_runtime",
+        "artifact_contract": [
+          "Artifacts describe only this named proof or finite check; they do not establish implementation correspondence."
+        ],
+        "verifier_gate": "Require the declared exit code, diagnostic and evidence artifacts.",
+        "depends_on": [
+          "prepare_inputs"
+        ]
+      },
+      {
+        "id": "detect_missing_organization",
+        "name": "detect missing organization",
+        "command": "python3 {output_dir}/record_scenario.py --variant missing_organization --output {output_dir}/missing_organization.json",
+        "expected_exit": 1,
+        "expected_patterns": [
+          "Fixed record checks: FAIL",
+          "Violated case: cross_organization"
+        ],
+        "artifacts": [
+          "missing_organization.json"
+        ],
+        "harness_stage": "S_detect_missing_organization",
+        "artifact_contract": [
+          "Artifacts describe only this named proof or finite check; they do not establish implementation correspondence."
+        ],
+        "verifier_gate": "Require the declared exit code, diagnostic and evidence artifacts.",
+        "expect_failure": true,
+        "depends_on": [
+          "prepare_inputs"
+        ],
+        "failure_taxonomy": "finite_reference_violation"
+      },
+      {
+        "id": "detect_missing_ownership",
+        "name": "detect missing ownership",
+        "command": "python3 {output_dir}/record_scenario.py --variant missing_ownership --output {output_dir}/missing_ownership.json",
+        "expected_exit": 1,
+        "expected_patterns": [
+          "Fixed record checks: FAIL",
+          "Violated case: wrong_owner"
+        ],
+        "artifacts": [
+          "missing_ownership.json"
+        ],
+        "harness_stage": "S_detect_missing_ownership",
+        "artifact_contract": [
+          "Artifacts describe only this named proof or finite check; they do not establish implementation correspondence."
+        ],
+        "verifier_gate": "Require the declared exit code, diagnostic and evidence artifacts.",
+        "expect_failure": true,
+        "depends_on": [
+          "prepare_inputs"
+        ],
+        "failure_taxonomy": "finite_reference_violation"
+      },
+      {
+        "id": "detect_changed_identity",
+        "name": "detect changed identity",
+        "command": "python3 {output_dir}/record_scenario.py --variant changed_identity --output {output_dir}/changed_identity.json",
+        "expected_exit": 1,
+        "expected_patterns": [
+          "Fixed record checks: FAIL",
+          "Violated case: owner_update"
+        ],
+        "artifacts": [
+          "changed_identity.json"
+        ],
+        "harness_stage": "S_detect_changed_identity",
+        "artifact_contract": [
+          "Artifacts describe only this named proof or finite check; they do not establish implementation correspondence."
+        ],
+        "verifier_gate": "Require the declared exit code, diagnostic and evidence artifacts.",
+        "expect_failure": true,
+        "depends_on": [
+          "prepare_inputs"
+        ],
+        "failure_taxonomy": "finite_reference_violation"
+      },
+      {
+        "id": "detect_direct_write",
+        "name": "detect direct write",
+        "command": "python3 {output_dir}/record_scenario.py --variant direct_write --output {output_dir}/direct_write.json",
+        "expected_exit": 1,
+        "expected_patterns": [
+          "Fixed record checks: FAIL",
+          "Violated case: reader_update"
+        ],
+        "artifacts": [
+          "direct_write.json"
+        ],
+        "harness_stage": "S_detect_direct_write",
+        "artifact_contract": [
+          "Artifacts describe only this named proof or finite check; they do not establish implementation correspondence."
+        ],
+        "verifier_gate": "Require the declared exit code, diagnostic and evidence artifacts.",
+        "expect_failure": true,
+        "depends_on": [
+          "prepare_inputs"
+        ],
+        "failure_taxonomy": "finite_reference_violation"
+      }
+    ]
+  },
+  "l3_lean": {
+    "steps": [
+      {
+        "id": "audit_model",
+        "name": "audit model",
+        "command": "python3 {root_dir}/scripts/record_model_evidence.py --repo {mumei_lean_repo} --output {output_dir}/model",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Independent model evidence: PASS"
+        ],
+        "artifacts": [
+          "model/model.json",
+          "model/collector.log",
+          "model/audit/axiom_audit.json",
+          "model/source/MumeiLean/AuthorizationModel.lean",
+          "model/source/MumeiLean/AuthorizationExamples.lean",
+          "model/source/lean-toolchain",
+          "model/source/lakefile.lean",
+          "model/source/lake-manifest.json",
+          "model/source/scripts/check_authorization_model.py",
+          "model/source/scripts/axiom_audit.py",
+          "model/source/scripts/bridge.py"
+        ],
+        "harness_stage": "S_audit_model",
+        "artifact_contract": [
+          "Artifacts describe only this named proof or finite check; they do not establish implementation correspondence."
+        ],
+        "verifier_gate": "Require the declared exit code, diagnostic and evidence artifacts."
+      }
+    ]
+  }
+}

@@ -11,6 +11,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 
 from generate_report import (  # noqa: E402
+    OPTIONAL_SCENARIOS,
     SCENARIO_ORDER,
     bug_detection_moment,
     charter_gate_label,
@@ -514,6 +515,12 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
     makefile_order = scenario_line.split(":=", 1)[1].split()
     assert SCENARIO_ORDER == makefile_order
     assert app.SCENARIO_ORDER == makefile_order
+    optional_line = next(line for line in makefile.read_text(encoding="utf-8").splitlines()
+                         if line.startswith("OPTIONAL_SCENARIOS :="))
+    assert OPTIONAL_SCENARIOS == app.OPTIONAL_SCENARIOS == optional_line.split(":=", 1)[1].split()
+    assert app.scenario_names().index("record_execution_demo") == len(SCENARIO_ORDER)
+    assert app.scenario_names().count("record_execution_demo") == 1
+    assert len(app.scenario_names()) == len(set(app.scenario_names()))
     data = {
         "claim_book": {
             "entries": [{"status": "ok"}],
@@ -528,6 +535,38 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
 
     assert cli_claim_book_label(data) == expected
     assert app.claim_book_label(data) == expected
+
+
+def test_record_operation_before_after_uses_its_local_contracts():
+    root = Path(__file__).resolve().parents[1]
+    before, after = scenario_code_paths(root, "record_execution_demo")
+    assert before.name == "broken_contract.mm" and after.name == "local_contract.mm"
+    assert "body: { version };" in before.read_text()
+    assert "body: { version + 1 };" in after.read_text()
+
+
+@pytest.mark.parametrize("step", ["missing_organization", "missing_ownership", "changed_identity", "direct_write"])
+def test_record_host_highlights_do_not_reuse_the_local_arithmetic_proof(step):
+    root = Path(__file__).resolve().parents[1]
+    data = {"scenario": "record_execution_demo", "layers": {"l2_agent": {"steps": [
+        {"id": f"detect_{step}", "status": "REJECTED", "expect_failure": True},
+    ]}}}
+    report = bug_detection_moment(data, root, "## Highlights", "###")
+    assert "Finite Python host-variant observation (not formal proof)" in report
+    assert f"detect_{step}" in report
+    assert "broken_contract.mm" not in report and "local_contract.mm" not in report
+    assert "BEFORE → AFTER diff" not in report and "LLM" not in report
+
+
+def test_record_local_rejection_highlight_keeps_only_the_local_contract_diff():
+    root = Path(__file__).resolve().parents[1]
+    data = {"scenario": "record_execution_demo", "layers": {"l1_z3": {"steps": [
+        {"id": "reject_broken_local", "status": "REJECTED", "expect_failure": True},
+    ]}}}
+    report = bug_detection_moment(data, root, "## Highlights", "###")
+    assert "broken_contract.mm" in report and "local_contract.mm" in report
+    assert "BEFORE → AFTER diff" in report
+    assert "Finite Python host-variant observation" not in report
 
 
 def test_write_summary_includes_claim_book_label(tmp_path):

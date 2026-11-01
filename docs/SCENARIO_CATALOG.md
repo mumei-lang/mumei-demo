@@ -6,6 +6,14 @@ Detailed descriptions of every demo scenario. For run commands see
 
 ## What each scenario proves
 
+- **Optional Record Operations** (`make demo-record-execution`) — separates a
+  local version-arithmetic `.mm` proof, an independent Lean model audit and
+  finite Python executor observations. Four broken host variants must violate
+  their named reference cases. This is not a Python correspondence proof or a
+  production authorization service; the pinned Lean toolchain is required.
+  It is outside the default 18-scenario sequence. See the
+  [runbook](../scenarios/record_execution_demo/README.md).
+
 - **Phase 1 Ownership Transfer** — Z3 rejects a `hostile_takeover` that skips
   `accept` (`Idle → Transferred`) with `InvalidPreState`; Lean certifies
   `no_transfer_without_accept` when available.
