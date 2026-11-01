@@ -213,6 +213,10 @@ def _parser_description(parser: argparse.ArgumentParser) -> str:
     return _markdown_cell(parser.description or "—")
 
 
+def _option_action_count(parser: argparse.ArgumentParser) -> int:
+    return sum(bool(action.option_strings) for action in _visible_actions(parser))
+
+
 def _render_cli() -> list[str]:
     lines = [
         "| Script | Option count | Description |",
@@ -220,11 +224,7 @@ def _render_cli() -> list[str]:
     ]
     parsers = capture_parsers()
     for script_path, parser in parsers:
-        option_count = sum(
-            len(action.option_strings)
-            for action in _visible_actions(parser)
-            if action.option_strings
-        )
+        option_count = _option_action_count(parser)
         lines.append(
             f"| `{script_path}` | {option_count} | "
             f"{_parser_description(parser)} |"
@@ -340,7 +340,23 @@ def python_source_texts() -> list[tuple[Path, str]]:
         relative = path.relative_to(REPO_ROOT)
         if EXCLUDED_SOURCE_PARTS.intersection(relative.parts):
             continue
-        sources.append((path, path.read_text(encoding="utf-8")))
+        source = path.read_text(encoding="utf-8")
+        sources.append((path, source))
+        try:
+            tree = ast.parse(source, filename=str(path))
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "write_text"
+                and node.args
+                and isinstance(node.args[0], ast.Constant)
+                and isinstance(node.args[0].value, str)
+                and "os.environ" in node.args[0].value
+            ):
+                sources.append((path, node.args[0].value))
 
     runner = SCRIPTS_DIR / "run_scenario.sh"
     shell_text = runner.read_text(encoding="utf-8")
@@ -390,6 +406,8 @@ def environment_reads() -> set[str]:
                         literal_bindings[target.id] = values
             elif isinstance(node, ast.For) and isinstance(node.target, ast.Name):
                 values = _literal_strings(node.iter)
+                if isinstance(node.iter, ast.Name):
+                    values.update(literal_bindings.get(node.iter.id, set()))
                 if values:
                     literal_bindings[node.target.id] = values
 

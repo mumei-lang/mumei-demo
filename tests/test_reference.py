@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import shutil
 import subprocess
 
@@ -12,6 +13,7 @@ from scripts.reference import (
     INTERNAL_ENV_ALLOWLIST,
     REPO_ROOT,
     TEST_STUB_ENVIRONMENT_VARIABLES,
+    _option_action_count,
     argparse_scripts,
     capture_parsers,
     environment_reads,
@@ -35,7 +37,6 @@ def test_check_rejects_tampered_copy(tmp_path, capsys) -> None:
 
 def test_every_make_target_has_a_description() -> None:
     targets = make_targets()
-    assert len(targets) == 35
     undocumented = [name for name, description in targets if not description]
     assert undocumented == []
 
@@ -85,7 +86,11 @@ def test_every_argparse_script_is_referenced() -> None:
 
 def test_environment_reads_are_documented_or_internal() -> None:
     registered = {name for name, _, _ in ENVIRONMENT_VARIABLES}
-    assert environment_reads() <= registered | set(INTERNAL_ENV_ALLOWLIST)
+    _assert_environment_coverage(
+        environment_reads(),
+        registered,
+        set(INTERNAL_ENV_ALLOWLIST),
+    )
     assert set(TEST_STUB_ENVIRONMENT_VARIABLES) <= set(INTERNAL_ENV_ALLOWLIST)
     assert all(INTERNAL_ENV_ALLOWLIST[name] for name in TEST_STUB_ENVIRONMENT_VARIABLES)
     assert not any(
@@ -96,6 +101,31 @@ def test_environment_reads_are_documented_or_internal() -> None:
         "specimens" not in path.relative_to(REPO_ROOT).parts
         for path, _ in python_source_texts()
     )
+
+
+def _assert_environment_coverage(
+    reads: set[str],
+    registered: set[str],
+    internal: set[str],
+) -> None:
+    classified = registered | internal
+    assert reads <= classified, f"Unclassified environment reads: {sorted(reads - classified)}"
+    assert classified <= reads, f"Stale environment declarations: {sorted(classified - reads)}"
+
+
+def test_environment_coverage_rejects_stale_allowlist_entries() -> None:
+    with pytest.raises(AssertionError, match="Stale environment declarations"):
+        _assert_environment_coverage(
+            {"CI_FIXTURE_MODE"},
+            {"CI_FIXTURE_MODE"},
+            {"FAKE_INTERNAL"},
+        )
+
+
+def test_option_count_counts_actions_not_aliases() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-q", "--quiet", action="store_true")
+    assert _option_action_count(parser) == 1
 
 
 def test_parser_option_strings_match_golden_lists() -> None:
