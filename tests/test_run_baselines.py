@@ -1186,4 +1186,4 @@ def test_committed_comparison_matches_records():
     assert json.loads((root / "scoreboard" / "comparison.json").read_text()) == comp
     assert comp["stale_specimens"] == []
     readme = (root / "README.md").read_text()
-    assert rb.readme_block(comp) in readme
+    assert rb.readme_block(comp) in readme, "run `python3 scripts/run_baselines.py --rescore`"
