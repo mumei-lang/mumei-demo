@@ -1,5 +1,5 @@
 diff --git a/board.ts b/board.ts
-index 59dc177..888bbbb 100644
+index 59dc177..fb1e96b 100644
 --- a/board.ts
 +++ b/board.ts
 @@ -50,26 +50,29 @@ export function isStatus(value: unknown): value is Status {
@@ -17,7 +17,7 @@ index 59dc177..888bbbb 100644
    if (raw === undefined || raw === null) return 3;
 -  const priority = parseInt(String(raw));
 -  if (priority < 1 || priority > 5) {
-+  const priority = Number(raw);
++  const priority = typeof raw === "number" || typeof raw === "string" ? Number(raw) : NaN;
 +  if (!Number.isInteger(priority) || priority < 1 || priority > 5) {
      throw new ValidationError("priority must be between 1 and 5");
    }
@@ -127,10 +127,10 @@ index 59dc177..888bbbb 100644
    return `<ul class="search-results">\n${rows.join("\n")}\n</ul>\n`;
  }
 diff --git a/server.ts b/server.ts
-index 6988aa9..fa9ff4b 100644
+index 6988aa9..da3c985 100644
 --- a/server.ts
 +++ b/server.ts
-@@ -30,11 +30,21 @@ const PORT = Number(process.env.PORT ?? 8321);
+@@ -30,12 +30,23 @@ const PORT = Number(process.env.PORT ?? 8321);
  
  const tasks: Task[] = [];
  let nextId = 1;
@@ -140,20 +140,23 @@ index 6988aa9..fa9ff4b 100644
    return new Promise((resolve, reject) => {
      const chunks: Buffer[] = [];
 -    req.on("data", (chunk: Buffer) => chunks.push(chunk));
+-    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
 +    let size = 0;
 +    req.on("data", (chunk: Buffer) => {
 +      size += chunk.length;
++      if (size <= MAX_BODY_BYTES) chunks.push(chunk);
++    });
++    req.on("end", () => {
 +      if (size > MAX_BODY_BYTES) {
 +        reject(new ValidationError(`request body exceeds ${MAX_BODY_BYTES} bytes`));
-+        req.destroy();
-+        return;
++      } else {
++        resolve(Buffer.concat(chunks).toString("utf8"));
 +      }
-+      chunks.push(chunk);
 +    });
-     req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
      req.on("error", reject);
    });
-@@ -65,7 +75,7 @@ function sendError(res: ServerResponse, err: unknown): void {
+ }
+@@ -65,7 +76,7 @@ function sendError(res: ServerResponse, err: unknown): void {
    if (err instanceof TransitionError) return sendJson(res, 409, { error: err.message });
    const e = err as Error;
    console.error(e);
@@ -162,7 +165,7 @@ index 6988aa9..fa9ff4b 100644
  }
  
  function currentUser(req: IncomingMessage): string | null {
-@@ -101,6 +111,9 @@ async function handlePatch(req: IncomingMessage, res: ServerResponse, id: number
+@@ -101,6 +112,9 @@ async function handlePatch(req: IncomingMessage, res: ServerResponse, id: number
  async function handleMove(req: IncomingMessage, res: ServerResponse, id: number): Promise<void> {
    const user = currentUser(req);
    if (!user) return sendJson(res, 401, { error: "X-User header required" });
