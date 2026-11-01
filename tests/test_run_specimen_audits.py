@@ -1015,8 +1015,62 @@ def test_rescore_specimen_keeps_meta_and_exit_codes(tmp_path, monkeypatch):
     assert cov["audit_exit_code"] == 3 and cov["audit_markdown_exit_code"] == 3
     assert cov["counts"]["function_flagged"] == 1
     assert cov["finding_counts"] == _fc(2, 0, 1, 0, 1)
+    assert cov["source_hash"] == rsa.specimen_hash(d)
     written = json.loads((d / "audit" / "coverage.json").read_text())
-    assert written["finding_counts"] == cov["finding_counts"]
+    assert "finding_counts" not in written  # rescore_specimen never writes
+
+
+def test_rescore_specimen_warns_on_legacy_coverage_without_hash(tmp_path, monkeypatch, capsys):
+    _, d = _rescore_tree(tmp_path, monkeypatch)
+    rsa.rescore_specimen(d, [], [])
+    assert "predates source hashes" in capsys.readouterr().err
+
+
+def test_rescore_specimen_accepts_matching_hash(tmp_path, monkeypatch, capsys):
+    _, d = _rescore_tree(tmp_path, monkeypatch)
+    cov_path = d / "audit" / "coverage.json"
+    cov_path.write_text(json.dumps({**json.loads(cov_path.read_text()),
+                                    "source_hash": rsa.specimen_hash(d)}))
+    cov = rsa.rescore_specimen(d, [], [])
+    assert cov["source_hash"] == rsa.specimen_hash(d)
+    assert "predates" not in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("edit", ["source", "defects", "new_file"])
+def test_rescore_specimen_refuses_changed_specimen(tmp_path, monkeypatch, edit):
+    _, d = _rescore_tree(tmp_path, monkeypatch)
+    cov_path = d / "audit" / "coverage.json"
+    cov_path.write_text(json.dumps({**json.loads(cov_path.read_text()),
+                                    "source_hash": rsa.specimen_hash(d)}))
+    if edit == "source":
+        (d / "app.py").write_text((d / "app.py").read_text() + "# edited\n")
+    elif edit == "defects":
+        (d / "DEFECTS.json").write_text((d / "DEFECTS.json").read_text() + "\n")
+    else:
+        (d / "extra.py").write_text("x = 1\n")
+    with pytest.raises(SystemExit, match="changed since the audit"):
+        rsa.rescore_specimen(d, [], [])
+
+
+def test_specimen_hash_ignores_audit_and_build_outputs(tmp_path):
+    d = tmp_path / "py-01-x"
+    d.mkdir()
+    (d / "app.py").write_text("x = 1\n")
+    before = rsa.specimen_hash(d)
+    for sub in ("audit", "node_modules", "target", "out", "__pycache__", ".venv"):
+        (d / sub).mkdir()
+        (d / sub / "junk").write_text("junk")
+    assert rsa.specimen_hash(d) == before
+    (d / "app.py").write_text("x = 2\n")
+    assert rsa.specimen_hash(d) != before
+
+
+def test_specimen_hash_covers_file_names(tmp_path):
+    a, b = tmp_path / "a", tmp_path / "b"
+    for d, name in ((a, "one.py"), (b, "two.py")):
+        d.mkdir()
+        (d / name).write_text("x = 1\n")
+    assert rsa.specimen_hash(a) != rsa.specimen_hash(b)
 
 
 def test_rescore_specimen_requires_audit_json(tmp_path, monkeypatch):
@@ -1104,7 +1158,35 @@ def test_main_rescore_rejects_mixed_runs(tmp_path, monkeypatch):
     (d2 / "audit" / "audit.json").write_text(json.dumps({"file_results": []}))
     (d2 / "audit" / "coverage.json").write_text(json.dumps(
         {"meta": {**RESCORE_META, "generated_at": "2025-03-01T00:00:00Z"}}))
+    before = {p: p.read_text() for p in specimens.glob("*/*/audit/coverage.json")}
     with pytest.raises(SystemExit, match="different runs"):
+        rsa.main(_rescore_args(tmp_path))
+    assert {p: p.read_text() for p in before} == before
+    assert not (specimens / "scoreboard" / "history.json").exists()
+
+
+def test_main_rescore_failure_on_later_specimen_writes_nothing(tmp_path, monkeypatch):
+    specimens, _ = _rescore_tree(tmp_path, monkeypatch)
+    d2 = specimens / "python" / "py-02-y"
+    d2.mkdir()
+    (d2 / "DEFECTS.json").write_text(json.dumps({
+        "specimen": "py-02-y", "language": "python", "kind": "cli", "summary": "y",
+        "defects": [_defect("PY02-D01", "f", "logic-error")]}))
+    (d2 / "app.py").write_text("def f():\n    return 1\n")
+    before = {p: p.read_text() for p in specimens.glob("*/*/audit/coverage.json")}
+    with pytest.raises(SystemExit, match="nothing to rescore"):
+        rsa.main(_rescore_args(tmp_path))
+    assert {p: p.read_text() for p in before} == before
+
+
+def test_main_rescore_writes_coverage_with_source_hash(tmp_path, monkeypatch):
+    specimens, d = _rescore_tree(tmp_path, monkeypatch)
+    assert rsa.main(_rescore_args(tmp_path)) == 0
+    written = json.loads((d / "audit" / "coverage.json").read_text())
+    assert written["source_hash"] == rsa.specimen_hash(d)
+    assert written["meta"] == RESCORE_META
+    (d / "app.py").write_text("def f():\n    return 3\n")
+    with pytest.raises(SystemExit, match="changed since the audit"):
         rsa.main(_rescore_args(tmp_path))
 
 
@@ -1276,7 +1358,7 @@ def test_rescore_specimen_scores_fixed_audit(tmp_path, monkeypatch):
     assert cov["fixed"]["finding_counts"]["total"] == 1
     assert cov["fixed"]["false_alarms"] == 1
     written = json.loads((d / "audit" / "coverage.json").read_text())
-    assert written["fixed"]["false_alarms"] == 1
+    assert "fixed" not in written  # rescore_specimen never writes
 
 
 def test_rescore_specimen_requires_fixed_audit_when_patch_exists(tmp_path, monkeypatch):
@@ -1434,3 +1516,17 @@ def test_write_summary_fixed_without_findings_has_no_finding_table(tmp_path):
     out = tmp_path / "AUDIT_SUMMARY.md"
     rsa.write_summary([cov], _summary_meta(), out)
     assert "Finding on fixed code" not in out.read_text()
+
+
+def test_rescore_refuses_after_fixed_patch_changes(tmp_path, monkeypatch):
+    _, d = _rescore_tree(tmp_path, monkeypatch)
+    (d / "fixed.patch").write_text(MINI_FIX)
+    (d / "audit" / "fixed").mkdir()
+    (d / "audit" / "fixed" / "audit.json").write_text(json.dumps({"file_results": []}))
+    cov_path = d / "audit" / "coverage.json"
+    cov_path.write_text(json.dumps({**json.loads(cov_path.read_text()),
+                                    "source_hash": rsa.specimen_hash(d)}))
+    rsa.rescore_specimen(d, [], [])
+    (d / "fixed.patch").write_text(MINI_FIX.replace("return 2", "return 3"))
+    with pytest.raises(SystemExit, match="changed since the audit"):
+        rsa.rescore_specimen(d, [], [])
