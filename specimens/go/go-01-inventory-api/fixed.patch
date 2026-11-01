@@ -1,0 +1,328 @@
+diff --git a/calc.go b/calc.go
+index f125703..7ebb42f 100644
+--- a/calc.go
++++ b/calc.go
+@@ -9,6 +9,9 @@ import (
+ var movementMu sync.Mutex
+ 
+ func reorderPoint(total int32, locations []string) int32 {
++	if len(locations) == 0 {
++		return 0
++	}
+ 	return total / int32(len(locations))
+ }
+ 
+diff --git a/handlers.go b/handlers.go
+index 5382f10..5341a90 100644
+--- a/handlers.go
++++ b/handlers.go
+@@ -2,8 +2,10 @@ package main
+ 
+ import (
+ 	"encoding/json"
++	"errors"
+ 	"fmt"
+-	"io"
++	"html"
++	"math"
+ 	"net/http"
+ 	"sort"
+ 	"strconv"
+@@ -40,8 +42,11 @@ func itemHandler(w http.ResponseWriter, r *http.Request) {
+ 		createItem(w, r)
+ 		return
+ 	}
+-	pathParts := strings.Split("/"+r.URL.Path, "/")
+-	sku := pathParts[3]
++	sku := strings.TrimPrefix(r.URL.Path, "/items/")
++	if sku == "" || sku == r.URL.Path || strings.Contains(sku, "/") {
++		http.NotFound(w, r)
++		return
++	}
+ 	if r.Method != http.MethodGet {
+ 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+ 		return
+@@ -55,9 +60,15 @@ func itemHandler(w http.ResponseWriter, r *http.Request) {
+ }
+ 
+ func createItem(w http.ResponseWriter, r *http.Request) {
+-	body, _ := io.ReadAll(r.Body)
+ 	var input itemInput
+-	json.Unmarshal(body, &input)
++	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
++		http.Error(w, "invalid request", http.StatusBadRequest)
++		return
++	}
++	if input.SKU == "" || input.Stock < 0 {
++		http.Error(w, "sku is required and stock must not be negative", http.StatusBadRequest)
++		return
++	}
+ 	item := &Item{
+ 		SKU:       input.SKU,
+ 		Name:      input.Name,
+@@ -70,6 +81,10 @@ func createItem(w http.ResponseWriter, r *http.Request) {
+ }
+ 
+ func viewItem(item *Item) itemView {
++	supplierName := ""
++	if item.Supplier != nil {
++		supplierName = item.Supplier.Name
++	}
+ 	return itemView{
+ 		SKU:          item.SKU,
+ 		Name:         item.Name,
+@@ -77,68 +92,107 @@ func viewItem(item *Item) itemView {
+ 		Reserved:     item.Reserved,
+ 		Locations:    item.Locations,
+ 		ReorderPoint: reorderPoint(item.Stock, item.Locations),
+-		SupplierName: item.Supplier.Name,
++		SupplierName: supplierName,
+ 	}
+ }
+ 
+-func reserveHandler(w http.ResponseWriter, r *http.Request) {
++var errConflict = errors.New("conflict")
++
++func decodeMovement(w http.ResponseWriter, r *http.Request) (movementInput, bool) {
+ 	var input movementInput
+ 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+ 		http.Error(w, "invalid request", http.StatusBadRequest)
+-		return
++		return input, false
+ 	}
+-	item := inventory.Get(input.SKU)
+-	if item == nil {
++	return input, true
++}
++
++func writeMovement(w http.ResponseWriter, r *http.Request, item *Item, err error, conflict string) {
++	switch {
++	case errors.Is(err, errNotFound):
+ 		http.NotFound(w, r)
++	case errors.Is(err, errConflict):
++		http.Error(w, conflict, http.StatusConflict)
++	case err != nil:
++		http.Error(w, "internal error", http.StatusInternalServerError)
++	default:
++		writeJSON(w, http.StatusOK, item)
++	}
++}
++
++func reserveHandler(w http.ResponseWriter, r *http.Request) {
++	input, ok := decodeMovement(w, r)
++	if !ok {
+ 		return
+ 	}
+-	stock := item.Stock
+-	if stock < input.Qty {
+-		http.Error(w, "insufficient stock", http.StatusConflict)
++	if input.Qty <= 0 {
++		http.Error(w, "qty must be positive", http.StatusBadRequest)
+ 		return
+ 	}
+-	appendMovement(item.SKU, input.Qty)
+-	item.Stock = stock - input.Qty
+-	item.Reserved += input.Qty
+-	writeJSON(w, http.StatusOK, item)
++	item, err := inventory.Update(input.SKU, func(item *Item) error {
++		if item.Stock < input.Qty || int64(item.Reserved)+int64(input.Qty) > 1<<31-1 {
++			return errConflict
++		}
++		item.Stock -= input.Qty
++		item.Reserved += input.Qty
++		return nil
++	})
++	if err == nil {
++		appendMovement(item.SKU, input.Qty)
++	}
++	writeMovement(w, r, item, err, "insufficient stock")
+ }
+ 
+ func releaseHandler(w http.ResponseWriter, r *http.Request) {
+-	var input movementInput
+-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+-		http.Error(w, "invalid request", http.StatusBadRequest)
++	input, ok := decodeMovement(w, r)
++	if !ok {
+ 		return
+ 	}
+-	item := inventory.Get(input.SKU)
+-	if item == nil {
+-		http.NotFound(w, r)
++	if input.Qty <= 0 {
++		http.Error(w, "qty must be positive", http.StatusBadRequest)
+ 		return
+ 	}
+-	item.Reserved -= input.Qty
+-	item.Stock += input.Qty
+-	writeJSON(w, http.StatusOK, item)
++	item, err := inventory.Update(input.SKU, func(item *Item) error {
++		if item.Reserved < input.Qty {
++			return errConflict
++		}
++		item.Reserved -= input.Qty
++		item.Stock += input.Qty
++		return nil
++	})
++	writeMovement(w, r, item, err, "release exceeds reserved quantity")
+ }
+ 
+ func restockHandler(w http.ResponseWriter, r *http.Request) {
+-	var input movementInput
+-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+-		http.Error(w, "invalid request", http.StatusBadRequest)
++	input, ok := decodeMovement(w, r)
++	if !ok {
+ 		return
+ 	}
+-	item := inventory.Get(input.SKU)
+-	if item == nil {
+-		http.NotFound(w, r)
++	if input.Packs <= 0 || input.PerPack <= 0 {
++		http.Error(w, "packs and perPack must be positive", http.StatusBadRequest)
+ 		return
+ 	}
+-	item.Stock += input.Packs * input.PerPack
+-	writeJSON(w, http.StatusOK, item)
++	item, err := inventory.Update(input.SKU, func(item *Item) error {
++		next := int64(item.Stock) + int64(input.Packs)*int64(input.PerPack)
++		if next > math.MaxInt32 {
++			return errConflict
++		}
++		item.Stock = int32(next)
++		return nil
++	})
++	writeMovement(w, r, item, err, "restock exceeds the stock limit")
+ }
+ 
+ func reportHandler(w http.ResponseWriter, r *http.Request) {
+ 	items := inventory.All()
+ 	limit := len(items)
+ 	if value := r.URL.Query().Get("limit"); value != "" {
+-		limit, _ = strconv.Atoi(value)
++		parsed, err := strconv.Atoi(value)
++		if err != nil || parsed < 0 {
++			http.Error(w, "limit must be a non-negative integer", http.StatusBadRequest)
++			return
++		}
++		limit = min(parsed, len(items))
+ 	}
+ 	items = items[:limit]
+ 	views := make([]itemView, 0, len(items))
+@@ -160,11 +214,11 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
+ 		return matches[i].SKU < matches[j].SKU
+ 	})
+ 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+-	fmt.Fprintf(w, "<!doctype html><html><body>%s</body></html>", query)
++	fmt.Fprintf(w, "<!doctype html><html><body>%s</body></html>", html.EscapeString(query))
+ }
+ 
+ func resetHandler(w http.ResponseWriter, r *http.Request) {
+-	if r.Header.Get("X-Admin-Token") != adminToken {
++	if !adminAuthorized(r) {
+ 		http.Error(w, "forbidden", http.StatusForbidden)
+ 		return
+ 	}
+diff --git a/main.go b/main.go
+index 93a88b5..4d09695 100644
+--- a/main.go
++++ b/main.go
+@@ -1,13 +1,12 @@
+ package main
+ 
+ import (
++	"crypto/subtle"
+ 	"log"
+ 	"net/http"
+ 	"os"
+ )
+ 
+-const adminToken = "warehouse-control-8331"
+-
+ var inventory = NewStore()
+ 
+ func main() {
+@@ -30,11 +29,22 @@ func main() {
+ 
+ func auditRequests(next http.Handler) http.Handler {
+ 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+-		file, _ := os.OpenFile("requests.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
+-		if file != nil {
++		file, err := os.OpenFile("requests.log", os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
++		if err == nil {
+ 			log.Printf("%s %s", r.Method, r.URL.Path)
+ 			_, _ = file.WriteString(r.Method + " " + r.URL.Path + "\n")
++			file.Close()
+ 		}
+ 		next.ServeHTTP(w, r)
+ 	})
+ }
++
++// adminAuthorized compares the X-Admin-Token header with ADMIN_TOKEN from the
++// environment; the reset endpoint stays disabled when it is not configured.
++func adminAuthorized(r *http.Request) bool {
++	expected := os.Getenv("ADMIN_TOKEN")
++	if expected == "" {
++		return false
++	}
++	return subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Admin-Token")), []byte(expected)) == 1
++}
+diff --git a/store.go b/store.go
+index 799f136..26301f7 100644
+--- a/store.go
++++ b/store.go
+@@ -1,10 +1,13 @@
+ package main
+ 
+ import (
++	"errors"
+ 	"sort"
+ 	"sync"
+ )
+ 
++var errNotFound = errors.New("not found")
++
+ type Supplier struct {
+ 	Name string `json:"name"`
+ }
+@@ -36,7 +39,29 @@ func (s *Store) Put(item *Item) {
+ func (s *Store) Get(sku string) *Item {
+ 	s.mu.RLock()
+ 	defer s.mu.RUnlock()
+-	return s.items[sku]
++	item := s.items[sku]
++	if item == nil {
++		return nil
++	}
++	clone := *item
++	return &clone
++}
++
++// Update applies change to the stored item under the store lock and returns a
++// copy of the result. A non-nil error from change leaves the item untouched.
++func (s *Store) Update(sku string, change func(*Item) error) (*Item, error) {
++	s.mu.Lock()
++	defer s.mu.Unlock()
++	item := s.items[sku]
++	if item == nil {
++		return nil, errNotFound
++	}
++	next := *item
++	if err := change(&next); err != nil {
++		return nil, err
++	}
++	*item = next
++	return &next, nil
+ }
+ 
+ func (s *Store) All() []*Item {
+@@ -44,7 +69,8 @@ func (s *Store) All() []*Item {
+ 	defer s.mu.RUnlock()
+ 	items := make([]*Item, 0, len(s.items))
+ 	for _, item := range s.items {
+-		items = append(items, item)
++		clone := *item
++		items = append(items, &clone)
+ 	}
+ 	sort.Slice(items, func(i, j int) bool {
+ 		return items[i].SKU < items[j].SKU

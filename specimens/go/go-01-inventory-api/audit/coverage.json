@@ -143,13 +143,44 @@
     "unreviewed": 0
   },
   "reviews_used": [],
-  "source_hash": "c29a9aecd1845c0a5a63c9c592e4fbbc5a9e4839227c9e3a1b49a4e5cd4229b6",
+  "source_hash": "5014fb7d871106c11847f9092f9e18758378b37f1e691a333b4b7ab14540faa5",
   "meta": {
     "mumei_agent_commit": "dffe7e834bd86603c79f213fc1de77f1af4e9d5f",
     "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
-    "generated_at": "2026-11-01T18:13:02Z"
+    "generated_at": "2026-11-01T17:26:49Z"
+  },
+  "fixed": {
+    "defects": 11,
+    "still_reported": [
+      "GO01-D05"
+    ],
+    "still_function_flagged": [],
+    "false_alarms": 1,
+    "findings": [
+      {
+        "file": "calc.go",
+        "kind": "verification_violations",
+        "text": "Go function `reorderPoint` can divide by `int32(len(locations))` without a non-zero contract (Z3 counterexample: int32(len(locations))=0)",
+        "status": "false_positive",
+        "reason": "On the fixed code, reorderPoint returns 0 when locations is empty, so the divisor is never zero."
+      }
+    ],
+    "finding_counts": {
+      "total": 1,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 1,
+      "unreviewed": 0
+    },
+    "reviews_used": [
+      [
+        "go-01-inventory-api",
+        "calc.go",
+        "Go function `reorderPoint` can divide by `int32(len(locations))`"
+      ]
+    ]
   }
 }
