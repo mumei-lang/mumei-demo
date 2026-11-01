@@ -1030,3 +1030,30 @@ def test_cwe_only_findings_ignore_keywords():
 ])
 def test_cwe_equivalents_for_gosec(a, b, related):
     assert rb.cwe_related(a, b) is related
+
+
+def test_main_partial_run_keeps_other_tools_in_summary(monkeypatch, tmp_path):
+    root, _ = _tree(tmp_path)
+    monkeypatch.setattr(rb, "SPECIMENS_ROOT", root)
+    monkeypatch.setattr(rb, "find_binary", lambda name, override, *rest: "/bin/" + name)
+    monkeypatch.setattr(rb, "installed_version", lambda b: rb.BANDIT_VERSION)
+    monkeypatch.setattr(rb, "check_rules_dir", lambda d: None)
+    other = root / "python" / "py-01-x" / "baselines" / "semgrep.json"
+    other.parent.mkdir(parents=True, exist_ok=True)
+    other.write_text(json.dumps(_record("semgrep", fixed=False)))
+    monkeypatch.setattr(rb, "run_specimen", lambda d, tool, reviews, timeout, at: rb.build_record(
+        tool, DOC, [], 0, None, reviews, "h", at))
+    sb = tmp_path / "sb"
+    rb.main(["--tools", "bandit", "--summary", str(tmp_path / "s.md"), "--scoreboard-dir", str(sb)])
+    tools = [t["tool"] for t in json.loads((sb / "baselines.json").read_text())["tools"]]
+    assert tools == ["bandit", "semgrep"]
+    assert "| semgrep |" in (tmp_path / "s.md").read_text()
+
+
+def test_committed_records(tmp_path):
+    assert rb.committed_records(tmp_path) == []
+    p = tmp_path / "go" / "g" / "baselines" / "gosec.json"
+    p.parent.mkdir(parents=True)
+    p.write_text('{"tool": "gosec"}')
+    (tmp_path / "go" / "g" / "baselines" / "notes.txt").write_text("x")
+    assert rb.committed_records(tmp_path) == [{"tool": "gosec"}]

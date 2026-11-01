@@ -690,6 +690,10 @@ def stale_reviews(records: list[dict], reviews: list[dict]) -> list[dict]:
             and (r["tool"],) + tuple(rsa.review_key(r)) not in used]
 
 
+def committed_records(root: Path) -> list[dict]:
+    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(root.glob("*/*/baselines/*.json"))]
+
+
 def write_json(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -757,6 +761,8 @@ def main(argv: list[str]) -> int:
     for rec in records:
         d = SPECIMENS_ROOT / rec["language"] / rec["specimen"]
         write_json(d / "baselines" / f"{rec['tool']}.json", rec)
+    # A run of some tools keeps the committed records of the others in the totals.
+    records = committed_records(SPECIMENS_ROOT)
     stale = stale_reviews(records, reviews)
     for r in stale:
         print(f"warning: stale baseline review (matched nothing): {r['tool']} "
