@@ -1,13 +1,14 @@
 diff --git a/src/main.rs b/src/main.rs
-index df5cad9..cec7449 100644
+index df5cad9..29208e2 100644
 --- a/src/main.rs
 +++ b/src/main.rs
-@@ -6,12 +6,16 @@ use std::fs;
+@@ -6,12 +6,18 @@ use std::fs;
  use std::io::{self, Read, Write};
  use std::net::{TcpListener, TcpStream};
  use std::path::PathBuf;
 -use std::sync::{Arc, Mutex};
 +use std::sync::{mpsc, Arc, Mutex};
++use std::sync::mpsc::TrySendError;
  use std::thread;
 +use std::time::Duration;
  
@@ -18,10 +19,11 @@ index df5cad9..cec7449 100644
 +const MAX_HEAD_BYTES: usize = 16 * 1024;
 +const READ_TIMEOUT: Duration = Duration::from_secs(5);
 +const WORKERS: usize = 8;
++const MAX_QUEUED: usize = 64;
  const PAGE: &str = "<html><body><h1>kv</h1><p>lookup</p></body></html>";
  
  struct State {
-@@ -23,37 +27,41 @@ fn data_dir() -> PathBuf {
+@@ -23,37 +29,41 @@ fn data_dir() -> PathBuf {
      PathBuf::from(env::var("KV_DATA_DIR").unwrap_or_else(|_| "data".to_string()))
  }
  
@@ -82,7 +84,7 @@ index df5cad9..cec7449 100644
      let map = state.kv.lock().unwrap();
      let mut text = String::new();
      for (k, v) in map.iter() {
-@@ -73,6 +81,38 @@ fn log_line(msg: &str) {
+@@ -73,6 +83,38 @@ fn log_line(msg: &str) {
      eprintln!("{msg}");
  }
  
@@ -121,7 +123,7 @@ index df5cad9..cec7449 100644
  struct Request {
      method: String,
      path: String,
-@@ -97,11 +137,17 @@ fn read_request(stream: &mut TcpStream) -> io::Result<Option<Request>> {
+@@ -97,11 +139,17 @@ fn read_request(stream: &mut TcpStream) -> io::Result<Option<Request>> {
              head_end = pos + 4;
              break;
          }
@@ -139,7 +141,7 @@ index df5cad9..cec7449 100644
      let method = parts[0].to_string();
      let target = parts[1].to_string();
      let mut headers = HashMap::new();
-@@ -114,6 +160,9 @@ fn read_request(stream: &mut TcpStream) -> io::Result<Option<Request>> {
+@@ -114,6 +162,9 @@ fn read_request(stream: &mut TcpStream) -> io::Result<Option<Request>> {
          .get("content-length")
          .and_then(|v| v.parse().ok())
          .unwrap_or(0);
@@ -149,7 +151,7 @@ index df5cad9..cec7449 100644
      let mut body: Vec<u8> = Vec::new();
      body.extend(std::iter::repeat(0).take(content_len));
      let already = raw.len() - head_end;
-@@ -175,6 +224,7 @@ fn respond(stream: &mut TcpStream, status: u16, body: &str, content_type: &str)
+@@ -175,6 +226,7 @@ fn respond(stream: &mut TcpStream, status: u16, body: &str, content_type: &str)
          200 => "OK",
          400 => "Bad Request",
          401 => "Unauthorized",
@@ -157,7 +159,7 @@ index df5cad9..cec7449 100644
          404 => "Not Found",
          _ => "Internal Server Error",
      };
-@@ -186,26 +236,33 @@ fn respond(stream: &mut TcpStream, status: u16, body: &str, content_type: &str)
+@@ -186,26 +238,33 @@ fn respond(stream: &mut TcpStream, status: u16, body: &str, content_type: &str)
  }
  
  fn handle(state: &State, req: &Request, stream: &mut TcpStream) {
@@ -201,7 +203,7 @@ index df5cad9..cec7449 100644
      } else if req.method == "GET" && req.path == "/keys" {
          let prefix = req.query.get("prefix").cloned().unwrap_or_default();
          let mut keys = keys_with_prefix(state, &prefix);
-@@ -213,22 +270,24 @@ fn handle(state: &State, req: &Request, stream: &mut TcpStream) {
+@@ -213,22 +272,24 @@ fn handle(state: &State, req: &Request, stream: &mut TcpStream) {
          respond(stream, 200, &keys.join("\n"), "text/plain");
      } else if req.method == "POST" && req.path == "/snapshot" {
          let dest = req.query.get("path").cloned().unwrap_or_default();
@@ -236,13 +238,14 @@ index df5cad9..cec7449 100644
              respond(stream, 401, "bad token\n", "text/plain");
              return;
          }
-@@ -250,23 +309,44 @@ fn main() {
+@@ -250,23 +311,47 @@ fn main() {
          kv: Mutex::new(HashMap::new()),
          counters: Mutex::new(HashMap::new()),
      });
 +    // A fixed pool of handler threads, each read bounded by READ_TIMEOUT, so
 +    // stalled clients can neither hold a thread forever nor add threads.
-+    let (sender, receiver) = mpsc::channel::<TcpStream>();
++    // Connections beyond MAX_QUEUED waiting ones are turned away.
++    let (sender, receiver) = mpsc::sync_channel::<TcpStream>(MAX_QUEUED);
 +    let receiver = Arc::new(Mutex::new(receiver));
 +    for _ in 0..WORKERS {
 +        let st = Arc::clone(&state);
@@ -270,11 +273,14 @@ index df5cad9..cec7449 100644
 -                        }
 -                    }
 -                });
-+            Ok(stream) => {
-+                if sender.send(stream).is_err() {
-+                    return;
+-            }
++            Ok(stream) => match sender.try_send(stream) {
++                Ok(()) => {}
++                Err(TrySendError::Full(mut stream)) => {
++                    respond(&mut stream, 503, "server busy\n", "text/plain");
 +                }
-             }
++                Err(TrySendError::Disconnected(_)) => return,
++            },
              Err(e) => eprintln!("accept: {e}"),
          }
      }
