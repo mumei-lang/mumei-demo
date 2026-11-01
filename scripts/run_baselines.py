@@ -646,7 +646,168 @@ def aggregate(records: list[dict]) -> dict:
     return {"tools": [tools[k] for k in sorted(tools)]}
 
 
-def render_summary(summary: dict, stale: list[dict]) -> str:
+BASELINES_START = "<!-- baselines:start -->"
+BASELINES_END = "<!-- baselines:end -->"
+
+
+def mumei_coverages(root: Path) -> list[dict]:
+    return [json.loads(p.read_text(encoding="utf-8"))
+            for p in sorted(root.glob("*/*/audit/coverage.json"))]
+
+
+def _empty_side() -> dict:
+    return {"specimens": 0, "counts": {"total": 0, "detected": 0},
+            "findings": rsa.empty_finding_counts(), "fixed": {"specimens": 0, "false_alarms": 0}}
+
+
+def _add_side(side: dict, doc: dict) -> None:
+    side["specimens"] += 1
+    for k in side["counts"]:
+        side["counts"][k] += doc["counts"][k]
+    for k, v in doc["finding_counts"].items():
+        side["findings"][k] += v
+    fx = doc.get("fixed")
+    if fx:
+        side["fixed"]["specimens"] += 1
+        side["fixed"]["false_alarms"] += fx["false_alarms"]
+
+
+def _detected(doc: dict) -> set[tuple[str, str]]:
+    return {(doc["specimen"], d["id"]) for d in doc["defects"] if d["status"] == "detected"}
+
+
+def mumei_label(coverages: list[dict]) -> str:
+    modes = {bool((c.get("meta") or {}).get("llm_configured")) for c in coverages}
+    return {frozenset({False}): "Mumei (no LLM)",
+            frozenset({True}): "Mumei (with LLM)"}.get(frozenset(modes), "Mumei (mixed LLM runs)")
+
+
+def comparison(coverages: list[dict], records: list[dict]) -> dict:
+    """Mumei's audit next to each baseline, per language and over the corpus.
+
+    The corpus is the specimens with audit output; complement counts split the
+    defects by whether Mumei, any baseline, both or neither detected them."""
+    langs: dict[str, dict] = {}
+    hashes = {}
+    for c in coverages:
+        lang = langs.setdefault(c["language"], {"language": c["language"], "defects": 0,
+                                                "mumei": _empty_side(), "tools": {},
+                                                "m": set(), "b": set()})
+        lang["defects"] += c["counts"]["total"]
+        _add_side(lang["mumei"], c)
+        lang["m"] |= _detected(c)
+        hashes[c["specimen"]] = c.get("source_hash")
+    stale = set()
+    for rec in records:
+        lang = langs.get(rec["language"])
+        if lang is None or rec["specimen"] not in hashes:
+            continue
+        if rec.get("source_hash") != hashes[rec["specimen"]]:
+            stale.add(rec["specimen"])
+        _add_side(lang["tools"].setdefault(rec["tool"], _empty_side()), rec)
+        lang["b"] |= _detected(rec)
+    total = {"language": "total", "defects": 0, "mumei": _empty_side(), "tools": {},
+             "m": set(), "b": set()}
+    rows = []
+    for name in sorted(langs):
+        lang = langs[name]
+        for side, into in [(lang["mumei"], total["mumei"])] + [
+                (t, total["tools"].setdefault(k, _empty_side())) for k, t in lang["tools"].items()]:
+            into["specimens"] += side["specimens"]
+            for part in ("counts", "findings", "fixed"):
+                for k, v in side[part].items():
+                    into[part][k] += v
+        total["defects"] += lang["defects"]
+        total["m"] |= lang["m"]
+        total["b"] |= lang["b"]
+        rows.append(lang)
+    out = []
+    for lang in rows + [total]:
+        m, b = lang.pop("m"), lang.pop("b")
+        lang["tools"] = {k: lang["tools"][k] for k in sorted(lang["tools"])}
+        lang["complement"] = {"mumei_only": len(m - b), "baselines_only": len(b - m),
+                              "both": len(m & b), "neither": lang["defects"] - len(m | b)}
+        out.append(lang)
+    return {"mumei": mumei_label(coverages), "languages": out[:-1], "total": out[-1],
+            "stale_specimens": sorted(stale)}
+
+
+def _cmp_row(label: str, side: dict) -> str:
+    c = side["counts"]
+    return (f"| {label} | {c['detected']}/{c['total']} ({rsa.pct(c['detected'], c['total'])}) "
+            f"| {rsa.fmt_precision(side['findings'])} | {rsa.fmt_fixed(side['fixed'])} |")
+
+
+def _complement_line(row: dict) -> str:
+    k = row["complement"]
+    return (f"| {row['language']} | {row['defects']} | {k['mumei_only']} | {k['baselines_only']} "
+            f"| {k['both']} | {k['neither']} |")
+
+
+def _stale_note(comp: dict) -> list[str]:
+    if not comp["stale_specimens"]:
+        return []
+    return ["", f"Audit and baseline output come from different specimen sources for "
+                f"{', '.join(comp['stale_specimens'])}; re-run both before comparing them."]
+
+
+def render_comparison(comp: dict) -> list[str]:
+    lines = [
+        "", f"## {comp['mumei']} compared with the baselines", "",
+        "Each analyzer is counted on the specimens in its languages only, so detection rates",
+        "with different denominators are not directly comparable; compare within a language.",
+        "",
+        "| Language | Analyzer | Detected | Precision | Fixed-code false alarms |",
+        "|---|---|---|---|---|",
+    ]
+    for row in comp["languages"]:
+        lines.append(f"| {row['language']} |" + _cmp_row(comp["mumei"], row["mumei"])[1:])
+        for name, side in row["tools"].items():
+            lines.append(f"| {row['language']} |" + _cmp_row(name, side)[1:])
+    lines += [
+        "", "### Complementarity", "",
+        "Defects split by who detects them: Mumei's audit only, at least one baseline only,",
+        "both, or neither (function-flagged defects count as not detected).", "",
+        "| Language | Defects | Mumei only | Baselines only | Both | Neither |",
+        "|---|---|---|---|---|---|",
+    ]
+    lines += [_complement_line(row) for row in comp["languages"]]
+    lines.append(_complement_line(comp["total"]).replace("| total |", "| **Total** |"))
+    return lines + _stale_note(comp)
+
+
+def readme_block(comp: dict) -> str:
+    total = comp["total"]
+    k = total["complement"]
+    lines = [
+        "## Compared with baseline analyzers", "",
+        "Generated by `scripts/run_baselines.py`. Each analyzer is scored with the audit's",
+        "matching rules on the specimens in its languages only; per-language tables and tool",
+        "settings are in [BASELINES.md](BASELINES.md).", "",
+        "| Analyzer | Detected | Precision | Fixed-code false alarms |",
+        "|---|---|---|---|",
+        _cmp_row(comp["mumei"], total["mumei"]),
+    ]
+    lines += [_cmp_row(name, side) for name, side in total["tools"].items()]
+    lines += ["", f"Of {total['defects']} defects, {k['mumei_only']} are detected only by "
+                  f"{comp['mumei']}, {k['baselines_only']} only by a baseline, {k['both']} by both "
+                  f"and {k['neither']} by neither."]
+    return "\n".join(lines + _stale_note(comp))
+
+
+def update_readme_block(path: Path, block: str) -> None:
+    if not path.exists():
+        return
+    text = path.read_text(encoding="utf-8")
+    if BASELINES_START not in text or BASELINES_END not in text:
+        raise SystemExit(f"{path}: missing {BASELINES_START} / {BASELINES_END} markers")
+    pre, rest = text.split(BASELINES_START, 1)
+    _, post = rest.split(BASELINES_END, 1)
+    path.write_text(pre + BASELINES_START + "\n" + block.rstrip() + "\n" + BASELINES_END + post,
+                    encoding="utf-8")
+
+
+def render_summary(summary: dict, stale: list[dict], comp: dict | None = None) -> str:
     lines = [
         "# Baseline analyzers on the specimens",
         "",
@@ -679,6 +840,8 @@ def render_summary(summary: dict, stale: list[dict]) -> str:
                           "files it could not parse count as having no findings."]
     if stale:
         lines += ["", f"{len(stale)} baseline review(s) matched no finding; see the run output."]
+    if comp and comp["languages"]:
+        lines += render_comparison(comp)
     return "\n".join(lines) + "\n"
 
 
@@ -715,6 +878,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout", type=int, default=900, help="per-run timeout in seconds")
     parser.add_argument("--summary", default=str(SPECIMENS_ROOT / "BASELINES.md"))
     parser.add_argument("--scoreboard-dir", default=str(SPECIMENS_ROOT / "scoreboard"))
+    parser.add_argument("--specimens-readme",
+                        help="README whose baselines block gets the Mumei comparison "
+                             "(default: specimens/README.md; skipped if the file does not exist)")
     parser.add_argument("--rescore", action="store_true",
                         help="re-score the committed baselines/<tool>.json findings with the current "
                              "baseline_reviews.json, without running any tool")
@@ -769,7 +935,12 @@ def main(argv: list[str]) -> int:
               f"{r['specimen']}/{r['file']}: {r['finding_contains'][:80]!r}", file=sys.stderr)
     summary = aggregate(records)
     write_json(Path(args.scoreboard_dir) / "baselines.json", summary)
-    Path(args.summary).write_text(render_summary(summary, stale), encoding="utf-8")
+    comp = comparison(mumei_coverages(SPECIMENS_ROOT), records)
+    write_json(Path(args.scoreboard_dir) / "comparison.json", comp)
+    Path(args.summary).write_text(render_summary(summary, stale, comp), encoding="utf-8")
+    if comp["languages"]:
+        update_readme_block(Path(args.specimens_readme or SPECIMENS_ROOT / "README.md"),
+                            readme_block(comp))
     return 0
 
 

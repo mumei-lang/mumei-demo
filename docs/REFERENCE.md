@@ -63,7 +63,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 |---|---:|---|
 | `scripts/generate_report.py` | 9 | Render a Mumei demo result. |
 | `scripts/run_specimen_audits.py` | 10 | Run `mumei-agent audit` over every specimen and score it against DEFECTS.json. |
-| `scripts/run_baselines.py` | 12 | Run off-the-shelf static analyzers over the specimens and score them like the audit. |
+| `scripts/run_baselines.py` | 13 | Run off-the-shelf static analyzers over the specimens and score them like the audit. |
 | `scripts/record_scenario.py` | 2 | Finite record-operation checks and intentionally broken host variants. |
 | `scripts/record_model_evidence.py` | 2 | Collect independent Lean model evidence; never promote a Python operation. |
 | `scripts/check_specimens.py` | 2 | Validate specimen directories. |
@@ -123,6 +123,7 @@ Run off-the-shelf static analyzers over the specimens and score them like the au
 | `--timeout` | `<TIMEOUT>` | no | `900` | per-run timeout in seconds |
 | `--summary` | `<SUMMARY>` | no | `specimens/BASELINES.md` | — |
 | `--scoreboard-dir` | `<SCOREBOARD_DIR>` | no | `specimens/scoreboard` | — |
+| `--specimens-readme` | `<SPECIMENS_README>` | no | — | README whose baselines block gets the Mumei comparison (default: specimens/README.md; skipped if the file does not exist) |
 | `--rescore` | — | no | `false` | re-score the committed baselines/<tool>.json findings with the current baseline_reviews.json, without running any tool |
 
 ### `scripts/record_scenario.py`

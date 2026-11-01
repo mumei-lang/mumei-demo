@@ -19,3 +19,39 @@ semgrep rules: semgrep-rules `16b9e6d45f10`, categories correctness, security.
 semgrep reported 2 parse or scan errors; files it could not parse count as having no findings.
 
 slither settings: solc 0.8.24, impacts High, Low, Medium.
+
+## Mumei (no LLM) compared with the baselines
+
+Each analyzer is counted on the specimens in its languages only, so detection rates
+with different denominators are not directly comparable; compare within a language.
+
+| Language | Analyzer | Detected | Precision | Fixed-code false alarms |
+|---|---|---|---|---|
+| go | Mumei (no LLM) | 1/32 (3%) | 100% | 1 / 3 specimens |
+| go | gosec | 6/32 (19%) | 62% | 15 / 3 specimens |
+| go | semgrep | 4/32 (12%) | 82% | 4 / 3 specimens |
+| python | Mumei (no LLM) | 1/41 (2%) | 50% | 2 / 4 specimens |
+| python | bandit | 5/41 (12%) | 88% | 3 / 4 specimens |
+| python | semgrep | 3/41 (7%) | 100% | 1 / 4 specimens |
+| rust | Mumei (no LLM) | 1/34 (3%) | 50% | 2 / 3 specimens |
+| rust | clippy | 0/34 (0%) | n/a | 0 / 3 specimens |
+| rust | semgrep | 0/34 (0%) | 0% | 2 / 3 specimens |
+| solidity | Mumei (no LLM) | 6/31 (19%) | 25% | 22 / 3 specimens |
+| solidity | semgrep | 0/31 (0%) | n/a | 0 / 3 specimens |
+| solidity | slither | 12/31 (39%) | 43% | 28 / 3 specimens |
+| typescript | Mumei (no LLM) | 1/33 (3%) | 67% | 2 / 3 specimens |
+| typescript | semgrep | 2/33 (6%) | 100% | 2 / 3 specimens |
+
+### Complementarity
+
+Defects split by who detects them: Mumei's audit only, at least one baseline only,
+both, or neither (function-flagged defects count as not detected).
+
+| Language | Defects | Mumei only | Baselines only | Both | Neither |
+|---|---|---|---|---|---|
+| go | 32 | 1 | 6 | 0 | 25 |
+| python | 41 | 1 | 5 | 0 | 35 |
+| rust | 34 | 1 | 0 | 0 | 33 |
+| solidity | 31 | 4 | 10 | 2 | 15 |
+| typescript | 33 | 1 | 2 | 0 | 30 |
+| **Total** | 171 | 8 | 23 | 2 | 138 |

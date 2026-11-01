@@ -176,6 +176,7 @@ def test_parser_option_strings_match_golden_lists() -> None:
             "--timeout",
             "--summary",
             "--scoreboard-dir",
+        "--specimens-readme",
             "--rescore",
         ],
         "scripts/record_scenario.py": ["--variant", "--output"],

@@ -1057,3 +1057,133 @@ def test_committed_records(tmp_path):
     p.write_text('{"tool": "gosec"}')
     (tmp_path / "go" / "g" / "baselines" / "notes.txt").write_text("x")
     assert rb.committed_records(tmp_path) == [{"tool": "gosec"}]
+
+
+
+def _cov(specimen="py-01-x", language="python", detected=(), total=2, llm=False, h="h",
+         fixed_fa=1, findings=None):
+    ids = [f"D{i}" for i in range(1, total + 1)]
+    return {"specimen": specimen, "language": language, "source_hash": h,
+            "meta": {"llm_configured": llm},
+            "counts": {"total": total, "detected": len(detected)},
+            "defects": [{"id": i, "status": "detected" if i in detected else "missed"} for i in ids],
+            "finding_counts": findings or {"total": 2, "defect_evidence": 1, "real": 0,
+                                           "false_positive": 1, "unreviewed": 0},
+            "fixed": {"false_alarms": fixed_fa}}
+
+
+def _brec(tool="semgrep", **kw):
+    return dict(_cov(**kw), tool=tool)
+
+
+def test_comparison_complement_and_totals():
+    comp = rb.comparison(
+        [_cov(detected=("D1", "D2"), total=3), _cov("go-01-x", "go", detected=(), total=2)],
+        [_brec(detected=("D2", "D3"), total=3), _brec("bandit", detected=("D3",), total=3),
+         _brec("gosec", specimen="go-01-x", language="go", detected=("D1",), total=2)])
+    assert [r["language"] for r in comp["languages"]] == ["go", "python"]
+    py = comp["languages"][1]
+    assert py["complement"] == {"mumei_only": 1, "baselines_only": 1, "both": 1, "neither": 0}
+    assert list(py["tools"]) == ["bandit", "semgrep"]
+    t = comp["total"]
+    assert t["defects"] == 5
+    assert t["complement"] == {"mumei_only": 1, "baselines_only": 2, "both": 1, "neither": 1}
+    assert t["mumei"]["counts"] == {"total": 5, "detected": 2}
+    assert t["mumei"]["fixed"] == {"specimens": 2, "false_alarms": 2}
+    assert t["tools"]["semgrep"]["counts"] == {"total": 3, "detected": 2}
+    assert comp["stale_specimens"] == []
+    assert comp["mumei"] == "Mumei (no LLM)"
+
+
+def test_comparison_same_defect_id_in_two_specimens_is_not_merged():
+    comp = rb.comparison([_cov("a", detected=("D1",), total=1), _cov("b", total=1)],
+                         [_brec(specimen="b", detected=("D1",), total=1)])
+    assert comp["total"]["complement"] == {"mumei_only": 1, "baselines_only": 1, "both": 0,
+                                           "neither": 0}
+
+
+def test_comparison_ignores_records_outside_the_audited_corpus():
+    comp = rb.comparison([_cov()], [_brec("gosec", specimen="go-01-x", language="go"),
+                                    _brec(specimen="py-99-other")])
+    assert comp["total"]["tools"] == {}
+    assert [r["language"] for r in comp["languages"]] == ["python"]
+
+
+def test_comparison_flags_specimens_with_different_sources():
+    comp = rb.comparison([_cov(h="a")], [_brec(h="b"), _brec("bandit", h="a")])
+    assert comp["stale_specimens"] == ["py-01-x"]
+    assert "different specimen sources for py-01-x" in rb.readme_block(comp)
+    assert "different specimen sources" in "\n".join(rb.render_comparison(comp))
+
+
+@pytest.mark.parametrize("modes,label", [
+    ([False], "Mumei (no LLM)"), ([True, True], "Mumei (with LLM)"),
+    ([False, True], "Mumei (mixed LLM runs)")])
+def test_mumei_label(modes, label):
+    assert rb.mumei_label([_cov(llm=m) for m in modes]) == label
+
+
+def test_comparison_empty():
+    comp = rb.comparison([], [_brec()])
+    assert comp["languages"] == [] and comp["total"]["defects"] == 0
+    assert "compared with the baselines" not in rb.render_summary(rb.aggregate([]), [], comp)
+
+
+def test_render_comparison_rows():
+    comp = rb.comparison([_cov(detected=("D1",))], [_brec(detected=("D2",))])
+    text = "\n".join(rb.render_comparison(comp))
+    assert "| python | Mumei (no LLM) | 1/2 (50%) | 50% | 1 / 1 specimens |" in text
+    assert "| python | semgrep | 1/2 (50%) | 50% | 1 / 1 specimens |" in text
+    assert "| python | 2 | 1 | 1 | 0 | 0 |" in text
+    assert "| **Total** | 2 | 1 | 1 | 0 | 0 |" in text
+
+
+def test_readme_block_totals():
+    comp = rb.comparison([_cov(detected=("D1",))], [_brec(detected=("D1",))])
+    block = rb.readme_block(comp)
+    assert "| Mumei (no LLM) | 1/2 (50%) | 50% | 1 / 1 specimens |" in block
+    assert "| semgrep | 1/2 (50%)" in block
+    assert "Of 2 defects, 0 are detected only by Mumei (no LLM), 0 only by a baseline, 1 by both " \
+           "and 1 by neither." in block
+
+
+def test_update_readme_block(tmp_path):
+    p = tmp_path / "README.md"
+    rb.update_readme_block(p, "x")
+    assert not p.exists()
+    p.write_text(f"a\n{rb.BASELINES_START}\nold\n{rb.BASELINES_END}\nb\n")
+    rb.update_readme_block(p, "new\n")
+    assert p.read_text() == f"a\n{rb.BASELINES_START}\nnew\n{rb.BASELINES_END}\nb\n"
+    p.write_text("no markers")
+    with pytest.raises(SystemExit, match="missing"):
+        rb.update_readme_block(p, "x")
+
+
+def test_main_writes_comparison_and_readme(monkeypatch, tmp_path):
+    root, d = _tree(tmp_path)
+    (d / "audit").mkdir()
+    (d / "audit" / "coverage.json").write_text(json.dumps(
+        _cov(specimen="py-01-x", detected=("D1",), total=len(DOC["defects"]))))
+    readme = tmp_path / "R.md"
+    readme.write_text(f"{rb.BASELINES_START}\n{rb.BASELINES_END}\n")
+    monkeypatch.setattr(rb, "SPECIMENS_ROOT", root)
+    monkeypatch.setattr(rb, "find_binary", lambda name, override, *rest: "/bin/" + name)
+    monkeypatch.setattr(rb, "installed_version", lambda b: rb.BANDIT_VERSION)
+    monkeypatch.setattr(rb, "run_specimen", lambda d, tool, reviews, timeout, at: rb.build_record(
+        tool, DOC, [], 0, None, reviews, "h", at))
+    sb = tmp_path / "sb"
+    rb.main(["--tools", "bandit", "--summary", str(tmp_path / "s.md"), "--scoreboard-dir", str(sb),
+             "--specimens-readme", str(readme)])
+    comp = json.loads((sb / "comparison.json").read_text())
+    assert comp["total"]["complement"]["mumei_only"] == 1
+    assert "| bandit |" in readme.read_text()
+    assert "### Complementarity" in (tmp_path / "s.md").read_text()
+
+
+def test_committed_comparison_matches_records():
+    root = rb.SPECIMENS_ROOT
+    comp = rb.comparison(rb.mumei_coverages(root), rb.committed_records(root))
+    assert json.loads((root / "scoreboard" / "comparison.json").read_text()) == comp
+    assert comp["stale_specimens"] == []
+    readme = (root / "README.md").read_text()
+    assert rb.readme_block(comp) in readme
