@@ -2,6 +2,59 @@
   "name": "Charter Gate: Reviewed Dosage Contract",
   "version": "1.0.0",
   "description": "Shows mumei rejecting weakened, narrowed, under-graded, and unpinned dosage repairs.",
+  "evidence_requirements": {
+    "claims": [
+      {
+        "step": "verify_correct",
+        "source": "project/correct.mm",
+        "atom": "clamp_dose",
+        "minimum_grade": "G4",
+        "require_complete": true
+      },
+      {
+        "step": "verify_trusted_shortcut",
+        "source": "project/trusted_shortcut.mm",
+        "atom": "clamp_dose",
+        "minimum_grade": "G0",
+        "require_complete": true
+      }
+    ],
+    "steps": {
+      "lock_charter": "S1_charter_lock",
+      "detect_weakened_ensures": "S1_charter_rejection_weakened_ensures",
+      "detect_tightened_requires": "S1_charter_rejection_tightened_requires",
+      "verify_correct": "S1_charter_acceptance_verify_correct",
+      "charter_pass": "S1_charter_acceptance_grade_g4",
+      "verify_trusted_shortcut": "S1_charter_acceptance_verify_trusted_shortcut",
+      "detect_trusted_shortcut": "S1_charter_rejection_grade_below",
+      "detect_charter_edit": "S1_charter_rejection_unpinned_edit"
+    },
+    "artifacts": [
+      "project/mumei.toml",
+      "project/charter.lock",
+      "project/specs/dosage.charter.mm",
+      "project_edit/charter_report.json"
+    ],
+    "charter_steps": [
+      "detect_weakened_ensures",
+      "detect_tightened_requires",
+      "charter_pass",
+      "detect_trusted_shortcut",
+      "detect_charter_edit"
+    ],
+    "declared_assumptions": [
+      "The reviewed dosage contract expresses the intended bounded integer requirement; this demo does not establish clinical suitability.",
+      "The local verifier, solver, certificate collector, and scenario runner are trusted tools."
+    ],
+    "unverified_connections": [
+      "No production implementation, deployed binary, or runtime adapter is connected to this model.",
+      "Matching local artifact hashes does not prove semantic equivalence to external code."
+    ],
+    "out_of_scope": [
+      "Clinical validation, arbitrary host code, deployment, authentication, external services, and distributed transactions.",
+      "Controls and test observations are not run for these dosage contracts; their absence is not evidence of contract strength. See Claim Book next_steps for follow-up work."
+    ]
+  },
   "layers": [
     "l1_z3"
   ],

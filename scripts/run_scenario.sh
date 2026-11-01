@@ -1522,6 +1522,16 @@ def main(argv: list[str]) -> int:
             "entries": test_observations_entries,
             "totals": test_observations_totals(test_observations_entries),
         }
+    if "evidence_requirements" in scenario:
+        sys.path.insert(0, str(root / "scripts"))
+        from scenario_evidence import aggregate_evidence, capture_identities
+
+        result["evidence_requirements"] = scenario["evidence_requirements"]
+        result["evidence_identities"] = capture_identities(result, output_dir)
+        result["evidence_summary"] = aggregate_evidence(result, output_dir)
+        if result["evidence_summary"]["status"] != "satisfied":
+            overall_status = "FAIL"
+            result["overall_status"] = overall_status
     result["artifact_payloads"] = artifact_payloads(output_dir, artifacts)
     result["verification_evidence"] = verification_evidence(results)
     state_file = output_dir / "harness_state.json"
@@ -1549,6 +1559,8 @@ def main(argv: list[str]) -> int:
         state_payload["negative_controls"] = result["negative_controls"]
     if "test_observations" in result:
         state_payload["test_observations"] = result["test_observations"]
+    if "evidence_summary" in result:
+        state_payload["evidence_summary"] = result["evidence_summary"]
     state_file.write_text(json.dumps(state_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     result["artifact_payloads"]["harness_state.json"] = state_payload
     (output_dir / "result.json").write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

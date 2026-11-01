@@ -10,6 +10,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from scenario_evidence import load_result, render_evidence
+
 
 SCENARIO_ORDER = [
     "ownership_transfer",
@@ -45,7 +47,7 @@ ANSI_RE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 
 
 def load_json(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return load_result(path)
 
 
 def latest_result_path(reports_dir: Path, scenario: str) -> Path | None:
@@ -891,6 +893,8 @@ def render_scenario_markdown(data: dict, root: Path) -> str:
     ]
     if "claim_book" in data:
         lines.extend(["", render_claim_book_markdown(data)])
+    if "evidence_summary" in data:
+        lines.extend(["", render_evidence(data)])
     if "charter_gate" in data:
         lines.extend(["", render_charter_gate_markdown(data)])
     negative_controls_markdown = render_negative_controls_markdown(data)
@@ -926,6 +930,7 @@ def write_summary(
     require_all: bool,
 ) -> int:
     rows: list[tuple[str, str, int, int, float, str, str, str, str]] = []
+    evidence_rows: list[str] = []
     missing: list[str] = []
     for scenario in scenarios:
         result_path = latest_result_path(reports_dir, scenario)
@@ -933,6 +938,9 @@ def write_summary(
             missing.append(scenario)
             continue
         data = load_json(result_path)
+        if "evidence_summary" in data:
+            evidence = data["evidence_summary"]
+            evidence_rows.append(f"- `{scenario}`: required evidence **{evidence['status']}**; {len(evidence['unverified_connections'])} unverified connections. Not an application safety grade.")
         verified, total, percentage = density_values(data)
         lean_density = "N/A"
         if "l3_lean" in data.get("layers", {}):
@@ -961,6 +969,8 @@ def write_summary(
         lines.append(
             f"| `{scenario}` | {status} | {verified} | {total} | {percentage:g}% | {lean_density} | {compliance} | {intent_fidelity} | {claim_book} |"
         )
+    if evidence_rows:
+        lines.extend(["", "## Scenario Evidence", "", *evidence_rows])
     if missing:
         lines.extend(["", "## Missing results", ""])
         lines.extend(f"- `{scenario}`" for scenario in missing)
@@ -1009,6 +1019,8 @@ def write_highlights(
         lines.append(f"- Claim Book: {claim_book_label(data)}")
         if "charter_gate" in data:
             lines.append(f"- Charter Gate: {charter_gate_label(data)}")
+        if "evidence_summary" in data:
+            lines.append(f"- Required scenario evidence: {data['evidence_summary']['status']} (not an application safety grade)")
         lines.extend([
             "",
             bug_detection_moment(data, root, "### Bug Detection Moment", "####"),
@@ -1110,12 +1122,15 @@ def main() -> int:
     result_path = Path(args.result_json)
     if args.format == "json":
         data = load_json(result_path)
-        print(json.dumps({
+        report = {
             "scenario": data.get("scenario"),
             "overall_status": data.get("overall_status"),
             "proof_density": data.get("proof_density"),
             "artifacts": data.get("artifacts", []),
-        }, indent=2, ensure_ascii=False))
+        }
+        if "evidence_summary" in data:
+            report["evidence_summary"] = data["evidence_summary"]
+        print(json.dumps(report, indent=2, ensure_ascii=False))
         return 0
 
     report_output = Path(args.report_output) if args.report_output else None
