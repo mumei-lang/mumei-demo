@@ -1524,6 +1524,7 @@ def test_write_summary_fixed_without_findings_has_no_finding_table(tmp_path):
 def test_rescore_refuses_after_fixed_patch_changes(tmp_path, monkeypatch):
     _, d = _rescore_tree(tmp_path, monkeypatch)
     (d / "fixed.patch").write_text(MINI_FIX)
+    _git_track(tmp_path)
     (d / "audit" / "fixed").mkdir()
     (d / "audit" / "fixed" / "audit.json").write_text(json.dumps({"file_results": []}))
     cov_path = d / "audit" / "coverage.json"
