@@ -51,6 +51,7 @@ specimens/
       run.sh             runs the happy path; exits 0
       repro.sh           demonstrates every planted defect; exits 0 when all reproduce
       <source files>
+      fixed.patch        optional: repairs every planted defect (see "Fixed variants")
       audit/             mumei-agent audit output (generated, see below)
 ```
 
@@ -149,25 +150,52 @@ on exit), runs one case per defect, and prints one line per case:
 It exits 0 only when every defect listed in `DEFECTS.json` printed
 `[REPRODUCED]`.
 
+## Fixed variants
+
+A specimen may ship a `fixed.patch`: a `git diff` relative to the specimen
+directory that repairs every planted defect and changes nothing else. The
+source files themselves stay as they are. The patch may only modify existing
+source files, and its added lines follow the same spoiler-word rule as the
+sources. With the patch applied, `run.sh` still passes and `repro.sh` prints no
+`[REPRODUCED]` line. Some `repro.sh` cases stop early on the fixed code (they
+expect the broken behaviour), so the check looks for reproduced cases, not the
+exit code.
+
+To create or update one, edit the sources in place, then:
+
+```bash
+S=specimens/python/py-03-ledger-api
+git diff --relative=$S -- $S > /tmp/fixed.patch && git checkout -- $S && mv /tmp/fixed.patch $S/fixed.patch
+```
+
+The audit runner audits the patched copy too (output in `audit/fixed/`). Any
+finding on it is a false alarm unless a `finding_reviews` ruling marks it
+`real`.
+
 ## Audit reports
 
 `scripts/run_specimen_audits.py` runs `mumei-agent audit` over every specimen
 directory and writes `audit/audit.json` and `audit/audit.md`, plus
 `audit/coverage.json`, which maps each planted defect to the audit findings
-that name the same function. `specimens/AUDIT_SUMMARY.md` aggregates detected
-and missed defects across all specimens.
+that name the same function. For a specimen with a `fixed.patch` it also
+audits a patched copy into `audit/fixed/` and records false alarms on the
+fixed code under `fixed` in `coverage.json`. `specimens/AUDIT_SUMMARY.md`
+aggregates detected and missed defects across all specimens.
 
 ## Validate
 
 ```bash
 python3 scripts/check_specimens.py            # every specimen under specimens/
 python3 scripts/check_specimens.py specimens/python/py-03-ledger-api
+python3 scripts/check_specimens.py --run-fixed  # also run each fixed variant (needs the toolchains)
 ```
 
 The validator checks each specimen's files, validates `DEFECTS.json` against
 `DEFECTS.schema.json`, verifies anchors and line numbers against the source,
 scans for spoiler words, and enforces unique `Default port:` values for web
-specimens. It exits non-zero listing every problem found.
+specimens. A `fixed.patch` must apply cleanly and touch only source files;
+with `--run-fixed` it is applied to a scratch copy, where `run.sh` must pass and
+`repro.sh` must not reproduce anything. It exits non-zero listing every problem found.
 
 <!-- scoreboard:start -->
 ## Scoreboard
@@ -176,8 +204,9 @@ specimens. It exits non-zero listing every problem found.
 
 ![Detection over runs](scoreboard/history.svg)
 
-Latest run — no LLM: mumei-agent `99977fa` · mumei `a6f4a45` (mumei 0.6.23) · 2026-10-31T01:29:54Z
+Latest run — no LLM: mumei-agent `dffe7e8` · mumei `36eb534` (mumei 0.6.23) · 2026-11-01T16:49:51Z
 Findings — no LLM: 40 (defect evidence 10, real 3, false positive 27, unreviewed 0) · precision 32%
+Fixed variants — no LLM: 7 specimens (74 defects fixed) · 4 false alarms in 5 findings on fixed code · 1 defects still reported
 
 Latest run — with LLM: not run yet.
 
@@ -194,13 +223,14 @@ _With LLM: not run yet._
 
 Recent runs:
 
-| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision |
-|---|---|---|---|---|---:|---:|---:|---:|
-| 2026-10-31 (rescored 2026-11-01) | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% | 32% |
-| 2026-10-31 | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% | — |
-| 2026-10-29 | no | `336d604` | `fc10933` | 171 | 6% | 13% | 17% | — |
-| 2026-10-24 | no | `759dcc3` | `d89609c` | 171 | 6% | 13% | 17% | — |
-| 2026-10-04 | no | `8f85274` | `d5fe4b6` | 171 | 6% | 13% | 17% | — |
+| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code |
+|---|---|---|---|---|---:|---:|---:|---:|---:|
+| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 4 / 7 specimens |
+| 2026-10-31 (rescored 2026-11-01) | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% | 32% | — |
+| 2026-10-31 | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% | — | — |
+| 2026-10-29 | no | `336d604` | `fc10933` | 171 | 6% | 13% | 17% | — | — |
+| 2026-10-24 | no | `759dcc3` | `d89609c` | 171 | 6% | 13% | 17% | — | — |
+| 2026-10-04 | no | `8f85274` | `d5fe4b6` | 171 | 6% | 13% | 17% | — | — |
 
 Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md).
 
@@ -222,4 +252,7 @@ Precision is (defect evidence + findings reviewed as real) / findings; it is a r
 findings are unreviewed, and `—` for runs recorded before findings were classified. Review
 verdicts live under `finding_reviews` in `scoreboard/adjudications.json`; after editing them, run
 `python3 scripts/run_specimen_audits.py --rescore` to re-score the committed audit output.
+
+False alarms on fixed code count findings on specimens with their `fixed.patch` applied (every
+planted defect repaired) that no ruling marks as real, shown as false alarms / specimens covered.
 <!-- scoreboard:end -->

@@ -702,6 +702,16 @@ def write_summary(coverages: list[dict], meta: dict, path: Path,
             f"{fx_total['false_alarms']} false alarms on fixed code.",
             "",
         ]
+        fixed_findings = [(cov["specimen"], rec) for cov in fixed_covs for rec in cov["fixed"]["findings"]]
+        if fixed_findings:
+            lines += [
+                "| Specimen | File | Status | Finding on fixed code |",
+                "|---|---|---|---|",
+            ]
+            for specimen, rec in fixed_findings:
+                status = "real" if rec["status"] == "real" else "false alarm"
+                lines.append(f"| {specimen} | `{rec['file']}` | {status} | {_md_cell(rec['text'], 200)} |")
+            lines.append("")
     lines += [
         "## Per language",
         "",

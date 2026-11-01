@@ -1408,3 +1408,29 @@ def test_audit_specimen_fixed_audit_failure_is_fatal(tmp_path, monkeypatch):
     monkeypatch.setattr(rsa, "run_audit", flaky)
     with pytest.raises(SystemExit, match=r"\(fixed\)"):
         rsa.audit_specimen(d, tmp_path, "mumei", 5, RESCORE_META)
+
+
+def test_write_summary_lists_findings_on_fixed_code(tmp_path):
+    fx = {**_fixed(), "findings": [
+        {"file": "app.py", "kind": "verification_violations", "text": "g | still flagged",
+         "status": "unreviewed"},
+        {"file": "app.py", "kind": "verification_violations", "text": "h race", "status": "real"},
+        {"file": "app.py", "kind": "verification_violations", "text": "k odd",
+         "status": "false_positive"},
+    ]}
+    cov = {**_coverage("py-01-a", "python", []), "finding_counts": _fc(0, 0, 0, 0, 0),
+           "findings": [], "fixed": fx}
+    out = tmp_path / "AUDIT_SUMMARY.md"
+    rsa.write_summary([cov], _summary_meta(), out)
+    text = out.read_text()
+    assert "| py-01-a | `app.py` | false alarm | g \\| still flagged |" in text
+    assert "| py-01-a | `app.py` | real | h race |" in text
+    assert "| py-01-a | `app.py` | false alarm | k odd |" in text
+
+
+def test_write_summary_fixed_without_findings_has_no_finding_table(tmp_path):
+    cov = {**_coverage("py-01-a", "python", []), "finding_counts": _fc(0, 0, 0, 0, 0),
+           "findings": [], "fixed": _fixed(fc=_fc(0, 0, 0, 0, 0))}
+    out = tmp_path / "AUDIT_SUMMARY.md"
+    rsa.write_summary([cov], _summary_meta(), out)
+    assert "Finding on fixed code" not in out.read_text()

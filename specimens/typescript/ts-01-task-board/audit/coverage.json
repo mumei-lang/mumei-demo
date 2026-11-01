@@ -190,11 +190,60 @@
     ]
   ],
   "meta": {
-    "mumei_agent_commit": "99977fa0eae63783b00e8a89f4e7ba5b0b935a46",
-    "mumei_commit": "a6f4a45a780a0c6bbfcb0ddd13b633c369f5b256",
+    "mumei_agent_commit": "dffe7e834bd86603c79f213fc1de77f1af4e9d5f",
+    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
-    "generated_at": "2026-10-31T01:29:54Z"
+    "generated_at": "2026-11-01T16:49:51Z"
+  },
+  "fixed": {
+    "defects": 12,
+    "still_reported": [],
+    "still_function_flagged": [
+      "TS01-D10"
+    ],
+    "false_alarms": 2,
+    "findings": [
+      {
+        "file": "server.ts",
+        "kind": "verification_violations",
+        "text": "TypeScript function `handlePatch` uses `task` (from `.find(...)`) without an `undefined`/`null` check — `find` returns `undefined` when no element matches",
+        "status": "false_positive",
+        "reason": "`if (!task) return sendJson(res, 404, ...)` runs right after the find."
+      },
+      {
+        "file": "server.ts",
+        "kind": "verification_violations",
+        "text": "TypeScript function `handlePatch` indexes with the result of `.indexOf((…)` inline — a miss yields a sentinel (`-1`) used directly as an index",
+        "status": "real",
+        "reason": "handlePatch awaits the request body between find and indexOf, and replaces the task object. A concurrent PATCH of the same task makes indexOf return -1, so `tasks[-1] = updated` silently drops one update. The ground truth does not list this."
+      },
+      {
+        "file": "server.ts",
+        "kind": "verification_violations",
+        "text": "TypeScript function `handleMove` uses `owned` (from `.find(...)`) without an `undefined`/`null` check — `find` returns `undefined` when no element matches",
+        "status": "unreviewed"
+      }
+    ],
+    "finding_counts": {
+      "total": 3,
+      "defect_evidence": 0,
+      "real": 1,
+      "false_positive": 1,
+      "unreviewed": 1
+    },
+    "reviews_used": [
+      [
+        "ts-01-task-board",
+        "server.ts",
+        "TypeScript function `handlePatch` indexes with the result of `.indexOf("
+      ],
+      [
+        "ts-01-task-board",
+        "server.ts",
+        "TypeScript function `handlePatch` uses `task` (from `.find(...)`)"
+      ]
+    ]
   }
 }

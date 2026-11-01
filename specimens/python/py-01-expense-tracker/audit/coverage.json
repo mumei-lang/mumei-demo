@@ -151,11 +151,42 @@
     ]
   ],
   "meta": {
-    "mumei_agent_commit": "99977fa0eae63783b00e8a89f4e7ba5b0b935a46",
-    "mumei_commit": "a6f4a45a780a0c6bbfcb0ddd13b633c369f5b256",
+    "mumei_agent_commit": "dffe7e834bd86603c79f213fc1de77f1af4e9d5f",
+    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
-    "generated_at": "2026-10-31T01:29:54Z"
+    "generated_at": "2026-11-01T16:49:51Z"
+  },
+  "fixed": {
+    "defects": 11,
+    "still_reported": [],
+    "still_function_flagged": [
+      "PY01-D05"
+    ],
+    "false_alarms": 1,
+    "findings": [
+      {
+        "file": "ledger.py",
+        "kind": "spec_health_issues",
+        "text": "encoding-gap: is_over_budget: spec_lowering_failed: failed to lower ensures clause 'result == spent_cents >= limit_cents': Verification Error: Expected bool for == (constraints: [\"result == spent_cents >= limit_cents\"])",
+        "status": "false_positive",
+        "reason": "Tool diagnostic: the extracted ensures clause failed to lower. It names no problem in is_over_budget (the planted off-by-one is not mentioned)."
+      }
+    ],
+    "finding_counts": {
+      "total": 1,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 1,
+      "unreviewed": 0
+    },
+    "reviews_used": [
+      [
+        "py-01-expense-tracker",
+        "ledger.py",
+        "encoding-gap: is_over_budget: spec_lowering_failed"
+      ]
+    ]
   }
 }
