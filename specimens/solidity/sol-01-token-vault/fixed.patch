@@ -1,5 +1,5 @@
 diff --git a/src/RewardVault.sol b/src/RewardVault.sol
-index 4456bb5..d99d65c 100644
+index 4456bb5..d89a12a 100644
 --- a/src/RewardVault.sol
 +++ b/src/RewardVault.sol
 @@ -12,16 +12,23 @@ contract RewardVault {
@@ -94,7 +94,7 @@ index 4456bb5..d99d65c 100644
          return totalAssets() * 1e18 / totalShares;
      }
  
-@@ -81,58 +110,57 @@ contract RewardVault {
+@@ -81,58 +110,60 @@ contract RewardVault {
          return positions[user].shares;
      }
  
@@ -145,8 +145,11 @@ index 4456bb5..d99d65c 100644
 -        }
 -        rewardsOwed += credited;
 +        require(totalShares > 0, "no shares");
-+        accRewardPerShare += msg.value * ACC_PRECISION / totalShares;
-+        rewardsOwed += msg.value;
++        uint256 increment = msg.value * ACC_PRECISION / totalShares;
++        accRewardPerShare += increment;
++        // Only the creditable part is reserved; the rounding remainder stays
++        // in totalAssets and so accrues to share holders.
++        rewardsOwed += increment * totalShares / ACC_PRECISION;
          emit RewardsDistributed(msg.value);
      }
  
@@ -178,7 +181,7 @@ index 4456bb5..d99d65c 100644
          require(bps <= MAX_FEE_BPS, "fee too high");
          withdrawFeeBps = bps;
      }
-@@ -147,27 +175,51 @@ contract RewardVault {
+@@ -147,27 +178,51 @@ contract RewardVault {
          paused = false;
      }
  
