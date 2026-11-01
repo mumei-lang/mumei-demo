@@ -10,7 +10,7 @@ is over the specimens in the tool's languages only.
 | clippy | 1.99.1 | rust | 3 | 0/34 (0%) | 0 | 0 | n/a | 0 / 3 specimens |
 | gosec | 2.29.0 | go | 3 | 6/32 (19%) | 9 | 24 | 62% | 15 / 3 specimens |
 | semgrep | 1.150.0 | go, python, rust, solidity, typescript | 16 | 9/171 (5%) | 8 | 21 | 81% | 9 / 16 specimens |
-| slither | 0.11.6 | solidity | 3 | 12/31 (39%) | 13 | 42 | 43% | 28 / 3 specimens |
+| slither | 0.11.6 | solidity | 3 | 11/31 (35%) | 14 | 42 | 40% | 28 / 3 specimens |
 
 clippy settings: Rust 1.99.1, lint groups correctness, suspicious.
 
