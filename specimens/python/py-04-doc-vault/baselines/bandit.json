@@ -1,0 +1,242 @@
+{
+  "specimen": "py-04-doc-vault",
+  "language": "python",
+  "tool": "bandit",
+  "version": "1.8.6",
+  "generated_at": "2026-11-01T17:44:58Z",
+  "source_hash": "72e439da48aa288e49aec62eec0bd658c64d3b6eeb98a6cebfc9acaf41568107",
+  "tool_errors": 0,
+  "raw_findings": [
+    {
+      "file": "vault.py",
+      "line": 7,
+      "rule": "B403:blacklist",
+      "severity": "low",
+      "cwe": [
+        502
+      ],
+      "message": "Consider possible security implications associated with pickle module.",
+      "function": null
+    },
+    {
+      "file": "vault.py",
+      "line": 25,
+      "rule": "B311:blacklist",
+      "severity": "low",
+      "cwe": [
+        330
+      ],
+      "message": "Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+      "function": "make_share_token"
+    },
+    {
+      "file": "vault.py",
+      "line": 95,
+      "rule": "B301:blacklist",
+      "severity": "medium",
+      "cwe": [
+        502
+      ],
+      "message": "Pickle and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue.",
+      "function": "decode_body"
+    },
+    {
+      "file": "vault.py",
+      "line": 99,
+      "rule": "B310:blacklist",
+      "severity": "medium",
+      "cwe": [
+        22
+      ],
+      "message": "Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+      "function": "fetch_remote"
+    }
+  ],
+  "defects": [
+    {
+      "id": "PY04-D01",
+      "file": "vault.py",
+      "function": "make_share_token",
+      "category": "insecure-randomness",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "B311:blacklist in `make_share_token` (line 25, CWE-330): Standard pseudo-random generators are not suitable for security/cryptographic purposes."
+      ]
+    },
+    {
+      "id": "PY04-D02",
+      "file": "vault.py",
+      "function": "token_matches",
+      "category": "timing-side-channel",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D03",
+      "file": "vault.py",
+      "function": "fetch_remote",
+      "category": "ssrf",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "B310:blacklist in `fetch_remote` (line 99, CWE-22): Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected."
+      ]
+    },
+    {
+      "id": "PY04-D04",
+      "file": "vault.py",
+      "function": "decode_body",
+      "category": "insecure-deserialization",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "B301:blacklist in `decode_body` (line 95, CWE-502): Pickle and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue."
+      ]
+    },
+    {
+      "id": "PY04-D05",
+      "file": "app.py",
+      "function": "purge",
+      "category": "missing-authentication",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D06",
+      "file": "vault.py",
+      "function": "save_upload",
+      "category": "toctou",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D07",
+      "file": "app.py",
+      "function": "go",
+      "category": "open-redirect",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D08",
+      "file": "app.py",
+      "function": "docs_html",
+      "category": "xss",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D09",
+      "file": "vault.py",
+      "function": "save_upload",
+      "category": "unbounded-resource",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D10",
+      "file": "vault.py",
+      "function": "share_expiry",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D11",
+      "file": "vault.py",
+      "function": "can_read",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "counts": {
+    "total": 11,
+    "detected": 2,
+    "function_flagged": 1,
+    "missed": 8
+  },
+  "findings": [
+    {
+      "file": "vault.py",
+      "kind": "baseline",
+      "text": "B403:blacklist (line 7, CWE-502): Consider possible security implications associated with pickle module.",
+      "status": "real",
+      "reason": "The module unpickles untrusted data (the planted insecure-deserialization defect); the finding sits on the import, so it is not located at the defect."
+    },
+    {
+      "file": "vault.py",
+      "kind": "baseline",
+      "text": "B311:blacklist in `make_share_token` (line 25, CWE-330): Standard pseudo-random generators are not suitable for security/cryptographic purposes.",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "vault.py",
+      "kind": "baseline",
+      "text": "B301:blacklist in `decode_body` (line 95, CWE-502): Pickle and modules that wrap it can be unsafe when used to deserialize untrusted data, possible security issue.",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "vault.py",
+      "kind": "baseline",
+      "text": "B310:blacklist in `fetch_remote` (line 99, CWE-22): Audit url open for permitted schemes. Allowing use of file:/ or custom schemes is often unexpected.",
+      "status": "real",
+      "reason": "fetch_remote opens a caller-supplied URL without restricting the scheme or host, the planted request-forgery defect in that function."
+    }
+  ],
+  "finding_counts": {
+    "total": 4,
+    "defect_evidence": 2,
+    "real": 2,
+    "false_positive": 0,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "py-04-doc-vault",
+      "vault.py",
+      "B310:blacklist in `fetch_remote`"
+    ],
+    [
+      "py-04-doc-vault",
+      "vault.py",
+      "B403:blacklist"
+    ]
+  ],
+  "fixed_raw_findings": [],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 11,
+    "still_reported": [],
+    "false_alarms": 0,
+    "findings": [],
+    "finding_counts": {
+      "total": 0,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 0,
+      "unreviewed": 0
+    },
+    "reviews_used": []
+  }
+}

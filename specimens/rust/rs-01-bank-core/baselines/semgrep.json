@@ -1,0 +1,220 @@
+{
+  "specimen": "rs-01-bank-core",
+  "language": "rust",
+  "tool": "semgrep",
+  "version": "1.150.0",
+  "rules_commit": "16b9e6d45f10649f6a531ec4838ed9924372c3bc",
+  "rule_categories": [
+    "correctness",
+    "security"
+  ],
+  "generated_at": "2026-11-01T17:44:58Z",
+  "source_hash": "c192c369e36a15a8e4aaa192c39ec8c92f42aeca48d974b0f050a562230e5216",
+  "tool_errors": 0,
+  "raw_findings": [
+    {
+      "file": "src/main.rs",
+      "line": 226,
+      "rule": "rust.lang.security.args",
+      "severity": "info",
+      "cwe": [
+        807
+      ],
+      "message": "args should not be used for security operations. From the docs: \"The first element is traditionally the path of the executable, but it can be set to arbitrary text, and might not even exist. This means this property should not be relied upon for security purposes.\"",
+      "function": "main"
+    }
+  ],
+  "defects": [
+    {
+      "id": "RS01-D01",
+      "file": "src/bank.rs",
+      "function": "accrue_interest",
+      "category": "float-money",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D02",
+      "file": "src/bank.rs",
+      "function": "remaining_daily_allowance",
+      "category": "integer-underflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D03",
+      "file": "src/bank.rs",
+      "function": "request_transfer",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D04",
+      "file": "src/bank.rs",
+      "function": "split_payment",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D05",
+      "file": "src/bank.rs",
+      "function": "account_at",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D06",
+      "file": "src/bank.rs",
+      "function": "request_transfer",
+      "category": "invariant-violation",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D07",
+      "file": "src/bank.rs",
+      "function": "close_account",
+      "category": "invalid-state-transition",
+      "class": "design",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D08",
+      "file": "src/bank.rs",
+      "function": "record_audit",
+      "category": "unbounded-resource",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D09",
+      "file": "src/main.rs",
+      "function": "parse_cents",
+      "category": "error-handling",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D10",
+      "file": "src/main.rs",
+      "function": "operator_token",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D11",
+      "file": "src/main.rs",
+      "function": "write_statement",
+      "category": "path-traversal",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D12",
+      "file": "src/bank.rs",
+      "function": "charge_fee",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "counts": {
+    "total": 12,
+    "detected": 0,
+    "function_flagged": 0,
+    "missed": 12
+  },
+  "findings": [
+    {
+      "file": "src/main.rs",
+      "kind": "baseline",
+      "text": "rust.lang.security.args in `main` (line 226, CWE-807): args should not be used for security operations. From the docs: \"The first element is traditionally the path of the executable, but it can be set to arbitrary text, and might not even exist. This means this property should not be relied upon for security purposes.\"",
+      "status": "false_positive",
+      "reason": "Command-line arguments are only parsed as CLI input; nothing trusts argv[0] or uses the arguments for a security decision."
+    }
+  ],
+  "finding_counts": {
+    "total": 1,
+    "defect_evidence": 0,
+    "real": 0,
+    "false_positive": 1,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "rs-01-bank-core",
+      "src/main.rs",
+      "rust.lang.security.args in `main`"
+    ]
+  ],
+  "fixed_raw_findings": [
+    {
+      "file": "src/main.rs",
+      "line": 271,
+      "rule": "rust.lang.security.args",
+      "severity": "info",
+      "cwe": [
+        807
+      ],
+      "message": "args should not be used for security operations. From the docs: \"The first element is traditionally the path of the executable, but it can be set to arbitrary text, and might not even exist. This means this property should not be relied upon for security purposes.\"",
+      "function": "main"
+    }
+  ],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 12,
+    "still_reported": [],
+    "false_alarms": 1,
+    "findings": [
+      {
+        "file": "src/main.rs",
+        "kind": "baseline",
+        "text": "rust.lang.security.args in `main` (line 271, CWE-807): args should not be used for security operations. From the docs: \"The first element is traditionally the path of the executable, but it can be set to arbitrary text, and might not even exist. This means this property should not be relied upon for security purposes.\"",
+        "status": "false_positive",
+        "reason": "Command-line arguments are only parsed as CLI input; nothing trusts argv[0] or uses the arguments for a security decision."
+      }
+    ],
+    "finding_counts": {
+      "total": 1,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 1,
+      "unreviewed": 0
+    },
+    "reviews_used": [
+      [
+        "rs-01-bank-core",
+        "src/main.rs",
+        "rust.lang.security.args in `main`"
+      ]
+    ]
+  }
+}

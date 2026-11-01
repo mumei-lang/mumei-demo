@@ -1,0 +1,274 @@
+{
+  "specimen": "go-01-inventory-api",
+  "language": "go",
+  "tool": "semgrep",
+  "version": "1.150.0",
+  "rules_commit": "16b9e6d45f10649f6a531ec4838ed9924372c3bc",
+  "rule_categories": [
+    "correctness",
+    "security"
+  ],
+  "generated_at": "2026-11-01T17:44:58Z",
+  "source_hash": "5014fb7d871106c11847f9092f9e18758378b37f1e691a333b4b7ab14540faa5",
+  "tool_errors": 0,
+  "raw_findings": [
+    {
+      "file": "handlers.go",
+      "line": 163,
+      "rule": "go.lang.security.audit.xss.no-fprintf-to-responsewriter",
+      "severity": "warning",
+      "cwe": [
+        79
+      ],
+      "message": "Detected 'Fprintf' or similar writing to 'http.ResponseWriter'. This bypasses HTML escaping that prevents cross-site scripting vulnerabilities. Instead, use the 'html/template' package to render data to users.",
+      "function": "searchHandler"
+    },
+    {
+      "file": "handlers.go",
+      "line": 163,
+      "rule": "go.lang.security.injection.raw-html-format",
+      "severity": "warning",
+      "cwe": [
+        79
+      ],
+      "message": "Detected user input flowing into a manually constructed HTML string. You may be accidentally bypassing secure methods of rendering HTML by manually constructing HTML and this could create a cross-site scripting vulnerability, which could let attackers steal sensitive user data. Use the `html/template` package which will safely render HTML instead, or inspect that the HTML is rendered safely.",
+      "function": "searchHandler"
+    },
+    {
+      "file": "main.go",
+      "line": 28,
+      "rule": "go.lang.security.audit.net.use-tls",
+      "severity": "warning",
+      "cwe": [
+        319
+      ],
+      "message": "Found an HTTP server without TLS. Use 'http.ListenAndServeTLS' instead. See https://golang.org/pkg/net/http/#ListenAndServeTLS for more information.",
+      "function": "main"
+    }
+  ],
+  "defects": [
+    {
+      "id": "GO01-D01",
+      "file": "handlers.go",
+      "function": "reserveHandler",
+      "category": "race-condition",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D02",
+      "file": "handlers.go",
+      "function": "restockHandler",
+      "category": "integer-overflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D03",
+      "file": "handlers.go",
+      "function": "releaseHandler",
+      "category": "invariant-violation",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D04",
+      "file": "handlers.go",
+      "function": "itemHandler",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D05",
+      "file": "calc.go",
+      "function": "reorderPoint",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D06",
+      "file": "handlers.go",
+      "function": "viewItem",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D07",
+      "file": "handlers.go",
+      "function": "reportHandler",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D08",
+      "file": "main.go",
+      "function": "auditRequests",
+      "category": "resource-leak",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D09",
+      "file": "handlers.go",
+      "function": "createItem",
+      "category": "error-handling",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D10",
+      "file": "handlers.go",
+      "function": "searchHandler",
+      "category": "xss",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "go.lang.security.audit.xss.no-fprintf-to-responsewriter in `searchHandler` (line 163, CWE-79): Detected 'Fprintf' or similar writing to 'http.ResponseWriter'. This bypasses HTML escaping that prevents cross-site scripting vulnerabilities. Instead, use the 'html/template' package to render data to users.",
+        "go.lang.security.injection.raw-html-format in `searchHandler` (line 163, CWE-79): Detected user input flowing into a manually constructed HTML string. You may be accidentally bypassing secure methods of rendering HTML by manually constructing HTML and this could create a cross-site scripting vulnerability, which could let attackers steal sensitive user data. Use the `html/template` package which will safely render HTML instead, or inspect that the HTML is rendered safely."
+      ]
+    },
+    {
+      "id": "GO01-D11",
+      "file": "main.go",
+      "function": "main",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "go.lang.security.audit.net.use-tls in `main` (line 28, CWE-319): Found an HTTP server without TLS. Use 'http.ListenAndServeTLS' instead. See https://golang.org/pkg/net/http/#ListenAndServeTLS for more information."
+      ]
+    }
+  ],
+  "counts": {
+    "total": 11,
+    "detected": 1,
+    "function_flagged": 1,
+    "missed": 9
+  },
+  "findings": [
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "go.lang.security.audit.xss.no-fprintf-to-responsewriter in `searchHandler` (line 163, CWE-79): Detected 'Fprintf' or similar writing to 'http.ResponseWriter'. This bypasses HTML escaping that prevents cross-site scripting vulnerabilities. Instead, use the 'html/template' package to render data to users.",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "go.lang.security.injection.raw-html-format in `searchHandler` (line 163, CWE-79): Detected user input flowing into a manually constructed HTML string. You may be accidentally bypassing secure methods of rendering HTML by manually constructing HTML and this could create a cross-site scripting vulnerability, which could let attackers steal sensitive user data. Use the `html/template` package which will safely render HTML instead, or inspect that the HTML is rendered safely.",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "main.go",
+      "kind": "baseline",
+      "text": "go.lang.security.audit.net.use-tls in `main` (line 28, CWE-319): Found an HTTP server without TLS. Use 'http.ListenAndServeTLS' instead. See https://golang.org/pkg/net/http/#ListenAndServeTLS for more information.",
+      "status": "false_positive",
+      "reason": "The service binds a plain HTTP listener for local use; TLS termination is a deployment choice, not a defect in this code."
+    }
+  ],
+  "finding_counts": {
+    "total": 3,
+    "defect_evidence": 2,
+    "real": 0,
+    "false_positive": 1,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "go-01-inventory-api",
+      "main.go",
+      "go.lang.security.audit.net.use-tls"
+    ]
+  ],
+  "fixed_raw_findings": [
+    {
+      "file": "handlers.go",
+      "line": 217,
+      "rule": "go.lang.security.audit.xss.no-fprintf-to-responsewriter",
+      "severity": "warning",
+      "cwe": [
+        79
+      ],
+      "message": "Detected 'Fprintf' or similar writing to 'http.ResponseWriter'. This bypasses HTML escaping that prevents cross-site scripting vulnerabilities. Instead, use the 'html/template' package to render data to users.",
+      "function": "searchHandler"
+    },
+    {
+      "file": "main.go",
+      "line": 27,
+      "rule": "go.lang.security.audit.net.use-tls",
+      "severity": "warning",
+      "cwe": [
+        319
+      ],
+      "message": "Found an HTTP server without TLS. Use 'http.ListenAndServeTLS' instead. See https://golang.org/pkg/net/http/#ListenAndServeTLS for more information.",
+      "function": "main"
+    }
+  ],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 11,
+    "still_reported": [
+      "GO01-D10"
+    ],
+    "false_alarms": 2,
+    "findings": [
+      {
+        "file": "handlers.go",
+        "kind": "baseline",
+        "text": "go.lang.security.audit.xss.no-fprintf-to-responsewriter in `searchHandler` (line 217, CWE-79): Detected 'Fprintf' or similar writing to 'http.ResponseWriter'. This bypasses HTML escaping that prevents cross-site scripting vulnerabilities. Instead, use the 'html/template' package to render data to users.",
+        "status": "false_positive",
+        "reason": "On the fixed code the query is passed through html.EscapeString before Fprintf writes it."
+      },
+      {
+        "file": "main.go",
+        "kind": "baseline",
+        "text": "go.lang.security.audit.net.use-tls in `main` (line 27, CWE-319): Found an HTTP server without TLS. Use 'http.ListenAndServeTLS' instead. See https://golang.org/pkg/net/http/#ListenAndServeTLS for more information.",
+        "status": "false_positive",
+        "reason": "The service binds a plain HTTP listener for local use; TLS termination is a deployment choice, not a defect in this code."
+      }
+    ],
+    "finding_counts": {
+      "total": 2,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 2,
+      "unreviewed": 0
+    },
+    "reviews_used": [
+      [
+        "go-01-inventory-api",
+        "handlers.go",
+        "no-fprintf-to-responsewriter in `searchHandler`"
+      ],
+      [
+        "go-01-inventory-api",
+        "main.go",
+        "go.lang.security.audit.net.use-tls"
+      ]
+    ]
+  }
+}

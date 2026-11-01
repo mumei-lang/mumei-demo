@@ -16,6 +16,7 @@ DASHBOARD_DIR = REPO_ROOT / "dashboard"
 CLI_SCRIPTS = (
     ("scripts/generate_report.py", "generate_report"),
     ("scripts/run_specimen_audits.py", "run_specimen_audits"),
+    ("scripts/run_baselines.py", "run_baselines"),
     ("scripts/record_scenario.py", "record_scenario"),
     ("scripts/record_model_evidence.py", "record_model_evidence"),
     ("scripts/check_specimens.py", "check_specimens"),
@@ -118,6 +119,7 @@ MAKE_VARIABLE_DESCRIPTIONS = {
     "NO_MM_AUDIT_LANGUAGES": "Languages included by the no-.mm audit target.",
 }
 EXCLUDED_SOURCE_PARTS = {
+    ".cache",
     ".git",
     ".pytest_cache",
     ".venv",

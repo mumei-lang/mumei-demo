@@ -1,0 +1,236 @@
+{
+  "specimen": "ts-01-task-board",
+  "language": "typescript",
+  "tool": "semgrep",
+  "version": "1.150.0",
+  "rules_commit": "16b9e6d45f10649f6a531ec4838ed9924372c3bc",
+  "rule_categories": [
+    "correctness",
+    "security"
+  ],
+  "generated_at": "2026-11-01T17:44:58Z",
+  "source_hash": "6bb7847600bb5841c7963e094222d5adbc986c2824fd3e900cd373e7b64c8f02",
+  "tool_errors": 0,
+  "raw_findings": [
+    {
+      "file": "board.ts",
+      "line": 127,
+      "rule": "javascript.lang.security.audit.detect-non-literal-regexp",
+      "severity": "warning",
+      "cwe": [
+        1333
+      ],
+      "message": "RegExp() called with a `query` function argument, this might allow an attacker to cause a Regular Expression Denial-of-Service (ReDoS) within your application as RegExP blocks the main thread. For this reason, it is recommended to use hardcoded regexes instead. If your regex is run on user-controlled input, consider performing input validation or use a regex checking/sanitization library such as https://www.npmjs.com/package/recheck to verify that the regex does not appear vulnerable to ReDoS.",
+      "function": "searchTasks"
+    },
+    {
+      "file": "board.ts",
+      "line": 140,
+      "rule": "javascript.lang.security.html-in-template-string",
+      "severity": "warning",
+      "cwe": [
+        116
+      ],
+      "message": "This template literal looks like HTML and has interpolated variables. These variables are not HTML-encoded by default. If the variables contain HTML tags, these may be interpreted by the browser, resulting in cross-site scripting (XSS).",
+      "function": "renderResults"
+    }
+  ],
+  "defects": [
+    {
+      "id": "TS01-D01",
+      "file": "board.ts",
+      "function": "canMove",
+      "category": "invalid-state-transition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D02",
+      "file": "board.ts",
+      "function": "applyPatch",
+      "category": "mass-assignment",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D03",
+      "file": "board.ts",
+      "function": "moveTask",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D04",
+      "file": "board.ts",
+      "function": "completionPercent",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D05",
+      "file": "board.ts",
+      "function": "searchTasks",
+      "category": "redos",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "javascript.lang.security.audit.detect-non-literal-regexp in `searchTasks` (line 127, CWE-1333): RegExp() called with a `query` function argument, this might allow an attacker to cause a Regular Expression Denial-of-Service (ReDoS) within your application as RegExP blocks the main thread. For this reason, it is recommended to use hardcoded regexes instead. If your regex is run on user-controlled input, consider performing input validation or use a regex checking/sanitization library such as https://www.npmjs.com/package/recheck to verify that the regex does not appear vulnerable to ReDoS."
+      ]
+    },
+    {
+      "id": "TS01-D06",
+      "file": "board.ts",
+      "function": "columnOrder",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D07",
+      "file": "board.ts",
+      "function": "parsePriority",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D08",
+      "file": "board.ts",
+      "function": "renderResults",
+      "category": "xss",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "javascript.lang.security.html-in-template-string in `renderResults` (line 140, CWE-116): This template literal looks like HTML and has interpolated variables. These variables are not HTML-encoded by default. If the variables contain HTML tags, these may be interpreted by the browser, resulting in cross-site scripting (XSS)."
+      ]
+    },
+    {
+      "id": "TS01-D09",
+      "file": "server.ts",
+      "function": "readBody",
+      "category": "unbounded-resource",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D10",
+      "file": "server.ts",
+      "function": "handleMove",
+      "category": "missing-authorization",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D11",
+      "file": "server.ts",
+      "function": "sendError",
+      "category": "information-exposure",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D12",
+      "file": "board.ts",
+      "function": "paginate",
+      "category": "off-by-one",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "counts": {
+    "total": 12,
+    "detected": 2,
+    "function_flagged": 0,
+    "missed": 10
+  },
+  "findings": [
+    {
+      "file": "board.ts",
+      "kind": "baseline",
+      "text": "javascript.lang.security.audit.detect-non-literal-regexp in `searchTasks` (line 127, CWE-1333): RegExp() called with a `query` function argument, this might allow an attacker to cause a Regular Expression Denial-of-Service (ReDoS) within your application as RegExP blocks the main thread. For this reason, it is recommended to use hardcoded regexes instead. If your regex is run on user-controlled input, consider performing input validation or use a regex checking/sanitization library such as https://www.npmjs.com/package/recheck to verify that the regex does not appear vulnerable to ReDoS.",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "board.ts",
+      "kind": "baseline",
+      "text": "javascript.lang.security.html-in-template-string in `renderResults` (line 140, CWE-116): This template literal looks like HTML and has interpolated variables. These variables are not HTML-encoded by default. If the variables contain HTML tags, these may be interpreted by the browser, resulting in cross-site scripting (XSS).",
+      "status": "defect_evidence"
+    }
+  ],
+  "finding_counts": {
+    "total": 2,
+    "defect_evidence": 2,
+    "real": 0,
+    "false_positive": 0,
+    "unreviewed": 0
+  },
+  "reviews_used": [],
+  "fixed_raw_findings": [
+    {
+      "file": "board.ts",
+      "line": 174,
+      "rule": "javascript.lang.security.html-in-template-string",
+      "severity": "warning",
+      "cwe": [
+        116
+      ],
+      "message": "This template literal looks like HTML and has interpolated variables. These variables are not HTML-encoded by default. If the variables contain HTML tags, these may be interpreted by the browser, resulting in cross-site scripting (XSS).",
+      "function": "renderResults"
+    }
+  ],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 12,
+    "still_reported": [
+      "TS01-D08"
+    ],
+    "false_alarms": 1,
+    "findings": [
+      {
+        "file": "board.ts",
+        "kind": "baseline",
+        "text": "javascript.lang.security.html-in-template-string in `renderResults` (line 174, CWE-116): This template literal looks like HTML and has interpolated variables. These variables are not HTML-encoded by default. If the variables contain HTML tags, these may be interpreted by the browser, resulting in cross-site scripting (XSS).",
+        "status": "false_positive",
+        "reason": "On the fixed code the title is HTML-escaped, the id is a number and the status is one of the fixed Status values."
+      }
+    ],
+    "finding_counts": {
+      "total": 1,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 1,
+      "unreviewed": 0
+    },
+    "reviews_used": [
+      [
+        "ts-01-task-board",
+        "board.ts",
+        "html-in-template-string in `renderResults`"
+      ]
+    ]
+  }
+}

@@ -1,0 +1,148 @@
+{
+  "specimen": "sol-01-token-vault",
+  "language": "solidity",
+  "tool": "semgrep",
+  "version": "1.150.0",
+  "rules_commit": "16b9e6d45f10649f6a531ec4838ed9924372c3bc",
+  "rule_categories": [
+    "correctness",
+    "security"
+  ],
+  "generated_at": "2026-11-01T17:44:58Z",
+  "source_hash": "06ece590119e0b2330e82017f2ba92081b5a0dc4ccb6ab4d984a80c39283ec89",
+  "tool_errors": 0,
+  "raw_findings": [],
+  "defects": [
+    {
+      "id": "SOL01-D01",
+      "file": "src/RewardVault.sol",
+      "function": "withdraw",
+      "category": "reentrancy",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D02",
+      "file": "src/VaultToken.sol",
+      "function": "transferFrom",
+      "category": "integer-underflow",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D03",
+      "file": "src/RewardVault.sol",
+      "function": "sharePrice",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D04",
+      "file": "src/RewardVault.sol",
+      "function": "_sharesFor",
+      "category": "rounding-error",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D05",
+      "file": "src/RewardVault.sol",
+      "function": "setFeeRecipient",
+      "category": "access-control",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D06",
+      "file": "src/RewardVault.sol",
+      "function": "setWithdrawFeeBps",
+      "category": "tx-origin-auth",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D07",
+      "file": "src/RewardVault.sol",
+      "function": "_payFee",
+      "category": "unchecked-call",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D08",
+      "file": "src/RewardVault.sol",
+      "function": "deposit",
+      "category": "integer-overflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D09",
+      "file": "src/RewardVault.sol",
+      "function": "distributeRewards",
+      "category": "denial-of-service",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D10",
+      "file": "src/RewardVault.sol",
+      "function": "distributeRewards",
+      "category": "rounding-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "counts": {
+    "total": 10,
+    "detected": 0,
+    "function_flagged": 0,
+    "missed": 10
+  },
+  "findings": [],
+  "finding_counts": {
+    "total": 0,
+    "defect_evidence": 0,
+    "real": 0,
+    "false_positive": 0,
+    "unreviewed": 0
+  },
+  "reviews_used": [],
+  "fixed_raw_findings": [],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 10,
+    "still_reported": [],
+    "false_alarms": 0,
+    "findings": [],
+    "finding_counts": {
+      "total": 0,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 0,
+      "unreviewed": 0
+    },
+    "reviews_used": []
+  }
+}

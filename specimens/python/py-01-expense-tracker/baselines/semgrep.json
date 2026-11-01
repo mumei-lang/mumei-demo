@@ -1,0 +1,200 @@
+{
+  "specimen": "py-01-expense-tracker",
+  "language": "python",
+  "tool": "semgrep",
+  "version": "1.150.0",
+  "rules_commit": "16b9e6d45f10649f6a531ec4838ed9924372c3bc",
+  "rule_categories": [
+    "correctness",
+    "security"
+  ],
+  "generated_at": "2026-11-01T17:44:58Z",
+  "source_hash": "0468722f07853392606cdfb4cd0014613e56edf40f4506d4dcfe2007d466c3d2",
+  "tool_errors": 0,
+  "raw_findings": [
+    {
+      "file": "app.py",
+      "line": 126,
+      "rule": "python.lang.security.audit.formatted-sql-query",
+      "severity": "warning",
+      "cwe": [
+        89
+      ],
+      "message": "Detected possible formatted SQL query. Use parameterized queries instead.",
+      "function": "list_expenses"
+    },
+    {
+      "file": "app.py",
+      "line": 126,
+      "rule": "python.sqlalchemy.security.sqlalchemy-execute-raw-query",
+      "severity": "error",
+      "cwe": [
+        89
+      ],
+      "message": "Avoiding SQL string concatenation: untrusted input concatenated with raw SQL query can result in SQL Injection. In order to execute raw query safely, prepared statement should be used. SQLAlchemy provides TextualSQL to easily used prepared statement with named parameters. For complex SQL composition, use SQL Expression Language or Schema Definition Language. In most cases, SQLAlchemy ORM will be a better option.",
+      "function": "list_expenses"
+    }
+  ],
+  "defects": [
+    {
+      "id": "PY01-D01",
+      "file": "app.py",
+      "function": "list_expenses",
+      "category": "sql-injection",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "python.lang.security.audit.formatted-sql-query in `list_expenses` (line 126, CWE-89): Detected possible formatted SQL query. Use parameterized queries instead.",
+        "python.sqlalchemy.security.sqlalchemy-execute-raw-query in `list_expenses` (line 126, CWE-89): Avoiding SQL string concatenation: untrusted input concatenated with raw SQL query can result in SQL Injection. In order to execute raw query safely, prepared statement should be used. SQLAlchemy provides TextualSQL to easily used prepared statement with named parameters. For complex SQL composition, use SQL Expression Language or Schema Definition Language. In most cases, SQLAlchemy ORM will be a better option."
+      ]
+    },
+    {
+      "id": "PY01-D02",
+      "file": "app.py",
+      "function": "export",
+      "category": "path-traversal",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D03",
+      "file": "ledger.py",
+      "function": "daily_average",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D04",
+      "file": "ledger.py",
+      "function": "average_expense",
+      "category": "rounding-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D05",
+      "file": "ledger.py",
+      "function": "is_over_budget",
+      "category": "off-by-one",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D06",
+      "file": "app.py",
+      "function": "list_expenses",
+      "category": "idor",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "python.lang.security.audit.formatted-sql-query in `list_expenses` (line 126, CWE-89): Detected possible formatted SQL query. Use parameterized queries instead.",
+        "python.sqlalchemy.security.sqlalchemy-execute-raw-query in `list_expenses` (line 126, CWE-89): Avoiding SQL string concatenation: untrusted input concatenated with raw SQL query can result in SQL Injection. In order to execute raw query safely, prepared statement should be used. SQLAlchemy provides TextualSQL to easily used prepared statement with named parameters. For complex SQL composition, use SQL Expression Language or Schema Definition Language. In most cases, SQLAlchemy ORM will be a better option."
+      ]
+    },
+    {
+      "id": "PY01-D07",
+      "file": "app.py",
+      "function": "create_expense",
+      "category": "resource-leak",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D08",
+      "file": "ledger.py",
+      "function": "subcategory",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D09",
+      "file": "config.py",
+      "function": "ADMIN_TOKEN",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D10",
+      "file": "ledger.py",
+      "function": "parse_amount",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY01-D11",
+      "file": "app.py",
+      "function": "_dispatch",
+      "category": "information-exposure",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "counts": {
+    "total": 11,
+    "detected": 1,
+    "function_flagged": 1,
+    "missed": 9
+  },
+  "findings": [
+    {
+      "file": "app.py",
+      "kind": "baseline",
+      "text": "python.lang.security.audit.formatted-sql-query in `list_expenses` (line 126, CWE-89): Detected possible formatted SQL query. Use parameterized queries instead.",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "app.py",
+      "kind": "baseline",
+      "text": "python.sqlalchemy.security.sqlalchemy-execute-raw-query in `list_expenses` (line 126, CWE-89): Avoiding SQL string concatenation: untrusted input concatenated with raw SQL query can result in SQL Injection. In order to execute raw query safely, prepared statement should be used. SQLAlchemy provides TextualSQL to easily used prepared statement with named parameters. For complex SQL composition, use SQL Expression Language or Schema Definition Language. In most cases, SQLAlchemy ORM will be a better option.",
+      "status": "defect_evidence"
+    }
+  ],
+  "finding_counts": {
+    "total": 2,
+    "defect_evidence": 2,
+    "real": 0,
+    "false_positive": 0,
+    "unreviewed": 0
+  },
+  "reviews_used": [],
+  "fixed_raw_findings": [],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 11,
+    "still_reported": [],
+    "false_alarms": 0,
+    "findings": [],
+    "finding_counts": {
+      "total": 0,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 0,
+      "unreviewed": 0
+    },
+    "reviews_used": []
+  }
+}
