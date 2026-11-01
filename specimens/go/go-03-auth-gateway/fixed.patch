@@ -1,0 +1,342 @@
+diff --git a/auth.go b/auth.go
+index e4617f1..8780c47 100644
+--- a/auth.go
++++ b/auth.go
+@@ -1,18 +1,27 @@
+ package main
+ 
+ import (
+-	"crypto/sha1"
++	"crypto/hmac"
++	"crypto/rand"
++	"crypto/sha256"
++	"crypto/subtle"
++	"encoding/binary"
++	"encoding/hex"
+ 	"net"
+ 	"net/http"
++	"os"
+ 	"strings"
+ 	"sync"
+ 	"time"
+ )
+ 
++const passwordIterations = 100_000
++
+ type user struct {
+ 	Name         string
+ 	Role         string
+-	PasswordHash [sha1.Size]byte
++	Salt         []byte
++	PasswordHash []byte
+ }
+ 
+ type loginLimit struct {
+@@ -20,12 +29,8 @@ type loginLimit struct {
+ 	count         int
+ }
+ 
+-var signingKey = "gateway-signing-key-8332"
+-var users = map[string]*user{
+-	"alice": {Name: "alice", Role: "reader", PasswordHash: sha1.Sum([]byte("bluebird42"))},
+-	"bob":   {Name: "bob", Role: "reader", PasswordHash: sha1.Sum([]byte("bluebird42"))},
+-	"admin": {Name: "admin", Role: "admin", PasswordHash: sha1.Sum([]byte(adminPassword))},
+-}
++var signingKey = randomHex(32)
++var users = seedUsers()
+ var sessions = make(map[string]string)
+ var sessionMu sync.RWMutex
+ var limits = make(map[string]loginLimit)
+@@ -33,8 +38,61 @@ var limitMu sync.Mutex
+ var configMu sync.RWMutex
+ var epoch int64
+ 
++// dummyAccount keeps the cost of a login for an unknown user equal to that of
++// a known one.
++var dummyAccount = newUser("", "", randomHex(16))
++
++func randomHex(n int) string {
++	buf := make([]byte, n)
++	if _, err := rand.Read(buf); err != nil {
++		panic(err)
++	}
++	return hex.EncodeToString(buf)
++}
++
++func seedUsers() map[string]*user {
++	accounts := map[string]*user{
++		"alice": newUser("alice", "reader", "bluebird42"),
++		"bob":   newUser("bob", "reader", "bluebird42"),
++	}
++	if password := os.Getenv("ADMIN_PASSWORD"); password != "" {
++		accounts["admin"] = newUser("admin", "admin", password)
++	}
++	return accounts
++}
++
++func newUser(name, role, password string) *user {
++	salt := make([]byte, 16)
++	if _, err := rand.Read(salt); err != nil {
++		panic(err)
++	}
++	return &user{Name: name, Role: role, Salt: salt, PasswordHash: hashPassword(password, salt)}
++}
++
++// hashPassword derives a 32-byte key with PBKDF2-HMAC-SHA256.
++func hashPassword(password string, salt []byte) []byte {
++	mac := hmac.New(sha256.New, []byte(password))
++	mac.Write(salt)
++	mac.Write(binary.BigEndian.AppendUint32(nil, 1))
++	block := mac.Sum(nil)
++	out := append([]byte(nil), block...)
++	for i := 1; i < passwordIterations; i++ {
++		mac.Reset()
++		mac.Write(block)
++		block = mac.Sum(block[:0])
++		for j := range out {
++			out[j] ^= block[j]
++		}
++	}
++	return out
++}
++
++func passwordMatches(account *user, password string) bool {
++	return subtle.ConstantTimeCompare(hashPassword(password, account.Salt), account.PasswordHash) == 1
++}
++
+ func tokenMatches(presented, stored string) bool {
+-	return presented == stored
++	return subtle.ConstantTimeCompare([]byte(presented), []byte(stored)) == 1
+ }
+ 
+ func sessionUser(presented string) string {
+@@ -49,8 +107,8 @@ func sessionUser(presented string) string {
+ }
+ 
+ func bearerUser(r *http.Request) string {
+-	value := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+-	if value == "" {
++	value, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
++	if !ok || value == "" {
+ 		return ""
+ 	}
+ 	return sessionUser(value)
+@@ -64,8 +122,9 @@ func allowAttempt(address string) bool {
+ 	limitMu.Lock()
+ 	defer limitMu.Unlock()
+ 	state := limits[address]
+-	if time.Since(state.windowStarted) > time.Minute {
+-		state.count = 0
++	now := time.Now()
++	if state.windowStarted.IsZero() || now.Sub(state.windowStarted) > time.Minute {
++		state = loginLimit{windowStarted: now}
+ 	}
+ 	state.count++
+ 	limits[address] = state
+diff --git a/handlers.go b/handlers.go
+index 464f6fb..e97b784 100644
+--- a/handlers.go
++++ b/handlers.go
+@@ -1,12 +1,16 @@
+ package main
+ 
+ import (
+-	"crypto/sha1"
+-	"encoding/hex"
+ 	"encoding/json"
++	"errors"
+ 	"fmt"
+ 	"io"
++	"net"
+ 	"net/http"
++	"net/netip"
++	"net/url"
++	"strings"
++	"syscall"
+ 	"time"
+ )
+ 
+@@ -25,17 +29,25 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
+ 		http.Error(w, "invalid request", http.StatusBadRequest)
+ 		return
+ 	}
+-	account := users[input.User]
+-	hash := sha1.Sum([]byte(input.Password))
+-	if account.PasswordHash != hash {
++	account, known := users[input.User]
++	if !known {
++		passwordMatches(dummyAccount, input.Password)
+ 		http.Error(w, "invalid credentials", http.StatusUnauthorized)
+ 		return
+ 	}
+-	token := fmt.Sprintf("%d", time.Now().UnixNano())
++	if !passwordMatches(account, input.Password) {
++		http.Error(w, "invalid credentials", http.StatusUnauthorized)
++		return
++	}
++	token := randomHex(32)
+ 	sessionMu.Lock()
+ 	sessions[token] = input.User
+ 	sessionMu.Unlock()
+ 	if next := r.URL.Query().Get("next"); next != "" {
++		if !localPath(next) {
++			http.Error(w, "next must be a path on this site", http.StatusBadRequest)
++			return
++		}
+ 		http.Redirect(w, r, next, http.StatusFound)
+ 		return
+ 	}
+@@ -43,19 +55,27 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
+ }
+ 
+ func profileHandler(w http.ResponseWriter, r *http.Request) {
+-	if bearerUser(r) == "" {
++	caller := bearerUser(r)
++	if caller == "" {
+ 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+ 		return
+ 	}
+-	account := users[r.URL.Query().Get("user")]
++	name := r.URL.Query().Get("user")
++	if name == "" {
++		name = caller
++	}
++	if name != caller && users[caller].Role != "admin" {
++		http.Error(w, "forbidden", http.StatusForbidden)
++		return
++	}
++	account := users[name]
+ 	if account == nil {
+ 		http.NotFound(w, r)
+ 		return
+ 	}
+ 	writeJSON(w, http.StatusOK, map[string]string{
+-		"name":          account.Name,
+-		"role":          account.Role,
+-		"password_sha1": hex.EncodeToString(account.PasswordHash[:]),
++		"name": account.Name,
++		"role": account.Role,
+ 	})
+ }
+ 
+@@ -64,10 +84,18 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
+ 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+ 		return
+ 	}
+-	target := r.URL.Query().Get("target")
+-	response, err := http.Get(target)
++	target, err := url.Parse(r.URL.Query().Get("target"))
++	if err != nil || (target.Scheme != "http" && target.Scheme != "https") || target.Hostname() == "" {
++		http.Error(w, "target must be an http or https URL", http.StatusBadRequest)
++		return
++	}
++	response, err := proxyClient.Get(target.String())
++	if errors.Is(err, errBlockedAddress) {
++		http.Error(w, "target address is not allowed", http.StatusForbidden)
++		return
++	}
+ 	if err != nil {
+-		http.Error(w, err.Error(), http.StatusBadGateway)
++		http.Error(w, "upstream request failed", http.StatusBadGateway)
+ 		return
+ 	}
+ 	defer response.Body.Close()
+@@ -87,20 +115,21 @@ func rotateHandler(w http.ResponseWriter, r *http.Request) {
+ 	}
+ 	configMu.Lock()
+ 	epoch++
+-	signingKey = fmt.Sprintf("%s-%d", signingKey, epoch)
++	signingKey = randomHex(32)
+ 	configMu.Unlock()
++	sessionMu.Lock()
++	clear(sessions)
++	sessionMu.Unlock()
+ 	w.WriteHeader(http.StatusNoContent)
+ }
+ 
+ func healthHandler(w http.ResponseWriter, r *http.Request) {
+ 	configMu.RLock()
+-	key := signingKey
+ 	currentEpoch := epoch
+ 	configMu.RUnlock()
+ 	writeJSON(w, http.StatusOK, map[string]any{
+-		"status":      "ok",
+-		"signing_key": key,
+-		"epoch":       currentEpoch,
++		"status": "ok",
++		"epoch":  currentEpoch,
+ 	})
+ }
+ 
+@@ -109,3 +138,58 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
+ 	w.WriteHeader(status)
+ 	json.NewEncoder(w).Encode(value)
+ }
++
++var errBlockedAddress = errors.New("blocked address")
++
++// proxyClient checks the address of every connection it opens, so a host name
++// cannot be re-resolved to a private address after validation, and it does
++// not follow redirects.
++var proxyClient = &http.Client{
++	Timeout: 10 * time.Second,
++	Transport: &http.Transport{
++		Proxy: nil,
++		DialContext: (&net.Dialer{
++			Timeout: 5 * time.Second,
++			Control: func(network, address string, _ syscall.RawConn) error {
++				addrPort, err := netip.ParseAddrPort(address)
++				if err != nil || !publicAddress(addrPort.Addr()) {
++					return fmt.Errorf("%w: %s", errBlockedAddress, address)
++				}
++				return nil
++			},
++		}).DialContext,
++	},
++	CheckRedirect: func(*http.Request, []*http.Request) error {
++		return http.ErrUseLastResponse
++	},
++}
++
++func publicAddress(addr netip.Addr) bool {
++	addr = addr.Unmap()
++	if !addr.IsGlobalUnicast() || addr.IsPrivate() || addr.IsLoopback() || addr.IsLinkLocalUnicast() {
++		return false
++	}
++	for _, prefix := range nonPublicPrefixes {
++		if prefix.Contains(addr) {
++			return false
++		}
++	}
++	return true
++}
++
++// Special-purpose IPv4 ranges that are not covered by the netip predicates.
++var nonPublicPrefixes = []netip.Prefix{
++	netip.MustParsePrefix("0.0.0.0/8"),
++	netip.MustParsePrefix("100.64.0.0/10"),
++	netip.MustParsePrefix("192.0.0.0/24"),
++	netip.MustParsePrefix("198.18.0.0/15"),
++	netip.MustParsePrefix("240.0.0.0/4"),
++}
++
++func localPath(next string) bool {
++	if !strings.HasPrefix(next, "/") || strings.HasPrefix(next, "//") || strings.ContainsAny(next, "\\\r\n") {
++		return false
++	}
++	parsed, err := url.Parse(next)
++	return err == nil && parsed.Scheme == "" && parsed.Host == ""
++}
+diff --git a/main.go b/main.go
+index 97941e0..8152354 100644
+--- a/main.go
++++ b/main.go
+@@ -6,8 +6,6 @@ import (
+ 	"os"
+ )
+ 
+-const adminPassword = "admin-pass-8332"
+-
+ func main() {
+ 	mux := http.NewServeMux()
+ 	mux.HandleFunc("/login", loginHandler)

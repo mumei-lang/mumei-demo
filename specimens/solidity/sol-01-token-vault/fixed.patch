@@ -1,0 +1,288 @@
+diff --git a/src/RewardVault.sol b/src/RewardVault.sol
+index 4456bb5..d89a12a 100644
+--- a/src/RewardVault.sol
++++ b/src/RewardVault.sol
+@@ -12,16 +12,23 @@ contract RewardVault {
+ 
+     uint256 public constant MAX_FEE_BPS = 1_000;
+     uint256 public constant BPS = 10_000;
++    uint256 public constant MIN_INITIAL_DEPOSIT = 1 gwei;
++    uint256 private constant ACC_PRECISION = 1e18;
+ 
+     address public owner;
+     address public feeRecipient;
+     uint256 public withdrawFeeBps;
+     bool public paused;
++    bool private locked;
+ 
+     uint256 public totalShares;
+     uint256 public rewardsOwed;
++    /// @notice Rewards per share accumulated so far, scaled by ACC_PRECISION.
++    uint256 public accRewardPerShare;
+     mapping(address => Position) public positions;
+-    mapping(address => uint256) public rewards;
++    mapping(address => uint256) private rewardBalance;
++    mapping(address => uint256) private rewardDebt;
++    mapping(address => bool) private isHolder;
+     address[] public holders;
+ 
+     event Deposit(address indexed user, uint256 assets, uint256 shares);
+@@ -41,6 +48,13 @@ contract RewardVault {
+         _;
+     }
+ 
++    modifier nonReentrant() {
++        require(!locked, "reentrant call");
++        locked = true;
++        _;
++        locked = false;
++    }
++
+     constructor() {
+         owner = msg.sender;
+         feeRecipient = msg.sender;
+@@ -49,21 +63,33 @@ contract RewardVault {
+     /// @notice Accepts stray ETH top-ups that raise the share price.
+     receive() external payable {}
+ 
+-    /// @notice Deposits ETH and mints shares at the current price.
+-    function deposit() external payable whenActive {
++    /// @notice Deposits ETH and mints shares at the price before the deposit.
++    function deposit() external payable whenActive nonReentrant {
+         require(msg.value > 0, "zero deposit");
+-        uint256 shares = _sharesFor(msg.value);
++        if (totalShares == 0) {
++            require(msg.value >= MIN_INITIAL_DEPOSIT, "initial deposit too small");
++        }
++        uint256 shares = _sharesFor(msg.value, totalAssets() - msg.value);
++        require(shares > 0, "deposit mints no shares");
++        require(shares <= type(uint128).max, "deposit too large");
++        _accrue(msg.sender);
+         Position storage pos = positions[msg.sender];
+-        pos.shares += uint128(shares);
++        uint256 newShares = uint256(pos.shares) + shares;
++        require(newShares <= type(uint128).max, "position too large");
++        pos.shares = uint128(newShares);
+         pos.lastDepositAt = uint64(block.timestamp);
+         totalShares += shares;
+-        holders.push(msg.sender);
++        rewardDebt[msg.sender] = newShares * accRewardPerShare / ACC_PRECISION;
++        if (!isHolder[msg.sender]) {
++            isHolder[msg.sender] = true;
++            holders.push(msg.sender);
++        }
+         emit Deposit(msg.sender, msg.value, shares);
+     }
+ 
+     /// @notice Shares that a deposit of `assets` wei would mint.
+     function previewDeposit(uint256 assets) external view returns (uint256) {
+-        return _sharesFor(assets);
++        return _sharesFor(assets, totalAssets());
+     }
+ 
+     /// @notice ETH backing shares, excluding credited rewards.
+@@ -71,8 +97,11 @@ contract RewardVault {
+         return address(this).balance - rewardsOwed;
+     }
+ 
+-    /// @notice Price of one share in wei.
++    /// @notice Price of one share in wei; 1e18 while the vault is empty.
+     function sharePrice() external view returns (uint256) {
++        if (totalShares == 0) {
++            return 1e18;
++        }
+         return totalAssets() * 1e18 / totalShares;
+     }
+ 
+@@ -81,58 +110,60 @@ contract RewardVault {
+         return positions[user].shares;
+     }
+ 
++    /// @notice Rewards `user` can claim.
++    function rewards(address user) public view returns (uint256) {
++        return rewardBalance[user] + _pending(user);
++    }
++
+     /// @notice Burns `shares` and pays out the corresponding ETH, minus fee.
+-    function withdraw(uint256 shares) external whenActive {
++    function withdraw(uint256 shares) external whenActive nonReentrant {
+         Position storage pos = positions[msg.sender];
++        require(shares > 0, "zero shares");
+         require(pos.shares >= shares, "not enough shares");
++        _accrue(msg.sender);
+         uint256 assets = shares * totalAssets() / totalShares;
+         uint256 fee = assets * withdrawFeeBps / BPS;
+         uint256 net = assets - fee;
+-        // settle any accrued rewards together with the principal
+-        uint256 pending = rewards[msg.sender];
+-        _payFee(fee);
+-        _payout(msg.sender, net);
+-        if (pending > 0) {
+-            _payout(msg.sender, pending);
+-        }
+-        rewards[msg.sender] = 0;
++        uint256 pending = rewardBalance[msg.sender];
++        rewardBalance[msg.sender] = 0;
+         rewardsOwed -= pending;
+         pos.shares -= uint128(shares);
+         totalShares -= shares;
++        rewardDebt[msg.sender] = uint256(pos.shares) * accRewardPerShare / ACC_PRECISION;
+         emit Withdraw(msg.sender, shares, assets, fee);
++        _payFee(fee);
++        _payout(msg.sender, net + pending);
+     }
+ 
+-    /// @notice Credits every recorded holder with `perShare * shares` wei.
++    /// @notice Credits holders with `msg.value` pro rata to their shares.
+     function distributeRewards() external payable onlyOwner {
+-        uint256 perShare = msg.value / totalShares;
+-        uint256 credited;
+-        for (uint256 i = 0; i < holders.length; i++) {
+-            address h = holders[i];
+-            uint256 c = perShare * positions[h].shares;
+-            rewards[h] += c;
+-            credited += c;
+-        }
+-        rewardsOwed += credited;
++        require(totalShares > 0, "no shares");
++        uint256 increment = msg.value * ACC_PRECISION / totalShares;
++        accRewardPerShare += increment;
++        // Only the creditable part is reserved; the rounding remainder stays
++        // in totalAssets and so accrues to share holders.
++        rewardsOwed += increment * totalShares / ACC_PRECISION;
+         emit RewardsDistributed(msg.value);
+     }
+ 
+     /// @notice Pays out the caller's accrued rewards.
+-    function claimRewards() external {
+-        uint256 amount = rewards[msg.sender];
+-        rewards[msg.sender] = 0;
++    function claimRewards() external nonReentrant {
++        _accrue(msg.sender);
++        uint256 amount = rewardBalance[msg.sender];
++        rewardBalance[msg.sender] = 0;
+         rewardsOwed -= amount;
+-        _payout(msg.sender, amount);
+         emit RewardsClaimed(msg.sender, amount);
++        _payout(msg.sender, amount);
+     }
+ 
+     /// @notice Points withdraw fees at `who`.
+-    function setFeeRecipient(address who) external {
++    function setFeeRecipient(address who) external onlyOwner {
++        require(who != address(0), "zero recipient");
+         feeRecipient = who;
+     }
+ 
+     /// @notice Updates the withdraw fee, capped at `MAX_FEE_BPS`.
+-    function setWithdrawFeeBps(uint256 bps) external {
+-        require(tx.origin == owner, "not owner");
++    function setWithdrawFeeBps(uint256 bps) external onlyOwner {
+         require(bps <= MAX_FEE_BPS, "fee too high");
+         withdrawFeeBps = bps;
+     }
+@@ -147,27 +178,51 @@ contract RewardVault {
+         paused = false;
+     }
+ 
+-    /// @notice Number of holder entries recorded so far.
++    /// @notice Number of distinct holders recorded so far.
+     function holderCount() external view returns (uint256) {
+         return holders.length;
+     }
+ 
+-    function _sharesFor(uint256 assets) internal view returns (uint256) {
++    function _sharesFor(uint256 assets, uint256 assetsBefore)
++        internal
++        view
++        returns (uint256)
++    {
+         if (totalShares == 0) {
+             return assets;
+         }
+-        return assets * totalShares / totalAssets();
++        if (assetsBefore == 0) {
++            return 0;
++        }
++        return assets * totalShares / assetsBefore;
++    }
++
++    function _pending(address user) internal view returns (uint256) {
++        return uint256(positions[user].shares) * accRewardPerShare / ACC_PRECISION
++            - rewardDebt[user];
++    }
++
++    function _accrue(address user) internal {
++        rewardBalance[user] += _pending(user);
++        rewardDebt[user] = uint256(positions[user].shares) * accRewardPerShare / ACC_PRECISION;
+     }
+ 
+     function _payout(address to, uint256 amount) internal {
++        if (amount == 0) {
++            return;
++        }
+         (bool ok, ) = to.call{value: amount}("");
+         require(ok, "payout failed");
+     }
+ 
++    /// @dev Reverts when the recipient rejects the fee, so a withdraw never
++    ///      completes with an undelivered fee; the owner can repoint
++    ///      feeRecipient.
+     function _payFee(uint256 fee) internal {
+         if (fee == 0) {
+             return;
+         }
+-        payable(feeRecipient).call{value: fee}("");
++        (bool ok, ) = feeRecipient.call{value: fee}("");
++        require(ok, "fee transfer failed");
+     }
+ }
+diff --git a/src/VaultToken.sol b/src/VaultToken.sol
+index d5746f3..15845c8 100644
+--- a/src/VaultToken.sol
++++ b/src/VaultToken.sol
+@@ -54,10 +54,9 @@ contract VaultToken {
+         address to,
+         uint256 amount
+     ) external returns (bool) {
+-        // bounded by approve()
+-        unchecked {
+-            allowance[from][msg.sender] -= amount;
+-        }
++        uint256 allowed = allowance[from][msg.sender];
++        require(allowed >= amount, "insufficient allowance");
++        allowance[from][msg.sender] = allowed - amount;
+         _move(from, to, amount);
+         return true;
+     }
+diff --git a/test/HappyPath.t.sol b/test/HappyPath.t.sol
+index dd0df92..8dd15cc 100644
+--- a/test/HappyPath.t.sol
++++ b/test/HappyPath.t.sol
+@@ -70,12 +70,9 @@ contract HappyPathTest is SpecTest {
+         require(ok, "topup");
+         vm.prank(bob);
+         vault.deposit{value: 10 ether}();
+-        // the fresh deposit already sits in totalAssets, so bob mints
+-        // 10e18 * 10e18 / 30e18 shares
+-        require(
+-            vault.sharesOf(bob) == 3333333333333333333,
+-            "pro rata shares"
+-        );
++        // bob is priced against the 20 ether held before his deposit, so he
++        // mints 10e18 * 10e18 / 20e18 shares
++        require(vault.sharesOf(bob) == 5 ether, "pro rata shares");
+     }
+ 
+     function test_rewards_distributed_and_claimed() public {
+@@ -86,8 +83,8 @@ contract HappyPathTest is SpecTest {
+         vm.prank(owner);
+         vault.distributeRewards{value: 40 ether}();
+         require(vault.rewards(alice) == 20 ether, "alice reward");
+-        // bob only holds half the shares alice does
+-        require(vault.rewards(bob) == 10 ether, "bob reward");
++        // bob holds as many shares as alice
++        require(vault.rewards(bob) == 20 ether, "bob reward");
+         uint256 before = alice.balance;
+         vm.prank(alice);
+         vault.claimRewards();
