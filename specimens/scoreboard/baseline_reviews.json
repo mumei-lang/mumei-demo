@@ -447,6 +447,30 @@
       "finding_contains": "divide-before-multiply in `notifyRewardAmount`",
       "verdict": "false_positive",
       "reason": "On the fixed code rewardRate = total / duration is the standard rate computation; the dust remainder stays in the contract."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "reentrancy-eth in `bid`",
+      "verdict": "real",
+      "reason": "The refund call to the previous highestBidder runs before highestBidder/highestBid are updated, so that bidder can re-enter bid() and be refunded twice; same issue as the audit's real bid() reentrancy finding."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "reentrancy-benign in `bid`",
+      "verdict": "real",
+      "reason": "Same refund-before-update ordering in bid(): bidOf and earlyBidders are written after the external call, so a re-entrant bid() sees stale state."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "reentrancy-events in `bid`",
+      "verdict": "false_positive",
+      "reason": "Emitting BidPlaced after the refund call only reorders the event log; it is not a defect on its own."
     }
   ]
 }

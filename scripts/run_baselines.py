@@ -249,6 +249,15 @@ def parse_gosec(doc: dict, scratch: Path) -> tuple[list[dict], int]:
     return findings, errors
 
 
+# CWE-841 also covers non-reentrancy workflow bugs, so a reentrancy detector is only
+# evidence for a defect whose category is reentrancy.
+SLITHER_CATEGORIES = {"reentrancy": "reentrancy"}
+
+
+def slither_category(check: str) -> str | None:
+    return next((cat for prefix, cat in SLITHER_CATEGORIES.items() if check.startswith(prefix)), None)
+
+
 def slither_cwes(check: str) -> list[int]:
     return sorted({cwe for prefix, cwe in SLITHER_CWES.items() if check.startswith(prefix)})
 
@@ -484,6 +493,9 @@ def located(f: dict, d: dict) -> bool:
 
 def category_evidence(f: dict, d: dict) -> bool:
     want = parse_cwes(d.get("cwe"))
+    need = slither_category(f["rule"]) if f.get("cwe_only") else None
+    if need and need != d["category"]:
+        return False
     if any(cwe_related(a, b) for a in want for b in f.get("cwe") or []):
         return True
     if f.get("cwe_only"):
@@ -866,10 +878,6 @@ def stale_reviews(records: list[dict], reviews: list[dict]) -> list[dict]:
             and (r["tool"],) + tuple(rsa.review_key(r)) not in used]
 
 
-def committed_records(root: Path) -> list[dict]:
-    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(root.glob("*/*/baselines/*.json"))]
-
-
 def write_json(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -923,7 +931,11 @@ def main(argv: list[str]) -> int:
             if tool.name == "slither":
                 tool.solc = find_solc(args.solc_bin)
     generated_at = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    records = []
+    # Tools left out of this run keep their committed findings, re-scored with the current
+    # rulings, so the totals never mix old and new verdicts.
+    records = [rescore_record(d, tool, reviews) for d in rsa.discover(SPECIMENS_ROOT)
+               for tool in TOOLS.values()
+               if tool not in tools and (d / "baselines" / f"{tool.name}.json").is_file()]
     for d in rsa.discover(SPECIMENS_ROOT):
         language = json.loads((d / "DEFECTS.json").read_text(encoding="utf-8"))["language"]
         for tool in tools:
@@ -940,8 +952,6 @@ def main(argv: list[str]) -> int:
     for rec in records:
         d = SPECIMENS_ROOT / rec["language"] / rec["specimen"]
         write_json(d / "baselines" / f"{rec['tool']}.json", rec)
-    # A run of some tools keeps the committed records of the others in the totals.
-    records = committed_records(SPECIMENS_ROOT)
     stale = stale_reviews(records, reviews)
     for r in stale:
         print(f"warning: stale baseline review (matched nothing): {r['tool']} "

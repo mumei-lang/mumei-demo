@@ -274,7 +274,7 @@ with `python3 scripts/run_baselines.py --rescore`.
 | clippy | 0/34 (0%) | n/a | 0 / 3 specimens |
 | gosec | 6/32 (19%) | 62% | 15 / 3 specimens |
 | semgrep | 9/171 (5%) | 81% | 9 / 16 specimens |
-| slither | 12/31 (39%) | 43% | 28 / 3 specimens |
+| slither | 11/31 (35%) | 40% | 28 / 3 specimens |
 
-Of 171 defects, 8 are detected only by Mumei (no LLM), 23 only by a baseline, 2 by both and 138 by neither.
+Of 171 defects, 8 are detected only by Mumei (no LLM), 22 only by a baseline, 2 by both and 139 by neither.
 <!-- baselines:end -->

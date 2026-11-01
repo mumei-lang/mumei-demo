@@ -298,18 +298,19 @@
       "category": "invariant-violation",
       "class": "bug",
       "in_target_category": true,
-      "status": "detected",
+      "status": "function_flagged",
       "findings": [
         "reentrancy-benign in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) State variables written after the call(s): - bidOf[msg.sender] = msg.value (src/EnglishAuction.sol#80) - earlyBidders.push(msg.sender) (src/EnglishAuction.sol#82)",
         "reentrancy-eth in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) State variables written after the call(s): - highestBid = msg.value (src/EnglishAuction.sol#79) EnglishAuction.highestBid (src/EnglishAuction.sol#20) can be used in cross function reentrancies: - EnglishAuction.bid() (src/EnglishAuction.sol#66-85) - EnglishAuction.finalize() (src/EnglishAuction.sol#113-119) - EnglishAuction.highestBid (src/EnglishAuction.sol#20) - EnglishAuction.minNextBid() (src/EnglishAuction.sol#58-63) - highestBidder = msg.sender (src/EnglishAuction.sol#78) EnglishAuction.highestBidder (src/EnglishAuction.sol#19) can be used in cross function reentrancies: - EnglishAuction.bid() (src/EnglishAuction.sol#66-85) - EnglishAuction.highestBidder (src/EnglishAuction.sol#19)",
-        "reentrancy-events in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) Event emitted after the call(s): - BidPlaced(msg.sender,msg.value) (src/EnglishAuction.sol#84)"
+        "reentrancy-events in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) Event emitted after the call(s): - BidPlaced(msg.sender,msg.value) (src/EnglishAuction.sol#84)",
+        "timestamp in `bid` (line 66, CWE-829): EnglishAuction.bid() (src/EnglishAuction.sol#66-85) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(block.timestamp <= uint256(endTime) + LATE_BID_GRACE || block.number <= endBlock,auction over) (src/EnglishAuction.sol#68-72) - block.timestamp <= endTime (src/EnglishAuction.sol#81)"
       ]
     }
   ],
   "counts": {
     "total": 11,
-    "detected": 5,
-    "function_flagged": 5,
+    "detected": 4,
+    "function_flagged": 6,
     "missed": 1
   },
   "findings": [
@@ -330,19 +331,22 @@
       "file": "src/EnglishAuction.sol",
       "kind": "baseline",
       "text": "reentrancy-benign in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) State variables written after the call(s): - bidOf[msg.sender] = msg.value (src/EnglishAuction.sol#80) - earlyBidders.push(msg.sender) (src/EnglishAuction.sol#82)",
-      "status": "defect_evidence"
+      "status": "real",
+      "reason": "Same refund-before-update ordering in bid(): bidOf and earlyBidders are written after the external call, so a re-entrant bid() sees stale state."
     },
     {
       "file": "src/EnglishAuction.sol",
       "kind": "baseline",
       "text": "reentrancy-eth in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) State variables written after the call(s): - highestBid = msg.value (src/EnglishAuction.sol#79) EnglishAuction.highestBid (src/EnglishAuction.sol#20) can be used in cross function reentrancies: - EnglishAuction.bid() (src/EnglishAuction.sol#66-85) - EnglishAuction.finalize() (src/EnglishAuction.sol#113-119) - EnglishAuction.highestBid (src/EnglishAuction.sol#20) - EnglishAuction.minNextBid() (src/EnglishAuction.sol#58-63) - highestBidder = msg.sender (src/EnglishAuction.sol#78) EnglishAuction.highestBidder (src/EnglishAuction.sol#19) can be used in cross function reentrancies: - EnglishAuction.bid() (src/EnglishAuction.sol#66-85) - EnglishAuction.highestBidder (src/EnglishAuction.sol#19)",
-      "status": "defect_evidence"
+      "status": "real",
+      "reason": "The refund call to the previous highestBidder runs before highestBidder/highestBid are updated, so that bidder can re-enter bid() and be refunded twice; same issue as the audit's real bid() reentrancy finding."
     },
     {
       "file": "src/EnglishAuction.sol",
       "kind": "baseline",
       "text": "reentrancy-events in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) Event emitted after the call(s): - BidPlaced(msg.sender,msg.value) (src/EnglishAuction.sol#84)",
-      "status": "defect_evidence"
+      "status": "false_positive",
+      "reason": "Emitting BidPlaced after the refund call only reorders the event log; it is not a defect on its own."
     },
     {
       "file": "src/EnglishAuction.sol",
@@ -399,9 +403,9 @@
   ],
   "finding_counts": {
     "total": 13,
-    "defect_evidence": 8,
-    "real": 0,
-    "false_positive": 5,
+    "defect_evidence": 5,
+    "real": 2,
+    "false_positive": 6,
     "unreviewed": 0
   },
   "reviews_used": [
@@ -414,6 +418,21 @@
       "sol-02-auction",
       "src/EnglishAuction.sol",
       "missing-zero-check"
+    ],
+    [
+      "sol-02-auction",
+      "src/EnglishAuction.sol",
+      "reentrancy-benign in `bid`"
+    ],
+    [
+      "sol-02-auction",
+      "src/EnglishAuction.sol",
+      "reentrancy-eth in `bid`"
+    ],
+    [
+      "sol-02-auction",
+      "src/EnglishAuction.sol",
+      "reentrancy-events in `bid`"
     ],
     [
       "sol-02-auction",

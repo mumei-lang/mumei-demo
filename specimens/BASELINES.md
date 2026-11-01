@@ -10,7 +10,7 @@ is over the specimens in the tool's languages only.
 | clippy | 1.99.1 | rust | 3 | 0/34 (0%) | 0 | 0 | n/a | 0 / 3 specimens |
 | gosec | 2.29.0 | go | 3 | 6/32 (19%) | 9 | 24 | 62% | 15 / 3 specimens |
 | semgrep | 1.150.0 | go, python, rust, solidity, typescript | 16 | 9/171 (5%) | 8 | 21 | 81% | 9 / 16 specimens |
-| slither | 0.11.6 | solidity | 3 | 12/31 (39%) | 13 | 42 | 43% | 28 / 3 specimens |
+| slither | 0.11.6 | solidity | 3 | 11/31 (35%) | 14 | 42 | 40% | 28 / 3 specimens |
 
 clippy settings: Rust 1.99.1, lint groups correctness, suspicious.
 
@@ -38,7 +38,7 @@ with different denominators are not directly comparable; compare within a langua
 | rust | semgrep | 0/34 (0%) | 0% | 2 / 3 specimens |
 | solidity | Mumei (no LLM) | 6/31 (19%) | 25% | 22 / 3 specimens |
 | solidity | semgrep | 0/31 (0%) | n/a | 0 / 3 specimens |
-| solidity | slither | 12/31 (39%) | 43% | 28 / 3 specimens |
+| solidity | slither | 11/31 (35%) | 40% | 28 / 3 specimens |
 | typescript | Mumei (no LLM) | 1/33 (3%) | 67% | 2 / 3 specimens |
 | typescript | semgrep | 2/33 (6%) | 100% | 2 / 3 specimens |
 
@@ -52,6 +52,6 @@ both, or neither (function-flagged defects count as not detected).
 | go | 32 | 1 | 6 | 0 | 25 |
 | python | 41 | 1 | 5 | 0 | 35 |
 | rust | 34 | 1 | 0 | 0 | 33 |
-| solidity | 31 | 4 | 10 | 2 | 15 |
+| solidity | 31 | 4 | 9 | 2 | 16 |
 | typescript | 33 | 1 | 2 | 0 | 30 |
-| **Total** | 171 | 8 | 23 | 2 | 138 |
+| **Total** | 171 | 8 | 22 | 2 | 139 |
