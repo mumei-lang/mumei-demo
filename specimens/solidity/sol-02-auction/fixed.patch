@@ -1,0 +1,210 @@
+diff --git a/src/EnglishAuction.sol b/src/EnglishAuction.sol
+index 428401e..1315d1c 100644
+--- a/src/EnglishAuction.sol
++++ b/src/EnglishAuction.sol
+@@ -2,15 +2,19 @@
+ pragma solidity ^0.8.20;
+ 
+ /// @title EnglishAuction
+-/// @notice Ascending-price auction: outbid bidders are refunded immediately,
+-///         cancelled bids go to a pull-based pendingReturns balance, and the
+-///         seller can fund an early-bird bonus raffle.
++/// @notice Ascending-price auction: outbid and cancelled bids go to a
++///         pull-based pendingReturns balance, and the seller can fund an
++///         early-bird bonus for the first bidder.
+ contract EnglishAuction {
+-    uint256 public constant LATE_BID_GRACE = 15 minutes;
+     uint256 public constant BPS = 10_000;
++    uint256 public constant MAX_DURATION = 365 days;
+ 
+-    uint256 private reservePrice;
++    address private immutable deployer;
+     address public seller;
++    /// @notice Minimum winning bid. On-chain state is public, so the reserve
++    ///         is published rather than kept in a private variable.
++    uint256 public reservePrice;
++    bool public finalized;
+     bool public initialized;
+     uint64 public endTime;
+     uint256 public endBlock;
+@@ -34,6 +38,10 @@ contract EnglishAuction {
+     event Finalized(address indexed seller, uint256 amount);
+     event BonusPaid(address indexed winner, uint256 amount);
+ 
++    constructor() {
++        deployer = msg.sender;
++    }
++
+     /// @notice One-time setup of the auction parameters.
+     function init(
+         address seller_,
+@@ -41,15 +49,16 @@ contract EnglishAuction {
+         uint256 duration_,
+         uint256 minIncrementBps_
+     ) external {
++        require(msg.sender == deployer, "not deployer");
+         require(!initialized, "already initialized");
++        require(seller_ != address(0), "zero seller");
++        require(duration_ > 0 && duration_ <= MAX_DURATION, "bad duration");
++        require(minIncrementBps_ > 0 && minIncrementBps_ <= BPS, "bad increment");
+         initialized = true;
+         seller = seller_;
+         reservePrice = reserve_;
+         minIncrementBps = minIncrementBps_;
+-        // endTime shares a slot with other small fields
+-        unchecked {
+-            endTime = uint64(block.timestamp + duration_);
+-        }
++        endTime = uint64(block.timestamp + duration_);
+         endBlock = block.number + duration_ / 12 + 1;
+         emit Initialized(seller_, duration_, minIncrementBps_);
+     }
+@@ -59,21 +68,19 @@ contract EnglishAuction {
+         if (highestBid == 0) {
+             return reservePrice;
+         }
+-        return highestBid + highestBid / BPS * minIncrementBps;
++        uint256 increment = highestBid * minIncrementBps / BPS;
++        return highestBid + (increment == 0 ? 1 : increment);
+     }
+ 
+-    /// @notice Places a bid; the previous top bidder is refunded at once.
++    /// @notice Places a bid; the previous top bid moves to pendingReturns.
+     function bid() external payable {
+         require(initialized, "not initialized");
+-        require(
+-            block.timestamp <= uint256(endTime) + LATE_BID_GRACE
+-                || block.number <= endBlock,
+-            "auction over"
+-        );
++        require(block.timestamp <= endTime, "auction over");
+         require(msg.value >= minNextBid(), "bid too low");
+-        if (highestBidder != address(0)) {
+-            (bool refunded, ) = highestBidder.call{value: highestBid}("");
+-            require(refunded, "refund failed");
++        address previous = highestBidder;
++        if (previous != address(0)) {
++            pendingReturns[previous] += bidOf[previous];
++            bidOf[previous] = 0;
+         }
+         highestBidder = msg.sender;
+         highestBid = msg.value;
+@@ -87,6 +94,7 @@ contract EnglishAuction {
+     /// @notice Cancels the caller's standing bid before the auction ends.
+     function cancelBid() external {
+         require(!hasEnded(), "auction ended");
++        require(msg.sender != highestBidder, "top bid cannot be cancelled");
+         uint256 amount = bidOf[msg.sender];
+         require(amount > 0, "nothing to cancel");
+         bidOf[msg.sender] = 0;
+@@ -98,21 +106,24 @@ contract EnglishAuction {
+     function withdraw() external {
+         uint256 amount = pendingReturns[msg.sender];
+         require(amount > 0, "nothing pending");
+-        (bool ok, ) = msg.sender.call{value: amount}("");
+-        require(ok, "withdraw failed");
+         pendingReturns[msg.sender] = 0;
+         emit Withdrawn(msg.sender, amount);
++        (bool ok, ) = msg.sender.call{value: amount}("");
++        require(ok, "withdraw failed");
+     }
+ 
+-    /// @notice Whether the auction window has passed on both clocks.
++    /// @notice Whether the auction window has passed.
+     function hasEnded() public view returns (bool) {
+-        return block.timestamp > endTime && block.number > endBlock;
++        return initialized && block.timestamp > endTime;
+     }
+ 
+     /// @notice Pays the winning bid to the seller once the auction ends.
+     function finalize() external {
+         require(hasEnded(), "not ended");
++        require(!finalized, "already finalized");
+         require(highestBid >= reservePrice, "reserve not met");
++        finalized = true;
++        bidOf[highestBidder] = 0;
+         (bool ok, ) = seller.call{value: highestBid}("");
+         require(ok, "payout failed");
+         emit Finalized(seller, highestBid);
+@@ -128,25 +139,19 @@ contract EnglishAuction {
+         bonusPool += msg.value;
+     }
+ 
+-    /// @notice Draws a random early bidder to receive the bonus pool.
++    /// @notice Pays the bonus pool to the earliest bidder. Block values can be
++    ///         predicted by other contracts, so the winner is not drawn from
++    ///         them.
+     function drawEarlyBirdBonus() external {
+         require(hasEnded(), "not ended");
+         require(!bonusPaid, "already drawn");
+-        uint256 n = earlyBidders.length;
+-        require(n > 0 && bonusPool > 0, "no draw available");
+-        uint256 idx = uint256(
+-            keccak256(
+-                abi.encodePacked(
+-                    block.timestamp, block.prevrandao, n
+-                )
+-            )
+-        ) % n;
+-        address winner = earlyBidders[idx];
++        require(earlyBidders.length > 0 && bonusPool > 0, "no draw available");
++        address winner = earlyBidders[0];
+         uint256 prize = bonusPool;
+         bonusPaid = true;
+-        (bool ok, ) = winner.call{value: prize}("");
+-        require(ok, "bonus failed");
+         bonusPool = 0;
+         emit BonusPaid(winner, prize);
++        (bool ok, ) = winner.call{value: prize}("");
++        require(ok, "bonus failed");
+     }
+ }
+diff --git a/test/HappyPath.t.sol b/test/HappyPath.t.sol
+index a864ed1..309b71a 100644
+--- a/test/HappyPath.t.sol
++++ b/test/HappyPath.t.sol
+@@ -36,11 +36,14 @@ contract HappyPathTest is SpecTest {
+     function test_outbid_refunds_previous() public {
+         vm.prank(alice);
+         auction.bid{value: 1.5 ether}();
+-        uint256 before = alice.balance;
+         vm.prank(bob);
+         auction.bid{value: 2 ether}();
+-        require(alice.balance == before + 1.5 ether, "refund");
++        require(auction.pendingReturns(alice) == 1.5 ether, "refund pending");
+         require(auction.highestBidder() == bob, "new highest");
++        uint256 before = alice.balance;
++        vm.prank(alice);
++        auction.withdraw();
++        require(alice.balance == before + 1.5 ether, "refund");
+     }
+ 
+     function test_min_next_bid_scales_with_increment() public {
+@@ -53,7 +56,10 @@ contract HappyPathTest is SpecTest {
+         vm.prank(alice);
+         auction.bid{value: 1.5 ether}();
+         vm.prank(alice);
++        vm.expectRevert();
+         auction.cancelBid();
++        vm.prank(bob);
++        auction.bid{value: 2 ether}();
+         require(auction.pendingReturns(alice) == 1.5 ether, "pending");
+         uint256 before = alice.balance;
+         vm.prank(alice);
+@@ -72,13 +78,14 @@ contract HappyPathTest is SpecTest {
+         require(seller.balance == before + 2 ether, "seller paid");
+     }
+ 
+-    function test_late_bid_within_grace_accepted() public {
++    function test_late_bid_rejected() public {
+         vm.prank(alice);
+         auction.bid{value: 1.5 ether}();
+         vm.warp(auction.endTime() + 10 minutes);
+         vm.prank(bob);
++        vm.expectRevert();
+         auction.bid{value: 2 ether}();
+-        require(auction.highestBidder() == bob, "late bid landed");
++        require(auction.highestBidder() == alice, "late bid rejected");
+     }
+ 
+     function test_early_bird_bonus_draw() public {
