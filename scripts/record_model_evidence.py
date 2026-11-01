@@ -70,10 +70,15 @@ def collect(repo: Path, output: Path) -> bool:
     return report["status"] == "passed"
 
 
-def main(argv=None) -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    return parser
+
+
+def main(argv=None) -> int:
+    parser = build_parser()
     args = parser.parse_args(argv)
     passed = collect(args.repo.resolve(), args.output.resolve())
     print(f"Independent model evidence: {'PASS' if passed else 'FAIL'}")

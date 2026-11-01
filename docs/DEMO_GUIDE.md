@@ -1,5 +1,7 @@
 # Demo Guide
 
+See the [generated repository reference](REFERENCE.md) for Make targets, CLI options, and environment variables.
+
 ## Optional fixed record-operation experiment
 
 With a built sibling `mumei` and the sibling `mumei-lean` pinned toolchain:

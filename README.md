@@ -62,6 +62,7 @@ make setup && make demo
 ```
 
 Use `make demo-ci` for deterministic fixture-mode validation. Detailed setup, per-target commands, dashboards, and troubleshooting are in [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md).
+See the [generated reference](docs/REFERENCE.md) for Make targets, CLI options, and environment variables.
 
 For a focused requirements-to-CI example, run
 `CI_FIXTURE_MODE=1 make demo-charter-regression`. The

@@ -216,10 +216,15 @@ def render_all() -> str:
     return "\n".join(lines)
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Render a Mumei verification report.")
     parser.add_argument("result_json", nargs="?", help="Path to result.json")
     parser.add_argument("--all", action="store_true", help="Render all scenarios")
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
     args = parser.parse_args()
 
     if args.all:
