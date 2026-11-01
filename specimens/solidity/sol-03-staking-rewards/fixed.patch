@@ -1,5 +1,5 @@
 diff --git a/src/StakingRewards.sol b/src/StakingRewards.sol
-index adeb934..9f2f556 100644
+index adeb934..e280af8 100644
 --- a/src/StakingRewards.sol
 +++ b/src/StakingRewards.sol
 @@ -35,6 +35,8 @@ contract StakingRewards {
@@ -127,22 +127,35 @@ index adeb934..9f2f556 100644
          address to = payoutAddress[user];
          require(to != address(0), "no payout set");
          uint256 amount = rewards[user];
-@@ -163,9 +173,12 @@ contract StakingRewards {
+@@ -157,15 +167,23 @@ contract StakingRewards {
+         emit RewardPaid(user, to, amount);
+     }
+ 
+-    /// @notice Redeems an operator-signed bonus voucher of `amount`.
++    /// @notice Redeems an operator-signed bonus voucher of `amount`. The
++    ///         voucher is bound to this pool and chain, and each operator's
++    ///         voucher can be redeemed once.
+     function claimBonus(
+         uint256 amount,
          uint8 v,
          bytes32 r,
          bytes32 s
 -    ) external {
-+    ) external nonReentrant {
-         bytes32 digest = keccak256(abi.encodePacked(msg.sender, amount));
+-        bytes32 digest = keccak256(abi.encodePacked(msg.sender, amount));
 -        require(ecrecover(digest, v, r, s) == operator, "bad voucher");
-+        require(!voucherUsed[digest], "voucher already used");
++    ) external nonReentrant {
++        bytes32 digest = keccak256(
++            abi.encodePacked(address(this), block.chainid, msg.sender, amount)
++        );
 +        address signer = ecrecover(digest, v, r, s);
 +        require(signer != address(0) && signer == operator, "bad voucher");
-+        voucherUsed[digest] = true;
++        bytes32 key = keccak256(abi.encodePacked(signer, digest));
++        require(!voucherUsed[key], "voucher already used");
++        voucherUsed[key] = true;
          require(rewardToken.transfer(msg.sender, amount), "bonus failed");
          emit BonusPaid(msg.sender, amount);
      }
-@@ -174,22 +187,26 @@ contract StakingRewards {
+@@ -174,22 +192,26 @@ contract StakingRewards {
      function notifyRewardAmount(
          uint256 reward,
          uint256 duration
@@ -176,7 +189,7 @@ index adeb934..9f2f556 100644
          emit OperatorSet(operator_);
      }
 diff --git a/test/HappyPath.t.sol b/test/HappyPath.t.sol
-index 8259c88..52d8363 100644
+index 8259c88..5ad72d0 100644
 --- a/test/HappyPath.t.sol
 +++ b/test/HappyPath.t.sol
 @@ -53,6 +53,7 @@ contract HappyPathTest is SpecTest {
@@ -187,7 +200,7 @@ index 8259c88..52d8363 100644
          vm.prank(alice);
          pool.withdraw(40 ether);
          require(pool.balances(alice) == 60 ether, "left");
-@@ -97,6 +98,7 @@ contract HappyPathTest is SpecTest {
+@@ -97,13 +98,16 @@ contract HappyPathTest is SpecTest {
          vm.stopPrank();
          _notify(1_000 ether, 1_000);
          vm.warp(block.timestamp + 100);
@@ -195,3 +208,13 @@ index 8259c88..52d8363 100644
          pool.claimFor(alice);
          require(rewardToken.balanceOf(bob) == 100 ether, "to payout");
      }
+ 
+     function test_bonus_voucher_redeems_once_here() public {
+         uint256 amount = 25 ether;
+-        bytes32 digest = keccak256(abi.encodePacked(alice, amount));
++        bytes32 digest = keccak256(
++            abi.encodePacked(address(pool), block.chainid, alice, amount)
++        );
+         (uint8 v, bytes32 r, bytes32 s) = vm.sign(operatorKey, digest);
+         vm.prank(alice);
+         pool.claimBonus(amount, v, r, s);
