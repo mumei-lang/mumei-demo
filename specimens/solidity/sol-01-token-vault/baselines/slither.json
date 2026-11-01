@@ -1,0 +1,694 @@
+{
+  "specimen": "sol-01-token-vault",
+  "language": "solidity",
+  "tool": "slither",
+  "version": "0.11.6",
+  "solc_version": "0.8.24",
+  "impacts": [
+    "High",
+    "Low",
+    "Medium"
+  ],
+  "generated_at": "2026-11-01T18:58:37Z",
+  "source_hash": "06ece590119e0b2330e82017f2ba92081b5a0dc4ccb6ab4d984a80c39283ec89",
+  "tool_errors": 0,
+  "raw_findings": [
+    {
+      "file": "src/RewardVault.sol",
+      "line": 85,
+      "rule": "divide-before-multiply",
+      "severity": "medium",
+      "cwe": [
+        682
+      ],
+      "message": "RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103) performs a multiplication on the result of a division: - assets = shares * totalAssets() / totalShares (src/RewardVault.sol#88) - fee = assets * withdrawFeeBps / BPS (src/RewardVault.sol#89)",
+      "cwe_only": true,
+      "function": "withdraw"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 85,
+      "rule": "reentrancy-eth",
+      "severity": "high",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103): External calls: - _payFee(fee) (src/RewardVault.sol#93) - address(feeRecipient).call{value: fee}() (src/RewardVault.sol#171) - _payout(msg.sender,net) (src/RewardVault.sol#94) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) - _payout(msg.sender,pending) (src/RewardVault.sol#96) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) State variables written after the call(s): - pos.shares -= uint128(shares) (src/RewardVault.sol#100) RewardVault.positions (src/RewardVault.sol#23) can be used in cross function reentrancies: - RewardVault.deposit() (src/RewardVault.sol#53-62) - RewardVault.distributeRewards() (src/RewardVault.sol#106-117) - RewardVault.positions (src/RewardVault.sol#23) - RewardVault.sharesOf(address) (src/RewardVault.sol#80-82) - RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103) - rewards[msg.sender] = 0 (src/RewardVault.sol#98) RewardVault.rewards (src/RewardVault.sol#24) can be used in cross function reentrancies: - RewardVault.claimRewards() (src/RewardVault.sol#120-126) - RewardVault.distributeRewards() (src/RewardVault.sol#106-117) - RewardVault.rewards (src/RewardVault.sol#24) - RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103) - rewardsOwed -= pending (src/RewardVault.sol#99) RewardVault.rewardsOwed (src/RewardVault.sol#22) can be used in cross function reentrancies: - RewardVault.claimRewards() (src/RewardVault.sol#120-126) - RewardVault.distributeRewards() (src/RewardVault.sol#106-117) - RewardVault.rewardsOwed (src/RewardVault.sol#22) - RewardVault.totalAssets() (src/RewardVault.sol#70-72) - RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103) - totalShares -= shares (src/RewardVault.sol#101) RewardVault.totalShares (src/RewardVault.sol#21) can be used in cross function reentrancies: - RewardVault._sharesFor(uint256) (src/RewardVault.sol#155-160) - RewardVault.deposit() (src/RewardVault.sol#53-62) - RewardVault.distributeRewards() (src/RewardVault.sol#106-117) - RewardVault.sharePrice() (src/RewardVault.sol#75-77) - RewardVault.totalShares (src/RewardVault.sol#21) - RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103)",
+      "cwe_only": true,
+      "function": "withdraw"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 85,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103): External calls: - _payFee(fee) (src/RewardVault.sol#93) - address(feeRecipient).call{value: fee}() (src/RewardVault.sol#171) - _payout(msg.sender,net) (src/RewardVault.sol#94) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) - _payout(msg.sender,pending) (src/RewardVault.sol#96) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) Event emitted after the call(s): - Withdraw(msg.sender,shares,assets,fee) (src/RewardVault.sol#102)",
+      "cwe_only": true,
+      "function": "withdraw"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 85,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(pos.shares >= shares,not enough shares) (src/RewardVault.sol#87)",
+      "cwe_only": true,
+      "function": "withdraw"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 106,
+      "rule": "divide-before-multiply",
+      "severity": "medium",
+      "cwe": [
+        682
+      ],
+      "message": "RewardVault.distributeRewards() (src/RewardVault.sol#106-117) performs a multiplication on the result of a division: - perShare = msg.value / totalShares (src/RewardVault.sol#107) - c = perShare * positions[h].shares (src/RewardVault.sol#111)",
+      "cwe_only": true,
+      "function": "distributeRewards"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 108,
+      "rule": "uninitialized-local",
+      "severity": "medium",
+      "cwe": [],
+      "message": "RewardVault.distributeRewards().credited (src/RewardVault.sol#108) is a local variable never initialized",
+      "cwe_only": true,
+      "function": "distributeRewards"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 120,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in RewardVault.claimRewards() (src/RewardVault.sol#120-126): External calls: - _payout(msg.sender,amount) (src/RewardVault.sol#124) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) Event emitted after the call(s): - RewardsClaimed(msg.sender,amount) (src/RewardVault.sol#125)",
+      "cwe_only": true,
+      "function": "claimRewards"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 129,
+      "rule": "missing-zero-check",
+      "severity": "low",
+      "cwe": [],
+      "message": "RewardVault.setFeeRecipient(address).who (src/RewardVault.sol#129) lacks a zero-check on : - feeRecipient = who (src/RewardVault.sol#130)",
+      "cwe_only": true,
+      "function": "setFeeRecipient"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 134,
+      "rule": "tx-origin",
+      "severity": "medium",
+      "cwe": [
+        346
+      ],
+      "message": "RewardVault.setWithdrawFeeBps(uint256) (src/RewardVault.sol#134-138) uses tx.origin for authorization: require(bool,string)(tx.origin == owner,not owner) (src/RewardVault.sol#135)",
+      "cwe_only": true,
+      "function": "setWithdrawFeeBps"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 155,
+      "rule": "incorrect-equality",
+      "severity": "medium",
+      "cwe": [],
+      "message": "RewardVault._sharesFor(uint256) (src/RewardVault.sol#155-160) uses a dangerous strict equality: - totalShares == 0 (src/RewardVault.sol#156)",
+      "cwe_only": true,
+      "function": "_sharesFor"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 167,
+      "rule": "incorrect-equality",
+      "severity": "medium",
+      "cwe": [],
+      "message": "RewardVault._payFee(uint256) (src/RewardVault.sol#167-172) uses a dangerous strict equality: - fee == 0 (src/RewardVault.sol#168)",
+      "cwe_only": true,
+      "function": "_payFee"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 167,
+      "rule": "unchecked-lowlevel",
+      "severity": "medium",
+      "cwe": [
+        252
+      ],
+      "message": "RewardVault._payFee(uint256) (src/RewardVault.sol#167-172) ignores return value by address(feeRecipient).call{value: fee}() (src/RewardVault.sol#171)",
+      "cwe_only": true,
+      "function": "_payFee"
+    }
+  ],
+  "defects": [
+    {
+      "id": "SOL01-D01",
+      "file": "src/RewardVault.sol",
+      "function": "withdraw",
+      "category": "reentrancy",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "reentrancy-eth in `withdraw` (line 85, CWE-841): Reentrancy in RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103): External calls: - _payFee(fee) (src/RewardVault.sol#93) - address(feeRecipient).call{value: fee}() (src/RewardVault.sol#171) - _payout(msg.sender,net) (src/RewardVault.sol#94) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) - _payout(msg.sender,pending) (src/RewardVault.sol#96) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) State variables written after the call(s): - pos.shares -= uint128(shares) (src/RewardVault.sol#100) RewardVault.positions (src/RewardVault.sol#23) can be used in cross function reentrancies: - RewardVault.deposit() (src/RewardVault.sol#53-62) - RewardVault.distributeRewards() (src/RewardVault.sol#106-117) - RewardVault.positions (src/RewardVault.sol#23) - RewardVault.sharesOf(address) (src/RewardVault.sol#80-82) - RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103) - rewards[msg.sender] = 0 (src/RewardVault.sol#98) RewardVault.rewards (src/RewardVault.sol#24) can be used in cross function reentrancies: - RewardVault.claimRewards() (src/RewardVault.sol#120-126) - RewardVault.distributeRewards() (src/RewardVault.sol#106-117) - RewardVault.rewards (src/RewardVault.sol#24) - RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103) - rewardsOwed -= pending (src/RewardVault.sol#99) RewardVault.rewardsOwed (src/RewardVault.sol#22) can be used in cross function reentrancies: - RewardVault.claimRewards() (src/RewardVault.sol#120-126) - RewardVault.distributeRewards() (src/RewardVault.sol#106-117) - RewardVault.rewardsOwed (src/RewardVault.sol#22) - RewardVault.totalAssets() (src/RewardVault.sol#70-72) - RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103) - totalShares -= shares (src/RewardVault.sol#101) RewardVault.totalShares (src/RewardVault.sol#21) can be used in cross function reentrancies: - RewardVault._sharesFor(uint256) (src/RewardVault.sol#155-160) - RewardVault.deposit() (src/RewardVault.sol#53-62) - RewardVault.distributeRewards() (src/RewardVault.sol#106-117) - RewardVault.sharePrice() (src/RewardVault.sol#75-77) - RewardVault.totalShares (src/RewardVault.sol#21) - RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103)",
+        "reentrancy-events in `withdraw` (line 85, CWE-841): Reentrancy in RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103): External calls: - _payFee(fee) (src/RewardVault.sol#93) - address(feeRecipient).call{value: fee}() (src/RewardVault.sol#171) - _payout(msg.sender,net) (src/RewardVault.sol#94) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) - _payout(msg.sender,pending) (src/RewardVault.sol#96) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) Event emitted after the call(s): - Withdraw(msg.sender,shares,assets,fee) (src/RewardVault.sol#102)"
+      ]
+    },
+    {
+      "id": "SOL01-D02",
+      "file": "src/VaultToken.sol",
+      "function": "transferFrom",
+      "category": "integer-underflow",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D03",
+      "file": "src/RewardVault.sol",
+      "function": "sharePrice",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D04",
+      "file": "src/RewardVault.sol",
+      "function": "_sharesFor",
+      "category": "rounding-error",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "incorrect-equality in `_sharesFor` (line 155): RewardVault._sharesFor(uint256) (src/RewardVault.sol#155-160) uses a dangerous strict equality: - totalShares == 0 (src/RewardVault.sol#156)"
+      ]
+    },
+    {
+      "id": "SOL01-D05",
+      "file": "src/RewardVault.sol",
+      "function": "setFeeRecipient",
+      "category": "access-control",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "missing-zero-check in `setFeeRecipient` (line 129): RewardVault.setFeeRecipient(address).who (src/RewardVault.sol#129) lacks a zero-check on : - feeRecipient = who (src/RewardVault.sol#130)"
+      ]
+    },
+    {
+      "id": "SOL01-D06",
+      "file": "src/RewardVault.sol",
+      "function": "setWithdrawFeeBps",
+      "category": "tx-origin-auth",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "tx-origin in `setWithdrawFeeBps` (line 134, CWE-346): RewardVault.setWithdrawFeeBps(uint256) (src/RewardVault.sol#134-138) uses tx.origin for authorization: require(bool,string)(tx.origin == owner,not owner) (src/RewardVault.sol#135)"
+      ]
+    },
+    {
+      "id": "SOL01-D07",
+      "file": "src/RewardVault.sol",
+      "function": "_payFee",
+      "category": "unchecked-call",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "unchecked-lowlevel in `_payFee` (line 167, CWE-252): RewardVault._payFee(uint256) (src/RewardVault.sol#167-172) ignores return value by address(feeRecipient).call{value: fee}() (src/RewardVault.sol#171)"
+      ]
+    },
+    {
+      "id": "SOL01-D08",
+      "file": "src/RewardVault.sol",
+      "function": "deposit",
+      "category": "integer-overflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D09",
+      "file": "src/RewardVault.sol",
+      "function": "distributeRewards",
+      "category": "denial-of-service",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "divide-before-multiply in `distributeRewards` (line 106, CWE-682): RewardVault.distributeRewards() (src/RewardVault.sol#106-117) performs a multiplication on the result of a division: - perShare = msg.value / totalShares (src/RewardVault.sol#107) - c = perShare * positions[h].shares (src/RewardVault.sol#111)",
+        "uninitialized-local in `distributeRewards` (line 108): RewardVault.distributeRewards().credited (src/RewardVault.sol#108) is a local variable never initialized"
+      ]
+    },
+    {
+      "id": "SOL01-D10",
+      "file": "src/RewardVault.sol",
+      "function": "distributeRewards",
+      "category": "rounding-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "divide-before-multiply in `distributeRewards` (line 106, CWE-682): RewardVault.distributeRewards() (src/RewardVault.sol#106-117) performs a multiplication on the result of a division: - perShare = msg.value / totalShares (src/RewardVault.sol#107) - c = perShare * positions[h].shares (src/RewardVault.sol#111)"
+      ]
+    }
+  ],
+  "counts": {
+    "total": 10,
+    "detected": 4,
+    "function_flagged": 3,
+    "missed": 3
+  },
+  "findings": [
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "baseline",
+      "text": "divide-before-multiply in `withdraw` (line 85, CWE-682): RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103) performs a multiplication on the result of a division: - assets = shares * totalAssets() / totalShares (src/RewardVault.sol#88) - fee = assets * withdrawFeeBps / BPS (src/RewardVault.sol#89)",
+      "status": "false_positive",
+      "reason": "assets is truncated by under 1 wei before the fee is taken in basis points; the rounding favours the vault and loses nothing material."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "baseline",
+      "text": "reentrancy-eth in `withdraw` (line 85, CWE-841): Reentrancy in RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103): External calls: - _payFee(fee) (src/RewardVault.sol#93) - address(feeRecipient).call{value: fee}() (src/RewardVault.sol#171) - _payout(msg.sender,net) (src/RewardVault.sol#94) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) - _payout(msg.sender,pending) (src/RewardVault.sol#96) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) State variables written after the call(s): - pos.shares -= uint128(shares) (src/RewardVault.sol#100) RewardVault.positions (src/RewardVault.sol#23) can be used in cross function reentrancies: - RewardVault.deposit() (src/RewardVault.sol#53-62) - RewardVault.distributeRewards() (src/RewardVault.sol#106-117) - RewardVault.positions (src/RewardVault.sol#23) - RewardVault.sharesOf(address) (src/RewardVault.sol#80-82) - RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103) - rewards[msg.sender] = 0 (src/RewardVault.sol#98) RewardVault.rewards (src/RewardVault.sol#24) can be used in cross function reentrancies: - RewardVault.claimRewards() (src/RewardVault.sol#120-126) - RewardVault.distributeRewards() (src/RewardVault.sol#106-117) - RewardVault.rewards (src/RewardVault.sol#24) - RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103) - rewardsOwed -= pending (src/RewardVault.sol#99) RewardVault.rewardsOwed (src/RewardVault.sol#22) can be used in cross function reentrancies: - RewardVault.claimRewards() (src/RewardVault.sol#120-126) - RewardVault.distributeRewards() (src/RewardVault.sol#106-117) - RewardVault.rewardsOwed (src/RewardVault.sol#22) - RewardVault.totalAssets() (src/RewardVault.sol#70-72) - RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103) - totalShares -= shares (src/RewardVault.sol#101) RewardVault.totalShares (src/RewardVault.sol#21) can be used in cross function reentrancies: - RewardVault._sharesFor(uint256) (src/RewardVault.sol#155-160) - RewardVault.deposit() (src/RewardVault.sol#53-62) - RewardVault.distributeRewards() (src/RewardVault.sol#106-117) - RewardVault.sharePrice() (src/RewardVault.sol#75-77) - RewardVault.totalShares (src/RewardVault.sol#21) - RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "baseline",
+      "text": "reentrancy-events in `withdraw` (line 85, CWE-841): Reentrancy in RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103): External calls: - _payFee(fee) (src/RewardVault.sol#93) - address(feeRecipient).call{value: fee}() (src/RewardVault.sol#171) - _payout(msg.sender,net) (src/RewardVault.sol#94) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) - _payout(msg.sender,pending) (src/RewardVault.sol#96) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) Event emitted after the call(s): - Withdraw(msg.sender,shares,assets,fee) (src/RewardVault.sol#102)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "baseline",
+      "text": "timestamp in `withdraw` (line 85, CWE-829): RewardVault.withdraw(uint256) (src/RewardVault.sol#85-103) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(pos.shares >= shares,not enough shares) (src/RewardVault.sol#87)",
+      "status": "false_positive",
+      "reason": "block.timestamp only gates time windows here; a few seconds of validator skew does not change any outcome the specimen relies on."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "baseline",
+      "text": "divide-before-multiply in `distributeRewards` (line 106, CWE-682): RewardVault.distributeRewards() (src/RewardVault.sol#106-117) performs a multiplication on the result of a division: - perShare = msg.value / totalShares (src/RewardVault.sol#107) - c = perShare * positions[h].shares (src/RewardVault.sol#111)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "baseline",
+      "text": "uninitialized-local in `distributeRewards` (line 108): RewardVault.distributeRewards().credited (src/RewardVault.sol#108) is a local variable never initialized",
+      "status": "false_positive",
+      "reason": "Solidity zero-initialises locals, and credited is meant to start at zero."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "baseline",
+      "text": "reentrancy-events in `claimRewards` (line 120, CWE-841): Reentrancy in RewardVault.claimRewards() (src/RewardVault.sol#120-126): External calls: - _payout(msg.sender,amount) (src/RewardVault.sol#124) - (ok,None) = to.call{value: amount}() (src/RewardVault.sol#163) Event emitted after the call(s): - RewardsClaimed(msg.sender,amount) (src/RewardVault.sol#125)",
+      "status": "false_positive",
+      "reason": "State is cleared before the payout; only the event is emitted after the call."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "baseline",
+      "text": "missing-zero-check in `setFeeRecipient` (line 129): RewardVault.setFeeRecipient(address).who (src/RewardVault.sol#129) lacks a zero-check on : - feeRecipient = who (src/RewardVault.sol#130)",
+      "status": "false_positive",
+      "reason": "A zero address is a caller mistake, not an exploit; the access-control defect in this function is scored separately."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "baseline",
+      "text": "tx-origin in `setWithdrawFeeBps` (line 134, CWE-346): RewardVault.setWithdrawFeeBps(uint256) (src/RewardVault.sol#134-138) uses tx.origin for authorization: require(bool,string)(tx.origin == owner,not owner) (src/RewardVault.sol#135)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "baseline",
+      "text": "incorrect-equality in `_sharesFor` (line 155): RewardVault._sharesFor(uint256) (src/RewardVault.sol#155-160) uses a dangerous strict equality: - totalShares == 0 (src/RewardVault.sol#156)",
+      "status": "false_positive",
+      "reason": "The strict equalities compare internal accounting (totalShares, fee, amounts) that no outside party can set to dodge the check."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "baseline",
+      "text": "incorrect-equality in `_payFee` (line 167): RewardVault._payFee(uint256) (src/RewardVault.sol#167-172) uses a dangerous strict equality: - fee == 0 (src/RewardVault.sol#168)",
+      "status": "false_positive",
+      "reason": "The strict equalities compare internal accounting (totalShares, fee, amounts) that no outside party can set to dodge the check."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "baseline",
+      "text": "unchecked-lowlevel in `_payFee` (line 167, CWE-252): RewardVault._payFee(uint256) (src/RewardVault.sol#167-172) ignores return value by address(feeRecipient).call{value: fee}() (src/RewardVault.sol#171)",
+      "status": "defect_evidence"
+    }
+  ],
+  "finding_counts": {
+    "total": 12,
+    "defect_evidence": 5,
+    "real": 0,
+    "false_positive": 7,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "divide-before-multiply in `withdraw`"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "incorrect-equality"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "missing-zero-check"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "reentrancy-events in `claimRewards`"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "uninitialized-local"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "uses timestamp for comparisons"
+    ]
+  ],
+  "fixed_raw_findings": [
+    {
+      "file": "src/RewardVault.sol",
+      "line": 67,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "RewardVault.deposit() (src/RewardVault.sol#67-88) uses timestamp for comparisons Dangerous comparisons: - totalShares == 0 (src/RewardVault.sol#69) - require(bool,string)(shares > 0,deposit mints no shares) (src/RewardVault.sol#73) - require(bool,string)(shares <= type()(uint128).max,deposit too large) (src/RewardVault.sol#74) - require(bool,string)(newShares <= type()(uint128).max,position too large) (src/RewardVault.sol#78)",
+      "cwe_only": true,
+      "function": "deposit"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 101,
+      "rule": "incorrect-equality",
+      "severity": "medium",
+      "cwe": [],
+      "message": "RewardVault.sharePrice() (src/RewardVault.sol#101-106) uses a dangerous strict equality: - totalShares == 0 (src/RewardVault.sol#102)",
+      "cwe_only": true,
+      "function": "sharePrice"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 101,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "RewardVault.sharePrice() (src/RewardVault.sol#101-106) uses timestamp for comparisons Dangerous comparisons: - totalShares == 0 (src/RewardVault.sol#102)",
+      "cwe_only": true,
+      "function": "sharePrice"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 119,
+      "rule": "divide-before-multiply",
+      "severity": "medium",
+      "cwe": [
+        682
+      ],
+      "message": "RewardVault.withdraw(uint256) (src/RewardVault.sol#119-136) performs a multiplication on the result of a division: - assets = shares * totalAssets() / totalShares (src/RewardVault.sol#124) - fee = assets * withdrawFeeBps / BPS (src/RewardVault.sol#125)",
+      "cwe_only": true,
+      "function": "withdraw"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 119,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "RewardVault.withdraw(uint256) (src/RewardVault.sol#119-136) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(pos.shares >= shares,not enough shares) (src/RewardVault.sol#122)",
+      "cwe_only": true,
+      "function": "withdraw"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 139,
+      "rule": "divide-before-multiply",
+      "severity": "medium",
+      "cwe": [
+        682
+      ],
+      "message": "RewardVault.distributeRewards() (src/RewardVault.sol#139-147) performs a multiplication on the result of a division: - increment = msg.value * ACC_PRECISION / totalShares (src/RewardVault.sol#141) - rewardsOwed += increment * totalShares / ACC_PRECISION (src/RewardVault.sol#145)",
+      "cwe_only": true,
+      "function": "distributeRewards"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 139,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "RewardVault.distributeRewards() (src/RewardVault.sol#139-147) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(totalShares > 0,no shares) (src/RewardVault.sol#140)",
+      "cwe_only": true,
+      "function": "distributeRewards"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 186,
+      "rule": "incorrect-equality",
+      "severity": "medium",
+      "cwe": [],
+      "message": "RewardVault._sharesFor(uint256,uint256) (src/RewardVault.sol#186-198) uses a dangerous strict equality: - assetsBefore == 0 (src/RewardVault.sol#194)",
+      "cwe_only": true,
+      "function": "_sharesFor"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 186,
+      "rule": "incorrect-equality",
+      "severity": "medium",
+      "cwe": [],
+      "message": "RewardVault._sharesFor(uint256,uint256) (src/RewardVault.sol#186-198) uses a dangerous strict equality: - totalShares == 0 (src/RewardVault.sol#191)",
+      "cwe_only": true,
+      "function": "_sharesFor"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 186,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "RewardVault._sharesFor(uint256,uint256) (src/RewardVault.sol#186-198) uses timestamp for comparisons Dangerous comparisons: - totalShares == 0 (src/RewardVault.sol#191) - assetsBefore == 0 (src/RewardVault.sol#194)",
+      "cwe_only": true,
+      "function": "_sharesFor"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 210,
+      "rule": "incorrect-equality",
+      "severity": "medium",
+      "cwe": [],
+      "message": "RewardVault._payout(address,uint256) (src/RewardVault.sol#210-216) uses a dangerous strict equality: - amount == 0 (src/RewardVault.sol#211)",
+      "cwe_only": true,
+      "function": "_payout"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 210,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "RewardVault._payout(address,uint256) (src/RewardVault.sol#210-216) uses timestamp for comparisons Dangerous comparisons: - amount == 0 (src/RewardVault.sol#211) - require(bool,string)(ok,payout failed) (src/RewardVault.sol#215)",
+      "cwe_only": true,
+      "function": "_payout"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 221,
+      "rule": "incorrect-equality",
+      "severity": "medium",
+      "cwe": [],
+      "message": "RewardVault._payFee(uint256) (src/RewardVault.sol#221-227) uses a dangerous strict equality: - fee == 0 (src/RewardVault.sol#222)",
+      "cwe_only": true,
+      "function": "_payFee"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "line": 221,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "RewardVault._payFee(uint256) (src/RewardVault.sol#221-227) uses timestamp for comparisons Dangerous comparisons: - fee == 0 (src/RewardVault.sol#222) - require(bool,string)(ok,fee transfer failed) (src/RewardVault.sol#226)",
+      "cwe_only": true,
+      "function": "_payFee"
+    }
+  ],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 10,
+    "still_reported": [
+      "SOL01-D10"
+    ],
+    "false_alarms": 14,
+    "findings": [
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "timestamp in `deposit` (line 67, CWE-829): RewardVault.deposit() (src/RewardVault.sol#67-88) uses timestamp for comparisons Dangerous comparisons: - totalShares == 0 (src/RewardVault.sol#69) - require(bool,string)(shares > 0,deposit mints no shares) (src/RewardVault.sol#73) - require(bool,string)(shares <= type()(uint128).max,deposit too large) (src/RewardVault.sol#74) - require(bool,string)(newShares <= type()(uint128).max,position too large) (src/RewardVault.sol#78)",
+        "status": "false_positive",
+        "reason": "block.timestamp only gates time windows here; a few seconds of validator skew does not change any outcome the specimen relies on."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "incorrect-equality in `sharePrice` (line 101): RewardVault.sharePrice() (src/RewardVault.sol#101-106) uses a dangerous strict equality: - totalShares == 0 (src/RewardVault.sol#102)",
+        "status": "false_positive",
+        "reason": "The strict equalities compare internal accounting (totalShares, fee, amounts) that no outside party can set to dodge the check."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "timestamp in `sharePrice` (line 101, CWE-829): RewardVault.sharePrice() (src/RewardVault.sol#101-106) uses timestamp for comparisons Dangerous comparisons: - totalShares == 0 (src/RewardVault.sol#102)",
+        "status": "false_positive",
+        "reason": "block.timestamp only gates time windows here; a few seconds of validator skew does not change any outcome the specimen relies on."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "divide-before-multiply in `withdraw` (line 119, CWE-682): RewardVault.withdraw(uint256) (src/RewardVault.sol#119-136) performs a multiplication on the result of a division: - assets = shares * totalAssets() / totalShares (src/RewardVault.sol#124) - fee = assets * withdrawFeeBps / BPS (src/RewardVault.sol#125)",
+        "status": "false_positive",
+        "reason": "assets is truncated by under 1 wei before the fee is taken in basis points; the rounding favours the vault and loses nothing material."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "timestamp in `withdraw` (line 119, CWE-829): RewardVault.withdraw(uint256) (src/RewardVault.sol#119-136) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(pos.shares >= shares,not enough shares) (src/RewardVault.sol#122)",
+        "status": "false_positive",
+        "reason": "block.timestamp only gates time windows here; a few seconds of validator skew does not change any outcome the specimen relies on."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "divide-before-multiply in `distributeRewards` (line 139, CWE-682): RewardVault.distributeRewards() (src/RewardVault.sol#139-147) performs a multiplication on the result of a division: - increment = msg.value * ACC_PRECISION / totalShares (src/RewardVault.sol#141) - rewardsOwed += increment * totalShares / ACC_PRECISION (src/RewardVault.sol#145)",
+        "status": "false_positive",
+        "reason": "On the fixed code the increment is scaled by ACC_PRECISION first and only the creditable amount is reserved."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "timestamp in `distributeRewards` (line 139, CWE-829): RewardVault.distributeRewards() (src/RewardVault.sol#139-147) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(totalShares > 0,no shares) (src/RewardVault.sol#140)",
+        "status": "false_positive",
+        "reason": "block.timestamp only gates time windows here; a few seconds of validator skew does not change any outcome the specimen relies on."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "incorrect-equality in `_sharesFor` (line 186): RewardVault._sharesFor(uint256,uint256) (src/RewardVault.sol#186-198) uses a dangerous strict equality: - assetsBefore == 0 (src/RewardVault.sol#194)",
+        "status": "false_positive",
+        "reason": "The strict equalities compare internal accounting (totalShares, fee, amounts) that no outside party can set to dodge the check."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "incorrect-equality in `_sharesFor` (line 186): RewardVault._sharesFor(uint256,uint256) (src/RewardVault.sol#186-198) uses a dangerous strict equality: - totalShares == 0 (src/RewardVault.sol#191)",
+        "status": "false_positive",
+        "reason": "The strict equalities compare internal accounting (totalShares, fee, amounts) that no outside party can set to dodge the check."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "timestamp in `_sharesFor` (line 186, CWE-829): RewardVault._sharesFor(uint256,uint256) (src/RewardVault.sol#186-198) uses timestamp for comparisons Dangerous comparisons: - totalShares == 0 (src/RewardVault.sol#191) - assetsBefore == 0 (src/RewardVault.sol#194)",
+        "status": "false_positive",
+        "reason": "block.timestamp only gates time windows here; a few seconds of validator skew does not change any outcome the specimen relies on."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "incorrect-equality in `_payout` (line 210): RewardVault._payout(address,uint256) (src/RewardVault.sol#210-216) uses a dangerous strict equality: - amount == 0 (src/RewardVault.sol#211)",
+        "status": "false_positive",
+        "reason": "The strict equalities compare internal accounting (totalShares, fee, amounts) that no outside party can set to dodge the check."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "timestamp in `_payout` (line 210, CWE-829): RewardVault._payout(address,uint256) (src/RewardVault.sol#210-216) uses timestamp for comparisons Dangerous comparisons: - amount == 0 (src/RewardVault.sol#211) - require(bool,string)(ok,payout failed) (src/RewardVault.sol#215)",
+        "status": "false_positive",
+        "reason": "block.timestamp only gates time windows here; a few seconds of validator skew does not change any outcome the specimen relies on."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "incorrect-equality in `_payFee` (line 221): RewardVault._payFee(uint256) (src/RewardVault.sol#221-227) uses a dangerous strict equality: - fee == 0 (src/RewardVault.sol#222)",
+        "status": "false_positive",
+        "reason": "The strict equalities compare internal accounting (totalShares, fee, amounts) that no outside party can set to dodge the check."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "baseline",
+        "text": "timestamp in `_payFee` (line 221, CWE-829): RewardVault._payFee(uint256) (src/RewardVault.sol#221-227) uses timestamp for comparisons Dangerous comparisons: - fee == 0 (src/RewardVault.sol#222) - require(bool,string)(ok,fee transfer failed) (src/RewardVault.sol#226)",
+        "status": "false_positive",
+        "reason": "block.timestamp only gates time windows here; a few seconds of validator skew does not change any outcome the specimen relies on."
+      }
+    ],
+    "finding_counts": {
+      "total": 14,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 14,
+      "unreviewed": 0
+    },
+    "reviews_used": [
+      [
+        "sol-01-token-vault",
+        "src/RewardVault.sol",
+        "divide-before-multiply in `distributeRewards` (line 139"
+      ],
+      [
+        "sol-01-token-vault",
+        "src/RewardVault.sol",
+        "divide-before-multiply in `withdraw`"
+      ],
+      [
+        "sol-01-token-vault",
+        "src/RewardVault.sol",
+        "incorrect-equality"
+      ],
+      [
+        "sol-01-token-vault",
+        "src/RewardVault.sol",
+        "uses timestamp for comparisons"
+      ]
+    ]
+  }
+}

@@ -135,6 +135,318 @@
       "finding_contains": "no-replaceall in `invoiceId`",
       "verdict": "false_positive",
       "reason": "replaceAll is supported by every Node.js version the specimen targets; the browser-compatibility warning does not apply to a CLI."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-01-inventory-api",
+      "file": "calc.go",
+      "finding_contains": "G115 in `reorderPoint`",
+      "verdict": "false_positive",
+      "reason": "len(locations) counts the storage locations of one item and cannot approach 2^31, so the int32 conversion cannot wrap."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-01-inventory-api",
+      "file": "calc.go",
+      "finding_contains": "G104 in `appendMovement`",
+      "verdict": "false_positive",
+      "reason": "The movement log is best-effort; a failed Sync or Close loses a log line but leaves inventory state correct."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-01-inventory-api",
+      "file": "handlers.go",
+      "finding_contains": "G104 in `writeJSON`",
+      "verdict": "false_positive",
+      "reason": "The status line is already sent when Encode runs, so a write error to the client has nowhere to go."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-01-inventory-api",
+      "file": "handlers.go",
+      "finding_contains": "G115 in `restockHandler` (line 180",
+      "verdict": "false_positive",
+      "reason": "On the fixed code the int64 total is checked against math.MaxInt32 before the conversion."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-01-inventory-api",
+      "file": "main.go",
+      "finding_contains": "G114 in `main`",
+      "verdict": "false_positive",
+      "reason": "The service binds a loopback listener for local use; server timeouts are deployment hardening, not a defect in this code."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-01-inventory-api",
+      "file": "main.go",
+      "finding_contains": "G706 in `auditRequests`",
+      "verdict": "real",
+      "reason": "r.URL.Path is percent-decoded, so a request path with %0a writes forged lines into the request log."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-01-inventory-api",
+      "file": "main.go",
+      "finding_contains": "G104 in `auditRequests`",
+      "verdict": "false_positive",
+      "reason": "The audit write is discarded on purpose with `_, _ =`; a lost log line does not change request handling."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-02-logscan-cli",
+      "file": "main.go",
+      "finding_contains": "G104 in `run` (line 71",
+      "verdict": "real",
+      "reason": "The gzip step's error is dropped, so the command reports success when compression failed."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-02-logscan-cli",
+      "file": "main.go",
+      "finding_contains": "G304 in `readFiles`",
+      "verdict": "false_positive",
+      "reason": "The CLI opens the log files its own user names on the command line; there is no privilege boundary."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-02-logscan-cli",
+      "file": "main.go",
+      "finding_contains": "G204 in `run` (line 82",
+      "verdict": "false_positive",
+      "reason": "On the fixed code gzip runs with a fixed argument list, no shell and `--` before the path."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-02-logscan-cli",
+      "file": "main.go",
+      "finding_contains": "G104 in `readFiles` (line 120",
+      "verdict": "false_positive",
+      "reason": "On the fixed code this is Close on a file opened read-only, which cannot lose data."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-03-auth-gateway",
+      "file": "auth.go",
+      "finding_contains": "G505",
+      "verdict": "real",
+      "reason": "The seeded accounts store unsalted SHA-1 password digests, which is the planted weak-crypto design."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-03-auth-gateway",
+      "file": "auth.go",
+      "finding_contains": "G401",
+      "verdict": "real",
+      "reason": "The seeded accounts store unsalted SHA-1 password digests, which is the planted weak-crypto design."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-03-auth-gateway",
+      "file": "handlers.go",
+      "finding_contains": "G505",
+      "verdict": "real",
+      "reason": "Login compares unsalted SHA-1 password digests, which is the planted weak-crypto design."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-03-auth-gateway",
+      "file": "handlers.go",
+      "finding_contains": "G401 in `loginHandler`",
+      "verdict": "real",
+      "reason": "Login compares unsalted SHA-1 password digests, which is the planted weak-crypto design."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-03-auth-gateway",
+      "file": "handlers.go",
+      "finding_contains": "G107 in `proxyHandler` (line 68",
+      "verdict": "real",
+      "reason": "The proxy fetches a caller-supplied URL with no destination check (the planted SSRF)."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-03-auth-gateway",
+      "file": "handlers.go",
+      "finding_contains": "G104 in `proxyHandler`",
+      "verdict": "false_positive",
+      "reason": "io.Copy streams the upstream body after the status is sent; a copy error cannot be reported to the client."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-03-auth-gateway",
+      "file": "handlers.go",
+      "finding_contains": "G104 in `writeJSON`",
+      "verdict": "false_positive",
+      "reason": "The status line is already sent when Encode runs, so a write error to the client has nowhere to go."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-03-auth-gateway",
+      "file": "main.go",
+      "finding_contains": "G114 in `main`",
+      "verdict": "false_positive",
+      "reason": "The service binds a loopback listener for local use; server timeouts are deployment hardening, not a defect in this code."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-03-auth-gateway",
+      "file": "handlers.go",
+      "finding_contains": "G710 in `loginHandler` (line 51",
+      "verdict": "false_positive",
+      "reason": "On the fixed code `next` is rejected unless localPath accepts it as a same-site path."
+    },
+    {
+      "tool": "gosec",
+      "specimen": "go-03-auth-gateway",
+      "file": "handlers.go",
+      "finding_contains": "G704 in `proxyHandler` (line 92",
+      "verdict": "false_positive",
+      "reason": "On the fixed code the target must be http(s) and proxyClient refuses non-public addresses at dial time."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "divide-before-multiply in `withdraw`",
+      "verdict": "false_positive",
+      "reason": "assets is truncated by under 1 wei before the fee is taken in basis points; the rounding favours the vault and loses nothing material."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "divide-before-multiply in `distributeRewards` (line 139",
+      "verdict": "false_positive",
+      "reason": "On the fixed code the increment is scaled by ACC_PRECISION first and only the creditable amount is reserved."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "uses timestamp for comparisons",
+      "verdict": "false_positive",
+      "reason": "block.timestamp only gates time windows here; a few seconds of validator skew does not change any outcome the specimen relies on."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "uninitialized-local",
+      "verdict": "false_positive",
+      "reason": "Solidity zero-initialises locals, and credited is meant to start at zero."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "reentrancy-events in `claimRewards`",
+      "verdict": "false_positive",
+      "reason": "State is cleared before the payout; only the event is emitted after the call."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "missing-zero-check",
+      "verdict": "false_positive",
+      "reason": "A zero address is a caller mistake, not an exploit; the access-control defect in this function is scored separately."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "incorrect-equality",
+      "verdict": "false_positive",
+      "reason": "The strict equalities compare internal accounting (totalShares, fee, amounts) that no outside party can set to dodge the check."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "missing-zero-check",
+      "verdict": "false_positive",
+      "reason": "A zero seller is a caller mistake, not an exploit; the init access-control defect is scored separately."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "timestamp in `hasEnded`",
+      "verdict": "false_positive",
+      "reason": "Comparing the end time with block.timestamp is the intended auction clock; the late-bid grace defect is in bid()."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "timestamp in `bid` (line 76",
+      "verdict": "false_positive",
+      "reason": "On the fixed code bids stop at endTime with no grace window."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "reentrancy-events in `finalize`",
+      "verdict": "false_positive",
+      "reason": "Only the event is emitted after the payout; the repeated-finalize defect is a missing state flag, not reentrancy."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-02-auction",
+      "file": "src/EnglishAuction.sol",
+      "finding_contains": "in `drawEarlyBirdBonus`",
+      "verdict": "false_positive",
+      "reason": "bonusPaid is set before the call, so re-entry cannot draw again; a reentrant fundBonus only loses the winner's own top-up."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "missing-zero-check",
+      "verdict": "false_positive",
+      "reason": "A zero owner or operator is a deployer mistake, not an exploit."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "uses timestamp for comparisons",
+      "verdict": "false_positive",
+      "reason": "block.timestamp only drives reward accrual and lockups; a few seconds of validator skew does not change any outcome the specimen relies on."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "in `stake`",
+      "verdict": "false_positive",
+      "reason": "The only external call is transferFrom on the staking token fixed at construction; the lockup defect in stake() is a logic error, not reentrancy."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "reentrancy-events",
+      "verdict": "false_positive",
+      "reason": "Rewards and balances are updated before the token transfer; only the event is emitted after the call."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "incorrect-equality in `rewardPerToken`",
+      "verdict": "false_positive",
+      "reason": "On the fixed code the equality compares totalSupply with zero to skip accrual, which no outside party can abuse."
+    },
+    {
+      "tool": "slither",
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "divide-before-multiply in `notifyRewardAmount`",
+      "verdict": "false_positive",
+      "reason": "On the fixed code rewardRate = total / duration is the standard rate computation; the dust remainder stays in the contract."
     }
   ]
 }

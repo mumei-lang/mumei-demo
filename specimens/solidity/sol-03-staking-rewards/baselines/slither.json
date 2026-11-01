@@ -1,0 +1,742 @@
+{
+  "specimen": "sol-03-staking-rewards",
+  "language": "solidity",
+  "tool": "slither",
+  "version": "0.11.6",
+  "solc_version": "0.8.24",
+  "impacts": [
+    "High",
+    "Low",
+    "Medium"
+  ],
+  "generated_at": "2026-11-01T18:58:37Z",
+  "source_hash": "43cf94281eb7b1fc324c24c7529726d100f9f62e5b24741bdc3284eee4d494ff",
+  "tool_errors": 0,
+  "raw_findings": [
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 57,
+      "rule": "missing-zero-check",
+      "severity": "low",
+      "cwe": [],
+      "message": "StakingRewards.constructor(address,address,address).owner_ (src/StakingRewards.sol#57) lacks a zero-check on : - owner = owner_ (src/StakingRewards.sol#60) - operator = owner_ (src/StakingRewards.sol#61)",
+      "cwe_only": true,
+      "function": "constructor"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 65,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "StakingRewards.lastTimeRewardApplicable() (src/StakingRewards.sol#65-69) uses timestamp for comparisons Dangerous comparisons: - block.timestamp < periodFinish (src/StakingRewards.sol#66-68)",
+      "cwe_only": true,
+      "function": "lastTimeRewardApplicable"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 72,
+      "rule": "divide-before-multiply",
+      "severity": "medium",
+      "cwe": [
+        682
+      ],
+      "message": "StakingRewards.rewardPerToken() (src/StakingRewards.sol#72-79) performs a multiplication on the result of a division: - delta = dt * rewardRate / totalSupply (src/StakingRewards.sol#77) - rewardPerTokenStored + delta * 1e18 (src/StakingRewards.sol#78)",
+      "cwe_only": true,
+      "function": "rewardPerToken"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 92,
+      "rule": "reentrancy-benign",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#95-98) State variables written after the call(s): - lockEnd[msg.sender] = block.timestamp + LOCKUP (src/StakingRewards.sol#102)",
+      "cwe_only": true,
+      "function": "stake"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 92,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#95-98) Event emitted after the call(s): - Staked(msg.sender,amount) (src/StakingRewards.sol#104)",
+      "cwe_only": true,
+      "function": "stake"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 92,
+      "rule": "reentrancy-no-eth",
+      "severity": "medium",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#95-98) State variables written after the call(s): - balances[msg.sender] = previous + amount (src/StakingRewards.sol#99) StakingRewards.balances (src/StakingRewards.sol#26) can be used in cross function reentrancies: - StakingRewards.balances (src/StakingRewards.sol#26) - StakingRewards.earned(address) (src/StakingRewards.sol#82-89) - StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132) - StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105) - StakingRewards.withdraw(uint256) (src/StakingRewards.sol#108-118) - totalSupply += amount (src/StakingRewards.sol#100) StakingRewards.totalSupply (src/StakingRewards.sol#25) can be used in cross function reentrancies: - StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132) - StakingRewards.rewardPerToken() (src/StakingRewards.sol#72-79) - StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105) - StakingRewards.totalSupply (src/StakingRewards.sol#25) - StakingRewards.withdraw(uint256) (src/StakingRewards.sol#108-118)",
+      "cwe_only": true,
+      "function": "stake"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 108,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in StakingRewards.withdraw(uint256) (src/StakingRewards.sol#108-118): External calls: - require(bool,string)(stakingToken.transfer(msg.sender,amount),withdraw transfer failed) (src/StakingRewards.sol#113-116) Event emitted after the call(s): - Withdrawn(msg.sender,amount) (src/StakingRewards.sol#117)",
+      "cwe_only": true,
+      "function": "withdraw"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 108,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "StakingRewards.withdraw(uint256) (src/StakingRewards.sol#108-118) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(block.timestamp >= lockEnd[msg.sender],still locked) (src/StakingRewards.sol#110)",
+      "cwe_only": true,
+      "function": "withdraw"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 121,
+      "rule": "reentrancy-benign",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132): External calls: - require(bool,string)(stakingToken.transfer(msg.sender,amount),transfer failed) (src/StakingRewards.sol#124-127) State variables written after the call(s): - rewards[msg.sender] = 0 (src/StakingRewards.sol#130) - totalSupply -= amount (src/StakingRewards.sol#129)",
+      "cwe_only": true,
+      "function": "emergencyWithdraw"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 121,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132): External calls: - require(bool,string)(stakingToken.transfer(msg.sender,amount),transfer failed) (src/StakingRewards.sol#124-127) Event emitted after the call(s): - Withdrawn(msg.sender,amount) (src/StakingRewards.sol#131)",
+      "cwe_only": true,
+      "function": "emergencyWithdraw"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 121,
+      "rule": "reentrancy-no-eth",
+      "severity": "medium",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132): External calls: - require(bool,string)(stakingToken.transfer(msg.sender,amount),transfer failed) (src/StakingRewards.sol#124-127) State variables written after the call(s): - balances[msg.sender] = 0 (src/StakingRewards.sol#128) StakingRewards.balances (src/StakingRewards.sol#26) can be used in cross function reentrancies: - StakingRewards.balances (src/StakingRewards.sol#26) - StakingRewards.earned(address) (src/StakingRewards.sol#82-89) - StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132) - StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105) - StakingRewards.withdraw(uint256) (src/StakingRewards.sol#108-118)",
+      "cwe_only": true,
+      "function": "emergencyWithdraw"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 135,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in StakingRewards.getReward() (src/StakingRewards.sol#135-141): External calls: - rewardToken.transfer(msg.sender,amount) (src/StakingRewards.sol#139) Event emitted after the call(s): - RewardPaid(msg.sender,msg.sender,amount) (src/StakingRewards.sol#140)",
+      "cwe_only": true,
+      "function": "getReward"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 135,
+      "rule": "unchecked-transfer",
+      "severity": "high",
+      "cwe": [
+        252
+      ],
+      "message": "StakingRewards.getReward() (src/StakingRewards.sol#135-141) ignores return value by rewardToken.transfer(msg.sender,amount) (src/StakingRewards.sol#139)",
+      "cwe_only": true,
+      "function": "getReward"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 150,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in StakingRewards.claimFor(address) (src/StakingRewards.sol#150-158): External calls: - require(bool,string)(rewardToken.transfer(to,amount),payout failed) (src/StakingRewards.sol#156) Event emitted after the call(s): - RewardPaid(user,to,amount) (src/StakingRewards.sol#157)",
+      "cwe_only": true,
+      "function": "claimFor"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 150,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "StakingRewards.claimFor(address) (src/StakingRewards.sol#150-158) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(rewardToken.transfer(to,amount),payout failed) (src/StakingRewards.sol#156)",
+      "cwe_only": true,
+      "function": "claimFor"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 161,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in StakingRewards.claimBonus(uint256,uint8,bytes32,bytes32) (src/StakingRewards.sol#161-171): External calls: - require(bool,string)(rewardToken.transfer(msg.sender,amount),bonus failed) (src/StakingRewards.sol#169) Event emitted after the call(s): - BonusPaid(msg.sender,amount) (src/StakingRewards.sol#170)",
+      "cwe_only": true,
+      "function": "claimBonus"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 191,
+      "rule": "missing-zero-check",
+      "severity": "low",
+      "cwe": [],
+      "message": "StakingRewards.setOperator(address).operator_ (src/StakingRewards.sol#191) lacks a zero-check on : - operator = operator_ (src/StakingRewards.sol#193)",
+      "cwe_only": true,
+      "function": "setOperator"
+    }
+  ],
+  "defects": [
+    {
+      "id": "SOL03-D01",
+      "file": "src/StakingRewards.sol",
+      "function": "rewardPerToken",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "divide-before-multiply in `rewardPerToken` (line 72, CWE-682): StakingRewards.rewardPerToken() (src/StakingRewards.sol#72-79) performs a multiplication on the result of a division: - delta = dt * rewardRate / totalSupply (src/StakingRewards.sol#77) - rewardPerTokenStored + delta * 1e18 (src/StakingRewards.sol#78)"
+      ]
+    },
+    {
+      "id": "SOL03-D02",
+      "file": "src/StakingRewards.sol",
+      "function": "earned",
+      "category": "integer-underflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL03-D03",
+      "file": "src/StakingRewards.sol",
+      "function": "notifyRewardAmount",
+      "category": "access-control",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL03-D04",
+      "file": "src/StakingRewards.sol",
+      "function": "stake",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "reentrancy-benign in `stake` (line 92, CWE-841): Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#95-98) State variables written after the call(s): - lockEnd[msg.sender] = block.timestamp + LOCKUP (src/StakingRewards.sol#102)",
+        "reentrancy-events in `stake` (line 92, CWE-841): Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#95-98) Event emitted after the call(s): - Staked(msg.sender,amount) (src/StakingRewards.sol#104)",
+        "reentrancy-no-eth in `stake` (line 92, CWE-841): Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#95-98) State variables written after the call(s): - balances[msg.sender] = previous + amount (src/StakingRewards.sol#99) StakingRewards.balances (src/StakingRewards.sol#26) can be used in cross function reentrancies: - StakingRewards.balances (src/StakingRewards.sol#26) - StakingRewards.earned(address) (src/StakingRewards.sol#82-89) - StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132) - StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105) - StakingRewards.withdraw(uint256) (src/StakingRewards.sol#108-118) - totalSupply += amount (src/StakingRewards.sol#100) StakingRewards.totalSupply (src/StakingRewards.sol#25) can be used in cross function reentrancies: - StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132) - StakingRewards.rewardPerToken() (src/StakingRewards.sol#72-79) - StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105) - StakingRewards.totalSupply (src/StakingRewards.sol#25) - StakingRewards.withdraw(uint256) (src/StakingRewards.sol#108-118)"
+      ]
+    },
+    {
+      "id": "SOL03-D05",
+      "file": "src/StakingRewards.sol",
+      "function": "emergencyWithdraw",
+      "category": "reentrancy",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "reentrancy-benign in `emergencyWithdraw` (line 121, CWE-841): Reentrancy in StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132): External calls: - require(bool,string)(stakingToken.transfer(msg.sender,amount),transfer failed) (src/StakingRewards.sol#124-127) State variables written after the call(s): - rewards[msg.sender] = 0 (src/StakingRewards.sol#130) - totalSupply -= amount (src/StakingRewards.sol#129)",
+        "reentrancy-events in `emergencyWithdraw` (line 121, CWE-841): Reentrancy in StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132): External calls: - require(bool,string)(stakingToken.transfer(msg.sender,amount),transfer failed) (src/StakingRewards.sol#124-127) Event emitted after the call(s): - Withdrawn(msg.sender,amount) (src/StakingRewards.sol#131)",
+        "reentrancy-no-eth in `emergencyWithdraw` (line 121, CWE-841): Reentrancy in StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132): External calls: - require(bool,string)(stakingToken.transfer(msg.sender,amount),transfer failed) (src/StakingRewards.sol#124-127) State variables written after the call(s): - balances[msg.sender] = 0 (src/StakingRewards.sol#128) StakingRewards.balances (src/StakingRewards.sol#26) can be used in cross function reentrancies: - StakingRewards.balances (src/StakingRewards.sol#26) - StakingRewards.earned(address) (src/StakingRewards.sol#82-89) - StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132) - StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105) - StakingRewards.withdraw(uint256) (src/StakingRewards.sol#108-118)"
+      ]
+    },
+    {
+      "id": "SOL03-D06",
+      "file": "src/StakingRewards.sol",
+      "function": "rewardPerToken",
+      "category": "rounding-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "divide-before-multiply in `rewardPerToken` (line 72, CWE-682): StakingRewards.rewardPerToken() (src/StakingRewards.sol#72-79) performs a multiplication on the result of a division: - delta = dt * rewardRate / totalSupply (src/StakingRewards.sol#77) - rewardPerTokenStored + delta * 1e18 (src/StakingRewards.sol#78)"
+      ]
+    },
+    {
+      "id": "SOL03-D07",
+      "file": "src/StakingRewards.sol",
+      "function": "constructor",
+      "category": "invariant-violation",
+      "class": "design",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "missing-zero-check in `constructor` (line 57): StakingRewards.constructor(address,address,address).owner_ (src/StakingRewards.sol#57) lacks a zero-check on : - owner = owner_ (src/StakingRewards.sol#60) - operator = owner_ (src/StakingRewards.sol#61)"
+      ]
+    },
+    {
+      "id": "SOL03-D08",
+      "file": "src/StakingRewards.sol",
+      "function": "getReward",
+      "category": "unchecked-call",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "unchecked-transfer in `getReward` (line 135, CWE-252): StakingRewards.getReward() (src/StakingRewards.sol#135-141) ignores return value by rewardToken.transfer(msg.sender,amount) (src/StakingRewards.sol#139)"
+      ]
+    },
+    {
+      "id": "SOL03-D09",
+      "file": "src/StakingRewards.sol",
+      "function": "claimFor",
+      "category": "missing-authorization",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "reentrancy-events in `claimFor` (line 150, CWE-841): Reentrancy in StakingRewards.claimFor(address) (src/StakingRewards.sol#150-158): External calls: - require(bool,string)(rewardToken.transfer(to,amount),payout failed) (src/StakingRewards.sol#156) Event emitted after the call(s): - RewardPaid(user,to,amount) (src/StakingRewards.sol#157)",
+        "timestamp in `claimFor` (line 150, CWE-829): StakingRewards.claimFor(address) (src/StakingRewards.sol#150-158) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(rewardToken.transfer(to,amount),payout failed) (src/StakingRewards.sol#156)"
+      ]
+    },
+    {
+      "id": "SOL03-D10",
+      "file": "src/StakingRewards.sol",
+      "function": "claimBonus",
+      "category": "signature-replay",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "reentrancy-events in `claimBonus` (line 161, CWE-841): Reentrancy in StakingRewards.claimBonus(uint256,uint8,bytes32,bytes32) (src/StakingRewards.sol#161-171): External calls: - require(bool,string)(rewardToken.transfer(msg.sender,amount),bonus failed) (src/StakingRewards.sol#169) Event emitted after the call(s): - BonusPaid(msg.sender,amount) (src/StakingRewards.sol#170)"
+      ]
+    }
+  ],
+  "counts": {
+    "total": 10,
+    "detected": 3,
+    "function_flagged": 5,
+    "missed": 2
+  },
+  "findings": [
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "missing-zero-check in `constructor` (line 57): StakingRewards.constructor(address,address,address).owner_ (src/StakingRewards.sol#57) lacks a zero-check on : - owner = owner_ (src/StakingRewards.sol#60) - operator = owner_ (src/StakingRewards.sol#61)",
+      "status": "false_positive",
+      "reason": "A zero owner or operator is a deployer mistake, not an exploit."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "timestamp in `lastTimeRewardApplicable` (line 65, CWE-829): StakingRewards.lastTimeRewardApplicable() (src/StakingRewards.sol#65-69) uses timestamp for comparisons Dangerous comparisons: - block.timestamp < periodFinish (src/StakingRewards.sol#66-68)",
+      "status": "false_positive",
+      "reason": "block.timestamp only drives reward accrual and lockups; a few seconds of validator skew does not change any outcome the specimen relies on."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "divide-before-multiply in `rewardPerToken` (line 72, CWE-682): StakingRewards.rewardPerToken() (src/StakingRewards.sol#72-79) performs a multiplication on the result of a division: - delta = dt * rewardRate / totalSupply (src/StakingRewards.sol#77) - rewardPerTokenStored + delta * 1e18 (src/StakingRewards.sol#78)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "reentrancy-benign in `stake` (line 92, CWE-841): Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#95-98) State variables written after the call(s): - lockEnd[msg.sender] = block.timestamp + LOCKUP (src/StakingRewards.sol#102)",
+      "status": "false_positive",
+      "reason": "The only external call is transferFrom on the staking token fixed at construction; the lockup defect in stake() is a logic error, not reentrancy."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "reentrancy-events in `stake` (line 92, CWE-841): Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#95-98) Event emitted after the call(s): - Staked(msg.sender,amount) (src/StakingRewards.sol#104)",
+      "status": "false_positive",
+      "reason": "The only external call is transferFrom on the staking token fixed at construction; the lockup defect in stake() is a logic error, not reentrancy."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "reentrancy-no-eth in `stake` (line 92, CWE-841): Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#95-98) State variables written after the call(s): - balances[msg.sender] = previous + amount (src/StakingRewards.sol#99) StakingRewards.balances (src/StakingRewards.sol#26) can be used in cross function reentrancies: - StakingRewards.balances (src/StakingRewards.sol#26) - StakingRewards.earned(address) (src/StakingRewards.sol#82-89) - StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132) - StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105) - StakingRewards.withdraw(uint256) (src/StakingRewards.sol#108-118) - totalSupply += amount (src/StakingRewards.sol#100) StakingRewards.totalSupply (src/StakingRewards.sol#25) can be used in cross function reentrancies: - StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132) - StakingRewards.rewardPerToken() (src/StakingRewards.sol#72-79) - StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105) - StakingRewards.totalSupply (src/StakingRewards.sol#25) - StakingRewards.withdraw(uint256) (src/StakingRewards.sol#108-118)",
+      "status": "false_positive",
+      "reason": "The only external call is transferFrom on the staking token fixed at construction; the lockup defect in stake() is a logic error, not reentrancy."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "reentrancy-events in `withdraw` (line 108, CWE-841): Reentrancy in StakingRewards.withdraw(uint256) (src/StakingRewards.sol#108-118): External calls: - require(bool,string)(stakingToken.transfer(msg.sender,amount),withdraw transfer failed) (src/StakingRewards.sol#113-116) Event emitted after the call(s): - Withdrawn(msg.sender,amount) (src/StakingRewards.sol#117)",
+      "status": "false_positive",
+      "reason": "Rewards and balances are updated before the token transfer; only the event is emitted after the call."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "timestamp in `withdraw` (line 108, CWE-829): StakingRewards.withdraw(uint256) (src/StakingRewards.sol#108-118) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(block.timestamp >= lockEnd[msg.sender],still locked) (src/StakingRewards.sol#110)",
+      "status": "false_positive",
+      "reason": "block.timestamp only drives reward accrual and lockups; a few seconds of validator skew does not change any outcome the specimen relies on."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "reentrancy-benign in `emergencyWithdraw` (line 121, CWE-841): Reentrancy in StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132): External calls: - require(bool,string)(stakingToken.transfer(msg.sender,amount),transfer failed) (src/StakingRewards.sol#124-127) State variables written after the call(s): - rewards[msg.sender] = 0 (src/StakingRewards.sol#130) - totalSupply -= amount (src/StakingRewards.sol#129)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "reentrancy-events in `emergencyWithdraw` (line 121, CWE-841): Reentrancy in StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132): External calls: - require(bool,string)(stakingToken.transfer(msg.sender,amount),transfer failed) (src/StakingRewards.sol#124-127) Event emitted after the call(s): - Withdrawn(msg.sender,amount) (src/StakingRewards.sol#131)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "reentrancy-no-eth in `emergencyWithdraw` (line 121, CWE-841): Reentrancy in StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132): External calls: - require(bool,string)(stakingToken.transfer(msg.sender,amount),transfer failed) (src/StakingRewards.sol#124-127) State variables written after the call(s): - balances[msg.sender] = 0 (src/StakingRewards.sol#128) StakingRewards.balances (src/StakingRewards.sol#26) can be used in cross function reentrancies: - StakingRewards.balances (src/StakingRewards.sol#26) - StakingRewards.earned(address) (src/StakingRewards.sol#82-89) - StakingRewards.emergencyWithdraw() (src/StakingRewards.sol#121-132) - StakingRewards.stake(uint256) (src/StakingRewards.sol#92-105) - StakingRewards.withdraw(uint256) (src/StakingRewards.sol#108-118)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "reentrancy-events in `getReward` (line 135, CWE-841): Reentrancy in StakingRewards.getReward() (src/StakingRewards.sol#135-141): External calls: - rewardToken.transfer(msg.sender,amount) (src/StakingRewards.sol#139) Event emitted after the call(s): - RewardPaid(msg.sender,msg.sender,amount) (src/StakingRewards.sol#140)",
+      "status": "false_positive",
+      "reason": "Rewards and balances are updated before the token transfer; only the event is emitted after the call."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "unchecked-transfer in `getReward` (line 135, CWE-252): StakingRewards.getReward() (src/StakingRewards.sol#135-141) ignores return value by rewardToken.transfer(msg.sender,amount) (src/StakingRewards.sol#139)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "reentrancy-events in `claimFor` (line 150, CWE-841): Reentrancy in StakingRewards.claimFor(address) (src/StakingRewards.sol#150-158): External calls: - require(bool,string)(rewardToken.transfer(to,amount),payout failed) (src/StakingRewards.sol#156) Event emitted after the call(s): - RewardPaid(user,to,amount) (src/StakingRewards.sol#157)",
+      "status": "false_positive",
+      "reason": "Rewards and balances are updated before the token transfer; only the event is emitted after the call."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "timestamp in `claimFor` (line 150, CWE-829): StakingRewards.claimFor(address) (src/StakingRewards.sol#150-158) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(rewardToken.transfer(to,amount),payout failed) (src/StakingRewards.sol#156)",
+      "status": "false_positive",
+      "reason": "block.timestamp only drives reward accrual and lockups; a few seconds of validator skew does not change any outcome the specimen relies on."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "reentrancy-events in `claimBonus` (line 161, CWE-841): Reentrancy in StakingRewards.claimBonus(uint256,uint8,bytes32,bytes32) (src/StakingRewards.sol#161-171): External calls: - require(bool,string)(rewardToken.transfer(msg.sender,amount),bonus failed) (src/StakingRewards.sol#169) Event emitted after the call(s): - BonusPaid(msg.sender,amount) (src/StakingRewards.sol#170)",
+      "status": "false_positive",
+      "reason": "Rewards and balances are updated before the token transfer; only the event is emitted after the call."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "baseline",
+      "text": "missing-zero-check in `setOperator` (line 191): StakingRewards.setOperator(address).operator_ (src/StakingRewards.sol#191) lacks a zero-check on : - operator = operator_ (src/StakingRewards.sol#193)",
+      "status": "false_positive",
+      "reason": "A zero owner or operator is a deployer mistake, not an exploit."
+    }
+  ],
+  "finding_counts": {
+    "total": 17,
+    "defect_evidence": 5,
+    "real": 0,
+    "false_positive": 12,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "in `stake`"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "missing-zero-check"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "reentrancy-events"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "uses timestamp for comparisons"
+    ]
+  ],
+  "fixed_raw_findings": [
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 81,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "StakingRewards.lastTimeRewardApplicable() (src/StakingRewards.sol#81-85) uses timestamp for comparisons Dangerous comparisons: - block.timestamp < periodFinish (src/StakingRewards.sol#82-84)",
+      "cwe_only": true,
+      "function": "lastTimeRewardApplicable"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 88,
+      "rule": "incorrect-equality",
+      "severity": "medium",
+      "cwe": [],
+      "message": "StakingRewards.rewardPerToken() (src/StakingRewards.sol#88-94) uses a dangerous strict equality: - rewardRate == 0 || totalSupply == 0 (src/StakingRewards.sol#89)",
+      "cwe_only": true,
+      "function": "rewardPerToken"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 88,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "StakingRewards.rewardPerToken() (src/StakingRewards.sol#88-94) uses timestamp for comparisons Dangerous comparisons: - rewardRate == 0 || totalSupply == 0 (src/StakingRewards.sol#89)",
+      "cwe_only": true,
+      "function": "rewardPerToken"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 103,
+      "rule": "reentrancy-benign",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#103-114): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#106-109) State variables written after the call(s): - lockEnd[msg.sender] = block.timestamp + LOCKUP (src/StakingRewards.sol#112)",
+      "cwe_only": true,
+      "function": "stake"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 103,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#103-114): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#106-109) Event emitted after the call(s): - Staked(msg.sender,amount) (src/StakingRewards.sol#113)",
+      "cwe_only": true,
+      "function": "stake"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 103,
+      "rule": "reentrancy-no-eth",
+      "severity": "medium",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#103-114): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#106-109) State variables written after the call(s): - balances[msg.sender] = previous + amount (src/StakingRewards.sol#110) StakingRewards.balances (src/StakingRewards.sol#26) can be used in cross function reentrancies: - StakingRewards.balances (src/StakingRewards.sol#26) - StakingRewards.earned(address) (src/StakingRewards.sol#97-100) - StakingRewards.stake(uint256) (src/StakingRewards.sol#103-114) - totalSupply += amount (src/StakingRewards.sol#111) StakingRewards.totalSupply (src/StakingRewards.sol#25) can be used in cross function reentrancies: - StakingRewards.rewardPerToken() (src/StakingRewards.sol#88-94) - StakingRewards.stake(uint256) (src/StakingRewards.sol#103-114) - StakingRewards.totalSupply (src/StakingRewards.sol#25)",
+      "cwe_only": true,
+      "function": "stake"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 117,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "StakingRewards.withdraw(uint256) (src/StakingRewards.sol#117-127) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(block.timestamp >= lockEnd[msg.sender],still locked) (src/StakingRewards.sol#119)",
+      "cwe_only": true,
+      "function": "withdraw"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 144,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "StakingRewards.getReward() (src/StakingRewards.sol#144-150) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(rewardToken.transfer(msg.sender,amount),reward transfer failed) (src/StakingRewards.sol#148)",
+      "cwe_only": true,
+      "function": "getReward"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 159,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "StakingRewards.claimFor(address) (src/StakingRewards.sol#159-168) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(rewardToken.transfer(to,amount),payout failed) (src/StakingRewards.sol#166)",
+      "cwe_only": true,
+      "function": "claimFor"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 192,
+      "rule": "divide-before-multiply",
+      "severity": "medium",
+      "cwe": [
+        682
+      ],
+      "message": "StakingRewards.notifyRewardAmount(uint256,uint256) (src/StakingRewards.sol#192-210) performs a multiplication on the result of a division: - total += (periodFinish - block.timestamp) * rewardRate (src/StakingRewards.sol#199) - rewardRate = total / duration (src/StakingRewards.sol#205)",
+      "cwe_only": true,
+      "function": "notifyRewardAmount"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "line": 192,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "StakingRewards.notifyRewardAmount(uint256,uint256) (src/StakingRewards.sol#192-210) uses timestamp for comparisons Dangerous comparisons: - block.timestamp < periodFinish (src/StakingRewards.sol#198) - require(bool,string)(rewardToken.balanceOf(address(this)) >= total,reward exceeds balance) (src/StakingRewards.sol#201-204) - require(bool,string)(rewardRate > 0,reward rate is zero) (src/StakingRewards.sol#206)",
+      "cwe_only": true,
+      "function": "notifyRewardAmount"
+    }
+  ],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 10,
+    "still_reported": [],
+    "false_alarms": 11,
+    "findings": [
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "baseline",
+        "text": "timestamp in `lastTimeRewardApplicable` (line 81, CWE-829): StakingRewards.lastTimeRewardApplicable() (src/StakingRewards.sol#81-85) uses timestamp for comparisons Dangerous comparisons: - block.timestamp < periodFinish (src/StakingRewards.sol#82-84)",
+        "status": "false_positive",
+        "reason": "block.timestamp only drives reward accrual and lockups; a few seconds of validator skew does not change any outcome the specimen relies on."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "baseline",
+        "text": "incorrect-equality in `rewardPerToken` (line 88): StakingRewards.rewardPerToken() (src/StakingRewards.sol#88-94) uses a dangerous strict equality: - rewardRate == 0 || totalSupply == 0 (src/StakingRewards.sol#89)",
+        "status": "false_positive",
+        "reason": "On the fixed code the equality compares totalSupply with zero to skip accrual, which no outside party can abuse."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "baseline",
+        "text": "timestamp in `rewardPerToken` (line 88, CWE-829): StakingRewards.rewardPerToken() (src/StakingRewards.sol#88-94) uses timestamp for comparisons Dangerous comparisons: - rewardRate == 0 || totalSupply == 0 (src/StakingRewards.sol#89)",
+        "status": "false_positive",
+        "reason": "block.timestamp only drives reward accrual and lockups; a few seconds of validator skew does not change any outcome the specimen relies on."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "baseline",
+        "text": "reentrancy-benign in `stake` (line 103, CWE-841): Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#103-114): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#106-109) State variables written after the call(s): - lockEnd[msg.sender] = block.timestamp + LOCKUP (src/StakingRewards.sol#112)",
+        "status": "false_positive",
+        "reason": "The only external call is transferFrom on the staking token fixed at construction; the lockup defect in stake() is a logic error, not reentrancy."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "baseline",
+        "text": "reentrancy-events in `stake` (line 103, CWE-841): Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#103-114): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#106-109) Event emitted after the call(s): - Staked(msg.sender,amount) (src/StakingRewards.sol#113)",
+        "status": "false_positive",
+        "reason": "The only external call is transferFrom on the staking token fixed at construction; the lockup defect in stake() is a logic error, not reentrancy."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "baseline",
+        "text": "reentrancy-no-eth in `stake` (line 103, CWE-841): Reentrancy in StakingRewards.stake(uint256) (src/StakingRewards.sol#103-114): External calls: - require(bool,string)(stakingToken.transferFrom(msg.sender,address(this),amount),stake transfer failed) (src/StakingRewards.sol#106-109) State variables written after the call(s): - balances[msg.sender] = previous + amount (src/StakingRewards.sol#110) StakingRewards.balances (src/StakingRewards.sol#26) can be used in cross function reentrancies: - StakingRewards.balances (src/StakingRewards.sol#26) - StakingRewards.earned(address) (src/StakingRewards.sol#97-100) - StakingRewards.stake(uint256) (src/StakingRewards.sol#103-114) - totalSupply += amount (src/StakingRewards.sol#111) StakingRewards.totalSupply (src/StakingRewards.sol#25) can be used in cross function reentrancies: - StakingRewards.rewardPerToken() (src/StakingRewards.sol#88-94) - StakingRewards.stake(uint256) (src/StakingRewards.sol#103-114) - StakingRewards.totalSupply (src/StakingRewards.sol#25)",
+        "status": "false_positive",
+        "reason": "The only external call is transferFrom on the staking token fixed at construction; the lockup defect in stake() is a logic error, not reentrancy."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "baseline",
+        "text": "timestamp in `withdraw` (line 117, CWE-829): StakingRewards.withdraw(uint256) (src/StakingRewards.sol#117-127) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(block.timestamp >= lockEnd[msg.sender],still locked) (src/StakingRewards.sol#119)",
+        "status": "false_positive",
+        "reason": "block.timestamp only drives reward accrual and lockups; a few seconds of validator skew does not change any outcome the specimen relies on."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "baseline",
+        "text": "timestamp in `getReward` (line 144, CWE-829): StakingRewards.getReward() (src/StakingRewards.sol#144-150) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(rewardToken.transfer(msg.sender,amount),reward transfer failed) (src/StakingRewards.sol#148)",
+        "status": "false_positive",
+        "reason": "block.timestamp only drives reward accrual and lockups; a few seconds of validator skew does not change any outcome the specimen relies on."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "baseline",
+        "text": "timestamp in `claimFor` (line 159, CWE-829): StakingRewards.claimFor(address) (src/StakingRewards.sol#159-168) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(rewardToken.transfer(to,amount),payout failed) (src/StakingRewards.sol#166)",
+        "status": "false_positive",
+        "reason": "block.timestamp only drives reward accrual and lockups; a few seconds of validator skew does not change any outcome the specimen relies on."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "baseline",
+        "text": "divide-before-multiply in `notifyRewardAmount` (line 192, CWE-682): StakingRewards.notifyRewardAmount(uint256,uint256) (src/StakingRewards.sol#192-210) performs a multiplication on the result of a division: - total += (periodFinish - block.timestamp) * rewardRate (src/StakingRewards.sol#199) - rewardRate = total / duration (src/StakingRewards.sol#205)",
+        "status": "false_positive",
+        "reason": "On the fixed code rewardRate = total / duration is the standard rate computation; the dust remainder stays in the contract."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "baseline",
+        "text": "timestamp in `notifyRewardAmount` (line 192, CWE-829): StakingRewards.notifyRewardAmount(uint256,uint256) (src/StakingRewards.sol#192-210) uses timestamp for comparisons Dangerous comparisons: - block.timestamp < periodFinish (src/StakingRewards.sol#198) - require(bool,string)(rewardToken.balanceOf(address(this)) >= total,reward exceeds balance) (src/StakingRewards.sol#201-204) - require(bool,string)(rewardRate > 0,reward rate is zero) (src/StakingRewards.sol#206)",
+        "status": "false_positive",
+        "reason": "block.timestamp only drives reward accrual and lockups; a few seconds of validator skew does not change any outcome the specimen relies on."
+      }
+    ],
+    "finding_counts": {
+      "total": 11,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 11,
+      "unreviewed": 0
+    },
+    "reviews_used": [
+      [
+        "sol-03-staking-rewards",
+        "src/StakingRewards.sol",
+        "divide-before-multiply in `notifyRewardAmount`"
+      ],
+      [
+        "sol-03-staking-rewards",
+        "src/StakingRewards.sol",
+        "in `stake`"
+      ],
+      [
+        "sol-03-staking-rewards",
+        "src/StakingRewards.sol",
+        "incorrect-equality in `rewardPerToken`"
+      ],
+      [
+        "sol-03-staking-rewards",
+        "src/StakingRewards.sol",
+        "reentrancy-events"
+      ],
+      [
+        "sol-03-staking-rewards",
+        "src/StakingRewards.sol",
+        "uses timestamp for comparisons"
+      ]
+    ]
+  }
+}

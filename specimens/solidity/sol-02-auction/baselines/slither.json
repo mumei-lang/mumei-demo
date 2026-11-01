@@ -1,0 +1,522 @@
+{
+  "specimen": "sol-02-auction",
+  "language": "solidity",
+  "tool": "slither",
+  "version": "0.11.6",
+  "solc_version": "0.8.24",
+  "impacts": [
+    "High",
+    "Low",
+    "Medium"
+  ],
+  "generated_at": "2026-11-01T18:58:37Z",
+  "source_hash": "4649be3a3bdce49e82b5def4dfe169569c315e6c5d99cb98a9ed599d54e37a9e",
+  "tool_errors": 0,
+  "raw_findings": [
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 39,
+      "rule": "missing-zero-check",
+      "severity": "low",
+      "cwe": [],
+      "message": "EnglishAuction.init(address,uint256,uint256,uint256).seller_ (src/EnglishAuction.sol#39) lacks a zero-check on : - seller = seller_ (src/EnglishAuction.sol#46)",
+      "cwe_only": true,
+      "function": "init"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 58,
+      "rule": "divide-before-multiply",
+      "severity": "medium",
+      "cwe": [
+        682
+      ],
+      "message": "EnglishAuction.minNextBid() (src/EnglishAuction.sol#58-63) performs a multiplication on the result of a division: - highestBid + highestBid / BPS * minIncrementBps (src/EnglishAuction.sol#62)",
+      "cwe_only": true,
+      "function": "minNextBid"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 66,
+      "rule": "reentrancy-benign",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) State variables written after the call(s): - bidOf[msg.sender] = msg.value (src/EnglishAuction.sol#80) - earlyBidders.push(msg.sender) (src/EnglishAuction.sol#82)",
+      "cwe_only": true,
+      "function": "bid"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 66,
+      "rule": "reentrancy-eth",
+      "severity": "high",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) State variables written after the call(s): - highestBid = msg.value (src/EnglishAuction.sol#79) EnglishAuction.highestBid (src/EnglishAuction.sol#20) can be used in cross function reentrancies: - EnglishAuction.bid() (src/EnglishAuction.sol#66-85) - EnglishAuction.finalize() (src/EnglishAuction.sol#113-119) - EnglishAuction.highestBid (src/EnglishAuction.sol#20) - EnglishAuction.minNextBid() (src/EnglishAuction.sol#58-63) - highestBidder = msg.sender (src/EnglishAuction.sol#78) EnglishAuction.highestBidder (src/EnglishAuction.sol#19) can be used in cross function reentrancies: - EnglishAuction.bid() (src/EnglishAuction.sol#66-85) - EnglishAuction.highestBidder (src/EnglishAuction.sol#19)",
+      "cwe_only": true,
+      "function": "bid"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 66,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) Event emitted after the call(s): - BidPlaced(msg.sender,msg.value) (src/EnglishAuction.sol#84)",
+      "cwe_only": true,
+      "function": "bid"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 66,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "EnglishAuction.bid() (src/EnglishAuction.sol#66-85) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(block.timestamp <= uint256(endTime) + LATE_BID_GRACE || block.number <= endBlock,auction over) (src/EnglishAuction.sol#68-72) - block.timestamp <= endTime (src/EnglishAuction.sol#81)",
+      "cwe_only": true,
+      "function": "bid"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 98,
+      "rule": "reentrancy-eth",
+      "severity": "high",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in EnglishAuction.withdraw() (src/EnglishAuction.sol#98-105): External calls: - (ok,None) = msg.sender.call{value: amount}() (src/EnglishAuction.sol#101) State variables written after the call(s): - pendingReturns[msg.sender] = 0 (src/EnglishAuction.sol#103) EnglishAuction.pendingReturns (src/EnglishAuction.sol#25) can be used in cross function reentrancies: - EnglishAuction.cancelBid() (src/EnglishAuction.sol#88-95) - EnglishAuction.pendingReturns (src/EnglishAuction.sol#25) - EnglishAuction.withdraw() (src/EnglishAuction.sol#98-105)",
+      "cwe_only": true,
+      "function": "withdraw"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 98,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in EnglishAuction.withdraw() (src/EnglishAuction.sol#98-105): External calls: - (ok,None) = msg.sender.call{value: amount}() (src/EnglishAuction.sol#101) Event emitted after the call(s): - Withdrawn(msg.sender,amount) (src/EnglishAuction.sol#104)",
+      "cwe_only": true,
+      "function": "withdraw"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 108,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "EnglishAuction.hasEnded() (src/EnglishAuction.sol#108-110) uses timestamp for comparisons Dangerous comparisons: - block.timestamp > endTime && block.number > endBlock (src/EnglishAuction.sol#109)",
+      "cwe_only": true,
+      "function": "hasEnded"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 113,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in EnglishAuction.finalize() (src/EnglishAuction.sol#113-119): External calls: - (ok,None) = seller.call{value: highestBid}() (src/EnglishAuction.sol#116) Event emitted after the call(s): - Finalized(seller,highestBid) (src/EnglishAuction.sol#118)",
+      "cwe_only": true,
+      "function": "finalize"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 132,
+      "rule": "reentrancy-eth",
+      "severity": "high",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in EnglishAuction.drawEarlyBirdBonus() (src/EnglishAuction.sol#132-151): External calls: - (ok,None) = winner.call{value: prize}() (src/EnglishAuction.sol#147) State variables written after the call(s): - bonusPool = 0 (src/EnglishAuction.sol#149) EnglishAuction.bonusPool (src/EnglishAuction.sol#21) can be used in cross function reentrancies: - EnglishAuction.bonusPool (src/EnglishAuction.sol#21) - EnglishAuction.drawEarlyBirdBonus() (src/EnglishAuction.sol#132-151) - EnglishAuction.fundBonus() (src/EnglishAuction.sol#127-129)",
+      "cwe_only": true,
+      "function": "drawEarlyBirdBonus"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 132,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in EnglishAuction.drawEarlyBirdBonus() (src/EnglishAuction.sol#132-151): External calls: - (ok,None) = winner.call{value: prize}() (src/EnglishAuction.sol#147) Event emitted after the call(s): - BonusPaid(winner,prize) (src/EnglishAuction.sol#150)",
+      "cwe_only": true,
+      "function": "drawEarlyBirdBonus"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 132,
+      "rule": "weak-prng",
+      "severity": "high",
+      "cwe": [
+        330
+      ],
+      "message": "EnglishAuction.drawEarlyBirdBonus() (src/EnglishAuction.sol#132-151) uses a weak PRNG: \"idx = uint256(keccak256(bytes)(abi.encodePacked(block.timestamp,block.prevrandao,n))) % n (src/EnglishAuction.sol#137-143)\"",
+      "cwe_only": true,
+      "function": "drawEarlyBirdBonus"
+    }
+  ],
+  "defects": [
+    {
+      "id": "SOL02-D01",
+      "file": "src/EnglishAuction.sol",
+      "function": "bid",
+      "category": "denial-of-service",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "reentrancy-benign in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) State variables written after the call(s): - bidOf[msg.sender] = msg.value (src/EnglishAuction.sol#80) - earlyBidders.push(msg.sender) (src/EnglishAuction.sol#82)",
+        "reentrancy-eth in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) State variables written after the call(s): - highestBid = msg.value (src/EnglishAuction.sol#79) EnglishAuction.highestBid (src/EnglishAuction.sol#20) can be used in cross function reentrancies: - EnglishAuction.bid() (src/EnglishAuction.sol#66-85) - EnglishAuction.finalize() (src/EnglishAuction.sol#113-119) - EnglishAuction.highestBid (src/EnglishAuction.sol#20) - EnglishAuction.minNextBid() (src/EnglishAuction.sol#58-63) - highestBidder = msg.sender (src/EnglishAuction.sol#78) EnglishAuction.highestBidder (src/EnglishAuction.sol#19) can be used in cross function reentrancies: - EnglishAuction.bid() (src/EnglishAuction.sol#66-85) - EnglishAuction.highestBidder (src/EnglishAuction.sol#19)",
+        "reentrancy-events in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) Event emitted after the call(s): - BidPlaced(msg.sender,msg.value) (src/EnglishAuction.sol#84)",
+        "timestamp in `bid` (line 66, CWE-829): EnglishAuction.bid() (src/EnglishAuction.sol#66-85) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(block.timestamp <= uint256(endTime) + LATE_BID_GRACE || block.number <= endBlock,auction over) (src/EnglishAuction.sol#68-72) - block.timestamp <= endTime (src/EnglishAuction.sol#81)"
+      ]
+    },
+    {
+      "id": "SOL02-D02",
+      "file": "src/EnglishAuction.sol",
+      "function": "withdraw",
+      "category": "reentrancy",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "reentrancy-eth in `withdraw` (line 98, CWE-841): Reentrancy in EnglishAuction.withdraw() (src/EnglishAuction.sol#98-105): External calls: - (ok,None) = msg.sender.call{value: amount}() (src/EnglishAuction.sol#101) State variables written after the call(s): - pendingReturns[msg.sender] = 0 (src/EnglishAuction.sol#103) EnglishAuction.pendingReturns (src/EnglishAuction.sol#25) can be used in cross function reentrancies: - EnglishAuction.cancelBid() (src/EnglishAuction.sol#88-95) - EnglishAuction.pendingReturns (src/EnglishAuction.sol#25) - EnglishAuction.withdraw() (src/EnglishAuction.sol#98-105)",
+        "reentrancy-events in `withdraw` (line 98, CWE-841): Reentrancy in EnglishAuction.withdraw() (src/EnglishAuction.sol#98-105): External calls: - (ok,None) = msg.sender.call{value: amount}() (src/EnglishAuction.sol#101) Event emitted after the call(s): - Withdrawn(msg.sender,amount) (src/EnglishAuction.sol#104)"
+      ]
+    },
+    {
+      "id": "SOL02-D03",
+      "file": "src/EnglishAuction.sol",
+      "function": "finalize",
+      "category": "invalid-state-transition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "reentrancy-events in `finalize` (line 113, CWE-841): Reentrancy in EnglishAuction.finalize() (src/EnglishAuction.sol#113-119): External calls: - (ok,None) = seller.call{value: highestBid}() (src/EnglishAuction.sol#116) Event emitted after the call(s): - Finalized(seller,highestBid) (src/EnglishAuction.sol#118)"
+      ]
+    },
+    {
+      "id": "SOL02-D04",
+      "file": "src/EnglishAuction.sol",
+      "function": "bid",
+      "category": "timestamp-dependence",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "timestamp in `bid` (line 66, CWE-829): EnglishAuction.bid() (src/EnglishAuction.sol#66-85) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(block.timestamp <= uint256(endTime) + LATE_BID_GRACE || block.number <= endBlock,auction over) (src/EnglishAuction.sol#68-72) - block.timestamp <= endTime (src/EnglishAuction.sol#81)"
+      ]
+    },
+    {
+      "id": "SOL02-D05",
+      "file": "src/EnglishAuction.sol",
+      "function": "minNextBid",
+      "category": "rounding-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "divide-before-multiply in `minNextBid` (line 58, CWE-682): EnglishAuction.minNextBid() (src/EnglishAuction.sol#58-63) performs a multiplication on the result of a division: - highestBid + highestBid / BPS * minIncrementBps (src/EnglishAuction.sol#62)"
+      ]
+    },
+    {
+      "id": "SOL02-D06",
+      "file": "src/EnglishAuction.sol",
+      "function": "cancelBid",
+      "category": "invariant-violation",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL02-D07",
+      "file": "src/EnglishAuction.sol",
+      "function": "init",
+      "category": "access-control",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "missing-zero-check in `init` (line 39): EnglishAuction.init(address,uint256,uint256,uint256).seller_ (src/EnglishAuction.sol#39) lacks a zero-check on : - seller = seller_ (src/EnglishAuction.sol#46)"
+      ]
+    },
+    {
+      "id": "SOL02-D08",
+      "file": "src/EnglishAuction.sol",
+      "function": "init",
+      "category": "integer-overflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "missing-zero-check in `init` (line 39): EnglishAuction.init(address,uint256,uint256,uint256).seller_ (src/EnglishAuction.sol#39) lacks a zero-check on : - seller = seller_ (src/EnglishAuction.sol#46)"
+      ]
+    },
+    {
+      "id": "SOL02-D09",
+      "file": "src/EnglishAuction.sol",
+      "function": "init",
+      "category": "information-exposure",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "missing-zero-check in `init` (line 39): EnglishAuction.init(address,uint256,uint256,uint256).seller_ (src/EnglishAuction.sol#39) lacks a zero-check on : - seller = seller_ (src/EnglishAuction.sol#46)"
+      ]
+    },
+    {
+      "id": "SOL02-D10",
+      "file": "src/EnglishAuction.sol",
+      "function": "drawEarlyBirdBonus",
+      "category": "insecure-randomness",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "weak-prng in `drawEarlyBirdBonus` (line 132, CWE-330): EnglishAuction.drawEarlyBirdBonus() (src/EnglishAuction.sol#132-151) uses a weak PRNG: \"idx = uint256(keccak256(bytes)(abi.encodePacked(block.timestamp,block.prevrandao,n))) % n (src/EnglishAuction.sol#137-143)\""
+      ]
+    },
+    {
+      "id": "SOL02-D11",
+      "file": "src/EnglishAuction.sol",
+      "function": "bid",
+      "category": "invariant-violation",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "reentrancy-benign in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) State variables written after the call(s): - bidOf[msg.sender] = msg.value (src/EnglishAuction.sol#80) - earlyBidders.push(msg.sender) (src/EnglishAuction.sol#82)",
+        "reentrancy-eth in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) State variables written after the call(s): - highestBid = msg.value (src/EnglishAuction.sol#79) EnglishAuction.highestBid (src/EnglishAuction.sol#20) can be used in cross function reentrancies: - EnglishAuction.bid() (src/EnglishAuction.sol#66-85) - EnglishAuction.finalize() (src/EnglishAuction.sol#113-119) - EnglishAuction.highestBid (src/EnglishAuction.sol#20) - EnglishAuction.minNextBid() (src/EnglishAuction.sol#58-63) - highestBidder = msg.sender (src/EnglishAuction.sol#78) EnglishAuction.highestBidder (src/EnglishAuction.sol#19) can be used in cross function reentrancies: - EnglishAuction.bid() (src/EnglishAuction.sol#66-85) - EnglishAuction.highestBidder (src/EnglishAuction.sol#19)",
+        "reentrancy-events in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) Event emitted after the call(s): - BidPlaced(msg.sender,msg.value) (src/EnglishAuction.sol#84)"
+      ]
+    }
+  ],
+  "counts": {
+    "total": 11,
+    "detected": 5,
+    "function_flagged": 5,
+    "missed": 1
+  },
+  "findings": [
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "baseline",
+      "text": "missing-zero-check in `init` (line 39): EnglishAuction.init(address,uint256,uint256,uint256).seller_ (src/EnglishAuction.sol#39) lacks a zero-check on : - seller = seller_ (src/EnglishAuction.sol#46)",
+      "status": "false_positive",
+      "reason": "A zero seller is a caller mistake, not an exploit; the init access-control defect is scored separately."
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "baseline",
+      "text": "divide-before-multiply in `minNextBid` (line 58, CWE-682): EnglishAuction.minNextBid() (src/EnglishAuction.sol#58-63) performs a multiplication on the result of a division: - highestBid + highestBid / BPS * minIncrementBps (src/EnglishAuction.sol#62)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "baseline",
+      "text": "reentrancy-benign in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) State variables written after the call(s): - bidOf[msg.sender] = msg.value (src/EnglishAuction.sol#80) - earlyBidders.push(msg.sender) (src/EnglishAuction.sol#82)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "baseline",
+      "text": "reentrancy-eth in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) State variables written after the call(s): - highestBid = msg.value (src/EnglishAuction.sol#79) EnglishAuction.highestBid (src/EnglishAuction.sol#20) can be used in cross function reentrancies: - EnglishAuction.bid() (src/EnglishAuction.sol#66-85) - EnglishAuction.finalize() (src/EnglishAuction.sol#113-119) - EnglishAuction.highestBid (src/EnglishAuction.sol#20) - EnglishAuction.minNextBid() (src/EnglishAuction.sol#58-63) - highestBidder = msg.sender (src/EnglishAuction.sol#78) EnglishAuction.highestBidder (src/EnglishAuction.sol#19) can be used in cross function reentrancies: - EnglishAuction.bid() (src/EnglishAuction.sol#66-85) - EnglishAuction.highestBidder (src/EnglishAuction.sol#19)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "baseline",
+      "text": "reentrancy-events in `bid` (line 66, CWE-841): Reentrancy in EnglishAuction.bid() (src/EnglishAuction.sol#66-85): External calls: - (refunded,None) = highestBidder.call{value: highestBid}() (src/EnglishAuction.sol#75) Event emitted after the call(s): - BidPlaced(msg.sender,msg.value) (src/EnglishAuction.sol#84)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "baseline",
+      "text": "timestamp in `bid` (line 66, CWE-829): EnglishAuction.bid() (src/EnglishAuction.sol#66-85) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(block.timestamp <= uint256(endTime) + LATE_BID_GRACE || block.number <= endBlock,auction over) (src/EnglishAuction.sol#68-72) - block.timestamp <= endTime (src/EnglishAuction.sol#81)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "baseline",
+      "text": "reentrancy-eth in `withdraw` (line 98, CWE-841): Reentrancy in EnglishAuction.withdraw() (src/EnglishAuction.sol#98-105): External calls: - (ok,None) = msg.sender.call{value: amount}() (src/EnglishAuction.sol#101) State variables written after the call(s): - pendingReturns[msg.sender] = 0 (src/EnglishAuction.sol#103) EnglishAuction.pendingReturns (src/EnglishAuction.sol#25) can be used in cross function reentrancies: - EnglishAuction.cancelBid() (src/EnglishAuction.sol#88-95) - EnglishAuction.pendingReturns (src/EnglishAuction.sol#25) - EnglishAuction.withdraw() (src/EnglishAuction.sol#98-105)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "baseline",
+      "text": "reentrancy-events in `withdraw` (line 98, CWE-841): Reentrancy in EnglishAuction.withdraw() (src/EnglishAuction.sol#98-105): External calls: - (ok,None) = msg.sender.call{value: amount}() (src/EnglishAuction.sol#101) Event emitted after the call(s): - Withdrawn(msg.sender,amount) (src/EnglishAuction.sol#104)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "baseline",
+      "text": "timestamp in `hasEnded` (line 108, CWE-829): EnglishAuction.hasEnded() (src/EnglishAuction.sol#108-110) uses timestamp for comparisons Dangerous comparisons: - block.timestamp > endTime && block.number > endBlock (src/EnglishAuction.sol#109)",
+      "status": "false_positive",
+      "reason": "Comparing the end time with block.timestamp is the intended auction clock; the late-bid grace defect is in bid()."
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "baseline",
+      "text": "reentrancy-events in `finalize` (line 113, CWE-841): Reentrancy in EnglishAuction.finalize() (src/EnglishAuction.sol#113-119): External calls: - (ok,None) = seller.call{value: highestBid}() (src/EnglishAuction.sol#116) Event emitted after the call(s): - Finalized(seller,highestBid) (src/EnglishAuction.sol#118)",
+      "status": "false_positive",
+      "reason": "Only the event is emitted after the payout; the repeated-finalize defect is a missing state flag, not reentrancy."
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "baseline",
+      "text": "reentrancy-eth in `drawEarlyBirdBonus` (line 132, CWE-841): Reentrancy in EnglishAuction.drawEarlyBirdBonus() (src/EnglishAuction.sol#132-151): External calls: - (ok,None) = winner.call{value: prize}() (src/EnglishAuction.sol#147) State variables written after the call(s): - bonusPool = 0 (src/EnglishAuction.sol#149) EnglishAuction.bonusPool (src/EnglishAuction.sol#21) can be used in cross function reentrancies: - EnglishAuction.bonusPool (src/EnglishAuction.sol#21) - EnglishAuction.drawEarlyBirdBonus() (src/EnglishAuction.sol#132-151) - EnglishAuction.fundBonus() (src/EnglishAuction.sol#127-129)",
+      "status": "false_positive",
+      "reason": "bonusPaid is set before the call, so re-entry cannot draw again; a reentrant fundBonus only loses the winner's own top-up."
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "baseline",
+      "text": "reentrancy-events in `drawEarlyBirdBonus` (line 132, CWE-841): Reentrancy in EnglishAuction.drawEarlyBirdBonus() (src/EnglishAuction.sol#132-151): External calls: - (ok,None) = winner.call{value: prize}() (src/EnglishAuction.sol#147) Event emitted after the call(s): - BonusPaid(winner,prize) (src/EnglishAuction.sol#150)",
+      "status": "false_positive",
+      "reason": "bonusPaid is set before the call, so re-entry cannot draw again; a reentrant fundBonus only loses the winner's own top-up."
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "baseline",
+      "text": "weak-prng in `drawEarlyBirdBonus` (line 132, CWE-330): EnglishAuction.drawEarlyBirdBonus() (src/EnglishAuction.sol#132-151) uses a weak PRNG: \"idx = uint256(keccak256(bytes)(abi.encodePacked(block.timestamp,block.prevrandao,n))) % n (src/EnglishAuction.sol#137-143)\"",
+      "status": "defect_evidence"
+    }
+  ],
+  "finding_counts": {
+    "total": 13,
+    "defect_evidence": 8,
+    "real": 0,
+    "false_positive": 5,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "sol-02-auction",
+      "src/EnglishAuction.sol",
+      "in `drawEarlyBirdBonus`"
+    ],
+    [
+      "sol-02-auction",
+      "src/EnglishAuction.sol",
+      "missing-zero-check"
+    ],
+    [
+      "sol-02-auction",
+      "src/EnglishAuction.sol",
+      "reentrancy-events in `finalize`"
+    ],
+    [
+      "sol-02-auction",
+      "src/EnglishAuction.sol",
+      "timestamp in `hasEnded`"
+    ]
+  ],
+  "fixed_raw_findings": [
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 76,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "EnglishAuction.bid() (src/EnglishAuction.sol#76-92) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(block.timestamp <= endTime,auction over) (src/EnglishAuction.sol#78) - block.timestamp <= endTime (src/EnglishAuction.sol#88)",
+      "cwe_only": true,
+      "function": "bid"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 116,
+      "rule": "timestamp",
+      "severity": "low",
+      "cwe": [
+        829
+      ],
+      "message": "EnglishAuction.hasEnded() (src/EnglishAuction.sol#116-118) uses timestamp for comparisons Dangerous comparisons: - initialized && block.timestamp > endTime (src/EnglishAuction.sol#117)",
+      "cwe_only": true,
+      "function": "hasEnded"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "line": 121,
+      "rule": "reentrancy-events",
+      "severity": "low",
+      "cwe": [
+        841
+      ],
+      "message": "Reentrancy in EnglishAuction.finalize() (src/EnglishAuction.sol#121-130): External calls: - (ok,None) = seller.call{value: highestBid}() (src/EnglishAuction.sol#127) Event emitted after the call(s): - Finalized(seller,highestBid) (src/EnglishAuction.sol#129)",
+      "cwe_only": true,
+      "function": "finalize"
+    }
+  ],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 11,
+    "still_reported": [
+      "SOL02-D04"
+    ],
+    "false_alarms": 3,
+    "findings": [
+      {
+        "file": "src/EnglishAuction.sol",
+        "kind": "baseline",
+        "text": "timestamp in `bid` (line 76, CWE-829): EnglishAuction.bid() (src/EnglishAuction.sol#76-92) uses timestamp for comparisons Dangerous comparisons: - require(bool,string)(block.timestamp <= endTime,auction over) (src/EnglishAuction.sol#78) - block.timestamp <= endTime (src/EnglishAuction.sol#88)",
+        "status": "false_positive",
+        "reason": "On the fixed code bids stop at endTime with no grace window."
+      },
+      {
+        "file": "src/EnglishAuction.sol",
+        "kind": "baseline",
+        "text": "timestamp in `hasEnded` (line 116, CWE-829): EnglishAuction.hasEnded() (src/EnglishAuction.sol#116-118) uses timestamp for comparisons Dangerous comparisons: - initialized && block.timestamp > endTime (src/EnglishAuction.sol#117)",
+        "status": "false_positive",
+        "reason": "Comparing the end time with block.timestamp is the intended auction clock; the late-bid grace defect is in bid()."
+      },
+      {
+        "file": "src/EnglishAuction.sol",
+        "kind": "baseline",
+        "text": "reentrancy-events in `finalize` (line 121, CWE-841): Reentrancy in EnglishAuction.finalize() (src/EnglishAuction.sol#121-130): External calls: - (ok,None) = seller.call{value: highestBid}() (src/EnglishAuction.sol#127) Event emitted after the call(s): - Finalized(seller,highestBid) (src/EnglishAuction.sol#129)",
+        "status": "false_positive",
+        "reason": "Only the event is emitted after the payout; the repeated-finalize defect is a missing state flag, not reentrancy."
+      }
+    ],
+    "finding_counts": {
+      "total": 3,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 3,
+      "unreviewed": 0
+    },
+    "reviews_used": [
+      [
+        "sol-02-auction",
+        "src/EnglishAuction.sol",
+        "reentrancy-events in `finalize`"
+      ],
+      [
+        "sol-02-auction",
+        "src/EnglishAuction.sol",
+        "timestamp in `bid` (line 76"
+      ],
+      [
+        "sol-02-auction",
+        "src/EnglishAuction.sol",
+        "timestamp in `hasEnded`"
+      ]
+    ]
+  }
+}

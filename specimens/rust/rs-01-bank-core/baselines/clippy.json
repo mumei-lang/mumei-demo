@@ -1,0 +1,167 @@
+{
+  "specimen": "rs-01-bank-core",
+  "language": "rust",
+  "tool": "clippy",
+  "version": "1.99.1",
+  "lint_groups": [
+    "correctness",
+    "suspicious"
+  ],
+  "generated_at": "2026-11-01T18:56:43Z",
+  "source_hash": "c192c369e36a15a8e4aaa192c39ec8c92f42aeca48d974b0f050a562230e5216",
+  "tool_errors": 0,
+  "raw_findings": [],
+  "defects": [
+    {
+      "id": "RS01-D01",
+      "file": "src/bank.rs",
+      "function": "accrue_interest",
+      "category": "float-money",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D02",
+      "file": "src/bank.rs",
+      "function": "remaining_daily_allowance",
+      "category": "integer-underflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D03",
+      "file": "src/bank.rs",
+      "function": "request_transfer",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D04",
+      "file": "src/bank.rs",
+      "function": "split_payment",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D05",
+      "file": "src/bank.rs",
+      "function": "account_at",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D06",
+      "file": "src/bank.rs",
+      "function": "request_transfer",
+      "category": "invariant-violation",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D07",
+      "file": "src/bank.rs",
+      "function": "close_account",
+      "category": "invalid-state-transition",
+      "class": "design",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D08",
+      "file": "src/bank.rs",
+      "function": "record_audit",
+      "category": "unbounded-resource",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D09",
+      "file": "src/main.rs",
+      "function": "parse_cents",
+      "category": "error-handling",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D10",
+      "file": "src/main.rs",
+      "function": "operator_token",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D11",
+      "file": "src/main.rs",
+      "function": "write_statement",
+      "category": "path-traversal",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS01-D12",
+      "file": "src/bank.rs",
+      "function": "charge_fee",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "counts": {
+    "total": 12,
+    "detected": 0,
+    "function_flagged": 0,
+    "missed": 12
+  },
+  "findings": [],
+  "finding_counts": {
+    "total": 0,
+    "defect_evidence": 0,
+    "real": 0,
+    "false_positive": 0,
+    "unreviewed": 0
+  },
+  "reviews_used": [],
+  "fixed_raw_findings": [],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 12,
+    "still_reported": [],
+    "false_alarms": 0,
+    "findings": [],
+    "finding_counts": {
+      "total": 0,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 0,
+      "unreviewed": 0
+    },
+    "reviews_used": []
+  }
+}

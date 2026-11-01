@@ -1,0 +1,310 @@
+{
+  "specimen": "go-02-logscan-cli",
+  "language": "go",
+  "tool": "gosec",
+  "version": "2.29.0",
+  "generated_at": "2026-11-01T18:58:37Z",
+  "source_hash": "a5a69d85c516d2f1ec294bb93e892cb8ddc816ff91da0bc6ddbe244a1df40f0d",
+  "tool_errors": 0,
+  "raw_findings": [
+    {
+      "file": "main.go",
+      "line": 68,
+      "rule": "G306",
+      "severity": "medium",
+      "cwe": [
+        276
+      ],
+      "message": "Expect WriteFile permissions to be 0600 or less",
+      "function": "run"
+    },
+    {
+      "file": "main.go",
+      "line": 71,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "run"
+    },
+    {
+      "file": "main.go",
+      "line": 71,
+      "rule": "G204",
+      "severity": "medium",
+      "cwe": [
+        78
+      ],
+      "message": "Subprocess launched with a potential tainted input or cmd arguments",
+      "function": "run"
+    },
+    {
+      "file": "main.go",
+      "line": 99,
+      "rule": "G304",
+      "severity": "medium",
+      "cwe": [
+        22
+      ],
+      "message": "Potential file inclusion via variable",
+      "function": "readFiles"
+    }
+  ],
+  "defects": [
+    {
+      "id": "GO02-D01",
+      "file": "main.go",
+      "function": "percentileAt",
+      "category": "off-by-one",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO02-D02",
+      "file": "main.go",
+      "function": "formatSummary",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO02-D03",
+      "file": "main.go",
+      "function": "formatSummary",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO02-D04",
+      "file": "main.go",
+      "function": "parseFile",
+      "category": "error-handling",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO02-D05",
+      "file": "main.go",
+      "function": "run",
+      "category": "command-injection",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "G204 in `run` (line 71, CWE-78): Subprocess launched with a potential tainted input or cmd arguments"
+      ]
+    },
+    {
+      "id": "GO02-D06",
+      "file": "main.go",
+      "function": "readFiles",
+      "category": "race-condition",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "G304 in `readFiles` (line 99, CWE-22): Potential file inclusion via variable"
+      ]
+    },
+    {
+      "id": "GO02-D07",
+      "file": "main.go",
+      "function": "readFiles",
+      "category": "resource-leak",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "G304 in `readFiles` (line 99, CWE-22): Potential file inclusion via variable"
+      ]
+    },
+    {
+      "id": "GO02-D08",
+      "file": "main.go",
+      "function": "parseFile",
+      "category": "unbounded-resource",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO02-D09",
+      "file": "main.go",
+      "function": "run",
+      "category": "information-exposure",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "G306 in `run` (line 68, CWE-276): Expect WriteFile permissions to be 0600 or less"
+      ]
+    },
+    {
+      "id": "GO02-D10",
+      "file": "main.go",
+      "function": "readFiles",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "G304 in `readFiles` (line 99, CWE-22): Potential file inclusion via variable"
+      ]
+    }
+  ],
+  "counts": {
+    "total": 10,
+    "detected": 2,
+    "function_flagged": 3,
+    "missed": 5
+  },
+  "findings": [
+    {
+      "file": "main.go",
+      "kind": "baseline",
+      "text": "G306 in `run` (line 68, CWE-276): Expect WriteFile permissions to be 0600 or less",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "main.go",
+      "kind": "baseline",
+      "text": "G104 in `run` (line 71, CWE-703): Errors unhandled",
+      "status": "real",
+      "reason": "The gzip step's error is dropped, so the command reports success when compression failed."
+    },
+    {
+      "file": "main.go",
+      "kind": "baseline",
+      "text": "G204 in `run` (line 71, CWE-78): Subprocess launched with a potential tainted input or cmd arguments",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "main.go",
+      "kind": "baseline",
+      "text": "G304 in `readFiles` (line 99, CWE-22): Potential file inclusion via variable",
+      "status": "false_positive",
+      "reason": "The CLI opens the log files its own user names on the command line; there is no privilege boundary."
+    }
+  ],
+  "finding_counts": {
+    "total": 4,
+    "defect_evidence": 2,
+    "real": 1,
+    "false_positive": 1,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "go-02-logscan-cli",
+      "main.go",
+      "G104 in `run` (line 71"
+    ],
+    [
+      "go-02-logscan-cli",
+      "main.go",
+      "G304 in `readFiles`"
+    ]
+  ],
+  "fixed_raw_findings": [
+    {
+      "file": "main.go",
+      "line": 82,
+      "rule": "G204",
+      "severity": "medium",
+      "cwe": [
+        78
+      ],
+      "message": "Subprocess launched with a potential tainted input or cmd arguments",
+      "function": "run"
+    },
+    {
+      "file": "main.go",
+      "line": 114,
+      "rule": "G304",
+      "severity": "medium",
+      "cwe": [
+        22
+      ],
+      "message": "Potential file inclusion via variable",
+      "function": "readFiles"
+    },
+    {
+      "file": "main.go",
+      "line": 120,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "readFiles"
+    }
+  ],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 10,
+    "still_reported": [
+      "GO02-D05"
+    ],
+    "false_alarms": 3,
+    "findings": [
+      {
+        "file": "main.go",
+        "kind": "baseline",
+        "text": "G204 in `run` (line 82, CWE-78): Subprocess launched with a potential tainted input or cmd arguments",
+        "status": "false_positive",
+        "reason": "On the fixed code gzip runs with a fixed argument list, no shell and `--` before the path."
+      },
+      {
+        "file": "main.go",
+        "kind": "baseline",
+        "text": "G304 in `readFiles` (line 114, CWE-22): Potential file inclusion via variable",
+        "status": "false_positive",
+        "reason": "The CLI opens the log files its own user names on the command line; there is no privilege boundary."
+      },
+      {
+        "file": "main.go",
+        "kind": "baseline",
+        "text": "G104 in `readFiles` (line 120, CWE-703): Errors unhandled",
+        "status": "false_positive",
+        "reason": "On the fixed code this is Close on a file opened read-only, which cannot lose data."
+      }
+    ],
+    "finding_counts": {
+      "total": 3,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 3,
+      "unreviewed": 0
+    },
+    "reviews_used": [
+      [
+        "go-02-logscan-cli",
+        "main.go",
+        "G104 in `readFiles` (line 120"
+      ],
+      [
+        "go-02-logscan-cli",
+        "main.go",
+        "G204 in `run` (line 82"
+      ],
+      [
+        "go-02-logscan-cli",
+        "main.go",
+        "G304 in `readFiles`"
+      ]
+    ]
+  }
+}

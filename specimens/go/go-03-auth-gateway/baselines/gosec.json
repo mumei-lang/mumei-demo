@@ -1,0 +1,539 @@
+{
+  "specimen": "go-03-auth-gateway",
+  "language": "go",
+  "tool": "gosec",
+  "version": "2.29.0",
+  "generated_at": "2026-11-01T18:58:37Z",
+  "source_hash": "a7f22803f92f10a530668fdb2e95355a4ad0869e0f8ea6c9418121ac5cba70a5",
+  "tool_errors": 0,
+  "raw_findings": [
+    {
+      "file": "auth.go",
+      "line": 4,
+      "rule": "G505",
+      "severity": "medium",
+      "cwe": [
+        327
+      ],
+      "message": "Blocklisted import crypto/sha1: weak cryptographic primitive",
+      "function": null
+    },
+    {
+      "file": "auth.go",
+      "line": 25,
+      "rule": "G401",
+      "severity": "medium",
+      "cwe": [
+        328
+      ],
+      "message": "Use of weak cryptographic primitive",
+      "function": null
+    },
+    {
+      "file": "auth.go",
+      "line": 26,
+      "rule": "G401",
+      "severity": "medium",
+      "cwe": [
+        328
+      ],
+      "message": "Use of weak cryptographic primitive",
+      "function": null
+    },
+    {
+      "file": "auth.go",
+      "line": 27,
+      "rule": "G401",
+      "severity": "medium",
+      "cwe": [
+        328
+      ],
+      "message": "Use of weak cryptographic primitive",
+      "function": null
+    },
+    {
+      "file": "handlers.go",
+      "line": 4,
+      "rule": "G505",
+      "severity": "medium",
+      "cwe": [
+        327
+      ],
+      "message": "Blocklisted import crypto/sha1: weak cryptographic primitive",
+      "function": null
+    },
+    {
+      "file": "handlers.go",
+      "line": 29,
+      "rule": "G401",
+      "severity": "medium",
+      "cwe": [
+        328
+      ],
+      "message": "Use of weak cryptographic primitive",
+      "function": "loginHandler"
+    },
+    {
+      "file": "handlers.go",
+      "line": 39,
+      "rule": "G710",
+      "severity": "medium",
+      "cwe": [],
+      "message": "Open redirect via taint analysis",
+      "function": "loginHandler"
+    },
+    {
+      "file": "handlers.go",
+      "line": 68,
+      "rule": "G107",
+      "severity": "medium",
+      "cwe": [
+        88
+      ],
+      "message": "Potential HTTP request made with variable url",
+      "function": "proxyHandler"
+    },
+    {
+      "file": "handlers.go",
+      "line": 68,
+      "rule": "G704",
+      "severity": "high",
+      "cwe": [
+        918
+      ],
+      "message": "SSRF via taint analysis",
+      "function": "proxyHandler"
+    },
+    {
+      "file": "handlers.go",
+      "line": 80,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "proxyHandler"
+    },
+    {
+      "file": "handlers.go",
+      "line": 110,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "writeJSON"
+    },
+    {
+      "file": "main.go",
+      "line": 23,
+      "rule": "G114",
+      "severity": "medium",
+      "cwe": [
+        676
+      ],
+      "message": "Use of net/http serve function that has no support for setting timeouts",
+      "function": "main"
+    }
+  ],
+  "defects": [
+    {
+      "id": "GO03-D01",
+      "file": "handlers.go",
+      "function": "loginHandler",
+      "category": "insecure-randomness",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "G401 in `loginHandler` (line 29, CWE-328): Use of weak cryptographic primitive",
+        "G710 in `loginHandler` (line 39): Open redirect via taint analysis"
+      ]
+    },
+    {
+      "id": "GO03-D02",
+      "file": "auth.go",
+      "function": "tokenMatches",
+      "category": "timing-side-channel",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D03",
+      "file": "handlers.go",
+      "function": "proxyHandler",
+      "category": "ssrf",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "G704 in `proxyHandler` (line 68, CWE-918): SSRF via taint analysis"
+      ]
+    },
+    {
+      "id": "GO03-D04",
+      "file": "handlers.go",
+      "function": "profileHandler",
+      "category": "idor",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D05",
+      "file": "handlers.go",
+      "function": "profileHandler",
+      "category": "weak-crypto",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D06",
+      "file": "handlers.go",
+      "function": "rotateHandler",
+      "category": "invalid-state-transition",
+      "class": "design",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D07",
+      "file": "handlers.go",
+      "function": "loginHandler",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "G401 in `loginHandler` (line 29, CWE-328): Use of weak cryptographic primitive",
+        "G710 in `loginHandler` (line 39): Open redirect via taint analysis"
+      ]
+    },
+    {
+      "id": "GO03-D08",
+      "file": "auth.go",
+      "function": "allowAttempt",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D09",
+      "file": "main.go",
+      "function": "main",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "G114 in `main` (line 23, CWE-676): Use of net/http serve function that has no support for setting timeouts"
+      ]
+    },
+    {
+      "id": "GO03-D10",
+      "file": "handlers.go",
+      "function": "healthHandler",
+      "category": "information-exposure",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D11",
+      "file": "handlers.go",
+      "function": "loginHandler",
+      "category": "open-redirect",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "G710 in `loginHandler` (line 39): Open redirect via taint analysis"
+      ]
+    }
+  ],
+  "counts": {
+    "total": 11,
+    "detected": 2,
+    "function_flagged": 3,
+    "missed": 6
+  },
+  "findings": [
+    {
+      "file": "auth.go",
+      "kind": "baseline",
+      "text": "G505 (line 4, CWE-327): Blocklisted import crypto/sha1: weak cryptographic primitive",
+      "status": "real",
+      "reason": "The seeded accounts store unsalted SHA-1 password digests, which is the planted weak-crypto design."
+    },
+    {
+      "file": "auth.go",
+      "kind": "baseline",
+      "text": "G401 (line 25, CWE-328): Use of weak cryptographic primitive",
+      "status": "real",
+      "reason": "The seeded accounts store unsalted SHA-1 password digests, which is the planted weak-crypto design."
+    },
+    {
+      "file": "auth.go",
+      "kind": "baseline",
+      "text": "G401 (line 26, CWE-328): Use of weak cryptographic primitive",
+      "status": "real",
+      "reason": "The seeded accounts store unsalted SHA-1 password digests, which is the planted weak-crypto design."
+    },
+    {
+      "file": "auth.go",
+      "kind": "baseline",
+      "text": "G401 (line 27, CWE-328): Use of weak cryptographic primitive",
+      "status": "real",
+      "reason": "The seeded accounts store unsalted SHA-1 password digests, which is the planted weak-crypto design."
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "G505 (line 4, CWE-327): Blocklisted import crypto/sha1: weak cryptographic primitive",
+      "status": "real",
+      "reason": "Login compares unsalted SHA-1 password digests, which is the planted weak-crypto design."
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "G401 in `loginHandler` (line 29, CWE-328): Use of weak cryptographic primitive",
+      "status": "real",
+      "reason": "Login compares unsalted SHA-1 password digests, which is the planted weak-crypto design."
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "G710 in `loginHandler` (line 39): Open redirect via taint analysis",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "G107 in `proxyHandler` (line 68, CWE-88): Potential HTTP request made with variable url",
+      "status": "real",
+      "reason": "The proxy fetches a caller-supplied URL with no destination check (the planted SSRF)."
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "G704 in `proxyHandler` (line 68, CWE-918): SSRF via taint analysis",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "G104 in `proxyHandler` (line 80, CWE-703): Errors unhandled",
+      "status": "false_positive",
+      "reason": "io.Copy streams the upstream body after the status is sent; a copy error cannot be reported to the client."
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "G104 in `writeJSON` (line 110, CWE-703): Errors unhandled",
+      "status": "false_positive",
+      "reason": "The status line is already sent when Encode runs, so a write error to the client has nowhere to go."
+    },
+    {
+      "file": "main.go",
+      "kind": "baseline",
+      "text": "G114 in `main` (line 23, CWE-676): Use of net/http serve function that has no support for setting timeouts",
+      "status": "false_positive",
+      "reason": "The service binds a loopback listener for local use; server timeouts are deployment hardening, not a defect in this code."
+    }
+  ],
+  "finding_counts": {
+    "total": 12,
+    "defect_evidence": 2,
+    "real": 7,
+    "false_positive": 3,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "go-03-auth-gateway",
+      "auth.go",
+      "G401"
+    ],
+    [
+      "go-03-auth-gateway",
+      "auth.go",
+      "G505"
+    ],
+    [
+      "go-03-auth-gateway",
+      "handlers.go",
+      "G104 in `proxyHandler`"
+    ],
+    [
+      "go-03-auth-gateway",
+      "handlers.go",
+      "G104 in `writeJSON`"
+    ],
+    [
+      "go-03-auth-gateway",
+      "handlers.go",
+      "G107 in `proxyHandler` (line 68"
+    ],
+    [
+      "go-03-auth-gateway",
+      "handlers.go",
+      "G401 in `loginHandler`"
+    ],
+    [
+      "go-03-auth-gateway",
+      "handlers.go",
+      "G505"
+    ],
+    [
+      "go-03-auth-gateway",
+      "main.go",
+      "G114 in `main`"
+    ]
+  ],
+  "fixed_raw_findings": [
+    {
+      "file": "handlers.go",
+      "line": 51,
+      "rule": "G710",
+      "severity": "medium",
+      "cwe": [],
+      "message": "Open redirect via taint analysis",
+      "function": "loginHandler"
+    },
+    {
+      "file": "handlers.go",
+      "line": 92,
+      "rule": "G704",
+      "severity": "high",
+      "cwe": [
+        918
+      ],
+      "message": "SSRF via taint analysis",
+      "function": "proxyHandler"
+    },
+    {
+      "file": "handlers.go",
+      "line": 108,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "proxyHandler"
+    },
+    {
+      "file": "handlers.go",
+      "line": 139,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "writeJSON"
+    },
+    {
+      "file": "main.go",
+      "line": 21,
+      "rule": "G114",
+      "severity": "medium",
+      "cwe": [
+        676
+      ],
+      "message": "Use of net/http serve function that has no support for setting timeouts",
+      "function": "main"
+    }
+  ],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 11,
+    "still_reported": [
+      "GO03-D03",
+      "GO03-D11"
+    ],
+    "false_alarms": 5,
+    "findings": [
+      {
+        "file": "handlers.go",
+        "kind": "baseline",
+        "text": "G710 in `loginHandler` (line 51): Open redirect via taint analysis",
+        "status": "false_positive",
+        "reason": "On the fixed code `next` is rejected unless localPath accepts it as a same-site path."
+      },
+      {
+        "file": "handlers.go",
+        "kind": "baseline",
+        "text": "G704 in `proxyHandler` (line 92, CWE-918): SSRF via taint analysis",
+        "status": "false_positive",
+        "reason": "On the fixed code the target must be http(s) and proxyClient refuses non-public addresses at dial time."
+      },
+      {
+        "file": "handlers.go",
+        "kind": "baseline",
+        "text": "G104 in `proxyHandler` (line 108, CWE-703): Errors unhandled",
+        "status": "false_positive",
+        "reason": "io.Copy streams the upstream body after the status is sent; a copy error cannot be reported to the client."
+      },
+      {
+        "file": "handlers.go",
+        "kind": "baseline",
+        "text": "G104 in `writeJSON` (line 139, CWE-703): Errors unhandled",
+        "status": "false_positive",
+        "reason": "The status line is already sent when Encode runs, so a write error to the client has nowhere to go."
+      },
+      {
+        "file": "main.go",
+        "kind": "baseline",
+        "text": "G114 in `main` (line 21, CWE-676): Use of net/http serve function that has no support for setting timeouts",
+        "status": "false_positive",
+        "reason": "The service binds a loopback listener for local use; server timeouts are deployment hardening, not a defect in this code."
+      }
+    ],
+    "finding_counts": {
+      "total": 5,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 5,
+      "unreviewed": 0
+    },
+    "reviews_used": [
+      [
+        "go-03-auth-gateway",
+        "handlers.go",
+        "G104 in `proxyHandler`"
+      ],
+      [
+        "go-03-auth-gateway",
+        "handlers.go",
+        "G104 in `writeJSON`"
+      ],
+      [
+        "go-03-auth-gateway",
+        "handlers.go",
+        "G704 in `proxyHandler` (line 92"
+      ],
+      [
+        "go-03-auth-gateway",
+        "handlers.go",
+        "G710 in `loginHandler` (line 51"
+      ],
+      [
+        "go-03-auth-gateway",
+        "main.go",
+        "G114 in `main`"
+      ]
+    ]
+  }
+}

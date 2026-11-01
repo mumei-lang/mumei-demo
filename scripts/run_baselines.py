@@ -16,6 +16,11 @@ CWE (or one in the same CWE_EQUIVALENTS group), or a category keyword in the
 rule id or message. Findings are classified for precision the same way, with
 reviewed verdicts from scoreboard/baseline_reviews.json.
 
+Tools: Semgrep (all languages), Bandit (Python), gosec (Go), Slither
+(Solidity) and clippy (Rust). Only results that claim a defect count: Semgrep
+security/correctness rules, Slither High/Medium/Low impact, clippy
+correctness/suspicious lints. gosec needs `go` on PATH.
+
 Tools and rule sets are pinned (see scripts/setup_baselines.sh); a run with a
 different version or rules commit is refused so totals stay comparable.
 `--rescore` re-scores the committed findings without running any tool.
@@ -49,6 +54,10 @@ LINE_SLACK = 3
 SEMGREP_VERSION = "1.150.0"
 BANDIT_VERSION = "1.8.6"
 SEMGREP_RULES_COMMIT = "16b9e6d45f10649f6a531ec4838ed9924372c3bc"
+GOSEC_VERSION = "2.29.0"
+SLITHER_VERSION = "0.11.6"
+SOLC_VERSION = "0.8.24"
+RUST_TOOLCHAIN = "1.99.1"
 # semgrep-rules directories per specimen language.
 SEMGREP_CONFIGS = {
     "python": ["python"],
@@ -61,9 +70,36 @@ SEMGREP_CONFIGS = {
 # (gas tips, custom errors, file encodings) are style advice, not bug reports.
 SEMGREP_CATEGORIES = {"security", "correctness"}
 
+# Slither impact levels that claim a defect; Informational and Optimization
+# results (pragma versions, naming, gas) are advice.
+SLITHER_IMPACTS = {"High", "Medium", "Low"}
+# Slither results carry no CWE. Detector-name prefixes mapped to the CWE the
+# specimens use for the same weakness.
+SLITHER_CWES = {
+    "reentrancy": 841,
+    "tx-origin": 346,
+    "unchecked-lowlevel": 252,
+    "unchecked-send": 252,
+    "unchecked-transfer": 252,
+    "weak-prng": 330,
+    "timestamp": 829,
+    "divide-before-multiply": 682,
+    "arbitrary-send": 284,
+    "suicidal": 284,
+    "unprotected-upgrade": 284,
+    "calls-loop": 400,
+}
+
+# Clippy lint groups that claim a defect. The other default groups (style,
+# complexity, perf) are advice, so the run allows clippy::all and re-enables
+# these two as warnings.
+CLIPPY_GROUPS = ["correctness", "suspicious"]
+
 # CWEs that describe the same weakness at different granularity.
 CWE_EQUIVALENTS = [
     {77, 78, 88},
+    {252, 703, 754},
+    {276, 732},
     {22, 23, 36},
     {79, 80},
     {259, 321, 547, 798},
@@ -198,31 +234,115 @@ def parse_bandit(doc: dict, scratch: Path) -> tuple[list[dict], int]:
     return findings, len(doc.get("errors") or [])
 
 
+def parse_gosec(doc: dict, scratch: Path) -> tuple[list[dict], int]:
+    findings = []
+    for r in doc.get("Issues") or []:
+        findings.append({
+            "file": _relpath(r["file"], scratch),
+            "line": int(str(r["line"]).split("-")[0]),
+            "rule": r["rule_id"],
+            "severity": str(r.get("severity", "")).lower(),
+            "cwe": parse_cwes(r.get("cwe")),
+            "message": " ".join(str(r.get("details", "")).split()),
+        })
+    errors = sum(len(v) if isinstance(v, list) else 1 for v in (doc.get("Golang errors") or {}).values())
+    return findings, errors
+
+
+def slither_cwes(check: str) -> list[int]:
+    return sorted({cwe for prefix, cwe in SLITHER_CWES.items() if check.startswith(prefix)})
+
+
+def parse_slither(doc: dict, scratch: Path) -> tuple[list[dict], int]:
+    if not doc.get("success"):
+        return [], 1
+    findings = []
+    for r in (doc.get("results") or {}).get("detectors") or []:
+        if r.get("impact") not in SLITHER_IMPACTS:
+            continue
+        where = next((e["source_mapping"] for e in r.get("elements") or []
+                      if (e.get("source_mapping") or {}).get("lines")), None)
+        if where is None:
+            continue
+        findings.append({
+            "file": _relpath(where.get("filename_relative") or where["filename_absolute"], scratch),
+            "line": int(where["lines"][0]),
+            "rule": r["check"],
+            "severity": str(r["impact"]).lower(),
+            "cwe": slither_cwes(r["check"]),
+            "message": " ".join(str(r.get("description", "")).split()),
+            # Descriptions quote the flagged source, so category keywords in
+            # them say nothing about the check; only the CWE map counts.
+            "cwe_only": True,
+        })
+    return findings, 0
+
+
+def load_json_lines(text: str) -> list[dict]:
+    return [json.loads(ln) for ln in text.splitlines() if ln.startswith("{")]
+
+
+def parse_clippy(messages: list[dict], scratch: Path) -> tuple[list[dict], int]:
+    findings, errors = [], 0
+    for m in messages:
+        if m.get("reason") != "compiler-message":
+            continue
+        msg = m.get("message") or {}
+        code = (msg.get("code") or {}).get("code") or ""
+        if not code.startswith("clippy::"):
+            errors += msg.get("level") == "error"
+            continue
+        span = next((s for s in msg.get("spans") or [] if s.get("is_primary")), None)
+        if span is None:
+            continue
+        findings.append({
+            "file": _relpath(span["file_name"], scratch),
+            "line": int(span["line_start"]),
+            "rule": code,
+            "severity": str(msg.get("level", "")).lower(),
+            "cwe": [],
+            "message": " ".join(str(msg.get("message", "")).split()),
+        })
+    return findings, errors
+
+
+def installed_version(binary: str) -> str:
+    out = subprocess.run([binary, "--version"], capture_output=True, text=True)
+    m = re.search(r"(\d+\.\d+\.\d+)", out.stdout + out.stderr)
+    return m.group(1) if m else ""
+
+
 class Tool:
     def __init__(self, name: str, languages: set[str], version: str,
                  command: Callable[["Tool", Path, str], list[str]],
-                 parse: Callable[[dict, Path], tuple[list[dict], int]],
-                 ok_codes: tuple[int, ...] = (0, 1), cwd: Callable[["Tool"], Path | None] = lambda t: None):
+                 parse: Callable[[object, Path], tuple[list[dict], int]],
+                 ok_codes: tuple[int, ...] = (0, 1),
+                 cwd: Callable[["Tool", Path], Path | None] = lambda t, scratch: None,
+                 load: Callable[[str], object] = json.loads,
+                 version_of: Callable[["Tool"], str] = lambda t: installed_version(t.binary),
+                 extra_meta: dict | None = None, exe: str | None = None,
+                 cached: Callable[[], Path] | None = None):
         self.name, self.languages, self.version = name, languages, version
         self.command, self.parse, self.ok_codes, self.cwd = command, parse, ok_codes, cwd
+        self.load, self.version_of, self.extra_meta = load, version_of, extra_meta or {}
+        self.exe = exe or name
+        self.cached = cached or (lambda: CACHE_DIR / "venv" / "bin" / self.exe)
         self.binary: str | None = None
         self.rules_dir: Path | None = None
+        self.solc: str | None = None
 
     def meta(self) -> dict:
-        m = {"tool": self.name, "version": self.version}
-        if self.name == "semgrep":
-            m["rules_commit"] = SEMGREP_RULES_COMMIT
-            m["rule_categories"] = sorted(SEMGREP_CATEGORIES)
-        return m
+        return {"tool": self.name, "version": self.version, **self.extra_meta}
 
     def run(self, scratch: Path, language: str, timeout: int) -> tuple[list[dict], int]:
         cmd = self.command(self, scratch, language)
-        proc = subprocess.run(cmd, cwd=self.cwd(self), capture_output=True, text=True, timeout=timeout)
+        proc = subprocess.run(cmd, cwd=self.cwd(self, scratch), capture_output=True, text=True,
+                              timeout=timeout)
         if proc.returncode not in self.ok_codes:
             raise SystemExit(f"{self.name} failed on {scratch.name} (exit {proc.returncode}):\n"
                              f"{proc.stderr[-2000:]}")
         try:
-            doc = json.loads(proc.stdout)
+            doc = self.load(proc.stdout)
         except json.JSONDecodeError:
             raise SystemExit(f"{self.name} did not return JSON on {scratch.name}:\n{proc.stderr[-2000:]}")
         raw, errors = self.parse(doc, scratch)
@@ -241,29 +361,89 @@ def _bandit_cmd(tool: Tool, scratch: Path, language: str) -> list[str]:
     return [tool.binary or "bandit", "-q", "-f", "json", "-r", str(scratch)]
 
 
+def _gosec_cmd(tool: Tool, scratch: Path, language: str) -> list[str]:
+    return [tool.binary or "gosec", "-fmt=json", "-quiet", "./..."]
+
+
+def _slither_cmd(tool: Tool, scratch: Path, language: str) -> list[str]:
+    return [tool.binary or "slither", "src", "--solc", tool.solc or "solc", "--json", "-",
+            "--disable-color"]
+
+
+def _clippy_cmd(tool: Tool, scratch: Path, language: str) -> list[str]:
+    cmd = [tool.binary or "cargo", f"+{RUST_TOOLCHAIN}", "clippy", "--quiet", "--message-format=json",
+           "--", "-A", "clippy::all"]
+    for group in CLIPPY_GROUPS:
+        cmd += ["-W", f"clippy::{group}"]
+    return cmd
+
+
+def gosec_version(tool: Tool) -> str:
+    """gosec built with `go install` reports `dev`; read the module version."""
+    try:
+        out = subprocess.run(["go", "version", "-m", tool.binary], capture_output=True, text=True)
+    except OSError:
+        raise SystemExit("gosec needs `go` on PATH")
+    m = re.search(r"^\s*mod\s+github\.com/securego/gosec/v2\s+v(\d+\.\d+\.\d+)", out.stdout, re.M)
+    return m.group(1) if m else ""
+
+
+def clippy_version(tool: Tool) -> str:
+    """The pinned toolchain when `cargo +<toolchain> clippy` works with it."""
+    out = subprocess.run([tool.binary, f"+{RUST_TOOLCHAIN}", "clippy", "--version"],
+                         capture_output=True, text=True)
+    minor = RUST_TOOLCHAIN.split(".")[1]
+    if out.returncode == 0 and re.search(rf"clippy 0\.1\.{minor}\b", out.stdout):
+        return RUST_TOOLCHAIN
+    return ""
+
+
+def _in_scratch(tool: Tool, scratch: Path) -> Path:
+    return scratch
+
+
 TOOLS: dict[str, Tool] = {
     "semgrep": Tool("semgrep", set(SEMGREP_CONFIGS), SEMGREP_VERSION, _semgrep_cmd, parse_semgrep,
-                    cwd=lambda t: t.rules_dir),
+                    cwd=lambda t, scratch: t.rules_dir,
+                    extra_meta={"rules_commit": SEMGREP_RULES_COMMIT,
+                                "rule_categories": sorted(SEMGREP_CATEGORIES)}),
     "bandit": Tool("bandit", {"python"}, BANDIT_VERSION, _bandit_cmd, parse_bandit),
+    "gosec": Tool("gosec", {"go"}, GOSEC_VERSION, _gosec_cmd, parse_gosec, cwd=_in_scratch,
+                  version_of=gosec_version, cached=lambda: CACHE_DIR / "gobin" / "gosec"),
+    "slither": Tool("slither", {"solidity"}, SLITHER_VERSION, _slither_cmd, parse_slither,
+                    ok_codes=(0, 1, 255), cwd=_in_scratch,
+                    extra_meta={"solc_version": SOLC_VERSION, "impacts": sorted(SLITHER_IMPACTS)}),
+    "clippy": Tool("clippy", {"rust"}, RUST_TOOLCHAIN, _clippy_cmd, parse_clippy, ok_codes=(0, 101),
+                   cwd=_in_scratch, load=load_json_lines, version_of=clippy_version,
+                   extra_meta={"lint_groups": CLIPPY_GROUPS}, exe="cargo"),
 }
 
 
-def find_binary(name: str, override: str | None) -> str:
+def find_binary(name: str, override: str | None, exe: str | None = None,
+                cached: Path | None = None) -> str:
     if override:
         return override
-    venv = CACHE_DIR / "venv" / "bin" / name
-    if venv.is_file():
-        return str(venv)
-    found = shutil.which(name)
+    exe = exe or name
+    cached = cached or CACHE_DIR / "venv" / "bin" / exe
+    if cached.is_file():
+        return str(cached)
+    found = shutil.which(exe)
     if not found:
-        raise SystemExit(f"{name} not found; run scripts/setup_baselines.sh or pass --{name}-bin")
+        raise SystemExit(f"{exe} not found; run scripts/setup_baselines.sh or pass --{name}-bin")
     return found
 
 
-def installed_version(binary: str) -> str:
-    out = subprocess.run([binary, "--version"], capture_output=True, text=True)
-    m = re.search(r"(\d+\.\d+\.\d+)", out.stdout + out.stderr)
-    return m.group(1) if m else ""
+def find_solc(override: str | None) -> str:
+    """solc for Slither: --solc-bin, else the solc-select artifact in the cache."""
+    path = override or str(CACHE_DIR / "venv" / ".solc-select" / "artifacts"
+                           / f"solc-{SOLC_VERSION}" / f"solc-{SOLC_VERSION}")
+    try:
+        out = subprocess.run([path, "--version"], capture_output=True, text=True)
+    except OSError:
+        raise SystemExit(f"solc not found at {path}; run scripts/setup_baselines.sh or pass --solc-bin")
+    if not re.search(rf"Version: {re.escape(SOLC_VERSION)}\b", out.stdout):
+        raise SystemExit(f"{path} is not solc {SOLC_VERSION}; run scripts/setup_baselines.sh")
+    return path
 
 
 def check_rules_dir(rules_dir: Path) -> None:
@@ -306,6 +486,8 @@ def category_evidence(f: dict, d: dict) -> bool:
     want = parse_cwes(d.get("cwe"))
     if any(cwe_related(a, b) for a in want for b in f.get("cwe") or []):
         return True
+    if f.get("cwe_only"):
+        return False
     return rsa.category_hit(f"{f['rule']} {f['message']}", d["category"])
 
 
@@ -427,12 +609,16 @@ def rescore_record(specimen_dir: Path, tool: Tool, reviews: list[dict]) -> dict:
                         fixed, reviews, current, previous["generated_at"])
 
 
+META_KEYS = ("tool", "version", "rules_commit", "rule_categories", "solc_version", "impacts",
+             "lint_groups")
+
+
 def aggregate(records: list[dict]) -> dict:
     """Corpus totals per tool, in the shape run_specimen_audits uses."""
     tools: dict[str, dict] = {}
     for rec in records:
         t = tools.setdefault(rec["tool"], {
-            **{k: v for k, v in rec.items() if k in ("tool", "version", "rules_commit", "rule_categories")},
+            **{k: v for k, v in rec.items() if k in META_KEYS},
             "specimens": 0, "languages": set(),
             "counts": {"total": 0, "detected": 0, "function_flagged": 0, "missed": 0},
             "findings": rsa.empty_finding_counts(),
@@ -482,6 +668,12 @@ def render_summary(summary: dict, stale: list[dict]) -> str:
         if t.get("rules_commit"):
             lines += ["", f"{t['tool']} rules: semgrep-rules `{t['rules_commit'][:12]}`, "
                           f"categories {', '.join(t['rule_categories'])}."]
+        if t.get("solc_version"):
+            lines += ["", f"{t['tool']} settings: solc {t['solc_version']}, "
+                          f"impacts {', '.join(t['impacts'])}."]
+        if t.get("lint_groups"):
+            lines += ["", f"{t['tool']} settings: Rust {t['version']}, "
+                          f"lint groups {', '.join(t['lint_groups'])}."]
         if t["tool_errors"]:
             lines += ["", f"{t['tool']} reported {t['tool_errors']} parse or scan errors; "
                           "files it could not parse count as having no findings."]
@@ -509,6 +701,11 @@ def build_parser() -> argparse.ArgumentParser:
                         help=f"comma-separated tools to run (default: {','.join(TOOLS)})")
     parser.add_argument("--semgrep-bin", help="semgrep executable (default: .cache/baselines/venv, then PATH)")
     parser.add_argument("--bandit-bin", help="bandit executable (default: .cache/baselines/venv, then PATH)")
+    parser.add_argument("--gosec-bin", help="gosec executable (default: .cache/baselines/gobin, then PATH)")
+    parser.add_argument("--slither-bin", help="slither executable (default: .cache/baselines/venv, then PATH)")
+    parser.add_argument("--clippy-bin", help="cargo executable used for clippy (default: PATH)")
+    parser.add_argument("--solc-bin", help=f"solc {SOLC_VERSION} for slither "
+                                           "(default: the solc-select artifact in .cache/baselines/venv)")
     parser.add_argument("--semgrep-rules", default=str(CACHE_DIR / "semgrep-rules"),
                         help="semgrep-rules checkout at the pinned commit")
     parser.add_argument("--timeout", type=int, default=900, help="per-run timeout in seconds")
@@ -531,14 +728,17 @@ def main(argv: list[str]) -> int:
     reviews = load_reviews(SPECIMENS_ROOT, set(TOOLS))
     if not args.rescore:
         for tool in tools:
-            tool.binary = find_binary(tool.name, getattr(args, f"{tool.name}_bin"))
-            got = installed_version(tool.binary)
+            tool.binary = find_binary(tool.name, getattr(args, f"{tool.name}_bin"), tool.exe,
+                                      tool.cached())
+            got = tool.version_of(tool)
             if got != tool.version:
                 raise SystemExit(f"{tool.name} {got or '(unknown)'} found, pinned {tool.version}; "
                                  "run scripts/setup_baselines.sh")
             if tool.name == "semgrep":
                 tool.rules_dir = Path(args.semgrep_rules).resolve()
                 check_rules_dir(tool.rules_dir)
+            if tool.name == "slither":
+                tool.solc = find_solc(args.solc_bin)
     generated_at = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     records = []
     for d in rsa.discover(SPECIMENS_ROOT):
