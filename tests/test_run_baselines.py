@@ -711,6 +711,15 @@ def test_committed_baseline_records_match_summary():
             assert not Path(f["file"]).is_absolute(), f
 
 
+
+def test_committed_baseline_records_match_specimen_sources():
+    stale = []
+    for path in sorted(REPO_ROOT.glob("specimens/*/*/baselines/*.json")):
+        rec = json.loads(path.read_text())
+        if rec["source_hash"] != rb.baseline_hash(path.parent.parent):
+            stale.append(f"{path.parent.parent.name} [{rec['tool']}]")
+    assert stale == [], "re-run python3 scripts/run_baselines.py for these specimens"
+
 # --- gosec / slither / clippy adapters ---------------------------------------
 
 def _gosec_issue(file, line, rule="G401", cwe="328", details="Use of weak cryptographic primitive"):
