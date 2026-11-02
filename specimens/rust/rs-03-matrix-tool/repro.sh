@@ -8,7 +8,7 @@ WORK=$(mktemp -d)
 LOG="$WORK/tool.log"
 trap 'rm -rf "$WORK" /tmp/matrix_tool_cache.txt /tmp/rs03_victim_$$*' EXIT
 
-tool() { "$BIN" "$@" 2>>"$LOG"; }
+tool() { "$BIN" "$@" 2>>"$LOG" || true; }  # a rejected input must not stop later checks
 panic_msg() { echo "$1" | awk '/panicked at/{getline; sub(/^ +/,""); print; exit}'; }
 
 PASS=0; FAIL=0

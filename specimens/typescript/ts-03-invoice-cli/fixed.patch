@@ -54,7 +54,7 @@ index 370aaf7..a7398f4 100644
  }
  
 diff --git a/pricing.ts b/pricing.ts
-index 2cd349d..40d5084 100644
+index 2cd349d..8fb82b6 100644
 --- a/pricing.ts
 +++ b/pricing.ts
 @@ -24,7 +24,9 @@ export function parseItem(raw: unknown): LineItem {
@@ -118,7 +118,7 @@ index 2cd349d..40d5084 100644
  /** Tax on `amount` at `ratePercent`, in whole cents. */
  export function taxAmount(amount: number, ratePercent: number): number {
 -  return Math.floor(amount * ratePercent) / 100;
-+  return Math.round(amount * ratePercent) / 100;
++  return Math.round(Math.round(amount * 100) * ratePercent / 100) / 100;
  }
  
  export function computeTotals(items: LineItem[], taxRate: number, discountPercent: number): Totals {

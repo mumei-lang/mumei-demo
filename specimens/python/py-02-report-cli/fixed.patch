@@ -1,5 +1,5 @@
 diff --git a/report.py b/report.py
-index d01043a..d07ff3f 100644
+index d01043a..f16a553 100644
 --- a/report.py
 +++ b/report.py
 @@ -9,6 +9,7 @@ import csv
@@ -53,7 +53,7 @@ index d01043a..d07ff3f 100644
          total_amount += amount
          overtime = timesheet.overtime_minutes(list(w["daily"].values()), DAILY_THRESHOLD_MINUTES)
          overtime_pct = timesheet.share_of_total(overtime, w["total"]) * 100
-@@ -78,14 +81,18 @@ def render(per_worker: dict, rate) -> str:
+@@ -78,14 +81,20 @@ def render(per_worker: dict, rate) -> str:
  
  
  def post_process(out_path: str) -> None:
@@ -70,6 +70,8 @@ index d01043a..d07ff3f 100644
 +        rate = Decimal(args.rate)
 +    except InvalidOperation:
 +        raise SystemExit(f"--rate must be a number: {args.rate!r}")
++    if not rate.is_finite():
++        raise SystemExit(f"--rate must be a finite number: {args.rate!r}")
 +    report = render(per_worker, rate)
      print(report)
      with open(args.out, "w", encoding="utf-8") as f:

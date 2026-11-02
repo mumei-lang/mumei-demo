@@ -204,7 +204,7 @@ with `--run-fixed` it is applied to a scratch copy, where `run.sh` must pass and
 
 ![Detection over runs](scoreboard/history.svg)
 
-Latest run — no LLM: mumei-agent `dffe7e8` · mumei `36eb534` (mumei 0.6.23) · 2026-11-01T17:26:49Z
+Latest run — no LLM: mumei-agent `dffe7e8` · mumei `36eb534` (mumei 0.6.23) · 2026-11-01T18:33:07Z
 Findings — no LLM: 40 (defect evidence 10, real 3, false positive 27, unreviewed 0) · precision 32%
 Fixed variants — no LLM: 16 specimens (171 defects fixed) · 29 false alarms in 30 findings on fixed code · 3 defects still reported
 
@@ -227,12 +227,14 @@ Recent runs:
 |---|---|---|---|---|---:|---:|---:|---:|---:|
 | 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens |
 | 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens |
+| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 4 / 7 specimens |
+| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 4 / 7 specimens |
+| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens |
+| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens |
 | 2026-11-01 | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 4 / 7 specimens |
 | 2026-10-31 (rescored 2026-11-01) | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% | 32% | — |
 | 2026-10-31 | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% | — | — |
 | 2026-10-29 | no | `336d604` | `fc10933` | 171 | 6% | 13% | 17% | — | — |
-| 2026-10-24 | no | `759dcc3` | `d89609c` | 171 | 6% | 13% | 17% | — | — |
-| 2026-10-04 | no | `8f85274` | `d5fe4b6` | 171 | 6% | 13% | 17% | — | — |
 
 Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md).
 

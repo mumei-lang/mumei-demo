@@ -117,7 +117,7 @@ index f7d17e7..56e4814 100644
    };
  }
 diff --git a/server.ts b/server.ts
-index 08ee505..e52b64d 100644
+index 08ee505..0988176 100644
 --- a/server.ts
 +++ b/server.ts
 @@ -8,16 +8,20 @@
@@ -143,13 +143,14 @@ index 08ee505..e52b64d 100644
  const MAX_BODY = 64 * 1024;
  
  const links = new Map<string, Link>();
-@@ -64,18 +68,37 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
+@@ -64,18 +68,38 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
  }
  
  /** Fetch the target once so the client can show a title next to the short link. */
 +const NON_PUBLIC = new BlockList();
 +for (const [net, bits] of [["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8],
-+  ["169.254.0.0", 16], ["172.16.0.0", 12], ["192.168.0.0", 16], ["224.0.0.0", 3]] as const) {
++  ["169.254.0.0", 16], ["172.16.0.0", 12], ["192.0.0.0", 24], ["192.168.0.0", 16],
++  ["198.18.0.0", 15], ["224.0.0.0", 3]] as const) {
 +  NON_PUBLIC.addSubnet(net, bits, "ipv4");
 +}
 +for (const [net, bits] of [["::", 127], ["::ffff:0:0", 96], ["fc00::", 7], ["fe80::", 10], ["ff00::", 8]] as const) {
@@ -184,7 +185,7 @@ index 08ee505..e52b64d 100644
  }
  
  async function handleShorten(req: IncomingMessage, res: ServerResponse): Promise<void> {
-@@ -95,11 +118,20 @@ async function handleRedirect(req: IncomingMessage, res: ServerResponse, code: s
+@@ -95,11 +119,20 @@ async function handleRedirect(req: IncomingMessage, res: ServerResponse, code: s
  }
  
  function handleStats(res: ServerResponse, code: string): void {
