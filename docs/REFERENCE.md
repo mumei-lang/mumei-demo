@@ -63,7 +63,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 |---|---:|---|
 | `scripts/generate_report.py` | 9 | Render a Mumei demo result. |
 | `scripts/run_specimen_audits.py` | 10 | Run `mumei-agent audit` over every specimen and score it against DEFECTS.json. |
-| `scripts/run_baselines.py` | 8 | Run off-the-shelf static analyzers over the specimens and score them like the audit. |
+| `scripts/run_baselines.py` | 12 | Run off-the-shelf static analyzers over the specimens and score them like the audit. |
 | `scripts/record_scenario.py` | 2 | Finite record-operation checks and intentionally broken host variants. |
 | `scripts/record_model_evidence.py` | 2 | Collect independent Lean model evidence; never promote a Python operation. |
 | `scripts/check_specimens.py` | 2 | Validate specimen directories. |
@@ -112,9 +112,13 @@ Run off-the-shelf static analyzers over the specimens and score them like the au
 
 | Option | Value | Required | Default | Description |
 |---|---|---|---|---|
-| `--tools` | `<TOOLS>` | no | `semgrep,bandit` | comma-separated tools to run (default: semgrep,bandit) |
+| `--tools` | `<TOOLS>` | no | `semgrep,bandit,gosec,slither,clippy` | comma-separated tools to run (default: semgrep,bandit,gosec,slither,clippy) |
 | `--semgrep-bin` | `<SEMGREP_BIN>` | no | — | semgrep executable (default: .cache/baselines/venv, then PATH) |
 | `--bandit-bin` | `<BANDIT_BIN>` | no | — | bandit executable (default: .cache/baselines/venv, then PATH) |
+| `--gosec-bin` | `<GOSEC_BIN>` | no | — | gosec executable (default: .cache/baselines/gobin, then PATH) |
+| `--slither-bin` | `<SLITHER_BIN>` | no | — | slither executable (default: .cache/baselines/venv, then PATH) |
+| `--clippy-bin` | `<CLIPPY_BIN>` | no | — | cargo executable used for clippy (default: PATH) |
+| `--solc-bin` | `<SOLC_BIN>` | no | — | solc 0.8.24 for slither (default: the solc-select artifact in .cache/baselines/venv) |
 | `--semgrep-rules` | `<SEMGREP_RULES>` | no | `.cache/baselines/semgrep-rules` | semgrep-rules checkout at the pinned commit |
 | `--timeout` | `<TIMEOUT>` | no | `900` | per-run timeout in seconds |
 | `--summary` | `<SUMMARY>` | no | `specimens/BASELINES.md` | — |

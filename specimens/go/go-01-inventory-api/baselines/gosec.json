@@ -1,0 +1,517 @@
+{
+  "specimen": "go-01-inventory-api",
+  "language": "go",
+  "tool": "gosec",
+  "version": "2.29.0",
+  "generated_at": "2026-11-01T18:58:37Z",
+  "source_hash": "5014fb7d871106c11847f9092f9e18758378b37f1e691a333b4b7ab14540faa5",
+  "tool_errors": 0,
+  "raw_findings": [
+    {
+      "file": "calc.go",
+      "line": 12,
+      "rule": "G115",
+      "severity": "high",
+      "cwe": [
+        190
+      ],
+      "message": "integer overflow conversion int -> int32",
+      "function": "reorderPoint"
+    },
+    {
+      "file": "calc.go",
+      "line": 23,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "appendMovement"
+    },
+    {
+      "file": "calc.go",
+      "line": 24,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "appendMovement"
+    },
+    {
+      "file": "handlers.go",
+      "line": 60,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "createItem"
+    },
+    {
+      "file": "handlers.go",
+      "line": 163,
+      "rule": "G705",
+      "severity": "medium",
+      "cwe": [
+        79
+      ],
+      "message": "XSS via taint analysis",
+      "function": "searchHandler"
+    },
+    {
+      "file": "handlers.go",
+      "line": 178,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "writeJSON"
+    },
+    {
+      "file": "main.go",
+      "line": 28,
+      "rule": "G114",
+      "severity": "medium",
+      "cwe": [
+        676
+      ],
+      "message": "Use of net/http serve function that has no support for setting timeouts",
+      "function": "main"
+    },
+    {
+      "file": "main.go",
+      "line": 35,
+      "rule": "G706",
+      "severity": "low",
+      "cwe": [
+        117
+      ],
+      "message": "Log injection via taint analysis",
+      "function": "auditRequests"
+    }
+  ],
+  "defects": [
+    {
+      "id": "GO01-D01",
+      "file": "handlers.go",
+      "function": "reserveHandler",
+      "category": "race-condition",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D02",
+      "file": "handlers.go",
+      "function": "restockHandler",
+      "category": "integer-overflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D03",
+      "file": "handlers.go",
+      "function": "releaseHandler",
+      "category": "invariant-violation",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D04",
+      "file": "handlers.go",
+      "function": "itemHandler",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D05",
+      "file": "calc.go",
+      "function": "reorderPoint",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "G115 in `reorderPoint` (line 12, CWE-190): integer overflow conversion int -> int32"
+      ]
+    },
+    {
+      "id": "GO01-D06",
+      "file": "handlers.go",
+      "function": "viewItem",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D07",
+      "file": "handlers.go",
+      "function": "reportHandler",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D08",
+      "file": "main.go",
+      "function": "auditRequests",
+      "category": "resource-leak",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "G706 in `auditRequests` (line 35, CWE-117): Log injection via taint analysis"
+      ]
+    },
+    {
+      "id": "GO01-D09",
+      "file": "handlers.go",
+      "function": "createItem",
+      "category": "error-handling",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "G104 in `createItem` (line 60, CWE-703): Errors unhandled"
+      ]
+    },
+    {
+      "id": "GO01-D10",
+      "file": "handlers.go",
+      "function": "searchHandler",
+      "category": "xss",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "G705 in `searchHandler` (line 163, CWE-79): XSS via taint analysis"
+      ]
+    },
+    {
+      "id": "GO01-D11",
+      "file": "main.go",
+      "function": "main",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "G114 in `main` (line 28, CWE-676): Use of net/http serve function that has no support for setting timeouts"
+      ]
+    }
+  ],
+  "counts": {
+    "total": 11,
+    "detected": 2,
+    "function_flagged": 3,
+    "missed": 6
+  },
+  "findings": [
+    {
+      "file": "calc.go",
+      "kind": "baseline",
+      "text": "G115 in `reorderPoint` (line 12, CWE-190): integer overflow conversion int -> int32",
+      "status": "false_positive",
+      "reason": "len(locations) counts the storage locations of one item and cannot approach 2^31, so the int32 conversion cannot wrap."
+    },
+    {
+      "file": "calc.go",
+      "kind": "baseline",
+      "text": "G104 in `appendMovement` (line 23, CWE-703): Errors unhandled",
+      "status": "false_positive",
+      "reason": "The movement log is best-effort; a failed Sync or Close loses a log line but leaves inventory state correct."
+    },
+    {
+      "file": "calc.go",
+      "kind": "baseline",
+      "text": "G104 in `appendMovement` (line 24, CWE-703): Errors unhandled",
+      "status": "false_positive",
+      "reason": "The movement log is best-effort; a failed Sync or Close loses a log line but leaves inventory state correct."
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "G104 in `createItem` (line 60, CWE-703): Errors unhandled",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "G705 in `searchHandler` (line 163, CWE-79): XSS via taint analysis",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "baseline",
+      "text": "G104 in `writeJSON` (line 178, CWE-703): Errors unhandled",
+      "status": "false_positive",
+      "reason": "The status line is already sent when Encode runs, so a write error to the client has nowhere to go."
+    },
+    {
+      "file": "main.go",
+      "kind": "baseline",
+      "text": "G114 in `main` (line 28, CWE-676): Use of net/http serve function that has no support for setting timeouts",
+      "status": "false_positive",
+      "reason": "The service binds a loopback listener for local use; server timeouts are deployment hardening, not a defect in this code."
+    },
+    {
+      "file": "main.go",
+      "kind": "baseline",
+      "text": "G706 in `auditRequests` (line 35, CWE-117): Log injection via taint analysis",
+      "status": "real",
+      "reason": "r.URL.Path is percent-decoded, so a request path with %0a writes forged lines into the request log."
+    }
+  ],
+  "finding_counts": {
+    "total": 8,
+    "defect_evidence": 2,
+    "real": 1,
+    "false_positive": 5,
+    "unreviewed": 0
+  },
+  "reviews_used": [
+    [
+      "go-01-inventory-api",
+      "calc.go",
+      "G104 in `appendMovement`"
+    ],
+    [
+      "go-01-inventory-api",
+      "calc.go",
+      "G115 in `reorderPoint`"
+    ],
+    [
+      "go-01-inventory-api",
+      "handlers.go",
+      "G104 in `writeJSON`"
+    ],
+    [
+      "go-01-inventory-api",
+      "main.go",
+      "G114 in `main`"
+    ],
+    [
+      "go-01-inventory-api",
+      "main.go",
+      "G706 in `auditRequests`"
+    ]
+  ],
+  "fixed_raw_findings": [
+    {
+      "file": "calc.go",
+      "line": 15,
+      "rule": "G115",
+      "severity": "high",
+      "cwe": [
+        190
+      ],
+      "message": "integer overflow conversion int -> int32",
+      "function": "reorderPoint"
+    },
+    {
+      "file": "calc.go",
+      "line": 26,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "appendMovement"
+    },
+    {
+      "file": "calc.go",
+      "line": 27,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "appendMovement"
+    },
+    {
+      "file": "handlers.go",
+      "line": 180,
+      "rule": "G115",
+      "severity": "high",
+      "cwe": [
+        190
+      ],
+      "message": "integer overflow conversion int64 -> int32",
+      "function": "restockHandler"
+    },
+    {
+      "file": "handlers.go",
+      "line": 232,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "writeJSON"
+    },
+    {
+      "file": "main.go",
+      "line": 27,
+      "rule": "G114",
+      "severity": "medium",
+      "cwe": [
+        676
+      ],
+      "message": "Use of net/http serve function that has no support for setting timeouts",
+      "function": "main"
+    },
+    {
+      "file": "main.go",
+      "line": 34,
+      "rule": "G706",
+      "severity": "low",
+      "cwe": [
+        117
+      ],
+      "message": "Log injection via taint analysis",
+      "function": "auditRequests"
+    },
+    {
+      "file": "main.go",
+      "line": 36,
+      "rule": "G104",
+      "severity": "low",
+      "cwe": [
+        703
+      ],
+      "message": "Errors unhandled",
+      "function": "auditRequests"
+    }
+  ],
+  "fixed_tool_errors": 0,
+  "fixed": {
+    "defects": 11,
+    "still_reported": [
+      "GO01-D02"
+    ],
+    "false_alarms": 7,
+    "findings": [
+      {
+        "file": "calc.go",
+        "kind": "baseline",
+        "text": "G115 in `reorderPoint` (line 15, CWE-190): integer overflow conversion int -> int32",
+        "status": "false_positive",
+        "reason": "len(locations) counts the storage locations of one item and cannot approach 2^31, so the int32 conversion cannot wrap."
+      },
+      {
+        "file": "calc.go",
+        "kind": "baseline",
+        "text": "G104 in `appendMovement` (line 26, CWE-703): Errors unhandled",
+        "status": "false_positive",
+        "reason": "The movement log is best-effort; a failed Sync or Close loses a log line but leaves inventory state correct."
+      },
+      {
+        "file": "calc.go",
+        "kind": "baseline",
+        "text": "G104 in `appendMovement` (line 27, CWE-703): Errors unhandled",
+        "status": "false_positive",
+        "reason": "The movement log is best-effort; a failed Sync or Close loses a log line but leaves inventory state correct."
+      },
+      {
+        "file": "handlers.go",
+        "kind": "baseline",
+        "text": "G115 in `restockHandler` (line 180, CWE-190): integer overflow conversion int64 -> int32",
+        "status": "false_positive",
+        "reason": "On the fixed code the int64 total is checked against math.MaxInt32 before the conversion."
+      },
+      {
+        "file": "handlers.go",
+        "kind": "baseline",
+        "text": "G104 in `writeJSON` (line 232, CWE-703): Errors unhandled",
+        "status": "false_positive",
+        "reason": "The status line is already sent when Encode runs, so a write error to the client has nowhere to go."
+      },
+      {
+        "file": "main.go",
+        "kind": "baseline",
+        "text": "G114 in `main` (line 27, CWE-676): Use of net/http serve function that has no support for setting timeouts",
+        "status": "false_positive",
+        "reason": "The service binds a loopback listener for local use; server timeouts are deployment hardening, not a defect in this code."
+      },
+      {
+        "file": "main.go",
+        "kind": "baseline",
+        "text": "G706 in `auditRequests` (line 34, CWE-117): Log injection via taint analysis",
+        "status": "real",
+        "reason": "r.URL.Path is percent-decoded, so a request path with %0a writes forged lines into the request log."
+      },
+      {
+        "file": "main.go",
+        "kind": "baseline",
+        "text": "G104 in `auditRequests` (line 36, CWE-703): Errors unhandled",
+        "status": "false_positive",
+        "reason": "The audit write is discarded on purpose with `_, _ =`; a lost log line does not change request handling."
+      }
+    ],
+    "finding_counts": {
+      "total": 8,
+      "defect_evidence": 0,
+      "real": 1,
+      "false_positive": 7,
+      "unreviewed": 0
+    },
+    "reviews_used": [
+      [
+        "go-01-inventory-api",
+        "calc.go",
+        "G104 in `appendMovement`"
+      ],
+      [
+        "go-01-inventory-api",
+        "calc.go",
+        "G115 in `reorderPoint`"
+      ],
+      [
+        "go-01-inventory-api",
+        "handlers.go",
+        "G104 in `writeJSON`"
+      ],
+      [
+        "go-01-inventory-api",
+        "handlers.go",
+        "G115 in `restockHandler` (line 180"
+      ],
+      [
+        "go-01-inventory-api",
+        "main.go",
+        "G104 in `auditRequests`"
+      ],
+      [
+        "go-01-inventory-api",
+        "main.go",
+        "G114 in `main`"
+      ],
+      [
+        "go-01-inventory-api",
+        "main.go",
+        "G706 in `auditRequests`"
+      ]
+    ]
+  }
+}

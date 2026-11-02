@@ -651,7 +651,7 @@ def test_find_binary_override_and_missing(monkeypatch, tmp_path):
         rb.find_binary("semgrep", None)
 
 
-@pytest.mark.parametrize("tools", ["gosec", "semgrep,nope", ","])
+@pytest.mark.parametrize("tools", ["cppcheck", "semgrep,nope", ","])
 def test_main_rejects_unknown_tools(tools):
     with pytest.raises(SystemExit, match="unknown tool"):
         rb.main(["--tools", tools])
@@ -659,7 +659,7 @@ def test_main_rejects_unknown_tools(tools):
 
 def test_main_refuses_version_mismatch(monkeypatch, tmp_path):
     monkeypatch.setattr(rb, "load_reviews", lambda root, tools: [])
-    monkeypatch.setattr(rb, "find_binary", lambda name, override: "/bin/" + name)
+    monkeypatch.setattr(rb, "find_binary", lambda name, override, *rest: "/bin/" + name)
     monkeypatch.setattr(rb, "installed_version", lambda b: "0.0.1")
     with pytest.raises(SystemExit, match="pinned"):
         rb.main(["--tools", "bandit"])
@@ -668,7 +668,7 @@ def test_main_refuses_version_mismatch(monkeypatch, tmp_path):
 def test_main_runs_tools_and_writes_outputs(monkeypatch, tmp_path):
     root, d = _tree(tmp_path)
     monkeypatch.setattr(rb, "SPECIMENS_ROOT", root)
-    monkeypatch.setattr(rb, "find_binary", lambda name, override: "/bin/" + name)
+    monkeypatch.setattr(rb, "find_binary", lambda name, override, *rest: "/bin/" + name)
     monkeypatch.setattr(rb, "installed_version", lambda b: rb.BANDIT_VERSION)
     monkeypatch.setattr(rb, "run_specimen", lambda d, tool, reviews, timeout, at: rb.build_record(
         tool, DOC, [_f(cwe=[89])], 0, None, reviews, "h", at))
@@ -688,7 +688,7 @@ def test_main_skips_languages_a_tool_does_not_cover(monkeypatch, tmp_path):
     doc["language"] = "go"
     (d / "DEFECTS.json").write_text(json.dumps(doc))
     monkeypatch.setattr(rb, "SPECIMENS_ROOT", root)
-    monkeypatch.setattr(rb, "find_binary", lambda name, override: "/bin/" + name)
+    monkeypatch.setattr(rb, "find_binary", lambda name, override, *rest: "/bin/" + name)
     monkeypatch.setattr(rb, "installed_version", lambda b: rb.BANDIT_VERSION)
     calls = []
     monkeypatch.setattr(rb, "run_specimen", lambda *a: calls.append(a))
@@ -709,3 +709,388 @@ def test_committed_baseline_records_match_summary():
     for rec in records:
         for f in rec["raw_findings"] + rec.get("fixed_raw_findings", []):
             assert not Path(f["file"]).is_absolute(), f
+
+
+# --- gosec / slither / clippy adapters ---------------------------------------
+
+def _gosec_issue(file, line, rule="G401", cwe="328", details="Use of weak cryptographic primitive"):
+    return {"rule_id": rule, "cwe": {"id": cwe, "url": "x"}, "file": file, "line": line,
+            "severity": "MEDIUM", "confidence": "HIGH", "details": details}
+
+
+def test_parse_gosec(tmp_path):
+    doc = {"Issues": [_gosec_issue(str(tmp_path / "auth.go"), "27"),
+                      _gosec_issue("handlers.go", "68-70", "G704", "918", "SSRF via\n taint analysis")],
+           "Golang errors": {}}
+    findings, errors = rb.parse_gosec(doc, tmp_path)
+    assert errors == 0
+    assert findings[0] == {"file": "auth.go", "line": 27, "rule": "G401", "severity": "medium",
+                           "cwe": [328], "message": "Use of weak cryptographic primitive"}
+    assert findings[1]["line"] == 68 and findings[1]["cwe"] == [918]
+    assert findings[1]["message"] == "SSRF via taint analysis"
+
+
+@pytest.mark.parametrize("golang_errors,expected", [
+    ({}, 0), (None, 0), ({"a.go": [{"line": 1}, {"line": 2}]}, 2),
+    ({"a.go": [{"line": 1}], "b.go": [{"line": 3}]}, 2), ({"a.go": "boom"}, 1),
+])
+def test_parse_gosec_counts_golang_errors(golang_errors, expected):
+    assert rb.parse_gosec({"Issues": [], "Golang errors": golang_errors}, Path("/x")) == ([], expected)
+
+
+def test_parse_gosec_empty():
+    assert rb.parse_gosec({}, Path("/x")) == ([], 0)
+
+
+def _slither_result(check, impact, lines=(10,), file="src/A.sol", elements=None, description="desc"):
+    if elements is None:
+        elements = [{"type": "function", "name": "f",
+                     "source_mapping": {"filename_relative": file, "lines": list(lines)}}]
+    return {"check": check, "impact": impact, "confidence": "Medium", "elements": elements,
+            "description": description}
+
+
+def test_parse_slither_keeps_bug_impacts_only(tmp_path):
+    doc = {"success": True, "error": None, "results": {"detectors": [
+        _slither_result("reentrancy-eth", "High", (98, 99)),
+        _slither_result("divide-before-multiply", "Medium", (58,)),
+        _slither_result("timestamp", "Low", (66,)),
+        _slither_result("solc-version", "Informational", (2,)),
+        _slither_result("immutable-states", "Optimization", (5,)),
+    ]}}
+    findings, errors = rb.parse_slither(doc, tmp_path)
+    assert errors == 0
+    assert [(f["rule"], f["line"], f["severity"]) for f in findings] == [
+        ("reentrancy-eth", 98, "high"), ("divide-before-multiply", 58, "medium"), ("timestamp", 66, "low")]
+    assert [f["cwe"] for f in findings] == [[841], [682], [829]]
+    assert all(f["cwe_only"] for f in findings)
+    assert findings[0]["file"] == "src/A.sol"
+
+
+def test_parse_slither_failed_compile_is_one_error():
+    assert rb.parse_slither({"success": False, "error": "solc failed", "results": {}}, Path("/x")) == ([], 1)
+    assert rb.parse_slither({}, Path("/x")) == ([], 1)
+
+
+def test_parse_slither_uses_first_element_with_lines(tmp_path):
+    elements = [{"type": "pragma", "name": "x", "source_mapping": {"lines": []}},
+                {"type": "function", "name": "bid",
+                 "source_mapping": {"filename_absolute": str(tmp_path / "src" / "B.sol"), "lines": [66, 67]}}]
+    doc = {"success": True, "results": {"detectors": [
+        _slither_result("reentrancy-benign", "Low", elements=elements, description="Reentrancy in\n  bid()"),
+        _slither_result("tx-origin", "Medium", elements=[{"type": "x"}]),
+        _slither_result("weak-prng", "High", elements=[]),
+    ]}}
+    findings, _ = rb.parse_slither(doc, tmp_path)
+    assert len(findings) == 1
+    assert findings[0]["file"] == "src/B.sol" and findings[0]["line"] == 66
+    assert findings[0]["message"] == "Reentrancy in bid()"
+
+
+@pytest.mark.parametrize("check,cwes", [
+    ("reentrancy-eth", [841]), ("reentrancy-no-eth", [841]), ("reentrancy-events", [841]),
+    ("tx-origin", [346]), ("unchecked-lowlevel", [252]), ("unchecked-send", [252]),
+    ("unchecked-transfer", [252]), ("weak-prng", [330]), ("timestamp", [829]),
+    ("divide-before-multiply", [682]), ("arbitrary-send-eth", [284]), ("suicidal", [284]),
+    ("calls-loop", [400]), ("missing-zero-check", []), ("shadowing-local", []),
+])
+def test_slither_cwes(check, cwes):
+    assert rb.slither_cwes(check) == cwes
+
+
+def test_slither_reentrancy_matches_a_reentrancy_defect():
+    f = {"file": "src/A.sol", "line": 94, "function": "withdraw", "rule": "reentrancy-eth",
+         "cwe": rb.slither_cwes("reentrancy-eth"), "message": "Reentrancy in A.withdraw()"}
+    d = {"file": "src/A.sol", "line": 94, "function": "withdraw", "category": "reentrancy", "cwe": "CWE-841"}
+    assert rb.located(f, d) and rb.category_evidence(f, d)
+
+
+def _clippy_msg(code, level="warning", file="src/main.rs", line=7, primary=True, message="m"):
+    return {"reason": "compiler-message", "message": {
+        "code": {"code": code} if code else None, "level": level, "message": message,
+        "spans": [{"file_name": "src/other.rs", "line_start": 1, "is_primary": False},
+                  {"file_name": file, "line_start": line, "is_primary": primary}]}}
+
+
+def test_parse_clippy(tmp_path):
+    msgs = [
+        {"reason": "compiler-artifact"},
+        _clippy_msg("clippy::absurd_extreme_comparisons", message="this comparison\n is always false"),
+        _clippy_msg("unused_variables"),
+        _clippy_msg(None, level="error"),
+        _clippy_msg("E0308", level="error"),
+        _clippy_msg("clippy::suspicious_arithmetic_impl", primary=False),
+        {"reason": "build-finished", "success": True},
+    ]
+    findings, errors = rb.parse_clippy(msgs, tmp_path)
+    assert errors == 2
+    assert findings == [{"file": "src/main.rs", "line": 7, "rule": "clippy::absurd_extreme_comparisons",
+                         "severity": "warning", "cwe": [], "message": "this comparison is always false"}]
+
+
+def test_parse_clippy_empty():
+    assert rb.parse_clippy([], Path("/x")) == ([], 0)
+
+
+def test_load_json_lines():
+    text = 'Compiling x\n{"reason": "a"}\n\n{"reason": "b"}\n'
+    assert rb.load_json_lines(text) == [{"reason": "a"}, {"reason": "b"}]
+    assert rb.load_json_lines("") == []
+    with pytest.raises(json.JSONDecodeError):
+        rb.load_json_lines("{broken")
+
+
+def test_new_tool_commands(tmp_path):
+    g = rb.TOOLS["gosec"]
+    assert rb._gosec_cmd(g, tmp_path, "go")[-1] == "./..." and "-fmt=json" in rb._gosec_cmd(g, tmp_path, "go")
+    s = rb.TOOLS["slither"]
+    s.solc = "/opt/solc"
+    cmd = rb._slither_cmd(s, tmp_path, "solidity")
+    assert cmd[1] == "src" and cmd[cmd.index("--solc") + 1] == "/opt/solc"
+    assert cmd[cmd.index("--json") + 1] == "-"
+    s.solc = None
+    c = rb.TOOLS["clippy"]
+    cmd = rb._clippy_cmd(c, tmp_path, "rust")
+    assert cmd[1] == f"+{rb.RUST_TOOLCHAIN}" and cmd[2] == "clippy"
+    tail = cmd[cmd.index("--") + 1:]
+    assert tail == ["-A", "clippy::all", "-W", "clippy::correctness", "-W", "clippy::suspicious"]
+
+
+def test_tool_languages_and_meta():
+    assert rb.TOOLS["gosec"].languages == {"go"}
+    assert rb.TOOLS["slither"].languages == {"solidity"}
+    assert rb.TOOLS["clippy"].languages == {"rust"}
+    assert rb.TOOLS["slither"].meta() == {"tool": "slither", "version": rb.SLITHER_VERSION,
+                                          "solc_version": rb.SOLC_VERSION, "impacts": ["High", "Low", "Medium"]}
+    assert rb.TOOLS["clippy"].meta() == {"tool": "clippy", "version": rb.RUST_TOOLCHAIN,
+                                         "lint_groups": ["correctness", "suspicious"]}
+    assert rb.TOOLS["gosec"].meta() == {"tool": "gosec", "version": rb.GOSEC_VERSION}
+    assert rb.TOOLS["semgrep"].meta()["rules_commit"] == rb.SEMGREP_RULES_COMMIT
+    assert rb.TOOLS["clippy"].exe == "cargo"
+    assert rb.TOOLS["gosec"].cached() == rb.CACHE_DIR / "gobin" / "gosec"
+    assert rb.TOOLS["slither"].cached() == rb.CACHE_DIR / "venv" / "bin" / "slither"
+
+
+def test_default_tools_cover_every_language():
+    covered = set().union(*(t.languages for t in rb.TOOLS.values()))
+    assert covered == set(rb.SEMGREP_CONFIGS)
+    assert list(rb.TOOLS) == ["semgrep", "bandit", "gosec", "slither", "clippy"]
+
+
+@pytest.mark.parametrize("name", ["gosec", "slither", "clippy"])
+def test_tool_run_uses_scratch_as_cwd(tmp_path, monkeypatch, name):
+    seen = {}
+
+    class P:
+        returncode, stderr = 0, ""
+        stdout = "" if name == "clippy" else json.dumps({"success": True, "results": {}})
+
+    def fake_run(cmd, cwd=None, **kw):
+        seen["cwd"] = cwd
+        return P()
+    monkeypatch.setattr(rb.subprocess, "run", fake_run)
+    rb.TOOLS[name].run(tmp_path, next(iter(rb.TOOLS[name].languages)), 5)
+    assert seen["cwd"] == tmp_path
+
+
+@pytest.mark.parametrize("name,code,ok", [
+    ("slither", 255, True), ("slither", 0, True), ("slither", 2, False),
+    ("clippy", 101, True), ("clippy", 1, False), ("gosec", 1, True), ("gosec", 2, False),
+])
+def test_new_tools_exit_codes(tmp_path, monkeypatch, name, code, ok):
+    class P:
+        returncode, stderr = code, "err"
+        stdout = "" if name == "clippy" else json.dumps({"success": True, "Issues": []})
+    monkeypatch.setattr(rb.subprocess, "run", lambda *a, **k: P())
+    tool = rb.TOOLS[name]
+    lang = next(iter(tool.languages))
+    if ok:
+        tool.run(tmp_path, lang, 5)
+    else:
+        with pytest.raises(SystemExit, match=f"exit {code}"):
+            tool.run(tmp_path, lang, 5)
+
+
+class _Proc:
+    def __init__(self, out, rc=0):
+        self.stdout, self.returncode, self.stderr = out, rc, ""
+
+
+@pytest.mark.parametrize("out,expected", [
+    ("gosec: go1.27.1\n\tpath\tgithub.com/securego/gosec/v2/cmd/gosec\n"
+     "\tmod\tgithub.com/securego/gosec/v2\tv2.29.0\th1:abc=\n", "2.29.0"),
+    ("gosec: go1.27.1\n\tmod\tgithub.com/other/thing\tv1.0.0\n", ""),
+    ("", ""),
+])
+def test_gosec_version(monkeypatch, out, expected):
+    monkeypatch.setattr(rb.subprocess, "run", lambda *a, **k: _Proc(out))
+    t = rb.Tool("gosec", {"go"}, "x", rb._gosec_cmd, rb.parse_gosec)
+    t.binary = "/bin/gosec"
+    assert rb.gosec_version(t) == expected
+
+
+def test_gosec_version_needs_go(monkeypatch):
+    def boom(*a, **k):
+        raise FileNotFoundError("go")
+    monkeypatch.setattr(rb.subprocess, "run", boom)
+    t = rb.Tool("gosec", {"go"}, "x", rb._gosec_cmd, rb.parse_gosec)
+    t.binary = "/bin/gosec"
+    with pytest.raises(SystemExit, match="go` on PATH"):
+        rb.gosec_version(t)
+
+
+@pytest.mark.parametrize("out,rc,expected_pinned", [
+    (f"clippy 0.1.{rb.RUST_TOOLCHAIN.split('.')[1]} (abc 2026-10-13)\n", 0, True),
+    (f"clippy 0.1.{rb.RUST_TOOLCHAIN.split('.')[1]}0 (abc)\n", 0, False),
+    ("clippy 0.1.1 (abc)\n", 0, False),
+    ("", 1, False),
+])
+def test_clippy_version(monkeypatch, out, rc, expected_pinned):
+    monkeypatch.setattr(rb.subprocess, "run", lambda *a, **k: _Proc(out, rc))
+    t = rb.Tool("clippy", {"rust"}, "x", rb._clippy_cmd, rb.parse_clippy)
+    t.binary = "/bin/cargo"
+    assert rb.clippy_version(t) == (rb.RUST_TOOLCHAIN if expected_pinned else "")
+
+
+def test_find_solc(monkeypatch, tmp_path):
+    monkeypatch.setattr(rb.subprocess, "run",
+                        lambda *a, **k: _Proc(f"solc, the solidity compiler\nVersion: {rb.SOLC_VERSION}+commit.x\n"))
+    assert rb.find_solc("/opt/solc") == "/opt/solc"
+    monkeypatch.setattr(rb, "CACHE_DIR", tmp_path)
+    assert rb.find_solc(None).endswith(f"solc-{rb.SOLC_VERSION}/solc-{rb.SOLC_VERSION}")
+    monkeypatch.setattr(rb.subprocess, "run", lambda *a, **k: _Proc("Version: 0.8.19+commit.x\n"))
+    with pytest.raises(SystemExit, match="is not solc"):
+        rb.find_solc("/opt/solc")
+
+    def boom(*a, **k):
+        raise FileNotFoundError("solc")
+    monkeypatch.setattr(rb.subprocess, "run", boom)
+    with pytest.raises(SystemExit, match="solc not found"):
+        rb.find_solc(None)
+
+
+def test_find_binary_uses_cached_path_and_exe(monkeypatch, tmp_path):
+    cached = tmp_path / "gobin" / "gosec"
+    cached.parent.mkdir()
+    cached.write_text("")
+    assert rb.find_binary("gosec", None, "gosec", cached) == str(cached)
+    monkeypatch.setattr(rb.shutil, "which", lambda n: f"/usr/bin/{n}")
+    assert rb.find_binary("clippy", None, "cargo", tmp_path / "missing") == "/usr/bin/cargo"
+    monkeypatch.setattr(rb.shutil, "which", lambda n: None)
+    with pytest.raises(SystemExit, match="--clippy-bin"):
+        rb.find_binary("clippy", None, "cargo", tmp_path / "missing")
+
+
+def test_main_sets_solc_for_slither(monkeypatch, tmp_path):
+    root, _ = _tree(tmp_path)
+    monkeypatch.setattr(rb, "SPECIMENS_ROOT", root)
+    monkeypatch.setattr(rb, "find_binary", lambda name, override, *rest: "/bin/" + name)
+    monkeypatch.setattr(rb.TOOLS["slither"], "version_of", lambda t: rb.SLITHER_VERSION)
+    monkeypatch.setattr(rb, "find_solc", lambda override: override or "/cache/solc")
+    rb.main(["--tools", "slither", "--solc-bin", "/opt/solc", "--summary", str(tmp_path / "s.md"),
+             "--scoreboard-dir", str(tmp_path / "sb")])
+    assert rb.TOOLS["slither"].solc == "/opt/solc"
+    rb.TOOLS["slither"].solc = None
+
+
+@pytest.mark.parametrize("name", ["gosec", "slither", "clippy"])
+def test_main_refuses_new_tool_version_mismatch(monkeypatch, name):
+    monkeypatch.setattr(rb, "load_reviews", lambda root, tools: [])
+    monkeypatch.setattr(rb, "find_binary", lambda n, override, *rest: "/bin/" + n)
+    monkeypatch.setattr(rb.TOOLS[name], "version_of", lambda t: "")
+    with pytest.raises(SystemExit, match="pinned"):
+        rb.main(["--tools", name])
+
+
+def test_render_summary_tool_settings():
+    recs = [_record("semgrep", fixed=False)]
+    for name in ("slither", "clippy"):
+        rec = rb.build_record(rb.TOOLS[name], DOC, [], 0, None, [], "h", "now")
+        recs.append(rec)
+    md = rb.render_summary(rb.aggregate(recs), [])
+    assert f"slither settings: solc {rb.SOLC_VERSION}, impacts High, Low, Medium." in md
+    assert f"clippy settings: Rust {rb.RUST_TOOLCHAIN}, lint groups correctness, suspicious." in md
+    agg = {t["tool"]: t for t in rb.aggregate(recs)["tools"]}
+    assert agg["slither"]["solc_version"] == rb.SOLC_VERSION and "lint_groups" not in agg["slither"]
+
+
+def test_cwe_only_findings_ignore_keywords():
+    d = {"file": "src/A.sol", "line": 77, "function": "rewardPerToken", "category": "division-by-zero",
+         "cwe": "CWE-369"}
+    f = {"file": "src/A.sol", "line": 72, "function": "rewardPerToken", "rule": "divide-before-multiply",
+         "cwe": [682], "message": "performs a multiplication on the result of a division", "cwe_only": True}
+    assert not rb.category_evidence(f, d)
+    assert rb.category_evidence(dict(f, cwe_only=False), d)
+    assert rb.category_evidence(dict(f, cwe=[369]), d)
+
+
+@pytest.mark.parametrize("a,b,related", [
+    (252, 703, True), (703, 754, True), (252, 754, True), (276, 732, True),
+    (252, 276, False), (703, 732, False), (190, 191, False),
+])
+def test_cwe_equivalents_for_gosec(a, b, related):
+    assert rb.cwe_related(a, b) is related
+
+
+def test_main_partial_run_rescores_other_tools(monkeypatch, tmp_path):
+    root, d = _tree(tmp_path)
+    monkeypatch.setattr(rb, "SPECIMENS_ROOT", root)
+    monkeypatch.setattr(rb, "find_binary", lambda name, override, *rest: "/bin/" + name)
+    monkeypatch.setattr(rb, "installed_version", lambda b: rb.BANDIT_VERSION)
+    (d / "baselines").mkdir()
+    (d / "baselines" / "semgrep.json").write_text("{}")
+    rescored = []
+
+    def fake_rescore(dd, tool, reviews):
+        rescored.append(tool.name)
+        return dict(_record("semgrep", fixed=False), finding_counts=dict(
+            rb.rsa.empty_finding_counts(), total=5, real=5))
+
+    monkeypatch.setattr(rb, "rescore_record", fake_rescore)
+    monkeypatch.setattr(rb, "run_specimen", lambda d, tool, reviews, timeout, at: rb.build_record(
+        tool, DOC, [], 0, None, reviews, "h", at))
+    sb = tmp_path / "sb"
+    rb.main(["--tools", "bandit", "--summary", str(tmp_path / "s.md"), "--scoreboard-dir", str(sb)])
+    assert rescored == ["semgrep"]
+    tools = {t["tool"]: t for t in json.loads((sb / "baselines.json").read_text())["tools"]}
+    assert sorted(tools) == ["bandit", "semgrep"]
+    assert tools["semgrep"]["findings"]["real"] == 5
+    assert json.loads((d / "baselines" / "semgrep.json").read_text())["finding_counts"]["real"] == 5
+    assert "| semgrep |" in (tmp_path / "s.md").read_text()
+
+
+def test_main_partial_run_refuses_stale_records_of_other_tools(monkeypatch, tmp_path):
+    root, d = _tree(tmp_path)
+    monkeypatch.setattr(rb, "SPECIMENS_ROOT", root)
+    monkeypatch.setattr(rb, "find_binary", lambda name, override, *rest: "/bin/" + name)
+    monkeypatch.setattr(rb, "installed_version", lambda b: rb.BANDIT_VERSION)
+    (d / "baselines").mkdir()
+    (d / "baselines" / "semgrep.json").write_text(json.dumps(dict(
+        rb.TOOLS["semgrep"].meta(), source_hash="old", raw_findings=[])))
+    monkeypatch.setattr(rb, "baseline_hash", lambda d: "new")
+    monkeypatch.setattr(rb, "run_specimen", lambda *a: pytest.fail("ran a tool"))
+    with pytest.raises(SystemExit, match="specimen changed since the semgrep run"):
+        rb.main(["--tools", "bandit", "--summary", str(tmp_path / "s.md"),
+                 "--scoreboard-dir", str(tmp_path / "sb")])
+
+
+@pytest.mark.parametrize("rule,category,hit", [
+    ("reentrancy-eth", "reentrancy", True),
+    ("reentrancy-benign", "invariant-violation", False),
+    ("reentrancy-no-eth", "invariant-violation", False),
+    ("tx-origin", "access-control", True),
+])
+def test_slither_reentrancy_is_evidence_only_for_reentrancy(rule, category, hit):
+    f = {"rule": rule, "message": "x", "cwe": rb.slither_cwes(rule), "cwe_only": True}
+    d = {"cwe": f"CWE-{f['cwe'][0]}", "category": category}
+    assert rb.category_evidence(f, d) is hit
+
+
+def test_category_restriction_only_applies_to_slither_findings():
+    f = {"rule": "reentrancy-check", "message": "x", "cwe": [841]}
+    assert rb.category_evidence(f, {"cwe": "CWE-841", "category": "invariant-violation"})
+
+
+def test_slither_category():
+    assert rb.slither_category("reentrancy-events") == "reentrancy"
+    assert rb.slither_category("tx-origin") is None
