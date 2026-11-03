@@ -66,7 +66,7 @@ The specimen benchmark measures finding bugs in existing code. This one measures
 | mumei (reference ports) | — | 1 | 71 / 71 | 71 / 71 | 71 | 0 | 0 | 0 | — |
 | LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | $0.11 |
 | mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 62 (59–62) / 71 | 67 / 71 | 58 (55–58) | 8 (7–10) | 2 (2–3) | 3 (3–4) | $0.14 |
-| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 3 | 59 (58–62) / 71 | 46 (41–46) / 71 | 44 (40–45) | 1 (1–2) | 8 (8–10) | 27 (25–32) | $0.06 |
+| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 3 | 62 (60–63) / 71 | 44 (44–50) / 71 | 43 (43–48) | 1 (1–2) | 10 (7–12) | 22 (21–27) | $0.06 |
 
 Details, per-language results and caveats: [proofs/RESULTS.md](proofs/RESULTS.md).
 

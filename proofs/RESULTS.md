@@ -9,7 +9,7 @@ Each of the 71 specimen defects in a category Mumei targets has a requirement an
 | mumei (reference ports) | — | 1 | 71 / 71 | 71 / 71 | 71 | 0 | 0 | 0 | — |
 | LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | $0.11 |
 | mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 62 (59–62) / 71 | 67 / 71 | 58 (55–58) | 8 (7–10) | 2 (2–3) | 3 (3–4) | $0.14 |
-| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 3 | 59 (58–62) / 71 | 46 (41–46) / 71 | 44 (40–45) | 1 (1–2) | 8 (8–10) | 27 (25–32) | $0.06 |
+| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 3 | 62 (60–63) / 71 | 44 (44–50) / 71 | 43 (43–48) | 1 (1–2) | 10 (7–12) | 22 (21–27) | $0.06 |
 
 [REPLAY.md](REPLAY.md) replays concrete inputs, the LLM witnesses and the LLM ports on the native code (`scripts/run_native_replay.py`).
 
@@ -23,25 +23,27 @@ A proof covers the model in the port, not native behaviour the model leaves out,
 
 Vacuity control (fixed port re-checked with `ensures: false`, must fail): 71 / 71 pass.
 
-Vacuity control for mumei + LLM contract (LLM writes the contract, reference ports) (openai/gpt-6-luna), per run: 58 / 71, 62 / 71, 59 / 71 pass. A contract that fails it is still scored: whether it is vacuous or only too weak, accepting the buggy body is a contract-writing error.
+Vacuity control for mumei + LLM contract (LLM writes the contract, reference ports) (openai/gpt-6-luna), per run: 63 / 71, 60 / 71, 62 / 71 pass. A contract that fails it is still scored: whether it is vacuous or only too weak, accepting the buggy body is a contract-writing error.
 
 ## Wrong answers by case (runs out of total)
 
-- mumei + LLM contract (LLM writes the contract, reference ports): `GO01-D07` fixed rejected (1/3), `GO02-D01` fixed rejected (2/3), `PY02-D04` fixed rejected (1/3), `PY03-D05` buggy accepted (1/3), `RS01-D12` buggy accepted (1/3), `SOL01-D05` fixed rejected (3/3), `SOL01-D06` fixed rejected (3/3), `SOL01-D08` fixed rejected (2/3), `SOL02-D08` fixed rejected (1/3), `SOL02-D11` fixed rejected (3/3), `SOL03-D02` buggy accepted (1/3), `SOL03-D02` fixed rejected (2/3), `SOL03-D07` fixed rejected (3/3), `TS01-D01` fixed rejected (2/3), `TS01-D04` fixed rejected (3/3), `TS03-D09` buggy accepted (1/3)
-  - `GO01-D07` model's ensures (from a wrong run): `(has_limit && limit < 0 => !result.ok) && (!has_limit && result.ok && result.value == slice_to(n, n) || has_limit && limit >= 0 && limit <= n && result.ok && re`
-  - `GO02-D01` model's ensures (from a wrong run): `(n == 0 => result == 0) && (0 < n => 0 <= result && result < n)`
-  - `PY02-D04` model's ensures (from a wrong run): `(len(row) < 4 => !result.ok) && (len(row) >= 4 => result.ok && result.value == row[3])`
-  - `PY03-D05` model's ensures (from a wrong run): `result.ok => ((offset < 0 && ((n + offset <= 0 && result.start == 0) || (n + offset > 0 && result.start == n + offset))) || (offset >= 0 && ((offset <= n && res` — vacuity control not passed in that run
-  - `RS01-D12` model's ensures (from a wrong run): `result.ok => result.balance < balance` — vacuity control not passed in that run
+- mumei + LLM contract (LLM writes the contract, reference ports): `GO02-D02` fixed rejected (2/3), `PY02-D04` fixed rejected (2/3), `PY03-D05` buggy accepted (2/3), `RS01-D05` fixed rejected (1/3), `SOL01-D05` fixed rejected (3/3), `SOL01-D06` fixed rejected (3/3), `SOL01-D08` fixed rejected (1/3), `SOL02-D06` fixed rejected (1/3), `SOL02-D07` fixed rejected (2/3), `SOL02-D08` fixed rejected (1/3), `SOL02-D11` fixed rejected (3/3), `SOL03-D02` fixed rejected (1/3), `SOL03-D03` fixed rejected (1/3), `SOL03-D07` fixed rejected (3/3), `TS01-D01` fixed rejected (2/3), `TS01-D04` fixed rejected (3/3), `TS03-D09` buggy accepted (2/3)
+  - `GO02-D02` model's ensures (from a wrong run): `(count == 0 => result == 0) && (count != 0 => result == total / count)`
+  - `PY02-D04` model's ensures (from a wrong run): `(len(row) < 4 => !result.ok) && (len(row) >= 4 => (result.ok && result.value == row[3]) )`
+  - `PY03-D05` model's ensures (from a wrong run): `result.ok => ((offset < 0 && ((n + offset < 0 && result.start == 0) || (n + offset >= 0 && result.start == n + offset))) || (offset >= 0 && ((offset > n && resu` — vacuity control not passed in that run
+  - `RS01-D05` model's ensures (from a wrong run): `result.ok == (0 <= index && index < accounts) && ((0 <= index && index < accounts) => result.value == pick(accounts, index))`
   - `SOL01-D05` model's ensures (from a wrong run): `(is_owner => result == who) && (!is_owner => result == current)`
   - `SOL01-D06` model's ensures (from a wrong run): `(sender_is_owner => result == bps) && (!sender_is_owner => result == current)`
-  - `SOL01-D08` model's ensures (from a wrong run): `result.ok => (result.value == pos_shares + shares && 0 <= pos_shares + shares && pos_shares + shares <= cap)`
+  - `SOL01-D08` model's ensures (from a wrong run): `(result.ok => (result.value == pos_shares + shares && result.value >= 0 && result.value <= cap)) && ((pos_shares + shares < 0 || pos_shares + shares > cap) => !`
+  - `SOL02-D06` model's ensures (from a wrong run): `result == !is_highest`
+  - `SOL02-D07` model's ensures (from a wrong run): `result == sender_is_deployer`
   - `SOL02-D08` model's ensures (from a wrong run): `result.ok => (result.value == now + duration && result.value >= now && result.value >= 0 && result.value <= cap)`
-  - `SOL02-D11` model's ensures (from a wrong run): `(same_bidder => (result.bid_of == new_bid && result.pending == prev_pending)) && ((has_previous && !same_bidder) => (result.bid_of == 0 && result.pending == pre`
+  - `SOL02-D11` model's ensures (from a wrong run): `(has_previous && !same_bidder) => (result.bid_of == 0 && result.pending == prev_pending + prev_bid_of) && same_bidder => (result.bid_of == new_bid && result.pen`
   - `SOL03-D02` model's ensures (from a wrong run): `result.ok => result.value >= rewards`
-  - `SOL03-D07` model's ensures (from a wrong run): `result == !same_token`
-  - `TS01-D01` model's ensures (from a wrong run): `(from == 0 && to == 1) || (from == 1 && to == 2) || (from == 2 && to == 3) || (from == 3 && to == 4) || (from == 1 && to == 0) || (from == 2 && to == 1)`
-  - `TS01-D04` model's ensures (from a wrong run): `(active == 0 => result == 0) && (active != 0 => result >= 0 && result <= 100)`
+  - `SOL03-D03` model's ensures (from a wrong run): `result == is_owner`
+  - `SOL03-D07` model's ensures (from a wrong run): `!same_token`
+  - `TS01-D01` model's ensures (from a wrong run): `(to == (from + 1)) || ((from == 1) && (to == 0)) || ((from == 2) && (to == 1))`
+  - `TS01-D04` model's ensures (from a wrong run): `(active == 0 => result == 0) && (active != 0 => (result >= 0 && result <= 100))`
   - `TS03-D09` model's ensures (from a wrong run): `result.ok => result.value >= 0 && result.value <= amount` — vacuity control not passed in that run
 - LLM only (judges the source): `GO01-D05` fixed rejected (3/3), `GO02-D03` fixed rejected (2/3), `GO03-D06` fixed rejected (1/3), `GO03-D07` fixed rejected (1/3), `PY02-D04` fixed rejected (3/3), `PY03-D05` buggy accepted (1/3), `RS03-D08` fixed rejected (2/3), `TS01-D12` fixed rejected (2/3)
   - `GO01-D05` fixed rejected, witness: total = 2, locations has length 4294967294 (on a 64-bit system)
@@ -60,4 +62,4 @@ Vacuity control for mumei + LLM contract (LLM writes the contract, reference por
 | mumei (reference ports) | — | 15 / 15 | 11 / 11 | 14 / 14 | 12 / 12 | 19 / 19 |
 | LLM only (judges the source) | openai/gpt-6-luna | 14 / 15 | 9 / 11 | 13 / 14 | 11 / 12 | 19 / 19 |
 | mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 11 / 15 | 8 / 11 | 11 / 14 | 11 / 12 | 17 / 19 |
-| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 10 / 15 | 8 / 11 | 6 / 14 | 8 / 12 | 11 / 19 |
+| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 10 / 15 | 9 / 11 | 6 / 14 | 8 / 12 | 10 / 19 |
