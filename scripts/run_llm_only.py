@@ -140,7 +140,7 @@ class Provider:
                     self.sleep(2 ** attempt)
                     continue
                 raise RuntimeError(f"LLM request failed: {last}") from None
-            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as e:
+            except (OSError, json.JSONDecodeError, UnicodeDecodeError) as e:
                 last = type(e).__name__
                 if attempt < self.retries:
                     self.sleep(2 ** attempt)

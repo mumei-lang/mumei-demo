@@ -6,6 +6,7 @@ import importlib.util
 import io
 import json
 import sys
+import http.client
 import urllib.error
 from pathlib import Path
 
@@ -292,7 +293,9 @@ def test_provider_cost_unknown(usage, cost):
 
 
 @pytest.mark.parametrize("first", [_http_error(429), _http_error(503), _http_error(500),
-                                   urllib.error.URLError("down"), TimeoutError()])
+                                   urllib.error.URLError("down"), TimeoutError(),
+                                   http.client.RemoteDisconnected("closed"),
+                                   ConnectionResetError(), json.JSONDecodeError("x", "", 0)])
 def test_provider_retries_transient_errors(first):
     p, sleeps = _provider(Opener(first, _reply()))
     _, usage = p.complete([], seed=1)
