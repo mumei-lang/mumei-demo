@@ -1,0 +1,1423 @@
+{
+  "specimen": "rs-02-kv-server",
+  "language": "rust",
+  "tool": "llm-only",
+  "model": "openai/gpt-6-luna",
+  "prompt_version": 1,
+  "prompt_hash": "50865386f4c2f5d6",
+  "temperature": 0,
+  "generated_at": "2026-11-03T04:59:40Z",
+  "source_hash": "96b56310be22be58bfb5f0fb11f356681dae821ada85c007dc966cedacedb7d5",
+  "runs": [
+    {
+      "run": 1,
+      "raw_findings": [
+        {
+          "file": "src/main.rs",
+          "line": 14,
+          "rule": "hardcoded-admin-secret",
+          "message": "The flush token is a fixed source-code secret, so anyone able to reach the endpoint and learn the token can clear all stored values and counters.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "src/main.rs",
+          "line": 29,
+          "rule": "key-truncation-collision",
+          "message": "Keys are truncated by byte count and lossily decoded, so distinct keys sharing the first 32 bytes can map to the same stored key.",
+          "cwe": [],
+          "function": "normalize_key"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 34,
+          "rule": "non-atomic-counter-update",
+          "message": "The counter is read under one lock and written under a later lock, so concurrent increments can read the same value and overwrite each other's updates.",
+          "cwe": [
+            362
+          ],
+          "function": "incr"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 38,
+          "rule": "counter-overflow",
+          "message": "Adding an attacker-controlled delta to an i32 can overflow, wrapping the counter in release builds and panicking in debug builds.",
+          "cwe": [
+            190
+          ],
+          "function": "incr"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 47,
+          "rule": "unicode-prefix-panic",
+          "message": "Slicing a key at the prefix's byte length can split a UTF-8 character and panic while the map mutex is held, poisoning it and breaking later map operations.",
+          "cwe": [
+            755
+          ],
+          "function": "keys_with_prefix"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 53,
+          "rule": "snapshot-path-traversal",
+          "message": "The client-controlled destination is joined without restricting traversal or absolute paths, allowing snapshots to overwrite files outside the data directory.",
+          "cwe": [
+            22
+          ],
+          "function": "snapshot"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 95,
+          "rule": "unbounded-header-size",
+          "message": "Header bytes are appended to raw until a terminator arrives with no size limit, so a client can consume unbounded memory by sending an unterminated header.",
+          "cwe": [
+            400
+          ],
+          "function": "read_request"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 105,
+          "rule": "malformed-request-panic",
+          "message": "A request line with fewer than two whitespace-separated fields makes these unchecked indexes panic the handler thread instead of returning a client error.",
+          "cwe": [
+            755
+          ],
+          "function": "read_request"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 118,
+          "rule": "unbounded-body-allocation",
+          "message": "An attacker-controlled Content-Length is used to allocate the entire body without a limit, so a large value can exhaust memory or abort the server.",
+          "cwe": [
+            400
+          ],
+          "function": "read_request"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 160,
+          "rule": "malformed-percent-encoding-panic",
+          "message": "The percent-decoding slice can start or end inside a multibyte UTF-8 character, so a request target containing malformed percent encoding alongside non-ASCII text can panic its handler thread.",
+          "cwe": [
+            755
+          ],
+          "function": "url_decode"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 221,
+          "rule": "error-information-disclosure",
+          "message": "Snapshot failures are returned with the full filesystem path and underlying OS error, exposing server filesystem details to callers.",
+          "cwe": [
+            209
+          ],
+          "function": "handle"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 227,
+          "rule": "reflected-xss",
+          "message": "The query-controlled key is inserted into an HTML response without escaping, allowing a crafted URL to execute script in a visitor's browser.",
+          "cwe": [
+            79
+          ],
+          "function": "handle"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 258,
+          "rule": "unbounded-connection-threads",
+          "message": "Each connection gets a thread that can block indefinitely reading headers or a body, so clients that stall can exhaust the server's threads.",
+          "cwe": [
+            400
+          ],
+          "function": "main"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 7696,
+        "completion_tokens": 2604,
+        "cost_usd": 0.00137923,
+        "seconds": 38.96,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "RS02-D01",
+          "file": "src/main.rs",
+          "function": "read_request",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "malformed-request-panic in `read_request` (line 105, CWE-755): A request line with fewer than two whitespace-separated fields makes these unchecked indexes panic the handler thread instead of returning a client error."
+          ]
+        },
+        {
+          "id": "RS02-D02",
+          "file": "src/main.rs",
+          "function": "read_request",
+          "category": "unbounded-resource",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unbounded-header-size in `read_request` (line 95, CWE-400): Header bytes are appended to raw until a terminator arrives with no size limit, so a client can consume unbounded memory by sending an unterminated header.",
+            "unbounded-body-allocation in `read_request` (line 118, CWE-400): An attacker-controlled Content-Length is used to allocate the entire body without a limit, so a large value can exhaust memory or abort the server."
+          ]
+        },
+        {
+          "id": "RS02-D03",
+          "file": "src/main.rs",
+          "function": "incr",
+          "category": "race-condition",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "non-atomic-counter-update in `incr` (line 34, CWE-362): The counter is read under one lock and written under a later lock, so concurrent increments can read the same value and overwrite each other's updates."
+          ]
+        },
+        {
+          "id": "RS02-D04",
+          "file": "src/main.rs",
+          "function": "snapshot",
+          "category": "path-traversal",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "snapshot-path-traversal in `snapshot` (line 53, CWE-22): The client-controlled destination is joined without restricting traversal or absolute paths, allowing snapshots to overwrite files outside the data directory."
+          ]
+        },
+        {
+          "id": "RS02-D05",
+          "file": "src/main.rs",
+          "function": "incr",
+          "category": "integer-overflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "counter-overflow in `incr` (line 38, CWE-190): Adding an attacker-controlled delta to an i32 can overflow, wrapping the counter in release builds and panicking in debug builds."
+          ]
+        },
+        {
+          "id": "RS02-D06",
+          "file": "src/main.rs",
+          "function": "normalize_key",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "key-truncation-collision in `normalize_key` (line 29): Keys are truncated by byte count and lossily decoded, so distinct keys sharing the first 32 bytes can map to the same stored key."
+          ]
+        },
+        {
+          "id": "RS02-D07",
+          "file": "src/main.rs",
+          "function": "keys_with_prefix",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unicode-prefix-panic in `keys_with_prefix` (line 47, CWE-755): Slicing a key at the prefix's byte length can split a UTF-8 character and panic while the map mutex is held, poisoning it and breaking later map operations."
+          ]
+        },
+        {
+          "id": "RS02-D08",
+          "file": "src/main.rs",
+          "function": "read_request",
+          "category": "resource-leak",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unbounded-header-size in `read_request` (line 95, CWE-400): Header bytes are appended to raw until a terminator arrives with no size limit, so a client can consume unbounded memory by sending an unterminated header.",
+            "unbounded-body-allocation in `read_request` (line 118, CWE-400): An attacker-controlled Content-Length is used to allocate the entire body without a limit, so a large value can exhaust memory or abort the server."
+          ]
+        },
+        {
+          "id": "RS02-D09",
+          "file": "src/main.rs",
+          "function": "handle",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "error-information-disclosure in `handle` (line 221, CWE-209): Snapshot failures are returned with the full filesystem path and underlying OS error, exposing server filesystem details to callers.",
+            "reflected-xss in `handle` (line 227, CWE-79): The query-controlled key is inserted into an HTML response without escaping, allowing a crafted URL to execute script in a visitor's browser."
+          ]
+        },
+        {
+          "id": "RS02-D10",
+          "file": "src/main.rs",
+          "function": "handle",
+          "category": "information-exposure",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "error-information-disclosure in `handle` (line 221, CWE-209): Snapshot failures are returned with the full filesystem path and underlying OS error, exposing server filesystem details to callers."
+          ]
+        },
+        {
+          "id": "RS02-D11",
+          "file": "src/main.rs",
+          "function": "handle",
+          "category": "xss",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "reflected-xss in `handle` (line 227, CWE-79): The query-controlled key is inserted into an HTML response without escaping, allowing a crafted URL to execute script in a visitor's browser."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 9,
+        "function_flagged": 2,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "hardcoded-admin-secret (line 14, CWE-798): The flush token is a fixed source-code secret, so anyone able to reach the endpoint and learn the token can clear all stored values and counters.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "key-truncation-collision in `normalize_key` (line 29): Keys are truncated by byte count and lossily decoded, so distinct keys sharing the first 32 bytes can map to the same stored key.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "non-atomic-counter-update in `incr` (line 34, CWE-362): The counter is read under one lock and written under a later lock, so concurrent increments can read the same value and overwrite each other's updates.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "counter-overflow in `incr` (line 38, CWE-190): Adding an attacker-controlled delta to an i32 can overflow, wrapping the counter in release builds and panicking in debug builds.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "unicode-prefix-panic in `keys_with_prefix` (line 47, CWE-755): Slicing a key at the prefix's byte length can split a UTF-8 character and panic while the map mutex is held, poisoning it and breaking later map operations.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "snapshot-path-traversal in `snapshot` (line 53, CWE-22): The client-controlled destination is joined without restricting traversal or absolute paths, allowing snapshots to overwrite files outside the data directory.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "unbounded-header-size in `read_request` (line 95, CWE-400): Header bytes are appended to raw until a terminator arrives with no size limit, so a client can consume unbounded memory by sending an unterminated header.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "malformed-request-panic in `read_request` (line 105, CWE-755): A request line with fewer than two whitespace-separated fields makes these unchecked indexes panic the handler thread instead of returning a client error.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "unbounded-body-allocation in `read_request` (line 118, CWE-400): An attacker-controlled Content-Length is used to allocate the entire body without a limit, so a large value can exhaust memory or abort the server.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "malformed-percent-encoding-panic in `url_decode` (line 160, CWE-755): The percent-decoding slice can start or end inside a multibyte UTF-8 character, so a request target containing malformed percent encoding alongside non-ASCII text can panic its handler thread.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "error-information-disclosure in `handle` (line 221, CWE-209): Snapshot failures are returned with the full filesystem path and underlying OS error, exposing server filesystem details to callers.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "reflected-xss in `handle` (line 227, CWE-79): The query-controlled key is inserted into an HTML response without escaping, allowing a crafted URL to execute script in a visitor's browser.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "unbounded-connection-threads in `main` (line 258, CWE-400): Each connection gets a thread that can block indefinitely reading headers or a body, so clients that stall can exhaust the server's threads.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 13,
+        "defect_evidence": 9,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 4
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "src/main.rs",
+          "line": 44,
+          "rule": "log-injection",
+          "message": "The counter key is attacker-controlled and written to stderr without escaping, so a key containing an encoded newline can forge additional log entries.",
+          "cwe": [
+            117
+          ],
+          "function": "incr"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 73,
+          "rule": "symlink-following",
+          "message": "`fs::write` follows an existing symlink in the data directory, so a user able to create a symlink there can make a snapshot overwrite a file outside that directory.",
+          "cwe": [
+            59
+          ],
+          "function": "snapshot"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 211,
+          "rule": "panic-denial-of-service",
+          "message": "A target containing a percent sign followed by an ASCII byte and a multibyte character (for example `%Aé`) makes this slice split a UTF-8 character and panic, terminating a worker; repeated requests can exhaust the worker pool.",
+          "cwe": [
+            248
+          ],
+          "function": "url_decode"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 221,
+          "rule": "unicode-decoding-collision",
+          "message": "Invalid UTF-8 percent-encoded bytes are replaced with U+FFFD, so distinct keys such as `%FF` and `%FE` decode to the same key and can overwrite each other.",
+          "cwe": [
+            176
+          ],
+          "function": "url_decode"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 346,
+          "rule": "slowloris-denial-of-service",
+          "message": "The read timeout applies separately to each read, so a client that sends data more frequently than once every five seconds can hold a worker indefinitely and exhaust all workers.",
+          "cwe": [
+            400
+          ],
+          "function": "serve"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 8780,
+        "completion_tokens": 4687,
+        "cost_usd": 0.00243157,
+        "seconds": 75.35,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [],
+        "false_alarms": 5,
+        "findings": [
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "log-injection in `incr` (line 44, CWE-117): The counter key is attacker-controlled and written to stderr without escaping, so a key containing an encoded newline can forge additional log entries.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "symlink-following in `snapshot` (line 73, CWE-59): `fs::write` follows an existing symlink in the data directory, so a user able to create a symlink there can make a snapshot overwrite a file outside that directory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "panic-denial-of-service in `url_decode` (line 211, CWE-248): A target containing a percent sign followed by an ASCII byte and a multibyte character (for example `%Aé`) makes this slice split a UTF-8 character and panic, terminating a worker; repeated requests can exhaust the worker pool.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "unicode-decoding-collision in `url_decode` (line 221, CWE-176): Invalid UTF-8 percent-encoded bytes are replaced with U+FFFD, so distinct keys such as `%FF` and `%FE` decode to the same key and can overwrite each other.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "slowloris-denial-of-service in `serve` (line 346, CWE-400): The read timeout applies separately to each read, so a client that sends data more frequently than once every five seconds can hold a worker indefinitely and exhaust all workers.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 5,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 5
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 2,
+      "raw_findings": [
+        {
+          "file": "src/main.rs",
+          "line": 14,
+          "rule": "hardcoded-admin-secret",
+          "message": "The flush authorization token is embedded in the source, so anyone who knows the code can use it to clear the store.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "src/main.rs",
+          "line": 29,
+          "rule": "key-truncation-collision",
+          "message": "Keys longer than 32 bytes are truncated, and truncating inside a multibyte UTF-8 character can also replace the suffix, causing distinct keys to alias.",
+          "cwe": [
+            20
+          ],
+          "function": "normalize_key"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 37,
+          "rule": "log-injection",
+          "message": "An increment key containing decoded newlines is written directly to stderr, allowing a client to forge or inject log entries.",
+          "cwe": [
+            117
+          ],
+          "function": "incr"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 38,
+          "rule": "integer-overflow",
+          "message": "Adding an attacker-controlled delta to an i32 can panic in overflow-checked builds or wrap to an incorrect negative value in release builds.",
+          "cwe": [
+            190
+          ],
+          "function": "incr"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 38,
+          "rule": "lost-counter-updates",
+          "message": "The counter is read and later written under separate lock acquisitions, so concurrent increments can overwrite one another and lose updates.",
+          "cwe": [
+            362
+          ],
+          "function": "incr"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 47,
+          "rule": "prefix-slice-panic",
+          "message": "The prefix length may fall inside a multibyte character in a stored key, making this string slice panic while the map lock is held and poison it.",
+          "cwe": [
+            248
+          ],
+          "function": "keys_with_prefix"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 53,
+          "rule": "snapshot-path-traversal",
+          "message": "The user-supplied snapshot path is joined without constraining it to the data directory, allowing requests to create or overwrite files outside that directory.",
+          "cwe": [
+            22
+          ],
+          "function": "snapshot"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 95,
+          "rule": "unbounded-header-buffer",
+          "message": "The server keeps extending `raw` until it sees the header terminator without a size limit, so a client can consume unbounded memory by sending an indefinitely long header.",
+          "cwe": [
+            400
+          ],
+          "function": "read_request"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 105,
+          "rule": "malformed-request-panic",
+          "message": "A request line with no method or target makes these unchecked indexes panic the handler thread, so a client can trigger a crash with a malformed request.",
+          "cwe": [
+            248
+          ],
+          "function": "read_request"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 118,
+          "rule": "unbounded-body-allocation",
+          "message": "The client-controlled Content-Length is used to allocate the entire request body without a limit, so an oversized value can exhaust server memory.",
+          "cwe": [
+            789
+          ],
+          "function": "read_request"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 160,
+          "rule": "malformed-escape-panic",
+          "message": "A percent escape followed by bytes that split a UTF-8 character can make this string slice panic, so a crafted URL can terminate its handler thread.",
+          "cwe": [
+            248
+          ],
+          "function": "url_decode"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 221,
+          "rule": "filesystem-error-disclosure",
+          "message": "Snapshot failures return the filesystem error and full destination path to the requester, exposing internal path and OS details.",
+          "cwe": [
+            209
+          ],
+          "function": "handle"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 227,
+          "rule": "reflected-xss",
+          "message": "The unescaped query value is inserted into an HTML response, allowing an attacker to execute injected markup or script in a visitor's browser.",
+          "cwe": [
+            79
+          ],
+          "function": "handle"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 258,
+          "rule": "stalled-connection-exhaustion",
+          "message": "Each connection gets a thread that can block indefinitely reading a partial request, so enough stalled clients can exhaust server threads and resources.",
+          "cwe": [
+            400
+          ],
+          "function": "main"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 7696,
+        "completion_tokens": 2868,
+        "cost_usd": 0.00151123,
+        "seconds": 46.67,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "RS02-D01",
+          "file": "src/main.rs",
+          "function": "read_request",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "malformed-request-panic in `read_request` (line 105, CWE-248): A request line with no method or target makes these unchecked indexes panic the handler thread, so a client can trigger a crash with a malformed request."
+          ]
+        },
+        {
+          "id": "RS02-D02",
+          "file": "src/main.rs",
+          "function": "read_request",
+          "category": "unbounded-resource",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unbounded-header-buffer in `read_request` (line 95, CWE-400): The server keeps extending `raw` until it sees the header terminator without a size limit, so a client can consume unbounded memory by sending an indefinitely long header.",
+            "unbounded-body-allocation in `read_request` (line 118, CWE-789): The client-controlled Content-Length is used to allocate the entire request body without a limit, so an oversized value can exhaust server memory."
+          ]
+        },
+        {
+          "id": "RS02-D03",
+          "file": "src/main.rs",
+          "function": "incr",
+          "category": "race-condition",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "lost-counter-updates in `incr` (line 38, CWE-362): The counter is read and later written under separate lock acquisitions, so concurrent increments can overwrite one another and lose updates."
+          ]
+        },
+        {
+          "id": "RS02-D04",
+          "file": "src/main.rs",
+          "function": "snapshot",
+          "category": "path-traversal",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "snapshot-path-traversal in `snapshot` (line 53, CWE-22): The user-supplied snapshot path is joined without constraining it to the data directory, allowing requests to create or overwrite files outside that directory."
+          ]
+        },
+        {
+          "id": "RS02-D05",
+          "file": "src/main.rs",
+          "function": "incr",
+          "category": "integer-overflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "integer-overflow in `incr` (line 38, CWE-190): Adding an attacker-controlled delta to an i32 can panic in overflow-checked builds or wrap to an incorrect negative value in release builds."
+          ]
+        },
+        {
+          "id": "RS02-D06",
+          "file": "src/main.rs",
+          "function": "normalize_key",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "key-truncation-collision in `normalize_key` (line 29, CWE-20): Keys longer than 32 bytes are truncated, and truncating inside a multibyte UTF-8 character can also replace the suffix, causing distinct keys to alias."
+          ]
+        },
+        {
+          "id": "RS02-D07",
+          "file": "src/main.rs",
+          "function": "keys_with_prefix",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "prefix-slice-panic in `keys_with_prefix` (line 47, CWE-248): The prefix length may fall inside a multibyte character in a stored key, making this string slice panic while the map lock is held and poison it."
+          ]
+        },
+        {
+          "id": "RS02-D08",
+          "file": "src/main.rs",
+          "function": "read_request",
+          "category": "resource-leak",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unbounded-header-buffer in `read_request` (line 95, CWE-400): The server keeps extending `raw` until it sees the header terminator without a size limit, so a client can consume unbounded memory by sending an indefinitely long header."
+          ]
+        },
+        {
+          "id": "RS02-D09",
+          "file": "src/main.rs",
+          "function": "handle",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "filesystem-error-disclosure in `handle` (line 221, CWE-209): Snapshot failures return the filesystem error and full destination path to the requester, exposing internal path and OS details.",
+            "reflected-xss in `handle` (line 227, CWE-79): The unescaped query value is inserted into an HTML response, allowing an attacker to execute injected markup or script in a visitor's browser."
+          ]
+        },
+        {
+          "id": "RS02-D10",
+          "file": "src/main.rs",
+          "function": "handle",
+          "category": "information-exposure",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "filesystem-error-disclosure in `handle` (line 221, CWE-209): Snapshot failures return the filesystem error and full destination path to the requester, exposing internal path and OS details."
+          ]
+        },
+        {
+          "id": "RS02-D11",
+          "file": "src/main.rs",
+          "function": "handle",
+          "category": "xss",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "reflected-xss in `handle` (line 227, CWE-79): The unescaped query value is inserted into an HTML response, allowing an attacker to execute injected markup or script in a visitor's browser."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 9,
+        "function_flagged": 2,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "hardcoded-admin-secret (line 14, CWE-798): The flush authorization token is embedded in the source, so anyone who knows the code can use it to clear the store.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "key-truncation-collision in `normalize_key` (line 29, CWE-20): Keys longer than 32 bytes are truncated, and truncating inside a multibyte UTF-8 character can also replace the suffix, causing distinct keys to alias.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "log-injection in `incr` (line 37, CWE-117): An increment key containing decoded newlines is written directly to stderr, allowing a client to forge or inject log entries.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "integer-overflow in `incr` (line 38, CWE-190): Adding an attacker-controlled delta to an i32 can panic in overflow-checked builds or wrap to an incorrect negative value in release builds.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "lost-counter-updates in `incr` (line 38, CWE-362): The counter is read and later written under separate lock acquisitions, so concurrent increments can overwrite one another and lose updates.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "prefix-slice-panic in `keys_with_prefix` (line 47, CWE-248): The prefix length may fall inside a multibyte character in a stored key, making this string slice panic while the map lock is held and poison it.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "snapshot-path-traversal in `snapshot` (line 53, CWE-22): The user-supplied snapshot path is joined without constraining it to the data directory, allowing requests to create or overwrite files outside that directory.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "unbounded-header-buffer in `read_request` (line 95, CWE-400): The server keeps extending `raw` until it sees the header terminator without a size limit, so a client can consume unbounded memory by sending an indefinitely long header.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "malformed-request-panic in `read_request` (line 105, CWE-248): A request line with no method or target makes these unchecked indexes panic the handler thread, so a client can trigger a crash with a malformed request.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "unbounded-body-allocation in `read_request` (line 118, CWE-789): The client-controlled Content-Length is used to allocate the entire request body without a limit, so an oversized value can exhaust server memory.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "malformed-escape-panic in `url_decode` (line 160, CWE-248): A percent escape followed by bytes that split a UTF-8 character can make this string slice panic, so a crafted URL can terminate its handler thread.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "filesystem-error-disclosure in `handle` (line 221, CWE-209): Snapshot failures return the filesystem error and full destination path to the requester, exposing internal path and OS details.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "reflected-xss in `handle` (line 227, CWE-79): The unescaped query value is inserted into an HTML response, allowing an attacker to execute injected markup or script in a visitor's browser.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "stalled-connection-exhaustion in `main` (line 258, CWE-400): Each connection gets a thread that can block indefinitely reading a partial request, so enough stalled clients can exhaust server threads and resources.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 14,
+        "defect_evidence": 9,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 5
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "src/main.rs",
+          "line": 73,
+          "rule": "symlink-following",
+          "message": "Writing the snapshot follows an existing symlink in the data directory, so an attacker able to create a symlink there can make the server overwrite a file outside that directory.",
+          "cwe": [
+            59
+          ],
+          "function": "snapshot"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 130,
+          "rule": "slowloris-resource-exhaustion",
+          "message": "The read timeout resets whenever a client sends more data, so a client that sends bytes just under every five seconds can hold a worker indefinitely and exhaust the fixed pool.",
+          "cwe": [
+            400
+          ],
+          "function": "read_request"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 211,
+          "rule": "request-triggered-panic",
+          "message": "A percent sign followed by a multibyte Unicode character can make this byte-indexed slice split a UTF-8 code point and panic, so repeated crafted requests can terminate all handler workers.",
+          "cwe": [
+            248
+          ],
+          "function": "url_decode"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 246,
+          "rule": "unbounded-state-growth",
+          "message": "PUT requests can insert unlimited distinct keys into the in-memory map, and POST /incr can do the same to the counters map, allowing a client to exhaust server memory with repeated requests.",
+          "cwe": [
+            400
+          ],
+          "function": "handle"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 8780,
+        "completion_tokens": 3421,
+        "cost_usd": 0.002807925,
+        "seconds": 54.05,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "RS02-D02",
+          "RS02-D08"
+        ],
+        "false_alarms": 4,
+        "findings": [
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "symlink-following in `snapshot` (line 73, CWE-59): Writing the snapshot follows an existing symlink in the data directory, so an attacker able to create a symlink there can make the server overwrite a file outside that directory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "slowloris-resource-exhaustion in `read_request` (line 130, CWE-400): The read timeout resets whenever a client sends more data, so a client that sends bytes just under every five seconds can hold a worker indefinitely and exhaust the fixed pool.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "request-triggered-panic in `url_decode` (line 211, CWE-248): A percent sign followed by a multibyte Unicode character can make this byte-indexed slice split a UTF-8 code point and panic, so repeated crafted requests can terminate all handler workers.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "unbounded-state-growth in `handle` (line 246, CWE-400): PUT requests can insert unlimited distinct keys into the in-memory map, and POST /incr can do the same to the counters map, allowing a client to exhaust server memory with repeated requests.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 4,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 4
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 3,
+      "raw_findings": [
+        {
+          "file": "src/main.rs",
+          "line": 14,
+          "rule": "hardcoded-admin-secret",
+          "message": "The admin flush token is embedded in the source, so anyone who knows the implementation can submit it to clear both in-memory maps.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "src/main.rs",
+          "line": 29,
+          "rule": "key-collision",
+          "message": "Truncating keys to 32 bytes and converting an incomplete UTF-8 sequence lossily causes distinct keys with the same truncated prefix to map to the same stored key.",
+          "cwe": [],
+          "function": "normalize_key"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 34,
+          "rule": "lost-counter-updates",
+          "message": "`incr` releases the counter lock between reading and writing, so concurrent increments can read the same value and overwrite one another.",
+          "cwe": [
+            362
+          ],
+          "function": "incr"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 38,
+          "rule": "counter-overflow",
+          "message": "Adding an untrusted delta to an `i32` can overflow, wrapping counters negative in release builds or panicking in debug builds.",
+          "cwe": [
+            190
+          ],
+          "function": "incr"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 47,
+          "rule": "prefix-slice-panic",
+          "message": "Byte-length prefix slicing can land inside a stored key's UTF-8 character, panicking while the map lock is held and poisoning it for later requests.",
+          "cwe": [
+            248
+          ],
+          "function": "keys_with_prefix"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 53,
+          "rule": "snapshot-path-traversal",
+          "message": "Joining the untrusted snapshot destination without constraining it to the data directory lets `../` or an absolute path write snapshots outside that directory.",
+          "cwe": [
+            22
+          ],
+          "function": "snapshot"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 88,
+          "rule": "stalled-connection-exhaustion",
+          "message": "A client can leave a request incomplete indefinitely because reads have no timeout, occupying a handler thread per stalled connection until the server runs out of resources.",
+          "cwe": [
+            400
+          ],
+          "function": "read_request"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 95,
+          "rule": "unbounded-header-buffer",
+          "message": "The server keeps appending input to `raw` until it sees the header terminator, so a client can send an arbitrarily large unterminated header and exhaust memory.",
+          "cwe": [
+            400
+          ],
+          "function": "read_request"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 105,
+          "rule": "malformed-request-panic",
+          "message": "A request line with no method or target makes the input-derived `parts` vector too short, so indexing it panics and drops the connection without a response.",
+          "cwe": [
+            129
+          ],
+          "function": "read_request"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 118,
+          "rule": "unbounded-body-allocation",
+          "message": "The client-controlled `Content-Length` is allocated before the body is read and has no limit, so a request declaring a huge body can exhaust server memory.",
+          "cwe": [
+            789
+          ],
+          "function": "read_request"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 160,
+          "rule": "malformed-percent-escape-panic",
+          "message": "A percent sign followed by non-ASCII UTF-8 can make these byte-offset string indices fall inside a character, panicking the handler on a crafted request target.",
+          "cwe": [
+            248
+          ],
+          "function": "url_decode"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 221,
+          "rule": "filesystem-error-disclosure",
+          "message": "Snapshot failures are returned verbatim to the client with the joined filesystem path and OS error details, exposing server filesystem information.",
+          "cwe": [
+            209
+          ],
+          "function": "handle"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 227,
+          "rule": "reflected-xss",
+          "message": "The decoded `key` query parameter is inserted into an HTML response without escaping, allowing a browser to execute attacker-supplied markup or script.",
+          "cwe": [
+            79
+          ],
+          "function": "handle"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 7696,
+        "completion_tokens": 3252,
+        "cost_usd": 0.002587925,
+        "seconds": 48.05,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "RS02-D01",
+          "file": "src/main.rs",
+          "function": "read_request",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "malformed-request-panic in `read_request` (line 105, CWE-129): A request line with no method or target makes the input-derived `parts` vector too short, so indexing it panics and drops the connection without a response."
+          ]
+        },
+        {
+          "id": "RS02-D02",
+          "file": "src/main.rs",
+          "function": "read_request",
+          "category": "unbounded-resource",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "stalled-connection-exhaustion in `read_request` (line 88, CWE-400): A client can leave a request incomplete indefinitely because reads have no timeout, occupying a handler thread per stalled connection until the server runs out of resources.",
+            "unbounded-header-buffer in `read_request` (line 95, CWE-400): The server keeps appending input to `raw` until it sees the header terminator, so a client can send an arbitrarily large unterminated header and exhaust memory.",
+            "unbounded-body-allocation in `read_request` (line 118, CWE-789): The client-controlled `Content-Length` is allocated before the body is read and has no limit, so a request declaring a huge body can exhaust server memory."
+          ]
+        },
+        {
+          "id": "RS02-D03",
+          "file": "src/main.rs",
+          "function": "incr",
+          "category": "race-condition",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "lost-counter-updates in `incr` (line 34, CWE-362): `incr` releases the counter lock between reading and writing, so concurrent increments can read the same value and overwrite one another."
+          ]
+        },
+        {
+          "id": "RS02-D04",
+          "file": "src/main.rs",
+          "function": "snapshot",
+          "category": "path-traversal",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "snapshot-path-traversal in `snapshot` (line 53, CWE-22): Joining the untrusted snapshot destination without constraining it to the data directory lets `../` or an absolute path write snapshots outside that directory."
+          ]
+        },
+        {
+          "id": "RS02-D05",
+          "file": "src/main.rs",
+          "function": "incr",
+          "category": "integer-overflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "counter-overflow in `incr` (line 38, CWE-190): Adding an untrusted delta to an `i32` can overflow, wrapping counters negative in release builds or panicking in debug builds."
+          ]
+        },
+        {
+          "id": "RS02-D06",
+          "file": "src/main.rs",
+          "function": "normalize_key",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "key-collision in `normalize_key` (line 29): Truncating keys to 32 bytes and converting an incomplete UTF-8 sequence lossily causes distinct keys with the same truncated prefix to map to the same stored key."
+          ]
+        },
+        {
+          "id": "RS02-D07",
+          "file": "src/main.rs",
+          "function": "keys_with_prefix",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "prefix-slice-panic in `keys_with_prefix` (line 47, CWE-248): Byte-length prefix slicing can land inside a stored key's UTF-8 character, panicking while the map lock is held and poisoning it for later requests."
+          ]
+        },
+        {
+          "id": "RS02-D08",
+          "file": "src/main.rs",
+          "function": "read_request",
+          "category": "resource-leak",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "stalled-connection-exhaustion in `read_request` (line 88, CWE-400): A client can leave a request incomplete indefinitely because reads have no timeout, occupying a handler thread per stalled connection until the server runs out of resources.",
+            "unbounded-header-buffer in `read_request` (line 95, CWE-400): The server keeps appending input to `raw` until it sees the header terminator, so a client can send an arbitrarily large unterminated header and exhaust memory."
+          ]
+        },
+        {
+          "id": "RS02-D09",
+          "file": "src/main.rs",
+          "function": "handle",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "filesystem-error-disclosure in `handle` (line 221, CWE-209): Snapshot failures are returned verbatim to the client with the joined filesystem path and OS error details, exposing server filesystem information.",
+            "reflected-xss in `handle` (line 227, CWE-79): The decoded `key` query parameter is inserted into an HTML response without escaping, allowing a browser to execute attacker-supplied markup or script."
+          ]
+        },
+        {
+          "id": "RS02-D10",
+          "file": "src/main.rs",
+          "function": "handle",
+          "category": "information-exposure",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "filesystem-error-disclosure in `handle` (line 221, CWE-209): Snapshot failures are returned verbatim to the client with the joined filesystem path and OS error details, exposing server filesystem information."
+          ]
+        },
+        {
+          "id": "RS02-D11",
+          "file": "src/main.rs",
+          "function": "handle",
+          "category": "xss",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "reflected-xss in `handle` (line 227, CWE-79): The decoded `key` query parameter is inserted into an HTML response without escaping, allowing a browser to execute attacker-supplied markup or script."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 9,
+        "function_flagged": 2,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "hardcoded-admin-secret (line 14, CWE-798): The admin flush token is embedded in the source, so anyone who knows the implementation can submit it to clear both in-memory maps.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "key-collision in `normalize_key` (line 29): Truncating keys to 32 bytes and converting an incomplete UTF-8 sequence lossily causes distinct keys with the same truncated prefix to map to the same stored key.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "lost-counter-updates in `incr` (line 34, CWE-362): `incr` releases the counter lock between reading and writing, so concurrent increments can read the same value and overwrite one another.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "counter-overflow in `incr` (line 38, CWE-190): Adding an untrusted delta to an `i32` can overflow, wrapping counters negative in release builds or panicking in debug builds.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "prefix-slice-panic in `keys_with_prefix` (line 47, CWE-248): Byte-length prefix slicing can land inside a stored key's UTF-8 character, panicking while the map lock is held and poisoning it for later requests.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "snapshot-path-traversal in `snapshot` (line 53, CWE-22): Joining the untrusted snapshot destination without constraining it to the data directory lets `../` or an absolute path write snapshots outside that directory.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "stalled-connection-exhaustion in `read_request` (line 88, CWE-400): A client can leave a request incomplete indefinitely because reads have no timeout, occupying a handler thread per stalled connection until the server runs out of resources.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "unbounded-header-buffer in `read_request` (line 95, CWE-400): The server keeps appending input to `raw` until it sees the header terminator, so a client can send an arbitrarily large unterminated header and exhaust memory.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "malformed-request-panic in `read_request` (line 105, CWE-129): A request line with no method or target makes the input-derived `parts` vector too short, so indexing it panics and drops the connection without a response.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "unbounded-body-allocation in `read_request` (line 118, CWE-789): The client-controlled `Content-Length` is allocated before the body is read and has no limit, so a request declaring a huge body can exhaust server memory.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "malformed-percent-escape-panic in `url_decode` (line 160, CWE-248): A percent sign followed by non-ASCII UTF-8 can make these byte-offset string indices fall inside a character, panicking the handler on a crafted request target.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "filesystem-error-disclosure in `handle` (line 221, CWE-209): Snapshot failures are returned verbatim to the client with the joined filesystem path and OS error details, exposing server filesystem information.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "reflected-xss in `handle` (line 227, CWE-79): The decoded `key` query parameter is inserted into an HTML response without escaping, allowing a browser to execute attacker-supplied markup or script.",
+          "status": "defect_evidence"
+        }
+      ],
+      "finding_counts": {
+        "total": 13,
+        "defect_evidence": 10,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 3
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "src/main.rs",
+          "line": 18,
+          "rule": "slow-client-denial-of-service",
+          "message": "This timeout limits each blocking read rather than the total request duration, so clients that periodically send a byte can occupy all worker threads indefinitely and prevent the server from processing new requests.",
+          "cwe": [
+            400
+          ],
+          "function": null
+        },
+        {
+          "file": "src/main.rs",
+          "line": 46,
+          "rule": "unbounded-state-growth",
+          "message": "Each distinct `/incr/{key}` request permanently adds a counter entry, and the maps have no capacity limit or eviction, so repeated unique requests can exhaust server memory.",
+          "cwe": [
+            400
+          ],
+          "function": "incr"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 211,
+          "rule": "malformed-url-panic",
+          "message": "A percent sign followed by an ASCII byte and a multibyte character (for example `%Aé`) can make this byte-indexed string slice end inside a UTF-8 character, panicking the worker and allowing repeated requests to deplete the worker pool.",
+          "cwe": [
+            248
+          ],
+          "function": "url_decode"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 8780,
+        "completion_tokens": 4388,
+        "cost_usd": 0.00228207,
+        "seconds": 72.38,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [],
+        "false_alarms": 3,
+        "findings": [
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "slow-client-denial-of-service (line 18, CWE-400): This timeout limits each blocking read rather than the total request duration, so clients that periodically send a byte can occupy all worker threads indefinitely and prevent the server from processing new requests.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "unbounded-state-growth in `incr` (line 46, CWE-400): Each distinct `/incr/{key}` request permanently adds a counter entry, and the maps have no capacity limit or eviction, so repeated unique requests can exhaust server memory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "malformed-url-panic in `url_decode` (line 211, CWE-248): A percent sign followed by an ASCII byte and a multibyte character (for example `%Aé`) can make this byte-indexed string slice end inside a UTF-8 character, panicking the worker and allowing repeated requests to deplete the worker pool.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 3,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 3
+        },
+        "reviews_used": []
+      }
+    }
+  ]
+}

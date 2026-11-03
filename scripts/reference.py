@@ -17,6 +17,7 @@ CLI_SCRIPTS = (
     ("scripts/generate_report.py", "generate_report"),
     ("scripts/run_specimen_audits.py", "run_specimen_audits"),
     ("scripts/run_baselines.py", "run_baselines"),
+    ("scripts/run_llm_only.py", "run_llm_only"),
     ("scripts/record_scenario.py", "record_scenario"),
     ("scripts/record_model_evidence.py", "record_model_evidence"),
     ("scripts/check_specimens.py", "check_specimens"),
@@ -56,6 +57,16 @@ ENVIRONMENT_VARIABLES = (
         "Read from repos.env, then the process environment, before choosing an available Python.",
     ),
     (
+        "LLM_BASE_URL",
+        "`https://api.openai.com/v1`",
+        "OpenAI-compatible endpoint for `scripts/run_llm_only.py` (same name as mumei-agent).",
+    ),
+    (
+        "LLM_MODEL",
+        "`gpt-4o`",
+        "Model reviewed by `scripts/run_llm_only.py`; names the `llm_only/<model>.json` records.",
+    ),
+    (
         "NL_REQUIREMENTS_FILE",
         "`spec_text.md`",
         "Read from repos.env, then the process environment; selects the natural-language requirements input.",
@@ -80,9 +91,9 @@ INTERNAL_ENV_ALLOWLIST = {
         name: "Test-only child-process controls; not user configuration."
         for name in TEST_STUB_ENVIRONMENT_VARIABLES
     },
-    "LLM_API_KEY": "Credential presence is checked for audit metadata; the value is not reported.",
+    "LLM_API_KEY": "Credential for audit metadata and the LLM-only review; the value is never reported.",
     "MUMEI_STD_PATH": "Internal child-process override for the Mumei standard-library path.",
-    "OPENAI_API_KEY": "Credential presence is checked for audit metadata; the value is not reported.",
+    "OPENAI_API_KEY": "Credential for audit metadata and the LLM-only review; the value is never reported.",
 }
 
 

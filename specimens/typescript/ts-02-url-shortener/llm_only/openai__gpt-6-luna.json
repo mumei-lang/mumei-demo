@@ -1,0 +1,1435 @@
+{
+  "specimen": "ts-02-url-shortener",
+  "language": "typescript",
+  "tool": "llm-only",
+  "model": "openai/gpt-6-luna",
+  "prompt_version": 1,
+  "prompt_hash": "50865386f4c2f5d6",
+  "temperature": 0,
+  "generated_at": "2026-11-03T04:59:40Z",
+  "source_hash": "4a10b7d56496e692ef9a66afd2ce733616df6366a4d0e9a6ffd317d7e5a2d5aa",
+  "runs": [
+    {
+      "run": 1,
+      "raw_findings": [
+        {
+          "file": "links.ts",
+          "line": 36,
+          "rule": "insecure-randomness",
+          "message": "Generated codes use predictable Math.random() output, so an attacker can guess unlisted links and code collisions are more likely than with a cryptographic generator.",
+          "cwe": [
+            338
+          ],
+          "function": "generateCode"
+        },
+        {
+          "file": "links.ts",
+          "line": 64,
+          "rule": "alias-truncation",
+          "message": "Eight-character aliases pass validation but are silently truncated to seven characters, so the returned code differs from the alias the caller requested.",
+          "cwe": [
+            20
+          ],
+          "function": "normalizeAlias"
+        },
+        {
+          "file": "links.ts",
+          "line": 79,
+          "rule": "expiry-unit-mismatch",
+          "message": "Expiry is stored in milliseconds but isExpired compares it with seconds, so links created with a TTL remain live long after they should expire.",
+          "cwe": [
+            682
+          ],
+          "function": "createLink"
+        },
+        {
+          "file": "links.ts",
+          "line": 82,
+          "rule": "link-overwrite",
+          "message": "Setting a code without checking whether it already exists silently replaces the prior link when an alias is reused or a generated code collides.",
+          "cwe": [],
+          "function": "createLink"
+        },
+        {
+          "file": "links.ts",
+          "line": 100,
+          "rule": "division-by-zero",
+          "message": "On the creation day, days is zero, so clicksPerDay becomes NaN and is serialized as null instead of a numeric statistic.",
+          "cwe": [
+            369
+          ],
+          "function": "clicksPerDay"
+        },
+        {
+          "file": "links.ts",
+          "line": 104,
+          "rule": "unchecked-lookup",
+          "message": "An unknown code makes the map lookup return undefined, which is cast to Link and dereferenced, causing the stats endpoint to return 500.",
+          "cwe": [
+            476
+          ],
+          "function": "linkStats"
+        },
+        {
+          "file": "server.ts",
+          "line": 20,
+          "rule": "hardcoded-credentials",
+          "message": "The admin token is a fixed source-code secret, so anyone who can read the project can authenticate to delete links.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "server.ts",
+          "line": 68,
+          "rule": "server-side-request-forgery",
+          "message": "When preview is enabled, the server fetches the user-supplied target without restricting destinations, allowing requests to loopback or other internal services.",
+          "cwe": [
+            918
+          ],
+          "function": "fetchPreview"
+        },
+        {
+          "file": "server.ts",
+          "line": 75,
+          "rule": "lost-update-race",
+          "message": "Concurrent requests snapshot the same click count before awaiting file writes and then overwrite each other with the same increment, undercounting clicks.",
+          "cwe": [
+            362
+          ],
+          "function": "recordClick"
+        },
+        {
+          "file": "server.ts",
+          "line": 83,
+          "rule": "unbounded-ttl",
+          "message": "TTL values are accepted without a representable-date range check, so a value such as 1e13 creates a link whose stats call throws when converting its expiry to ISO format.",
+          "cwe": [
+            20
+          ],
+          "function": "handleShorten"
+        },
+        {
+          "file": "server.ts",
+          "line": 93,
+          "rule": "unsafe-redirect-scheme",
+          "message": "Targets with schemes such as javascript: pass validation and are emitted as redirect locations, allowing a short link to trigger script execution in a browser.",
+          "cwe": [
+            601
+          ],
+          "function": "handleRedirect"
+        },
+        {
+          "file": "server.ts",
+          "line": 117,
+          "rule": "case-sensitive-alias-lookup",
+          "message": "Aliases are stored in lowercase but redirect lookups use the path code unchanged, so requesting a mixed-case alias that was accepted at creation returns 404.",
+          "cwe": [],
+          "function": "route"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 7629,
+        "completion_tokens": 3121,
+        "cost_usd": 0.00163706,
+        "seconds": 48.71,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "TS02-D01",
+          "file": "links.ts",
+          "function": "generateCode",
+          "category": "insecure-randomness",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "insecure-randomness in `generateCode` (line 36, CWE-338): Generated codes use predictable Math.random() output, so an attacker can guess unlisted links and code collisions are more likely than with a cryptographic generator."
+          ]
+        },
+        {
+          "id": "TS02-D02",
+          "file": "links.ts",
+          "function": "createLink",
+          "category": "logic-error",
+          "class": "design",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "expiry-unit-mismatch in `createLink` (line 79, CWE-682): Expiry is stored in milliseconds but isExpired compares it with seconds, so links created with a TTL remain live long after they should expire.",
+            "link-overwrite in `createLink` (line 82): Setting a code without checking whether it already exists silently replaces the prior link when an alias is reused or a generated code collides."
+          ]
+        },
+        {
+          "id": "TS02-D03",
+          "file": "links.ts",
+          "function": "validateTarget",
+          "category": "open-redirect",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "TS02-D04",
+          "file": "server.ts",
+          "function": "recordClick",
+          "category": "race-condition",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "lost-update-race in `recordClick` (line 75, CWE-362): Concurrent requests snapshot the same click count before awaiting file writes and then overwrite each other with the same increment, undercounting clicks."
+          ]
+        },
+        {
+          "id": "TS02-D05",
+          "file": "links.ts",
+          "function": "clicksPerDay",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `clicksPerDay` (line 100, CWE-369): On the creation day, days is zero, so clicksPerDay becomes NaN and is serialized as null instead of a numeric statistic."
+          ]
+        },
+        {
+          "id": "TS02-D06",
+          "file": "server.ts",
+          "function": "handleAdminDelete",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "hardcoded-credentials (line 20, CWE-798): The admin token is a fixed source-code secret, so anyone who can read the project can authenticate to delete links."
+          ]
+        },
+        {
+          "id": "TS02-D07",
+          "file": "links.ts",
+          "function": "normalizeAlias",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "alias-truncation in `normalizeAlias` (line 64, CWE-20): Eight-character aliases pass validation but are silently truncated to seven characters, so the returned code differs from the alias the caller requested."
+          ]
+        },
+        {
+          "id": "TS02-D08",
+          "file": "links.ts",
+          "function": "normalizeAlias",
+          "category": "off-by-one",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "alias-truncation in `normalizeAlias` (line 64, CWE-20): Eight-character aliases pass validation but are silently truncated to seven characters, so the returned code differs from the alias the caller requested."
+          ]
+        },
+        {
+          "id": "TS02-D09",
+          "file": "links.ts",
+          "function": "isExpired",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "TS02-D10",
+          "file": "server.ts",
+          "function": "fetchPreview",
+          "category": "ssrf",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "server-side-request-forgery in `fetchPreview` (line 68, CWE-918): When preview is enabled, the server fetches the user-supplied target without restricting destinations, allowing requests to loopback or other internal services."
+          ]
+        },
+        {
+          "id": "TS02-D11",
+          "file": "links.ts",
+          "function": "linkStats",
+          "category": "null-dereference",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "unchecked-lookup in `linkStats` (line 104, CWE-476): An unknown code makes the map lookup return undefined, which is cast to Link and dereferenced, causing the stats endpoint to return 500."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 6,
+        "function_flagged": 3,
+        "missed": 2
+      },
+      "findings": [
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "insecure-randomness in `generateCode` (line 36, CWE-338): Generated codes use predictable Math.random() output, so an attacker can guess unlisted links and code collisions are more likely than with a cryptographic generator.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "alias-truncation in `normalizeAlias` (line 64, CWE-20): Eight-character aliases pass validation but are silently truncated to seven characters, so the returned code differs from the alias the caller requested.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "expiry-unit-mismatch in `createLink` (line 79, CWE-682): Expiry is stored in milliseconds but isExpired compares it with seconds, so links created with a TTL remain live long after they should expire.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "link-overwrite in `createLink` (line 82): Setting a code without checking whether it already exists silently replaces the prior link when an alias is reused or a generated code collides.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "division-by-zero in `clicksPerDay` (line 100, CWE-369): On the creation day, days is zero, so clicksPerDay becomes NaN and is serialized as null instead of a numeric statistic.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "unchecked-lookup in `linkStats` (line 104, CWE-476): An unknown code makes the map lookup return undefined, which is cast to Link and dereferenced, causing the stats endpoint to return 500.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "hardcoded-credentials (line 20, CWE-798): The admin token is a fixed source-code secret, so anyone who can read the project can authenticate to delete links.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "server-side-request-forgery in `fetchPreview` (line 68, CWE-918): When preview is enabled, the server fetches the user-supplied target without restricting destinations, allowing requests to loopback or other internal services.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "lost-update-race in `recordClick` (line 75, CWE-362): Concurrent requests snapshot the same click count before awaiting file writes and then overwrite each other with the same increment, undercounting clicks.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "unbounded-ttl in `handleShorten` (line 83, CWE-20): TTL values are accepted without a representable-date range check, so a value such as 1e13 creates a link whose stats call throws when converting its expiry to ISO format.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "unsafe-redirect-scheme in `handleRedirect` (line 93, CWE-601): Targets with schemes such as javascript: pass validation and are emitted as redirect locations, allowing a short link to trigger script execution in a browser.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "case-sensitive-alias-lookup in `route` (line 117): Aliases are stored in lowercase but redirect lookups use the path code unchanged, so requesting a mixed-case alias that was accepted at creation returns 404.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 12,
+        "defect_evidence": 6,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 6
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "links.ts",
+          "line": 93,
+          "rule": "ttl-out-of-range",
+          "message": "`Number.isInteger` accepts very large finite values such as `1e308`, which can create an expiry outside JavaScript's valid `Date` range and make `/stats/:code` fail with a 500.",
+          "cwe": [
+            20
+          ],
+          "function": "createLink"
+        },
+        {
+          "file": "links.ts",
+          "line": 109,
+          "rule": "expiry-boundary-off-by-one",
+          "message": "A link remains live when `now` equals `expiresAt`, so a link can still redirect at its stated expiry time instead of expiring when that time is reached.",
+          "cwe": [],
+          "function": "isExpired"
+        },
+        {
+          "file": "server.ts",
+          "line": 93,
+          "rule": "ssrf-dns-rebinding",
+          "message": "The host is checked before `fetch`, which resolves it again, so an attacker-controlled DNS name can resolve publicly during validation and to a private address during the fetch when `preview: true`.",
+          "cwe": [
+            918
+          ],
+          "function": "fetchPreview"
+        },
+        {
+          "file": "server.ts",
+          "line": 94,
+          "rule": "unbounded-preview-response",
+          "message": "The preview reads the entire response body without a size limit, so concurrent preview requests to hosts serving large or endless responses can exhaust server memory.",
+          "cwe": [
+            400
+          ],
+          "function": "fetchPreview"
+        },
+        {
+          "file": "server.ts",
+          "line": 107,
+          "rule": "invalid-ttl-accepted",
+          "message": "Non-number `ttlSeconds` values are silently treated as omitted, so a request such as `{\"ttlSeconds\":\"1\"}` creates a permanent link instead of rejecting the invalid TTL.",
+          "cwe": [
+            20
+          ],
+          "function": "handleShorten"
+        },
+        {
+          "file": "server.ts",
+          "line": 138,
+          "rule": "case-sensitive-alias-deletion",
+          "message": "Deletion looks up the supplied code without lowercasing it, so an alias created as `Promo` cannot be deleted using `Promo` even though aliases are case-insensitive for lookup.",
+          "cwe": [],
+          "function": "handleAdminDelete"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 8463,
+        "completion_tokens": 2985,
+        "cost_usd": 0.0015774,
+        "seconds": 47.98,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "TS02-D10"
+        ],
+        "false_alarms": 6,
+        "findings": [
+          {
+            "file": "links.ts",
+            "kind": "baseline",
+            "text": "ttl-out-of-range in `createLink` (line 93, CWE-20): `Number.isInteger` accepts very large finite values such as `1e308`, which can create an expiry outside JavaScript's valid `Date` range and make `/stats/:code` fail with a 500.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "links.ts",
+            "kind": "baseline",
+            "text": "expiry-boundary-off-by-one in `isExpired` (line 109): A link remains live when `now` equals `expiresAt`, so a link can still redirect at its stated expiry time instead of expiring when that time is reached.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "ssrf-dns-rebinding in `fetchPreview` (line 93, CWE-918): The host is checked before `fetch`, which resolves it again, so an attacker-controlled DNS name can resolve publicly during validation and to a private address during the fetch when `preview: true`.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "unbounded-preview-response in `fetchPreview` (line 94, CWE-400): The preview reads the entire response body without a size limit, so concurrent preview requests to hosts serving large or endless responses can exhaust server memory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "invalid-ttl-accepted in `handleShorten` (line 107, CWE-20): Non-number `ttlSeconds` values are silently treated as omitted, so a request such as `{\"ttlSeconds\":\"1\"}` creates a permanent link instead of rejecting the invalid TTL.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "case-sensitive-alias-deletion in `handleAdminDelete` (line 138): Deletion looks up the supplied code without lowercasing it, so an alias created as `Promo` cannot be deleted using `Promo` even though aliases are case-insensitive for lookup.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 6,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 6
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 2,
+      "raw_findings": [
+        {
+          "file": "links.ts",
+          "line": 36,
+          "rule": "predictable-short-codes",
+          "message": "Math.random() is not a cryptographically secure source, so generated codes can be predicted and used to access links and their statistics.",
+          "cwe": [
+            330
+          ],
+          "function": "generateCode"
+        },
+        {
+          "file": "links.ts",
+          "line": 44,
+          "rule": "unsafe-url-scheme",
+          "message": "URL parsing accepts schemes such as javascript:, which can then be emitted as a redirect Location and potentially execute attacker-controlled script in a visitor's browser.",
+          "cwe": [
+            601
+          ],
+          "function": "validateTarget"
+        },
+        {
+          "file": "links.ts",
+          "line": 64,
+          "rule": "truncated-alias",
+          "message": "Eight-character aliases are accepted but truncated to seven characters, so the requested alias does not resolve and can collide with a different alias.",
+          "cwe": [],
+          "function": "normalizeAlias"
+        },
+        {
+          "file": "links.ts",
+          "line": 82,
+          "rule": "alias-overwrite",
+          "message": "The map is updated without checking whether the code already exists, so creating a link with an existing alias silently replaces its target.",
+          "cwe": [],
+          "function": "createLink"
+        },
+        {
+          "file": "links.ts",
+          "line": 87,
+          "rule": "expiry-unit-mismatch",
+          "message": "expiresAt is stored in milliseconds but compared with now in seconds, so links with a positive TTL do not expire when their expiry time passes.",
+          "cwe": [
+            697
+          ],
+          "function": "isExpired"
+        },
+        {
+          "file": "links.ts",
+          "line": 92,
+          "rule": "case-sensitive-alias-lookup",
+          "message": "Aliases are stored in lowercase but looked up using the request's original case, so a mixed-case request for a documented case-insensitive alias returns 404.",
+          "cwe": [],
+          "function": "resolveLink"
+        },
+        {
+          "file": "links.ts",
+          "line": 100,
+          "rule": "division-by-zero",
+          "message": "For links created less than one full day ago, days is zero and clicksPerDay becomes non-finite, which JSON serialization returns as null.",
+          "cwe": [
+            369
+          ],
+          "function": "clicksPerDay"
+        },
+        {
+          "file": "links.ts",
+          "line": 104,
+          "rule": "null-dereference",
+          "message": "An unknown code makes the map lookup undefined, which is dereferenced and causes the stats endpoint to return a 500 instead of a not-found response.",
+          "cwe": [
+            476
+          ],
+          "function": "linkStats"
+        },
+        {
+          "file": "server.ts",
+          "line": 20,
+          "rule": "hardcoded-admin-credential",
+          "message": "The fixed admin token is embedded in source, allowing anyone who obtains the code to authenticate to the delete endpoint.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "server.ts",
+          "line": 68,
+          "rule": "server-side-request-forgery",
+          "message": "When preview is requested, the server fetches the user-supplied URL without restricting destinations, allowing requests to loopback, private-network, or other internal services.",
+          "cwe": [
+            918
+          ],
+          "function": "fetchPreview"
+        },
+        {
+          "file": "server.ts",
+          "line": 75,
+          "rule": "lost-click-updates",
+          "message": "Concurrent redirects can all read the same click count before awaiting the log write and then store the same incremented value, losing clicks.",
+          "cwe": [
+            362
+          ],
+          "function": "recordClick"
+        },
+        {
+          "file": "server.ts",
+          "line": 79,
+          "rule": "zero-ttl-treated-as-permanent",
+          "message": "A ttlSeconds value of zero is falsy and is stored as no expiry, so a link requested with a zero TTL remains live indefinitely.",
+          "cwe": [],
+          "function": "recordClick"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 7629,
+        "completion_tokens": 4266,
+        "cost_usd": 0.00308655,
+        "seconds": 58.04,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "TS02-D01",
+          "file": "links.ts",
+          "function": "generateCode",
+          "category": "insecure-randomness",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "predictable-short-codes in `generateCode` (line 36, CWE-330): Math.random() is not a cryptographically secure source, so generated codes can be predicted and used to access links and their statistics."
+          ]
+        },
+        {
+          "id": "TS02-D02",
+          "file": "links.ts",
+          "function": "createLink",
+          "category": "logic-error",
+          "class": "design",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "alias-overwrite in `createLink` (line 82): The map is updated without checking whether the code already exists, so creating a link with an existing alias silently replaces its target."
+          ]
+        },
+        {
+          "id": "TS02-D03",
+          "file": "links.ts",
+          "function": "validateTarget",
+          "category": "open-redirect",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unsafe-url-scheme in `validateTarget` (line 44, CWE-601): URL parsing accepts schemes such as javascript:, which can then be emitted as a redirect Location and potentially execute attacker-controlled script in a visitor's browser."
+          ]
+        },
+        {
+          "id": "TS02-D04",
+          "file": "server.ts",
+          "function": "recordClick",
+          "category": "race-condition",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "lost-click-updates in `recordClick` (line 75, CWE-362): Concurrent redirects can all read the same click count before awaiting the log write and then store the same incremented value, losing clicks."
+          ]
+        },
+        {
+          "id": "TS02-D05",
+          "file": "links.ts",
+          "function": "clicksPerDay",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `clicksPerDay` (line 100, CWE-369): For links created less than one full day ago, days is zero and clicksPerDay becomes non-finite, which JSON serialization returns as null."
+          ]
+        },
+        {
+          "id": "TS02-D06",
+          "file": "server.ts",
+          "function": "handleAdminDelete",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "hardcoded-admin-credential (line 20, CWE-798): The fixed admin token is embedded in source, allowing anyone who obtains the code to authenticate to the delete endpoint."
+          ]
+        },
+        {
+          "id": "TS02-D07",
+          "file": "links.ts",
+          "function": "normalizeAlias",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "truncated-alias in `normalizeAlias` (line 64): Eight-character aliases are accepted but truncated to seven characters, so the requested alias does not resolve and can collide with a different alias."
+          ]
+        },
+        {
+          "id": "TS02-D08",
+          "file": "links.ts",
+          "function": "normalizeAlias",
+          "category": "off-by-one",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "truncated-alias in `normalizeAlias` (line 64): Eight-character aliases are accepted but truncated to seven characters, so the requested alias does not resolve and can collide with a different alias."
+          ]
+        },
+        {
+          "id": "TS02-D09",
+          "file": "links.ts",
+          "function": "isExpired",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "expiry-unit-mismatch in `isExpired` (line 87, CWE-697): expiresAt is stored in milliseconds but compared with now in seconds, so links with a positive TTL do not expire when their expiry time passes."
+          ]
+        },
+        {
+          "id": "TS02-D10",
+          "file": "server.ts",
+          "function": "fetchPreview",
+          "category": "ssrf",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "server-side-request-forgery in `fetchPreview` (line 68, CWE-918): When preview is requested, the server fetches the user-supplied URL without restricting destinations, allowing requests to loopback, private-network, or other internal services."
+          ]
+        },
+        {
+          "id": "TS02-D11",
+          "file": "links.ts",
+          "function": "linkStats",
+          "category": "null-dereference",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "null-dereference in `linkStats` (line 104, CWE-476): An unknown code makes the map lookup undefined, which is dereferenced and causes the stats endpoint to return a 500 instead of a not-found response."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 7,
+        "function_flagged": 4,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "predictable-short-codes in `generateCode` (line 36, CWE-330): Math.random() is not a cryptographically secure source, so generated codes can be predicted and used to access links and their statistics.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "unsafe-url-scheme in `validateTarget` (line 44, CWE-601): URL parsing accepts schemes such as javascript:, which can then be emitted as a redirect Location and potentially execute attacker-controlled script in a visitor's browser.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "truncated-alias in `normalizeAlias` (line 64): Eight-character aliases are accepted but truncated to seven characters, so the requested alias does not resolve and can collide with a different alias.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "alias-overwrite in `createLink` (line 82): The map is updated without checking whether the code already exists, so creating a link with an existing alias silently replaces its target.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "expiry-unit-mismatch in `isExpired` (line 87, CWE-697): expiresAt is stored in milliseconds but compared with now in seconds, so links with a positive TTL do not expire when their expiry time passes.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "case-sensitive-alias-lookup in `resolveLink` (line 92): Aliases are stored in lowercase but looked up using the request's original case, so a mixed-case request for a documented case-insensitive alias returns 404.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "division-by-zero in `clicksPerDay` (line 100, CWE-369): For links created less than one full day ago, days is zero and clicksPerDay becomes non-finite, which JSON serialization returns as null.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "null-dereference in `linkStats` (line 104, CWE-476): An unknown code makes the map lookup undefined, which is dereferenced and causes the stats endpoint to return a 500 instead of a not-found response.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "hardcoded-admin-credential (line 20, CWE-798): The fixed admin token is embedded in source, allowing anyone who obtains the code to authenticate to the delete endpoint.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "server-side-request-forgery in `fetchPreview` (line 68, CWE-918): When preview is requested, the server fetches the user-supplied URL without restricting destinations, allowing requests to loopback, private-network, or other internal services.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "lost-click-updates in `recordClick` (line 75, CWE-362): Concurrent redirects can all read the same click count before awaiting the log write and then store the same incremented value, losing clicks.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "zero-ttl-treated-as-permanent in `recordClick` (line 79): A ttlSeconds value of zero is falsy and is stored as no expiry, so a link requested with a zero TTL remains live indefinitely.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 12,
+        "defect_evidence": 7,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 5
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "links.ts",
+          "line": 93,
+          "rule": "unbounded-ttl",
+          "message": "The TTL check accepts very large integer values that overflow the valid JavaScript `Date` range when stats formats the expiry, causing `/stats/:code` to return 500 for that link.",
+          "cwe": [
+            20
+          ],
+          "function": "createLink"
+        },
+        {
+          "file": "links.ts",
+          "line": 109,
+          "rule": "expiry-boundary-error",
+          "message": "A link is considered live when `now` equals `expiresAt`, so a request at the exact expiration second can still redirect instead of treating the link as expired.",
+          "cwe": [],
+          "function": "isExpired"
+        },
+        {
+          "file": "server.ts",
+          "line": 93,
+          "rule": "ssrf-dns-rebinding",
+          "message": "The preview fetch resolves the hostname again after `assertPublicHost` checks its DNS answers, so a hostname that changes from a public address to a private one can make `preview: true` fetch an internal service.",
+          "cwe": [
+            918
+          ],
+          "function": "fetchPreview"
+        },
+        {
+          "file": "server.ts",
+          "line": 94,
+          "rule": "unbounded-preview-response",
+          "message": "Preview reads the entire response into memory even though it only returns a 200-character snippet, so an attacker-controlled target that streams a large body can exhaust server memory.",
+          "cwe": [
+            400
+          ],
+          "function": "fetchPreview"
+        },
+        {
+          "file": "server.ts",
+          "line": 107,
+          "rule": "invalid-ttl-accepted",
+          "message": "A supplied non-number `ttlSeconds` is silently treated as absent, so a request such as `{\"ttlSeconds\":\"10\"}` creates a link that never expires instead of rejecting the invalid TTL.",
+          "cwe": [
+            20
+          ],
+          "function": "handleShorten"
+        },
+        {
+          "file": "server.ts",
+          "line": 138,
+          "rule": "case-sensitive-admin-delete",
+          "message": "Deletion looks up the raw code without lowercasing it, so an admin cannot delete an existing mixed-case alias using a differently cased code despite aliases being case-insensitive elsewhere.",
+          "cwe": [],
+          "function": "handleAdminDelete"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 8463,
+        "completion_tokens": 2543,
+        "cost_usd": 0.0023293,
+        "seconds": 39.55,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "TS02-D10"
+        ],
+        "false_alarms": 6,
+        "findings": [
+          {
+            "file": "links.ts",
+            "kind": "baseline",
+            "text": "unbounded-ttl in `createLink` (line 93, CWE-20): The TTL check accepts very large integer values that overflow the valid JavaScript `Date` range when stats formats the expiry, causing `/stats/:code` to return 500 for that link.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "links.ts",
+            "kind": "baseline",
+            "text": "expiry-boundary-error in `isExpired` (line 109): A link is considered live when `now` equals `expiresAt`, so a request at the exact expiration second can still redirect instead of treating the link as expired.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "ssrf-dns-rebinding in `fetchPreview` (line 93, CWE-918): The preview fetch resolves the hostname again after `assertPublicHost` checks its DNS answers, so a hostname that changes from a public address to a private one can make `preview: true` fetch an internal service.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "unbounded-preview-response in `fetchPreview` (line 94, CWE-400): Preview reads the entire response into memory even though it only returns a 200-character snippet, so an attacker-controlled target that streams a large body can exhaust server memory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "invalid-ttl-accepted in `handleShorten` (line 107, CWE-20): A supplied non-number `ttlSeconds` is silently treated as absent, so a request such as `{\"ttlSeconds\":\"10\"}` creates a link that never expires instead of rejecting the invalid TTL.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "case-sensitive-admin-delete in `handleAdminDelete` (line 138): Deletion looks up the raw code without lowercasing it, so an admin cannot delete an existing mixed-case alias using a differently cased code despite aliases being case-insensitive elsewhere.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 6,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 6
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 3,
+      "raw_findings": [
+        {
+          "file": "links.ts",
+          "line": 36,
+          "rule": "weak-random-link-codes",
+          "message": "Generated link codes use predictable `Math.random()`, so an attacker can predict or enumerate codes and access links that rely on their secrecy.",
+          "cwe": [
+            338
+          ],
+          "function": "generateCode"
+        },
+        {
+          "file": "links.ts",
+          "line": 64,
+          "rule": "alias-truncation",
+          "message": "Eight-character aliases are accepted but truncated to seven characters, so links created with such aliases cannot be reached using the alias the client supplied.",
+          "cwe": [],
+          "function": "normalizeAlias"
+        },
+        {
+          "file": "links.ts",
+          "line": 79,
+          "rule": "expiry-time-unit-mismatch",
+          "message": "Expiry is stored in milliseconds while lookups compare it with seconds, so TTL links do not expire under normal use.",
+          "cwe": [
+            682
+          ],
+          "function": "createLink"
+        },
+        {
+          "file": "links.ts",
+          "line": 82,
+          "rule": "alias-collision-overwrite",
+          "message": "Creating a link unconditionally replaces any existing entry with the same code, allowing a user to hijack another user's alias by creating it again.",
+          "cwe": [
+            284
+          ],
+          "function": "createLink"
+        },
+        {
+          "file": "links.ts",
+          "line": 99,
+          "rule": "division-by-zero",
+          "message": "When a link is less than one full day old, `days` is zero and the click rate becomes `NaN` or `Infinity`, which is serialized as `null`.",
+          "cwe": [
+            369
+          ],
+          "function": "clicksPerDay"
+        },
+        {
+          "file": "server.ts",
+          "line": 20,
+          "rule": "hard-coded-admin-credential",
+          "message": "The admin token is embedded in source, so anyone who can inspect the application can authenticate to the delete endpoint.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "server.ts",
+          "line": 68,
+          "rule": "server-side-request-forgery",
+          "message": "When preview is enabled, the server fetches the user-supplied URL without restricting destinations, allowing requests to localhost or other internal services and exposing response snippets.",
+          "cwe": [
+            918
+          ],
+          "function": "fetchPreview"
+        },
+        {
+          "file": "server.ts",
+          "line": 75,
+          "rule": "lost-click-updates",
+          "message": "Concurrent redirects read the same click count before awaiting the log write, so their subsequent increments overwrite one another and undercount clicks.",
+          "cwe": [
+            362
+          ],
+          "function": "recordClick"
+        },
+        {
+          "file": "server.ts",
+          "line": 93,
+          "rule": "unsafe-redirect-scheme",
+          "message": "Targets are not restricted to HTTP(S), so a link can redirect users to a `javascript:` URL that may execute script in a browser.",
+          "cwe": [
+            601
+          ],
+          "function": "handleRedirect"
+        },
+        {
+          "file": "server.ts",
+          "line": 98,
+          "rule": "unknown-code-stats-crash",
+          "message": "The stats handler does not check whether the requested code exists, so requesting stats for an unknown code dereferences `undefined` and returns a 500 error.",
+          "cwe": [
+            476
+          ],
+          "function": "handleStats"
+        },
+        {
+          "file": "server.ts",
+          "line": 117,
+          "rule": "case-sensitive-alias-lookup",
+          "message": "Aliases are stored in lowercase but redirect lookups use the path code unchanged, so requesting an alias with different capitalization returns 404 despite aliases being documented as case-insensitive.",
+          "cwe": [],
+          "function": "route"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 7629,
+        "completion_tokens": 2924,
+        "cost_usd": 0.00153856,
+        "seconds": 45.15,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "TS02-D01",
+          "file": "links.ts",
+          "function": "generateCode",
+          "category": "insecure-randomness",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "weak-random-link-codes in `generateCode` (line 36, CWE-338): Generated link codes use predictable `Math.random()`, so an attacker can predict or enumerate codes and access links that rely on their secrecy."
+          ]
+        },
+        {
+          "id": "TS02-D02",
+          "file": "links.ts",
+          "function": "createLink",
+          "category": "logic-error",
+          "class": "design",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "expiry-time-unit-mismatch in `createLink` (line 79, CWE-682): Expiry is stored in milliseconds while lookups compare it with seconds, so TTL links do not expire under normal use.",
+            "alias-collision-overwrite in `createLink` (line 82, CWE-284): Creating a link unconditionally replaces any existing entry with the same code, allowing a user to hijack another user's alias by creating it again."
+          ]
+        },
+        {
+          "id": "TS02-D03",
+          "file": "links.ts",
+          "function": "validateTarget",
+          "category": "open-redirect",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "TS02-D04",
+          "file": "server.ts",
+          "function": "recordClick",
+          "category": "race-condition",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "lost-click-updates in `recordClick` (line 75, CWE-362): Concurrent redirects read the same click count before awaiting the log write, so their subsequent increments overwrite one another and undercount clicks."
+          ]
+        },
+        {
+          "id": "TS02-D05",
+          "file": "links.ts",
+          "function": "clicksPerDay",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `clicksPerDay` (line 99, CWE-369): When a link is less than one full day old, `days` is zero and the click rate becomes `NaN` or `Infinity`, which is serialized as `null`."
+          ]
+        },
+        {
+          "id": "TS02-D06",
+          "file": "server.ts",
+          "function": "handleAdminDelete",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "hard-coded-admin-credential (line 20, CWE-798): The admin token is embedded in source, so anyone who can inspect the application can authenticate to the delete endpoint."
+          ]
+        },
+        {
+          "id": "TS02-D07",
+          "file": "links.ts",
+          "function": "normalizeAlias",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "alias-truncation in `normalizeAlias` (line 64): Eight-character aliases are accepted but truncated to seven characters, so links created with such aliases cannot be reached using the alias the client supplied."
+          ]
+        },
+        {
+          "id": "TS02-D08",
+          "file": "links.ts",
+          "function": "normalizeAlias",
+          "category": "off-by-one",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "alias-truncation in `normalizeAlias` (line 64): Eight-character aliases are accepted but truncated to seven characters, so links created with such aliases cannot be reached using the alias the client supplied."
+          ]
+        },
+        {
+          "id": "TS02-D09",
+          "file": "links.ts",
+          "function": "isExpired",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "TS02-D10",
+          "file": "server.ts",
+          "function": "fetchPreview",
+          "category": "ssrf",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "server-side-request-forgery in `fetchPreview` (line 68, CWE-918): When preview is enabled, the server fetches the user-supplied URL without restricting destinations, allowing requests to localhost or other internal services and exposing response snippets."
+          ]
+        },
+        {
+          "id": "TS02-D11",
+          "file": "links.ts",
+          "function": "linkStats",
+          "category": "null-dereference",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 5,
+        "function_flagged": 3,
+        "missed": 3
+      },
+      "findings": [
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "weak-random-link-codes in `generateCode` (line 36, CWE-338): Generated link codes use predictable `Math.random()`, so an attacker can predict or enumerate codes and access links that rely on their secrecy.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "alias-truncation in `normalizeAlias` (line 64): Eight-character aliases are accepted but truncated to seven characters, so links created with such aliases cannot be reached using the alias the client supplied.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "expiry-time-unit-mismatch in `createLink` (line 79, CWE-682): Expiry is stored in milliseconds while lookups compare it with seconds, so TTL links do not expire under normal use.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "alias-collision-overwrite in `createLink` (line 82, CWE-284): Creating a link unconditionally replaces any existing entry with the same code, allowing a user to hijack another user's alias by creating it again.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "links.ts",
+          "kind": "baseline",
+          "text": "division-by-zero in `clicksPerDay` (line 99, CWE-369): When a link is less than one full day old, `days` is zero and the click rate becomes `NaN` or `Infinity`, which is serialized as `null`.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "hard-coded-admin-credential (line 20, CWE-798): The admin token is embedded in source, so anyone who can inspect the application can authenticate to the delete endpoint.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "server-side-request-forgery in `fetchPreview` (line 68, CWE-918): When preview is enabled, the server fetches the user-supplied URL without restricting destinations, allowing requests to localhost or other internal services and exposing response snippets.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "lost-click-updates in `recordClick` (line 75, CWE-362): Concurrent redirects read the same click count before awaiting the log write, so their subsequent increments overwrite one another and undercount clicks.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "unsafe-redirect-scheme in `handleRedirect` (line 93, CWE-601): Targets are not restricted to HTTP(S), so a link can redirect users to a `javascript:` URL that may execute script in a browser.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "unknown-code-stats-crash in `handleStats` (line 98, CWE-476): The stats handler does not check whether the requested code exists, so requesting stats for an unknown code dereferences `undefined` and returns a 500 error.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "case-sensitive-alias-lookup in `route` (line 117): Aliases are stored in lowercase but redirect lookups use the path code unchanged, so requesting an alias with different capitalization returns 404 despite aliases being documented as case-insensitive.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 11,
+        "defect_evidence": 5,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 6
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "links.ts",
+          "line": 104,
+          "rule": "unbounded-link-storage",
+          "message": "Anyone can repeatedly call the public shorten endpoint with distinct links, growing this in-memory map without a limit until the process runs out of memory.",
+          "cwe": [
+            400
+          ],
+          "function": "createLink"
+        },
+        {
+          "file": "links.ts",
+          "line": 109,
+          "rule": "expiry-boundary-error",
+          "message": "A link is considered live when `now` exactly equals `expiresAt`, so a request during that second can use a link after its expiration time.",
+          "cwe": [
+            682
+          ],
+          "function": "isExpired"
+        },
+        {
+          "file": "links.ts",
+          "line": 133,
+          "rule": "unbounded-expiry-timestamp",
+          "message": "Very large integer TTLs are accepted but can produce an out-of-range JavaScript date here, causing stats requests for the created link to fail with a 500.",
+          "cwe": [
+            20
+          ],
+          "function": "linkStats"
+        },
+        {
+          "file": "server.ts",
+          "line": 93,
+          "rule": "dns-rebinding-ssrf",
+          "message": "The hostname is checked before `fetch` resolves it again, so a rebinding DNS name can pass the public-address check and then make the preview request reach a private address.",
+          "cwe": [
+            918
+          ],
+          "function": "fetchPreview"
+        },
+        {
+          "file": "server.ts",
+          "line": 94,
+          "rule": "unbounded-preview-response",
+          "message": "An unauthenticated caller can request previews of public servers that stream arbitrarily large bodies, and `res.text()` buffers the entire response into memory.",
+          "cwe": [
+            400
+          ],
+          "function": "fetchPreview"
+        },
+        {
+          "file": "server.ts",
+          "line": 102,
+          "rule": "unbounded-click-log",
+          "message": "Anyone can repeatedly request a live redirect to append indefinitely to the click log, potentially exhausting the server's disk.",
+          "cwe": [
+            400
+          ],
+          "function": "recordClick"
+        },
+        {
+          "file": "server.ts",
+          "line": 107,
+          "rule": "invalid-ttl-accepted",
+          "message": "A supplied non-number `ttlSeconds` is silently treated as omitted, allowing malformed requests such as `{\"ttlSeconds\":\"60\"}` to create links that never expire.",
+          "cwe": [
+            20
+          ],
+          "function": "handleShorten"
+        },
+        {
+          "file": "server.ts",
+          "line": 138,
+          "rule": "case-sensitive-admin-delete",
+          "message": "Aliases are documented and looked up case-insensitively, but deleting an alias with different capitalization fails because this lookup is case-sensitive.",
+          "cwe": [],
+          "function": "handleAdminDelete"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 8463,
+        "completion_tokens": 3276,
+        "cost_usd": 0.0017229,
+        "seconds": 49.65,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "TS02-D10"
+        ],
+        "false_alarms": 8,
+        "findings": [
+          {
+            "file": "links.ts",
+            "kind": "baseline",
+            "text": "unbounded-link-storage in `createLink` (line 104, CWE-400): Anyone can repeatedly call the public shorten endpoint with distinct links, growing this in-memory map without a limit until the process runs out of memory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "links.ts",
+            "kind": "baseline",
+            "text": "expiry-boundary-error in `isExpired` (line 109, CWE-682): A link is considered live when `now` exactly equals `expiresAt`, so a request during that second can use a link after its expiration time.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "links.ts",
+            "kind": "baseline",
+            "text": "unbounded-expiry-timestamp in `linkStats` (line 133, CWE-20): Very large integer TTLs are accepted but can produce an out-of-range JavaScript date here, causing stats requests for the created link to fail with a 500.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "dns-rebinding-ssrf in `fetchPreview` (line 93, CWE-918): The hostname is checked before `fetch` resolves it again, so a rebinding DNS name can pass the public-address check and then make the preview request reach a private address.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "unbounded-preview-response in `fetchPreview` (line 94, CWE-400): An unauthenticated caller can request previews of public servers that stream arbitrarily large bodies, and `res.text()` buffers the entire response into memory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "unbounded-click-log in `recordClick` (line 102, CWE-400): Anyone can repeatedly request a live redirect to append indefinitely to the click log, potentially exhausting the server's disk.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "invalid-ttl-accepted in `handleShorten` (line 107, CWE-20): A supplied non-number `ttlSeconds` is silently treated as omitted, allowing malformed requests such as `{\"ttlSeconds\":\"60\"}` to create links that never expire.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "case-sensitive-admin-delete in `handleAdminDelete` (line 138): Aliases are documented and looked up case-insensitively, but deleting an alias with different capitalization fails because this lookup is case-sensitive.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 8,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 8
+        },
+        "reviews_used": []
+      }
+    }
+  ]
+}

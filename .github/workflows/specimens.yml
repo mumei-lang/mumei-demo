@@ -11,6 +11,8 @@ on:
       - "tests/test_run_specimen_audits.py"
       - "scripts/run_baselines.py"
       - "tests/test_run_baselines.py"
+      - "tests/test_run_llm_only.py"
+      - "scripts/run_llm_only.py"
       - ".github/workflows/specimens.yml"
   workflow_dispatch:
 
@@ -32,3 +34,5 @@ jobs:
         run: python3 -m pytest tests/test_run_specimen_audits.py -q
       - name: Run baseline-runner tests
         run: python3 -m pytest tests/test_run_baselines.py -q
+      - name: Run LLM-only runner tests
+        run: python3 -m pytest tests/test_run_llm_only.py -q

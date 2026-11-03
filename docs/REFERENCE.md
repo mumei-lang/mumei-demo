@@ -64,6 +64,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/generate_report.py` | 9 | Render a Mumei demo result. |
 | `scripts/run_specimen_audits.py` | 10 | Run `mumei-agent audit` over every specimen and score it against DEFECTS.json. |
 | `scripts/run_baselines.py` | 13 | Run off-the-shelf static analyzers over the specimens and score them like the audit. |
+| `scripts/run_llm_only.py` | 8 | Ask an LLM alone (no Mumei) to review the specimens, and score it like the baselines. |
 | `scripts/record_scenario.py` | 2 | Finite record-operation checks and intentionally broken host variants. |
 | `scripts/record_model_evidence.py` | 2 | Collect independent Lean model evidence; never promote a Python operation. |
 | `scripts/check_specimens.py` | 2 | Validate specimen directories. |
@@ -125,6 +126,21 @@ Run off-the-shelf static analyzers over the specimens and score them like the au
 | `--scoreboard-dir` | `<SCOREBOARD_DIR>` | no | `specimens/scoreboard` | — |
 | `--specimens-readme` | `<SPECIMENS_README>` | no | — | README whose baselines block gets the Mumei comparison (default: specimens/README.md; skipped if the file does not exist) |
 | `--rescore` | — | no | `false` | re-score the committed baselines/<tool>.json findings with the current baseline_reviews.json, without running any tool |
+
+### `scripts/run_llm_only.py`
+
+Ask an LLM alone (no Mumei) to review the specimens, and score it like the baselines.
+
+| Option | Value | Required | Default | Description |
+|---|---|---|---|---|
+| `--model` | `<MODEL>` | no | — | model to re-score with --rescore (default: LLM_MODEL, then gpt-4o); a review always uses LLM_MODEL |
+| `--runs` | `<RUNS>` | no | `3` | reviews per specimen and variant |
+| `--jobs` | `<JOBS>` | no | `4` | concurrent model calls per specimen |
+| `--only` | `<ONLY>` | no | — | comma-separated specimen ids to review; the others keep their committed findings, re-scored |
+| `--timeout` | `<TIMEOUT>` | no | `600` | per-request timeout in seconds |
+| `--summary` | `<SUMMARY>` | no | `specimens/LLM_ONLY.md` | — |
+| `--scoreboard-dir` | `<SCOREBOARD_DIR>` | no | `specimens/scoreboard` | — |
+| `--rescore` | — | no | `false` | re-score the committed llm_only/<model>.json findings with the current llm_only_reviews.json, without calling the model |
 
 ### `scripts/record_scenario.py`
 
@@ -191,4 +207,6 @@ Render a Mumei verification report.
 | `MUMEI_LEAN_REPO` | `../mumei-lean` sibling checkout | Read from repos.env, then the process environment; otherwise resolves the sibling checkout. |
 | `MUMEI_BIN` | release binary, otherwise debug binary under MUMEI_REPO | Read from repos.env, then the process environment; direct audit options can override it. |
 | `MUMEI_AGENT_PYTHON` | agent .venv/bin/python, otherwise python on PATH or the current interpreter | Read from repos.env, then the process environment, before choosing an available Python. |
+| `LLM_BASE_URL` | `https://api.openai.com/v1` | OpenAI-compatible endpoint for `scripts/run_llm_only.py` (same name as mumei-agent). |
+| `LLM_MODEL` | `gpt-4o` | Model reviewed by `scripts/run_llm_only.py`; names the `llm_only/<model>.json` records. |
 | `NL_REQUIREMENTS_FILE` | `spec_text.md` | Read from repos.env, then the process environment; selects the natural-language requirements input. |

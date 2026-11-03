@@ -1,0 +1,1274 @@
+{
+  "specimen": "sol-03-staking-rewards",
+  "language": "solidity",
+  "tool": "llm-only",
+  "model": "openai/gpt-6-luna",
+  "prompt_version": 1,
+  "prompt_hash": "50865386f4c2f5d6",
+  "temperature": 0,
+  "generated_at": "2026-11-03T04:59:40Z",
+  "source_hash": "43cf94281eb7b1fc324c24c7529726d100f9f62e5b24741bdc3284eee4d494ff",
+  "runs": [
+    {
+      "run": 1,
+      "raw_findings": [
+        {
+          "file": "src/StakeToken.sol",
+          "line": 60,
+          "rule": "allowance-consumed-on-failed-transfer",
+          "message": "`transferFrom()` deducts allowance before `_move()` can return false for insufficient balance, so a failed transfer still consumes the spender's allowance.",
+          "cwe": [
+            755
+          ],
+          "function": "transferFrom"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 58,
+          "rule": "shared-token-insolvency",
+          "message": "The constructor permits the staking and reward tokens to be identical, so reward payouts can spend tokens backing users' principal and leave withdrawals insolvent.",
+          "cwe": [
+            682
+          ],
+          "function": "constructor"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 77,
+          "rule": "division-by-zero",
+          "message": "When rewards are active with no stake, `rewardPerToken()` divides by zero; for example, the first `stake()` after an epoch starts reverts in its `updateReward` modifier.",
+          "cwe": [
+            369
+          ],
+          "function": "rewardPerToken"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 77,
+          "rule": "premature-integer-division",
+          "message": "Dividing before applying the 1e18 scale truncates small per-token rewards to zero, so users can receive no accrual even when rewards were scheduled.",
+          "cwe": [
+            369
+          ],
+          "function": "rewardPerToken"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 86,
+          "rule": "unchecked-underflow",
+          "message": "A new notification resets the global accumulator while users retain their larger prior paid value, so `earned()` wraps the subtraction and reports a huge incorrect reward.",
+          "cwe": [
+            191
+          ],
+          "function": "earned"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 101,
+          "rule": "missing-initial-lock",
+          "message": "The first deposit leaves `lockEnd` at zero, allowing a staker to withdraw immediately instead of being subject to the lockup.",
+          "cwe": [],
+          "function": "stake"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 125,
+          "rule": "reentrancy",
+          "message": "The stake balance and total supply are unchanged until after the external token transfer, so an opted-in receiver hook can reenter `emergencyWithdraw()` and withdraw the same stake repeatedly.",
+          "cwe": [
+            841
+          ],
+          "function": "emergencyWithdraw"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 139,
+          "rule": "unchecked-transfer-result",
+          "message": "`getReward()` ignores a false return from the reward token and has already cleared the user's rewards, so an underfunded payout silently destroys the user's claim.",
+          "cwe": [
+            252
+          ],
+          "function": "getReward"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 167,
+          "rule": "voucher-replay",
+          "message": "The signed digest has no nonce or contract/chain domain, so anyone can reuse a valid voucher to claim the bonus repeatedly.",
+          "cwe": [
+            294
+          ],
+          "function": "claimBonus"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 177,
+          "rule": "missing-authorization",
+          "message": "Any account can call `notifyRewardAmount()` and replace the active reward schedule, letting an attacker disrupt the owner's intended distribution.",
+          "cwe": [
+            862
+          ],
+          "function": "notifyRewardAmount"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 183,
+          "rule": "schedule-truncation",
+          "message": "Starting a new epoch replaces the current rate without carrying forward its unelapsed rewards, so re-notifying before the prior period ends abandons the remaining scheduled distribution.",
+          "cwe": [],
+          "function": "notifyRewardAmount"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 183,
+          "rule": "zero-reward-rate",
+          "message": "Integer division makes `rewardRate` zero whenever `reward < duration`, leaving the funded reward undistributed for the entire epoch.",
+          "cwe": [
+            682
+          ],
+          "function": "notifyRewardAmount"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 9887,
+        "completion_tokens": 3914,
+        "cost_usd": 0.00205614,
+        "seconds": 61.83,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "SOL03-D01",
+          "file": "src/StakingRewards.sol",
+          "function": "rewardPerToken",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `rewardPerToken` (line 77, CWE-369): When rewards are active with no stake, `rewardPerToken()` divides by zero; for example, the first `stake()` after an epoch starts reverts in its `updateReward` modifier.",
+            "premature-integer-division in `rewardPerToken` (line 77, CWE-369): Dividing before applying the 1e18 scale truncates small per-token rewards to zero, so users can receive no accrual even when rewards were scheduled."
+          ]
+        },
+        {
+          "id": "SOL03-D02",
+          "file": "src/StakingRewards.sol",
+          "function": "earned",
+          "category": "integer-underflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "unchecked-underflow in `earned` (line 86, CWE-191): A new notification resets the global accumulator while users retain their larger prior paid value, so `earned()` wraps the subtraction and reports a huge incorrect reward."
+          ]
+        },
+        {
+          "id": "SOL03-D03",
+          "file": "src/StakingRewards.sol",
+          "function": "notifyRewardAmount",
+          "category": "access-control",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "missing-authorization in `notifyRewardAmount` (line 177, CWE-862): Any account can call `notifyRewardAmount()` and replace the active reward schedule, letting an attacker disrupt the owner's intended distribution."
+          ]
+        },
+        {
+          "id": "SOL03-D04",
+          "file": "src/StakingRewards.sol",
+          "function": "stake",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "missing-initial-lock in `stake` (line 101): The first deposit leaves `lockEnd` at zero, allowing a staker to withdraw immediately instead of being subject to the lockup."
+          ]
+        },
+        {
+          "id": "SOL03-D05",
+          "file": "src/StakingRewards.sol",
+          "function": "emergencyWithdraw",
+          "category": "reentrancy",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "reentrancy in `emergencyWithdraw` (line 125, CWE-841): The stake balance and total supply are unchanged until after the external token transfer, so an opted-in receiver hook can reenter `emergencyWithdraw()` and withdraw the same stake repeatedly."
+          ]
+        },
+        {
+          "id": "SOL03-D06",
+          "file": "src/StakingRewards.sol",
+          "function": "rewardPerToken",
+          "category": "rounding-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "premature-integer-division in `rewardPerToken` (line 77, CWE-369): Dividing before applying the 1e18 scale truncates small per-token rewards to zero, so users can receive no accrual even when rewards were scheduled."
+          ]
+        },
+        {
+          "id": "SOL03-D07",
+          "file": "src/StakingRewards.sol",
+          "function": "constructor",
+          "category": "invariant-violation",
+          "class": "design",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "shared-token-insolvency in `constructor` (line 58, CWE-682): The constructor permits the staking and reward tokens to be identical, so reward payouts can spend tokens backing users' principal and leave withdrawals insolvent."
+          ]
+        },
+        {
+          "id": "SOL03-D08",
+          "file": "src/StakingRewards.sol",
+          "function": "getReward",
+          "category": "unchecked-call",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "unchecked-transfer-result in `getReward` (line 139, CWE-252): `getReward()` ignores a false return from the reward token and has already cleared the user's rewards, so an underfunded payout silently destroys the user's claim."
+          ]
+        },
+        {
+          "id": "SOL03-D09",
+          "file": "src/StakingRewards.sol",
+          "function": "claimFor",
+          "category": "missing-authorization",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "SOL03-D10",
+          "file": "src/StakingRewards.sol",
+          "function": "claimBonus",
+          "category": "signature-replay",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "voucher-replay in `claimBonus` (line 167, CWE-294): The signed digest has no nonce or contract/chain domain, so anyone can reuse a valid voucher to claim the bonus repeatedly."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 10,
+        "detected": 7,
+        "function_flagged": 2,
+        "missed": 1
+      },
+      "findings": [
+        {
+          "file": "src/StakeToken.sol",
+          "kind": "baseline",
+          "text": "allowance-consumed-on-failed-transfer in `transferFrom` (line 60, CWE-755): `transferFrom()` deducts allowance before `_move()` can return false for insufficient balance, so a failed transfer still consumes the spender's allowance.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "shared-token-insolvency in `constructor` (line 58, CWE-682): The constructor permits the staking and reward tokens to be identical, so reward payouts can spend tokens backing users' principal and leave withdrawals insolvent.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "division-by-zero in `rewardPerToken` (line 77, CWE-369): When rewards are active with no stake, `rewardPerToken()` divides by zero; for example, the first `stake()` after an epoch starts reverts in its `updateReward` modifier.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "premature-integer-division in `rewardPerToken` (line 77, CWE-369): Dividing before applying the 1e18 scale truncates small per-token rewards to zero, so users can receive no accrual even when rewards were scheduled.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "unchecked-underflow in `earned` (line 86, CWE-191): A new notification resets the global accumulator while users retain their larger prior paid value, so `earned()` wraps the subtraction and reports a huge incorrect reward.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "missing-initial-lock in `stake` (line 101): The first deposit leaves `lockEnd` at zero, allowing a staker to withdraw immediately instead of being subject to the lockup.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "reentrancy in `emergencyWithdraw` (line 125, CWE-841): The stake balance and total supply are unchanged until after the external token transfer, so an opted-in receiver hook can reenter `emergencyWithdraw()` and withdraw the same stake repeatedly.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "unchecked-transfer-result in `getReward` (line 139, CWE-252): `getReward()` ignores a false return from the reward token and has already cleared the user's rewards, so an underfunded payout silently destroys the user's claim.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "voucher-replay in `claimBonus` (line 167, CWE-294): The signed digest has no nonce or contract/chain domain, so anyone can reuse a valid voucher to claim the bonus repeatedly.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "missing-authorization in `notifyRewardAmount` (line 177, CWE-862): Any account can call `notifyRewardAmount()` and replace the active reward schedule, letting an attacker disrupt the owner's intended distribution.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "schedule-truncation in `notifyRewardAmount` (line 183): Starting a new epoch replaces the current rate without carrying forward its unelapsed rewards, so re-notifying before the prior period ends abandons the remaining scheduled distribution.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "zero-reward-rate in `notifyRewardAmount` (line 183, CWE-682): Integer division makes `rewardRate` zero whenever `reward < duration`, leaving the funded reward undistributed for the entire epoch.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 12,
+        "defect_evidence": 7,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 5
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "src/StakeToken.sol",
+          "line": 60,
+          "rule": "allowance-mutated-on-failure",
+          "message": "When allowance covers `amount` but `from` lacks the balance, `transferFrom` consumes the allowance before `_move` returns false, so a failed transfer still reduces the owner's allowance.",
+          "cwe": [
+            682
+          ],
+          "function": "transferFrom"
+        },
+        {
+          "file": "src/StakeToken.sol",
+          "line": 73,
+          "rule": "transfer-to-zero-address",
+          "message": "`_move` accepts `address(0)` as the recipient, so a successful transfer can leave tokens irretrievably assigned to the zero address without reducing `totalSupply`.",
+          "cwe": [
+            672
+          ],
+          "function": "_move"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 187,
+          "rule": "bonus-drains-scheduled-rewards",
+          "message": "A valid bonus voucher can pay out tokens already needed for scheduled or accrued staking rewards, causing later staker claims to fail when the pool lacks funds.",
+          "cwe": [
+            682
+          ],
+          "function": "claimBonus"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 202,
+          "rule": "unreserved-reward-liabilities",
+          "message": "The balance check does not reserve tokens for already-accrued unpaid rewards, so the owner can notify a new epoch using the same balance and leave both epochs' claims underfunded.",
+          "cwe": [
+            682
+          ],
+          "function": "notifyRewardAmount"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 10232,
+        "completion_tokens": 5271,
+        "cost_usd": 0.00273809,
+        "seconds": 82.22,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 10,
+        "still_reported": [
+          "SOL03-D03"
+        ],
+        "false_alarms": 4,
+        "findings": [
+          {
+            "file": "src/StakeToken.sol",
+            "kind": "baseline",
+            "text": "allowance-mutated-on-failure in `transferFrom` (line 60, CWE-682): When allowance covers `amount` but `from` lacks the balance, `transferFrom` consumes the allowance before `_move` returns false, so a failed transfer still reduces the owner's allowance.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/StakeToken.sol",
+            "kind": "baseline",
+            "text": "transfer-to-zero-address in `_move` (line 73, CWE-672): `_move` accepts `address(0)` as the recipient, so a successful transfer can leave tokens irretrievably assigned to the zero address without reducing `totalSupply`.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/StakingRewards.sol",
+            "kind": "baseline",
+            "text": "bonus-drains-scheduled-rewards in `claimBonus` (line 187, CWE-682): A valid bonus voucher can pay out tokens already needed for scheduled or accrued staking rewards, causing later staker claims to fail when the pool lacks funds.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/StakingRewards.sol",
+            "kind": "baseline",
+            "text": "unreserved-reward-liabilities in `notifyRewardAmount` (line 202, CWE-682): The balance check does not reserve tokens for already-accrued unpaid rewards, so the owner can notify a new epoch using the same balance and leave both epochs' claims underfunded.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 4,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 4
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 2,
+      "raw_findings": [
+        {
+          "file": "src/StakeToken.sol",
+          "line": 60,
+          "rule": "allowance-consumed-on-failure",
+          "message": "transferFrom reduces allowance before _move can return false for insufficient balance, so a failed transfer still consumes the caller's allowance.",
+          "cwe": [
+            682
+          ],
+          "function": "transferFrom"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 77,
+          "rule": "division-by-zero",
+          "message": "When rewards are active with no stakers, this divides by zero, so calls such as the first stake or a reward update revert until someone stakes or the reward period ends.",
+          "cwe": [
+            369
+          ],
+          "function": "rewardPerToken"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 77,
+          "rule": "reward-precision-loss",
+          "message": "Dividing before scaling truncates fractional reward-per-token increments to zero, so small rewards or large stake supplies can accrue no rewards at all.",
+          "cwe": [
+            682
+          ],
+          "function": "rewardPerToken"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 101,
+          "rule": "lockup-bypass",
+          "message": "The first stake leaves lockEnd at zero, so a user can immediately withdraw their entire initial stake without the advertised seven-day lock.",
+          "cwe": [],
+          "function": "stake"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 125,
+          "rule": "reentrancy",
+          "message": "The external token transfer happens before the user's stake is cleared, so a recipient hook can reenter emergencyWithdraw and withdraw the same stake repeatedly from the pool.",
+          "cwe": [
+            841
+          ],
+          "function": "emergencyWithdraw"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 139,
+          "rule": "unchecked-transfer-result",
+          "message": "The reward transfer's false return value is ignored after the user's rewards are cleared, so an underfunded pool can silently erase accrued rewards without paying them.",
+          "cwe": [
+            252
+          ],
+          "function": "getReward"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 168,
+          "rule": "voucher-replay",
+          "message": "The signed voucher has no nonce or used-voucher tracking, so its recipient can submit the same valid signature repeatedly and receive the bonus multiple times.",
+          "cwe": [
+            294
+          ],
+          "function": "claimBonus"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 177,
+          "rule": "missing-access-control",
+          "message": "Anyone can start or replace a reward epoch, allowing an arbitrary caller to disrupt the owner's schedule and control how the pool's reward balance is distributed.",
+          "cwe": [
+            862
+          ],
+          "function": "notifyRewardAmount"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 180,
+          "rule": "principal-used-as-rewards",
+          "message": "If stakingToken and rewardToken are the same token, this balance check counts staked principal as available rewards, allowing a reward epoch and claims to consume tokens needed for withdrawals.",
+          "cwe": [
+            682
+          ],
+          "function": "notifyRewardAmount"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 183,
+          "rule": "unallocated-reward-rollover",
+          "message": "Replacing an active epoch sets the new rate using only the new reward amount and discards the previous epoch's unelapsed allocation, leaving those funds unaccounted for and potentially stranded.",
+          "cwe": [],
+          "function": "notifyRewardAmount"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 184,
+          "rule": "reward-index-reset",
+          "message": "Resetting the global reward index leaves users' paid checkpoints unchanged, so a later earned() call can underflow in its unchecked subtraction and produce bogus rewards or make claims fail.",
+          "cwe": [
+            191
+          ],
+          "function": "notifyRewardAmount"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 9887,
+        "completion_tokens": 3724,
+        "cost_usd": 0.0030978,
+        "seconds": 59.27,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "SOL03-D01",
+          "file": "src/StakingRewards.sol",
+          "function": "rewardPerToken",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `rewardPerToken` (line 77, CWE-369): When rewards are active with no stakers, this divides by zero, so calls such as the first stake or a reward update revert until someone stakes or the reward period ends.",
+            "reward-precision-loss in `rewardPerToken` (line 77, CWE-682): Dividing before scaling truncates fractional reward-per-token increments to zero, so small rewards or large stake supplies can accrue no rewards at all."
+          ]
+        },
+        {
+          "id": "SOL03-D02",
+          "file": "src/StakingRewards.sol",
+          "function": "earned",
+          "category": "integer-underflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "SOL03-D03",
+          "file": "src/StakingRewards.sol",
+          "function": "notifyRewardAmount",
+          "category": "access-control",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "missing-access-control in `notifyRewardAmount` (line 177, CWE-862): Anyone can start or replace a reward epoch, allowing an arbitrary caller to disrupt the owner's schedule and control how the pool's reward balance is distributed."
+          ]
+        },
+        {
+          "id": "SOL03-D04",
+          "file": "src/StakingRewards.sol",
+          "function": "stake",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "lockup-bypass in `stake` (line 101): The first stake leaves lockEnd at zero, so a user can immediately withdraw their entire initial stake without the advertised seven-day lock."
+          ]
+        },
+        {
+          "id": "SOL03-D05",
+          "file": "src/StakingRewards.sol",
+          "function": "emergencyWithdraw",
+          "category": "reentrancy",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "reentrancy in `emergencyWithdraw` (line 125, CWE-841): The external token transfer happens before the user's stake is cleared, so a recipient hook can reenter emergencyWithdraw and withdraw the same stake repeatedly from the pool."
+          ]
+        },
+        {
+          "id": "SOL03-D06",
+          "file": "src/StakingRewards.sol",
+          "function": "rewardPerToken",
+          "category": "rounding-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "reward-precision-loss in `rewardPerToken` (line 77, CWE-682): Dividing before scaling truncates fractional reward-per-token increments to zero, so small rewards or large stake supplies can accrue no rewards at all."
+          ]
+        },
+        {
+          "id": "SOL03-D07",
+          "file": "src/StakingRewards.sol",
+          "function": "constructor",
+          "category": "invariant-violation",
+          "class": "design",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "SOL03-D08",
+          "file": "src/StakingRewards.sol",
+          "function": "getReward",
+          "category": "unchecked-call",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "unchecked-transfer-result in `getReward` (line 139, CWE-252): The reward transfer's false return value is ignored after the user's rewards are cleared, so an underfunded pool can silently erase accrued rewards without paying them."
+          ]
+        },
+        {
+          "id": "SOL03-D09",
+          "file": "src/StakingRewards.sol",
+          "function": "claimFor",
+          "category": "missing-authorization",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "SOL03-D10",
+          "file": "src/StakingRewards.sol",
+          "function": "claimBonus",
+          "category": "signature-replay",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "voucher-replay in `claimBonus` (line 168, CWE-294): The signed voucher has no nonce or used-voucher tracking, so its recipient can submit the same valid signature repeatedly and receive the bonus multiple times."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 10,
+        "detected": 6,
+        "function_flagged": 1,
+        "missed": 3
+      },
+      "findings": [
+        {
+          "file": "src/StakeToken.sol",
+          "kind": "baseline",
+          "text": "allowance-consumed-on-failure in `transferFrom` (line 60, CWE-682): transferFrom reduces allowance before _move can return false for insufficient balance, so a failed transfer still consumes the caller's allowance.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "division-by-zero in `rewardPerToken` (line 77, CWE-369): When rewards are active with no stakers, this divides by zero, so calls such as the first stake or a reward update revert until someone stakes or the reward period ends.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "reward-precision-loss in `rewardPerToken` (line 77, CWE-682): Dividing before scaling truncates fractional reward-per-token increments to zero, so small rewards or large stake supplies can accrue no rewards at all.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "lockup-bypass in `stake` (line 101): The first stake leaves lockEnd at zero, so a user can immediately withdraw their entire initial stake without the advertised seven-day lock.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "reentrancy in `emergencyWithdraw` (line 125, CWE-841): The external token transfer happens before the user's stake is cleared, so a recipient hook can reenter emergencyWithdraw and withdraw the same stake repeatedly from the pool.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "unchecked-transfer-result in `getReward` (line 139, CWE-252): The reward transfer's false return value is ignored after the user's rewards are cleared, so an underfunded pool can silently erase accrued rewards without paying them.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "voucher-replay in `claimBonus` (line 168, CWE-294): The signed voucher has no nonce or used-voucher tracking, so its recipient can submit the same valid signature repeatedly and receive the bonus multiple times.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "missing-access-control in `notifyRewardAmount` (line 177, CWE-862): Anyone can start or replace a reward epoch, allowing an arbitrary caller to disrupt the owner's schedule and control how the pool's reward balance is distributed.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "principal-used-as-rewards in `notifyRewardAmount` (line 180, CWE-682): If stakingToken and rewardToken are the same token, this balance check counts staked principal as available rewards, allowing a reward epoch and claims to consume tokens needed for withdrawals.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "unallocated-reward-rollover in `notifyRewardAmount` (line 183): Replacing an active epoch sets the new rate using only the new reward amount and discards the previous epoch's unelapsed allocation, leaving those funds unaccounted for and potentially stranded.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "reward-index-reset in `notifyRewardAmount` (line 184, CWE-191): Resetting the global reward index leaves users' paid checkpoints unchanged, so a later earned() call can underflow in its unchecked subtraction and produce bogus rewards or make claims fail.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 11,
+        "defect_evidence": 6,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 5
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "src/StakeToken.sol",
+          "line": 60,
+          "rule": "allowance-mutated-on-failure",
+          "message": "When `transferFrom` is called for more tokens than `from` owns, `_move` returns false after this line has already reduced the allowance, so a failed transfer still consumes the spender's authorization.",
+          "cwe": [
+            682
+          ],
+          "function": "transferFrom"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 202,
+          "rule": "unaccounted-reward-liabilities",
+          "message": "This check counts the pool's entire token balance as available for a new reward schedule, including rewards already accrued but unpaid; if the owner starts another schedule while users have outstanding rewards, total obligations can exceed the balance and later claims will revert.",
+          "cwe": [
+            682
+          ],
+          "function": "notifyRewardAmount"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 10232,
+        "completion_tokens": 4084,
+        "cost_usd": 0.00214459,
+        "seconds": 64.85,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 10,
+        "still_reported": [
+          "SOL03-D03"
+        ],
+        "false_alarms": 2,
+        "findings": [
+          {
+            "file": "src/StakeToken.sol",
+            "kind": "baseline",
+            "text": "allowance-mutated-on-failure in `transferFrom` (line 60, CWE-682): When `transferFrom` is called for more tokens than `from` owns, `_move` returns false after this line has already reduced the allowance, so a failed transfer still consumes the spender's authorization.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/StakingRewards.sol",
+            "kind": "baseline",
+            "text": "unaccounted-reward-liabilities in `notifyRewardAmount` (line 202, CWE-682): This check counts the pool's entire token balance as available for a new reward schedule, including rewards already accrued but unpaid; if the owner starts another schedule while users have outstanding rewards, total obligations can exceed the balance and later claims will revert.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 2,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 2
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 3,
+      "raw_findings": [
+        {
+          "file": "src/StakeToken.sol",
+          "line": 60,
+          "rule": "allowance-consumed-on-failed-transfer",
+          "message": "`transferFrom` deducts allowance before `_move` checks the balance, so an underfunded call returns `false` but still consumes the caller's allowance.",
+          "cwe": [],
+          "function": "transferFrom"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 77,
+          "rule": "division-by-zero",
+          "message": "When rewards are active while `totalSupply` is zero, any call that updates rewards after time has elapsed divides by zero here and can block the first stake until the reward period ends.",
+          "cwe": [
+            369
+          ],
+          "function": "rewardPerToken"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 77,
+          "rule": "reward-rounding",
+          "message": "This divides before applying the 1e18 scale, so when `dt * rewardRate < totalSupply` the increment truncates to zero and stakers receive no rewards for that interval.",
+          "cwe": [
+            682
+          ],
+          "function": "rewardPerToken"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 101,
+          "rule": "lockup-bypass",
+          "message": "The first stake leaves `lockEnd` at zero, allowing a user to withdraw their entire initial stake immediately despite the documented seven-day lockup.",
+          "cwe": [
+            841
+          ],
+          "function": "stake"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 121,
+          "rule": "stale-reward-accounting",
+          "message": "Emergency withdrawal changes the reward denominator without checkpointing elapsed rewards first, so the remaining stakers receive rewards calculated retroactively using the reduced supply.",
+          "cwe": [],
+          "function": "emergencyWithdraw"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 124,
+          "rule": "reentrancy",
+          "message": "The token transfer invokes the recipient hook before the user's balance and total supply are reduced, allowing a hooked staker to reenter `emergencyWithdraw` and withdraw the same stake repeatedly.",
+          "cwe": [
+            841
+          ],
+          "function": "emergencyWithdraw"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 139,
+          "rule": "unchecked-transfer-result",
+          "message": "The return value is ignored after the user's reward balance is cleared, so an underfunded reward token can return `false` and silently erase the user's claim.",
+          "cwe": [
+            252
+          ],
+          "function": "getReward"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 150,
+          "rule": "forced-stale-payout",
+          "message": "Because anyone can call `claimFor`, an attacker can trigger settlement before the user updates a stale payout address, irreversibly sending the user's rewards to that old address.",
+          "cwe": [],
+          "function": "claimFor"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 167,
+          "rule": "voucher-replay",
+          "message": "The signed voucher has no nonce or used-voucher tracking, so anyone can submit the same valid signature repeatedly to claim the bonus multiple times.",
+          "cwe": [
+            294
+          ],
+          "function": "claimBonus"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 177,
+          "rule": "missing-authorization",
+          "message": "Anyone can start or replace a reward epoch, including setting a zero reward or changing the rate and finish time, so an attacker can disrupt the pool's scheduled rewards.",
+          "cwe": [
+            862
+          ],
+          "function": "notifyRewardAmount"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 180,
+          "rule": "principal-used-as-rewards",
+          "message": "When the staking and reward tokens are the same, this balance check counts staked principal as available rewards, allowing reward payouts to drain funds needed for withdrawals.",
+          "cwe": [],
+          "function": "notifyRewardAmount"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 183,
+          "rule": "stranded-epoch-rewards",
+          "message": "Replacing an active epoch overwrites its rate without carrying forward its undistributed rewards, leaving the old epoch's remaining funds stranded in the pool.",
+          "cwe": [],
+          "function": "notifyRewardAmount"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 184,
+          "rule": "reward-checkpoint-underflow",
+          "message": "Resetting the global reward-per-token value without resetting users' checkpoints makes `earned` underflow on the next epoch and can produce bogus rewards or make claims revert.",
+          "cwe": [
+            191
+          ],
+          "function": "notifyRewardAmount"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 9887,
+        "completion_tokens": 4010,
+        "cost_usd": 0.00210414,
+        "seconds": 61.41,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "SOL03-D01",
+          "file": "src/StakingRewards.sol",
+          "function": "rewardPerToken",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `rewardPerToken` (line 77, CWE-369): When rewards are active while `totalSupply` is zero, any call that updates rewards after time has elapsed divides by zero here and can block the first stake until the reward period ends.",
+            "reward-rounding in `rewardPerToken` (line 77, CWE-682): This divides before applying the 1e18 scale, so when `dt * rewardRate < totalSupply` the increment truncates to zero and stakers receive no rewards for that interval."
+          ]
+        },
+        {
+          "id": "SOL03-D02",
+          "file": "src/StakingRewards.sol",
+          "function": "earned",
+          "category": "integer-underflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "SOL03-D03",
+          "file": "src/StakingRewards.sol",
+          "function": "notifyRewardAmount",
+          "category": "access-control",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "missing-authorization in `notifyRewardAmount` (line 177, CWE-862): Anyone can start or replace a reward epoch, including setting a zero reward or changing the rate and finish time, so an attacker can disrupt the pool's scheduled rewards."
+          ]
+        },
+        {
+          "id": "SOL03-D04",
+          "file": "src/StakingRewards.sol",
+          "function": "stake",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "lockup-bypass in `stake` (line 101, CWE-841): The first stake leaves `lockEnd` at zero, allowing a user to withdraw their entire initial stake immediately despite the documented seven-day lockup."
+          ]
+        },
+        {
+          "id": "SOL03-D05",
+          "file": "src/StakingRewards.sol",
+          "function": "emergencyWithdraw",
+          "category": "reentrancy",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "stale-reward-accounting in `emergencyWithdraw` (line 121): Emergency withdrawal changes the reward denominator without checkpointing elapsed rewards first, so the remaining stakers receive rewards calculated retroactively using the reduced supply.",
+            "reentrancy in `emergencyWithdraw` (line 124, CWE-841): The token transfer invokes the recipient hook before the user's balance and total supply are reduced, allowing a hooked staker to reenter `emergencyWithdraw` and withdraw the same stake repeatedly."
+          ]
+        },
+        {
+          "id": "SOL03-D06",
+          "file": "src/StakingRewards.sol",
+          "function": "rewardPerToken",
+          "category": "rounding-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "reward-rounding in `rewardPerToken` (line 77, CWE-682): This divides before applying the 1e18 scale, so when `dt * rewardRate < totalSupply` the increment truncates to zero and stakers receive no rewards for that interval."
+          ]
+        },
+        {
+          "id": "SOL03-D07",
+          "file": "src/StakingRewards.sol",
+          "function": "constructor",
+          "category": "invariant-violation",
+          "class": "design",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "SOL03-D08",
+          "file": "src/StakingRewards.sol",
+          "function": "getReward",
+          "category": "unchecked-call",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "unchecked-transfer-result in `getReward` (line 139, CWE-252): The return value is ignored after the user's reward balance is cleared, so an underfunded reward token can return `false` and silently erase the user's claim."
+          ]
+        },
+        {
+          "id": "SOL03-D09",
+          "file": "src/StakingRewards.sol",
+          "function": "claimFor",
+          "category": "missing-authorization",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "forced-stale-payout in `claimFor` (line 150): Because anyone can call `claimFor`, an attacker can trigger settlement before the user updates a stale payout address, irreversibly sending the user's rewards to that old address."
+          ]
+        },
+        {
+          "id": "SOL03-D10",
+          "file": "src/StakingRewards.sol",
+          "function": "claimBonus",
+          "category": "signature-replay",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "voucher-replay in `claimBonus` (line 167, CWE-294): The signed voucher has no nonce or used-voucher tracking, so anyone can submit the same valid signature repeatedly to claim the bonus multiple times."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 10,
+        "detected": 6,
+        "function_flagged": 2,
+        "missed": 2
+      },
+      "findings": [
+        {
+          "file": "src/StakeToken.sol",
+          "kind": "baseline",
+          "text": "allowance-consumed-on-failed-transfer in `transferFrom` (line 60): `transferFrom` deducts allowance before `_move` checks the balance, so an underfunded call returns `false` but still consumes the caller's allowance.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "division-by-zero in `rewardPerToken` (line 77, CWE-369): When rewards are active while `totalSupply` is zero, any call that updates rewards after time has elapsed divides by zero here and can block the first stake until the reward period ends.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "reward-rounding in `rewardPerToken` (line 77, CWE-682): This divides before applying the 1e18 scale, so when `dt * rewardRate < totalSupply` the increment truncates to zero and stakers receive no rewards for that interval.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "lockup-bypass in `stake` (line 101, CWE-841): The first stake leaves `lockEnd` at zero, allowing a user to withdraw their entire initial stake immediately despite the documented seven-day lockup.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "stale-reward-accounting in `emergencyWithdraw` (line 121): Emergency withdrawal changes the reward denominator without checkpointing elapsed rewards first, so the remaining stakers receive rewards calculated retroactively using the reduced supply.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "reentrancy in `emergencyWithdraw` (line 124, CWE-841): The token transfer invokes the recipient hook before the user's balance and total supply are reduced, allowing a hooked staker to reenter `emergencyWithdraw` and withdraw the same stake repeatedly.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "unchecked-transfer-result in `getReward` (line 139, CWE-252): The return value is ignored after the user's reward balance is cleared, so an underfunded reward token can return `false` and silently erase the user's claim.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "forced-stale-payout in `claimFor` (line 150): Because anyone can call `claimFor`, an attacker can trigger settlement before the user updates a stale payout address, irreversibly sending the user's rewards to that old address.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "voucher-replay in `claimBonus` (line 167, CWE-294): The signed voucher has no nonce or used-voucher tracking, so anyone can submit the same valid signature repeatedly to claim the bonus multiple times.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "missing-authorization in `notifyRewardAmount` (line 177, CWE-862): Anyone can start or replace a reward epoch, including setting a zero reward or changing the rate and finish time, so an attacker can disrupt the pool's scheduled rewards.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "principal-used-as-rewards in `notifyRewardAmount` (line 180): When the staking and reward tokens are the same, this balance check counts staked principal as available rewards, allowing reward payouts to drain funds needed for withdrawals.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "stranded-epoch-rewards in `notifyRewardAmount` (line 183): Replacing an active epoch overwrites its rate without carrying forward its undistributed rewards, leaving the old epoch's remaining funds stranded in the pool.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "kind": "baseline",
+          "text": "reward-checkpoint-underflow in `notifyRewardAmount` (line 184, CWE-191): Resetting the global reward-per-token value without resetting users' checkpoints makes `earned` underflow on the next epoch and can produce bogus rewards or make claims revert.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 13,
+        "defect_evidence": 7,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 6
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "src/StakeToken.sol",
+          "line": 60,
+          "rule": "allowance-consumed-on-failure",
+          "message": "When `transferFrom` has enough allowance but the sender lacks balance, `_move` returns false after this line has reduced the allowance, so a failed transfer still consumes the caller's approval.",
+          "cwe": [],
+          "function": "transferFrom"
+        },
+        {
+          "file": "src/StakeToken.sol",
+          "line": 73,
+          "rule": "transfer-to-zero-address",
+          "message": "A transfer to `address(0)` succeeds and makes the tokens permanently inaccessible instead of rejecting the transfer, contrary to ERC-20 transfer behavior.",
+          "cwe": [],
+          "function": "_move"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 89,
+          "rule": "rewards-stranded-without-stakers",
+          "message": "When an epoch elapses with zero stake, reward-per-token does not account for those emissions and later updates advance `lastUpdateTime`, leaving the corresponding reward tokens unallocated with no recovery path.",
+          "cwe": [],
+          "function": "rewardPerToken"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 195,
+          "rule": "missing-authorization",
+          "message": "Because `notifyRewardAmount` is not restricted to the owner, anyone can alter an active reward schedule or start an epoch that expires before stakers arrive, disrupting or stranding rewards.",
+          "cwe": [
+            862
+          ],
+          "function": "notifyRewardAmount"
+        },
+        {
+          "file": "src/StakingRewards.sol",
+          "line": 205,
+          "rule": "reward-rounding-loss",
+          "message": "Integer division rounds `total / duration` down, so whenever `total` is not divisible by `duration` some scheduled reward tokens are never accounted for and remain stuck in the pool.",
+          "cwe": [
+            682
+          ],
+          "function": "notifyRewardAmount"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 10232,
+        "completion_tokens": 4484,
+        "cost_usd": 0.003520925,
+        "seconds": 69.92,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 10,
+        "still_reported": [
+          "SOL03-D01",
+          "SOL03-D03"
+        ],
+        "false_alarms": 5,
+        "findings": [
+          {
+            "file": "src/StakeToken.sol",
+            "kind": "baseline",
+            "text": "allowance-consumed-on-failure in `transferFrom` (line 60): When `transferFrom` has enough allowance but the sender lacks balance, `_move` returns false after this line has reduced the allowance, so a failed transfer still consumes the caller's approval.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/StakeToken.sol",
+            "kind": "baseline",
+            "text": "transfer-to-zero-address in `_move` (line 73): A transfer to `address(0)` succeeds and makes the tokens permanently inaccessible instead of rejecting the transfer, contrary to ERC-20 transfer behavior.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/StakingRewards.sol",
+            "kind": "baseline",
+            "text": "rewards-stranded-without-stakers in `rewardPerToken` (line 89): When an epoch elapses with zero stake, reward-per-token does not account for those emissions and later updates advance `lastUpdateTime`, leaving the corresponding reward tokens unallocated with no recovery path.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/StakingRewards.sol",
+            "kind": "baseline",
+            "text": "missing-authorization in `notifyRewardAmount` (line 195, CWE-862): Because `notifyRewardAmount` is not restricted to the owner, anyone can alter an active reward schedule or start an epoch that expires before stakers arrive, disrupting or stranding rewards.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/StakingRewards.sol",
+            "kind": "baseline",
+            "text": "reward-rounding-loss in `notifyRewardAmount` (line 205, CWE-682): Integer division rounds `total / duration` down, so whenever `total` is not divisible by `duration` some scheduled reward tokens are never accounted for and remain stuck in the pool.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 5,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 5
+        },
+        "reviews_used": []
+      }
+    }
+  ]
+}

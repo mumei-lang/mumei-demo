@@ -1,0 +1,1494 @@
+{
+  "specimen": "rs-03-matrix-tool",
+  "language": "rust",
+  "tool": "llm-only",
+  "model": "openai/gpt-6-luna",
+  "prompt_version": 1,
+  "prompt_hash": "50865386f4c2f5d6",
+  "temperature": 0,
+  "generated_at": "2026-11-03T04:59:40Z",
+  "source_hash": "f7bc196d4962d0408ae4e9b7f9dde8bcd41b12e0e9882d4da9974a2aac63509e",
+  "runs": [
+    {
+      "run": 1,
+      "raw_findings": [
+        {
+          "file": "src/main.rs",
+          "line": 19,
+          "rule": "panic-on-invalid-input",
+          "message": "A non-integer or out-of-range cell makes `parse` panic, so a malformed input file terminates the process instead of returning an input error.",
+          "cwe": [
+            248
+          ],
+          "function": "parse_cells"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 36,
+          "rule": "ragged-row-handling",
+          "message": "Rows are truncated to the first row's width without checking their lengths, so longer rows silently lose cells and shorter rows corrupt the matrix layout and can cause later operations to return wrong results or panic.",
+          "cwe": [
+            20
+          ],
+          "function": "load_matrix"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 44,
+          "rule": "incorrect-matrix-stride",
+          "message": "Indexing uses `rows` rather than `cols` as the row stride, so column totals are wrong for rectangular matrices and can panic when an accessed index exceeds the data.",
+          "cwe": [
+            682
+          ],
+          "function": "at"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 52,
+          "rule": "integer-overflow",
+          "message": "The cell sum is accumulated as `i32`, so sufficiently large values overflow and produce a wrong mean in release builds or panic in debug builds.",
+          "cwe": [
+            190
+          ],
+          "function": "mean"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 53,
+          "rule": "division-by-zero",
+          "message": "An empty matrix has zero cells, so requesting its mean divides by zero and panics.",
+          "cwe": [
+            369
+          ],
+          "function": "mean"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 60,
+          "rule": "integer-overflow",
+          "message": "Multiplying a cell by the factor can overflow `i32`, producing wrapped incorrect values in release builds or panicking in debug builds.",
+          "cwe": [
+            190
+          ],
+          "function": "scale"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 65,
+          "rule": "transpose-drops-column",
+          "message": "The transpose allocates only `rows * (cols - 1)` cells, so it drops the last input column and underflows for a zero-column matrix.",
+          "cwe": [
+            682
+          ],
+          "function": "transpose"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 88,
+          "rule": "singular-matrix-division",
+          "message": "A singular 2x2 matrix has a zero determinant, so inversion divides by zero and prints non-finite values instead of reporting that no inverse exists.",
+          "cwe": [
+            369
+          ],
+          "function": "invert2x2"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 113,
+          "rule": "symlink-following-cache-write",
+          "message": "The predictable `/tmp` cache path is written without rejecting symlinks, so an attacker can pre-place a symlink and make the program overwrite its target.",
+          "cwe": [
+            59
+          ],
+          "function": "write_cache"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 117,
+          "rule": "shell-command-injection",
+          "message": "The label and output path are interpolated into a shell command without quoting, so crafted CLI arguments can execute arbitrary shell commands.",
+          "cwe": [
+            78
+          ],
+          "function": "append_report"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 148,
+          "rule": "invalid-factor-defaults",
+          "message": "An unparseable `--factor` silently becomes 1, so invalid user input is accepted and scaling proceeds with a different factor than requested.",
+          "cwe": [
+            20
+          ],
+          "function": "main"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 172,
+          "rule": "panic-on-file-error",
+          "message": "Matrix operations unwrap the `Result` from `load_matrix`, so a missing or unreadable input file panics instead of reporting the read error.",
+          "cwe": [
+            248
+          ],
+          "function": "main"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 196,
+          "rule": "factor-narrowing-wrap",
+          "message": "Casting the `u32` factor to `i32` wraps values above `i32::MAX` into negative factors, so valid large factors produce incorrect scaling results.",
+          "cwe": [
+            681
+          ],
+          "function": "main"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 5812,
+        "completion_tokens": 2809,
+        "cost_usd": 0.00146289,
+        "seconds": 49.06,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "RS03-D01",
+          "file": "src/main.rs",
+          "function": "at",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "incorrect-matrix-stride in `at` (line 44, CWE-682): Indexing uses `rows` rather than `cols` as the row stride, so column totals are wrong for rectangular matrices and can panic when an accessed index exceeds the data."
+          ]
+        },
+        {
+          "id": "RS03-D02",
+          "file": "src/main.rs",
+          "function": "mean",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `mean` (line 53, CWE-369): An empty matrix has zero cells, so requesting its mean divides by zero and panics."
+          ]
+        },
+        {
+          "id": "RS03-D03",
+          "file": "src/main.rs",
+          "function": "invert2x2",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "singular-matrix-division in `invert2x2` (line 88, CWE-369): A singular 2x2 matrix has a zero determinant, so inversion divides by zero and prints non-finite values instead of reporting that no inverse exists."
+          ]
+        },
+        {
+          "id": "RS03-D04",
+          "file": "src/main.rs",
+          "function": "scale",
+          "category": "integer-overflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "integer-overflow in `scale` (line 60, CWE-190): Multiplying a cell by the factor can overflow `i32`, producing wrapped incorrect values in release builds or panicking in debug builds."
+          ]
+        },
+        {
+          "id": "RS03-D05",
+          "file": "src/main.rs",
+          "function": "parse_cells",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "panic-on-invalid-input in `parse_cells` (line 19, CWE-248): A non-integer or out-of-range cell makes `parse` panic, so a malformed input file terminates the process instead of returning an input error."
+          ]
+        },
+        {
+          "id": "RS03-D06",
+          "file": "src/main.rs",
+          "function": "load_matrix",
+          "category": "logic-error",
+          "class": "design",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "ragged-row-handling in `load_matrix` (line 36, CWE-20): Rows are truncated to the first row's width without checking their lengths, so longer rows silently lose cells and shorter rows corrupt the matrix layout and can cause later operations to return wrong results or panic."
+          ]
+        },
+        {
+          "id": "RS03-D07",
+          "file": "src/main.rs",
+          "function": "main",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "invalid-factor-defaults in `main` (line 148, CWE-20): An unparseable `--factor` silently becomes 1, so invalid user input is accepted and scaling proceeds with a different factor than requested.",
+            "panic-on-file-error in `main` (line 172, CWE-248): Matrix operations unwrap the `Result` from `load_matrix`, so a missing or unreadable input file panics instead of reporting the read error.",
+            "factor-narrowing-wrap in `main` (line 196, CWE-681): Casting the `u32` factor to `i32` wraps values above `i32::MAX` into negative factors, so valid large factors produce incorrect scaling results."
+          ]
+        },
+        {
+          "id": "RS03-D08",
+          "file": "src/main.rs",
+          "function": "transpose",
+          "category": "off-by-one",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "transpose-drops-column in `transpose` (line 65, CWE-682): The transpose allocates only `rows * (cols - 1)` cells, so it drops the last input column and underflows for a zero-column matrix."
+          ]
+        },
+        {
+          "id": "RS03-D09",
+          "file": "src/main.rs",
+          "function": "append_report",
+          "category": "command-injection",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "shell-command-injection in `append_report` (line 117, CWE-78): The label and output path are interpolated into a shell command without quoting, so crafted CLI arguments can execute arbitrary shell commands."
+          ]
+        },
+        {
+          "id": "RS03-D10",
+          "file": "src/main.rs",
+          "function": "checksum_file",
+          "category": "weak-crypto",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "RS03-D11",
+          "file": "src/main.rs",
+          "function": "write_cache",
+          "category": "toctou",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "symlink-following-cache-write in `write_cache` (line 113, CWE-59): The predictable `/tmp` cache path is written without rejecting symlinks, so an attacker can pre-place a symlink and make the program overwrite its target."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 6,
+        "function_flagged": 4,
+        "missed": 1
+      },
+      "findings": [
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "panic-on-invalid-input in `parse_cells` (line 19, CWE-248): A non-integer or out-of-range cell makes `parse` panic, so a malformed input file terminates the process instead of returning an input error.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "ragged-row-handling in `load_matrix` (line 36, CWE-20): Rows are truncated to the first row's width without checking their lengths, so longer rows silently lose cells and shorter rows corrupt the matrix layout and can cause later operations to return wrong results or panic.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "incorrect-matrix-stride in `at` (line 44, CWE-682): Indexing uses `rows` rather than `cols` as the row stride, so column totals are wrong for rectangular matrices and can panic when an accessed index exceeds the data.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "integer-overflow in `mean` (line 52, CWE-190): The cell sum is accumulated as `i32`, so sufficiently large values overflow and produce a wrong mean in release builds or panic in debug builds.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "division-by-zero in `mean` (line 53, CWE-369): An empty matrix has zero cells, so requesting its mean divides by zero and panics.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "integer-overflow in `scale` (line 60, CWE-190): Multiplying a cell by the factor can overflow `i32`, producing wrapped incorrect values in release builds or panicking in debug builds.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "transpose-drops-column in `transpose` (line 65, CWE-682): The transpose allocates only `rows * (cols - 1)` cells, so it drops the last input column and underflows for a zero-column matrix.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "singular-matrix-division in `invert2x2` (line 88, CWE-369): A singular 2x2 matrix has a zero determinant, so inversion divides by zero and prints non-finite values instead of reporting that no inverse exists.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "symlink-following-cache-write in `write_cache` (line 113, CWE-59): The predictable `/tmp` cache path is written without rejecting symlinks, so an attacker can pre-place a symlink and make the program overwrite its target.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "shell-command-injection in `append_report` (line 117, CWE-78): The label and output path are interpolated into a shell command without quoting, so crafted CLI arguments can execute arbitrary shell commands.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "invalid-factor-defaults in `main` (line 148, CWE-20): An unparseable `--factor` silently becomes 1, so invalid user input is accepted and scaling proceeds with a different factor than requested.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "panic-on-file-error in `main` (line 172, CWE-248): Matrix operations unwrap the `Result` from `load_matrix`, so a missing or unreadable input file panics instead of reporting the read error.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "factor-narrowing-wrap in `main` (line 196, CWE-681): Casting the `u32` factor to `i32` wraps values above `i32::MAX` into negative factors, so valid large factors produce incorrect scaling results.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 13,
+        "defect_evidence": 6,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 7
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "README.md",
+          "line": 32,
+          "rule": "documentation-contract",
+          "message": "The documented checksum is an additive byte checksum, but the implementation returns SHA-256, so users relying on the documented checksum format or algorithm get different behavior.",
+          "cwe": [],
+          "function": null
+        },
+        {
+          "file": "src/main.rs",
+          "line": 57,
+          "rule": "integer-overflow",
+          "message": "A column containing enough large-magnitude values overflows the `i64` total, causing a panic in debug builds or an incorrect report in release builds.",
+          "cwe": [
+            190
+          ],
+          "function": "column_total"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 64,
+          "rule": "integer-overflow",
+          "message": "Summing enough large-magnitude cells overflows `i64`, causing the mean to panic in debug builds or return an incorrect result in release builds.",
+          "cwe": [
+            190
+          ],
+          "function": "mean"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 104,
+          "rule": "floating-point-cancellation",
+          "message": "Computing the determinant in `f64` can round distinct products to the same value, so a nonsingular matrix such as `2147483647 2147483646; 2147483646 2147483645` is incorrectly rejected as singular.",
+          "cwe": [
+            682
+          ],
+          "function": "invert2x2"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 236,
+          "rule": "symlink-following",
+          "message": "Opening the report path follows an existing symlink, so a symlink at the default `summary.txt` path can make a report append data to another writable file.",
+          "cwe": [
+            59
+          ],
+          "function": "append_report"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 238,
+          "rule": "report-injection",
+          "message": "The label is written without escaping, so a label containing a newline can append forged report records.",
+          "cwe": [
+            117
+          ],
+          "function": "append_report"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 8001,
+        "completion_tokens": 3855,
+        "cost_usd": 0.00200778,
+        "seconds": 61.94,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "RS03-D04",
+          "RS03-D09"
+        ],
+        "false_alarms": 6,
+        "findings": [
+          {
+            "file": "README.md",
+            "kind": "baseline",
+            "text": "documentation-contract (line 32): The documented checksum is an additive byte checksum, but the implementation returns SHA-256, so users relying on the documented checksum format or algorithm get different behavior.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "integer-overflow in `column_total` (line 57, CWE-190): A column containing enough large-magnitude values overflows the `i64` total, causing a panic in debug builds or an incorrect report in release builds.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "integer-overflow in `mean` (line 64, CWE-190): Summing enough large-magnitude cells overflows `i64`, causing the mean to panic in debug builds or return an incorrect result in release builds.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "floating-point-cancellation in `invert2x2` (line 104, CWE-682): Computing the determinant in `f64` can round distinct products to the same value, so a nonsingular matrix such as `2147483647 2147483646; 2147483646 2147483645` is incorrectly rejected as singular.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "symlink-following in `append_report` (line 236, CWE-59): Opening the report path follows an existing symlink, so a symlink at the default `summary.txt` path can make a report append data to another writable file.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "report-injection in `append_report` (line 238, CWE-117): The label is written without escaping, so a label containing a newline can append forged report records.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 6,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 6
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 2,
+      "raw_findings": [
+        {
+          "file": "src/main.rs",
+          "line": 19,
+          "rule": "uncaught-parse-panic",
+          "message": "A non-integer or out-of-range cell makes `parse::<i32>().unwrap()` panic, so malformed matrix input terminates the process instead of returning an error.",
+          "cwe": [
+            248
+          ],
+          "function": "parse_cells"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 36,
+          "rule": "ragged-matrix-data-loss",
+          "message": "Rows longer than the first are silently truncated and shorter rows leave `data` inconsistent with the recorded dimensions, causing lost cells or later panics when ragged input is processed.",
+          "cwe": [
+            20
+          ],
+          "function": "load_matrix"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 44,
+          "rule": "incorrect-matrix-stride",
+          "message": "Using `rows` instead of `cols` as the row stride returns incorrect cells and can index out of bounds, for example when a matrix has more rows than columns.",
+          "cwe": [
+            682
+          ],
+          "function": "at"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 52,
+          "rule": "mean-sum-overflow",
+          "message": "Summing cells in `i32` overflows for valid matrices whose total exceeds the `i32` range, producing a wrapped mean in release builds or a panic in debug builds.",
+          "cwe": [
+            190
+          ],
+          "function": "mean"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 53,
+          "rule": "empty-mean-division",
+          "message": "An empty input produces a zero denominator, so requesting `mean` divides by zero and panics.",
+          "cwe": [
+            369
+          ],
+          "function": "mean"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 60,
+          "rule": "scale-overflow",
+          "message": "Multiplying valid cells by a factor can exceed the `i32` range, yielding wrapped results in release builds or a panic in debug builds.",
+          "cwe": [
+            190
+          ],
+          "function": "scale"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 65,
+          "rule": "empty-transpose-underflow",
+          "message": "For an empty matrix, `cols - 1` underflows; this panics in debug builds and can make the release build iterate an enormous range.",
+          "cwe": [
+            190
+          ],
+          "function": "transpose"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 65,
+          "rule": "transpose-drops-column",
+          "message": "Allocating the transposed matrix with `cols - 1` omits the final input column, so every transpose has incorrect dimensions and loses data.",
+          "cwe": [
+            193
+          ],
+          "function": "transpose"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 88,
+          "rule": "singular-matrix-division",
+          "message": "A singular 2x2 matrix has a zero determinant, so dividing by it returns `inf` or `NaN` instead of reporting that the matrix cannot be inverted.",
+          "cwe": [
+            369
+          ],
+          "function": "invert2x2"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 113,
+          "rule": "cache-symlink-following",
+          "message": "Writing to the predictable `/tmp/matrix_tool_cache.txt` follows an existing symlink, allowing a local user to make the program overwrite another writable file.",
+          "cwe": [
+            59
+          ],
+          "function": "write_cache"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 117,
+          "rule": "shell-command-injection",
+          "message": "The user-controlled label and output path are interpolated into a shell command, so crafted `--label` or `--out` values can execute arbitrary commands.",
+          "cwe": [
+            78
+          ],
+          "function": "append_report"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 148,
+          "rule": "invalid-factor-silently-defaulted",
+          "message": "An invalid or out-of-range `--factor` value silently becomes 1, so the tool reports success while applying a different operation than requested.",
+          "cwe": [
+            20
+          ],
+          "function": "main"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 172,
+          "rule": "uncaught-input-error",
+          "message": "Matrix-loading errors are unwrapped in the operation branches, so supplying a missing, unreadable, or invalid-UTF-8 input file panics instead of returning a controlled error.",
+          "cwe": [
+            248
+          ],
+          "function": "main"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 196,
+          "rule": "factor-sign-conversion",
+          "message": "Casting the parsed `u32` factor to `i32` reinterprets values above `i32::MAX` as negative, so a large positive `--factor` scales cells with the wrong sign.",
+          "cwe": [
+            681
+          ],
+          "function": "main"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 5812,
+        "completion_tokens": 3668,
+        "cost_usd": 0.002560425,
+        "seconds": 59.89,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "RS03-D01",
+          "file": "src/main.rs",
+          "function": "at",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "incorrect-matrix-stride in `at` (line 44, CWE-682): Using `rows` instead of `cols` as the row stride returns incorrect cells and can index out of bounds, for example when a matrix has more rows than columns."
+          ]
+        },
+        {
+          "id": "RS03-D02",
+          "file": "src/main.rs",
+          "function": "mean",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "empty-mean-division in `mean` (line 53, CWE-369): An empty input produces a zero denominator, so requesting `mean` divides by zero and panics."
+          ]
+        },
+        {
+          "id": "RS03-D03",
+          "file": "src/main.rs",
+          "function": "invert2x2",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "singular-matrix-division in `invert2x2` (line 88, CWE-369): A singular 2x2 matrix has a zero determinant, so dividing by it returns `inf` or `NaN` instead of reporting that the matrix cannot be inverted."
+          ]
+        },
+        {
+          "id": "RS03-D04",
+          "file": "src/main.rs",
+          "function": "scale",
+          "category": "integer-overflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "scale-overflow in `scale` (line 60, CWE-190): Multiplying valid cells by a factor can exceed the `i32` range, yielding wrapped results in release builds or a panic in debug builds."
+          ]
+        },
+        {
+          "id": "RS03-D05",
+          "file": "src/main.rs",
+          "function": "parse_cells",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "uncaught-parse-panic in `parse_cells` (line 19, CWE-248): A non-integer or out-of-range cell makes `parse::<i32>().unwrap()` panic, so malformed matrix input terminates the process instead of returning an error."
+          ]
+        },
+        {
+          "id": "RS03-D06",
+          "file": "src/main.rs",
+          "function": "load_matrix",
+          "category": "logic-error",
+          "class": "design",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "ragged-matrix-data-loss in `load_matrix` (line 36, CWE-20): Rows longer than the first are silently truncated and shorter rows leave `data` inconsistent with the recorded dimensions, causing lost cells or later panics when ragged input is processed."
+          ]
+        },
+        {
+          "id": "RS03-D07",
+          "file": "src/main.rs",
+          "function": "main",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "invalid-factor-silently-defaulted in `main` (line 148, CWE-20): An invalid or out-of-range `--factor` value silently becomes 1, so the tool reports success while applying a different operation than requested.",
+            "uncaught-input-error in `main` (line 172, CWE-248): Matrix-loading errors are unwrapped in the operation branches, so supplying a missing, unreadable, or invalid-UTF-8 input file panics instead of returning a controlled error.",
+            "factor-sign-conversion in `main` (line 196, CWE-681): Casting the parsed `u32` factor to `i32` reinterprets values above `i32::MAX` as negative, so a large positive `--factor` scales cells with the wrong sign."
+          ]
+        },
+        {
+          "id": "RS03-D08",
+          "file": "src/main.rs",
+          "function": "transpose",
+          "category": "off-by-one",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "empty-transpose-underflow in `transpose` (line 65, CWE-190): For an empty matrix, `cols - 1` underflows; this panics in debug builds and can make the release build iterate an enormous range.",
+            "transpose-drops-column in `transpose` (line 65, CWE-193): Allocating the transposed matrix with `cols - 1` omits the final input column, so every transpose has incorrect dimensions and loses data."
+          ]
+        },
+        {
+          "id": "RS03-D09",
+          "file": "src/main.rs",
+          "function": "append_report",
+          "category": "command-injection",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "shell-command-injection in `append_report` (line 117, CWE-78): The user-controlled label and output path are interpolated into a shell command, so crafted `--label` or `--out` values can execute arbitrary commands."
+          ]
+        },
+        {
+          "id": "RS03-D10",
+          "file": "src/main.rs",
+          "function": "checksum_file",
+          "category": "weak-crypto",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "RS03-D11",
+          "file": "src/main.rs",
+          "function": "write_cache",
+          "category": "toctou",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "cache-symlink-following in `write_cache` (line 113, CWE-59): Writing to the predictable `/tmp/matrix_tool_cache.txt` follows an existing symlink, allowing a local user to make the program overwrite another writable file."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 6,
+        "function_flagged": 4,
+        "missed": 1
+      },
+      "findings": [
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "uncaught-parse-panic in `parse_cells` (line 19, CWE-248): A non-integer or out-of-range cell makes `parse::<i32>().unwrap()` panic, so malformed matrix input terminates the process instead of returning an error.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "ragged-matrix-data-loss in `load_matrix` (line 36, CWE-20): Rows longer than the first are silently truncated and shorter rows leave `data` inconsistent with the recorded dimensions, causing lost cells or later panics when ragged input is processed.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "incorrect-matrix-stride in `at` (line 44, CWE-682): Using `rows` instead of `cols` as the row stride returns incorrect cells and can index out of bounds, for example when a matrix has more rows than columns.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "mean-sum-overflow in `mean` (line 52, CWE-190): Summing cells in `i32` overflows for valid matrices whose total exceeds the `i32` range, producing a wrapped mean in release builds or a panic in debug builds.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "empty-mean-division in `mean` (line 53, CWE-369): An empty input produces a zero denominator, so requesting `mean` divides by zero and panics.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "scale-overflow in `scale` (line 60, CWE-190): Multiplying valid cells by a factor can exceed the `i32` range, yielding wrapped results in release builds or a panic in debug builds.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "empty-transpose-underflow in `transpose` (line 65, CWE-190): For an empty matrix, `cols - 1` underflows; this panics in debug builds and can make the release build iterate an enormous range.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "transpose-drops-column in `transpose` (line 65, CWE-193): Allocating the transposed matrix with `cols - 1` omits the final input column, so every transpose has incorrect dimensions and loses data.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "singular-matrix-division in `invert2x2` (line 88, CWE-369): A singular 2x2 matrix has a zero determinant, so dividing by it returns `inf` or `NaN` instead of reporting that the matrix cannot be inverted.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "cache-symlink-following in `write_cache` (line 113, CWE-59): Writing to the predictable `/tmp/matrix_tool_cache.txt` follows an existing symlink, allowing a local user to make the program overwrite another writable file.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "shell-command-injection in `append_report` (line 117, CWE-78): The user-controlled label and output path are interpolated into a shell command, so crafted `--label` or `--out` values can execute arbitrary commands.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "invalid-factor-silently-defaulted in `main` (line 148, CWE-20): An invalid or out-of-range `--factor` value silently becomes 1, so the tool reports success while applying a different operation than requested.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "uncaught-input-error in `main` (line 172, CWE-248): Matrix-loading errors are unwrapped in the operation branches, so supplying a missing, unreadable, or invalid-UTF-8 input file panics instead of returning a controlled error.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "factor-sign-conversion in `main` (line 196, CWE-681): Casting the parsed `u32` factor to `i32` reinterprets values above `i32::MAX` as negative, so a large positive `--factor` scales cells with the wrong sign.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 14,
+        "defect_evidence": 6,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 8
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "README.md",
+          "line": 32,
+          "rule": "documentation-contract-mismatch",
+          "message": "The documentation says checksum is additive, but the implementation outputs a SHA-256 digest, so users relying on the documented checksum behavior get a different result.",
+          "cwe": [],
+          "function": null
+        },
+        {
+          "file": "src/main.rs",
+          "line": 57,
+          "rule": "integer-overflow",
+          "message": "Summing enough large i32 values in a column overflows i64, causing a panic in debug builds or a wrapped, incorrect total in release builds.",
+          "cwe": [
+            190
+          ],
+          "function": "column_total"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 64,
+          "rule": "integer-overflow",
+          "message": "Summing enough large i32 values overflows i64, causing a panic in debug builds or an incorrect mean in release builds.",
+          "cwe": [
+            190
+          ],
+          "function": "mean"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 104,
+          "rule": "floating-point-precision",
+          "message": "The determinant is computed in f64, so distinct integer products can round to the same value; for example, a 2x2 matrix with entries 2147483647, 2147483646, 2147483646, 2147483645 has determinant -1 but is incorrectly rejected as singular.",
+          "cwe": [],
+          "function": "invert2x2"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 112,
+          "rule": "resource-exhaustion",
+          "message": "The checksum operation reads the entire input file into memory, and SHA-256 then makes another full copy, so a sufficiently large file can exhaust the process's memory.",
+          "cwe": [
+            400
+          ],
+          "function": "checksum_file"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 236,
+          "rule": "symlink-following",
+          "message": "The summary file is opened while following symlinks, so an attacker who can plant a summary.txt symlink in the working directory can cause a report run using the default output path to append data to another writable file.",
+          "cwe": [
+            59
+          ],
+          "function": "append_report"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 238,
+          "rule": "log-injection",
+          "message": "The label is written without escaping newlines, so a label containing a newline can inject forged report entries into the summary file.",
+          "cwe": [
+            117
+          ],
+          "function": "append_report"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 8001,
+        "completion_tokens": 3461,
+        "cost_usd": 0.00181078,
+        "seconds": 58.95,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "RS03-D04",
+          "RS03-D09"
+        ],
+        "false_alarms": 7,
+        "findings": [
+          {
+            "file": "README.md",
+            "kind": "baseline",
+            "text": "documentation-contract-mismatch (line 32): The documentation says checksum is additive, but the implementation outputs a SHA-256 digest, so users relying on the documented checksum behavior get a different result.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "integer-overflow in `column_total` (line 57, CWE-190): Summing enough large i32 values in a column overflows i64, causing a panic in debug builds or a wrapped, incorrect total in release builds.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "integer-overflow in `mean` (line 64, CWE-190): Summing enough large i32 values overflows i64, causing a panic in debug builds or an incorrect mean in release builds.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "floating-point-precision in `invert2x2` (line 104): The determinant is computed in f64, so distinct integer products can round to the same value; for example, a 2x2 matrix with entries 2147483647, 2147483646, 2147483646, 2147483645 has determinant -1 but is incorrectly rejected as singular.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "resource-exhaustion in `checksum_file` (line 112, CWE-400): The checksum operation reads the entire input file into memory, and SHA-256 then makes another full copy, so a sufficiently large file can exhaust the process's memory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "symlink-following in `append_report` (line 236, CWE-59): The summary file is opened while following symlinks, so an attacker who can plant a summary.txt symlink in the working directory can cause a report run using the default output path to append data to another writable file.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "log-injection in `append_report` (line 238, CWE-117): The label is written without escaping newlines, so a label containing a newline can inject forged report entries into the summary file.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 7,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 7
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 3,
+      "raw_findings": [
+        {
+          "file": "src/main.rs",
+          "line": 19,
+          "rule": "malformed-input-panic",
+          "message": "A non-integer cell makes `parse::<i32>().unwrap()` panic, so a malformed input file terminates the process instead of returning an input error.",
+          "cwe": [
+            248
+          ],
+          "function": "parse_cells"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 36,
+          "rule": "ragged-matrix-truncation",
+          "message": "Rows are truncated to the first row's width without checking their lengths, silently discarding extra cells and leaving short rows with inconsistent data that later operations can misread or panic on.",
+          "cwe": [
+            20
+          ],
+          "function": "load_matrix"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 44,
+          "rule": "incorrect-matrix-indexing",
+          "message": "Using `self.rows` rather than `self.cols` as the row stride makes column totals read incorrect cells and can index past the data for some matrix dimensions.",
+          "cwe": [
+            682
+          ],
+          "function": "at"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 52,
+          "rule": "mean-sum-overflow",
+          "message": "Summing cells in `i32` overflows for sufficiently large values or matrices, causing a panic in debug builds or an incorrect wrapped mean in release builds.",
+          "cwe": [
+            190
+          ],
+          "function": "mean"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 53,
+          "rule": "empty-matrix-division",
+          "message": "An empty input has zero rows and columns, so requesting its mean divides by zero and panics.",
+          "cwe": [
+            369
+          ],
+          "function": "mean"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 60,
+          "rule": "scale-overflow",
+          "message": "Multiplying cells in `i32` overflows for large factors or cell values, yielding wrapped incorrect results in release builds or a panic in debug builds.",
+          "cwe": [
+            190
+          ],
+          "function": "scale"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 65,
+          "rule": "transpose-dimension-error",
+          "message": "The transpose allocates and iterates over `cols - 1`, dropping the final input column, and an empty matrix underflows at this subtraction.",
+          "cwe": [
+            682
+          ],
+          "function": "transpose"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 88,
+          "rule": "singular-matrix-inversion",
+          "message": "A zero determinant is not rejected, so inverting a singular 2x2 matrix divides by zero and prints infinities or NaNs instead of reporting that no inverse exists.",
+          "cwe": [
+            369
+          ],
+          "function": "invert2x2"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 113,
+          "rule": "cache-symlink-overwrite",
+          "message": "Writing to the predictable `/tmp/matrix_tool_cache.txt` follows a pre-placed symlink, allowing a local user to make an invocation overwrite a victim file.",
+          "cwe": [
+            59
+          ],
+          "function": "write_cache"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 117,
+          "rule": "shell-command-injection",
+          "message": "Interpolating the user-controlled label and output path into a `sh -c` command lets shell metacharacters execute arbitrary commands when `report` is invoked.",
+          "cwe": [
+            78
+          ],
+          "function": "append_report"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 148,
+          "rule": "invalid-factor-silently-defaulted",
+          "message": "An invalid `--factor` value is silently replaced with 1, so a mistyped or malformed requested scale operation produces a plausible but incorrect result.",
+          "cwe": [
+            20
+          ],
+          "function": "main"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 172,
+          "rule": "file-error-panic",
+          "message": "Matrix-operation callers unwrap `load_matrix` errors, so a missing or unreadable input file causes an uncaught panic instead of a handled error.",
+          "cwe": [
+            248
+          ],
+          "function": "main"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 196,
+          "rule": "factor-narrowing-overflow",
+          "message": "Casting the parsed `u32` factor to `i32` changes values above `i32::MAX` into negative factors, so valid large `--factor` arguments scale in the wrong direction.",
+          "cwe": [
+            681
+          ],
+          "function": "main"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 5812,
+        "completion_tokens": 3416,
+        "cost_usd": 0.00176639,
+        "seconds": 56.53,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "RS03-D01",
+          "file": "src/main.rs",
+          "function": "at",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "incorrect-matrix-indexing in `at` (line 44, CWE-682): Using `self.rows` rather than `self.cols` as the row stride makes column totals read incorrect cells and can index past the data for some matrix dimensions."
+          ]
+        },
+        {
+          "id": "RS03-D02",
+          "file": "src/main.rs",
+          "function": "mean",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "empty-matrix-division in `mean` (line 53, CWE-369): An empty input has zero rows and columns, so requesting its mean divides by zero and panics."
+          ]
+        },
+        {
+          "id": "RS03-D03",
+          "file": "src/main.rs",
+          "function": "invert2x2",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "singular-matrix-inversion in `invert2x2` (line 88, CWE-369): A zero determinant is not rejected, so inverting a singular 2x2 matrix divides by zero and prints infinities or NaNs instead of reporting that no inverse exists."
+          ]
+        },
+        {
+          "id": "RS03-D04",
+          "file": "src/main.rs",
+          "function": "scale",
+          "category": "integer-overflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "scale-overflow in `scale` (line 60, CWE-190): Multiplying cells in `i32` overflows for large factors or cell values, yielding wrapped incorrect results in release builds or a panic in debug builds."
+          ]
+        },
+        {
+          "id": "RS03-D05",
+          "file": "src/main.rs",
+          "function": "parse_cells",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "malformed-input-panic in `parse_cells` (line 19, CWE-248): A non-integer cell makes `parse::<i32>().unwrap()` panic, so a malformed input file terminates the process instead of returning an input error."
+          ]
+        },
+        {
+          "id": "RS03-D06",
+          "file": "src/main.rs",
+          "function": "load_matrix",
+          "category": "logic-error",
+          "class": "design",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "ragged-matrix-truncation in `load_matrix` (line 36, CWE-20): Rows are truncated to the first row's width without checking their lengths, silently discarding extra cells and leaving short rows with inconsistent data that later operations can misread or panic on."
+          ]
+        },
+        {
+          "id": "RS03-D07",
+          "file": "src/main.rs",
+          "function": "main",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "invalid-factor-silently-defaulted in `main` (line 148, CWE-20): An invalid `--factor` value is silently replaced with 1, so a mistyped or malformed requested scale operation produces a plausible but incorrect result.",
+            "file-error-panic in `main` (line 172, CWE-248): Matrix-operation callers unwrap `load_matrix` errors, so a missing or unreadable input file causes an uncaught panic instead of a handled error.",
+            "factor-narrowing-overflow in `main` (line 196, CWE-681): Casting the parsed `u32` factor to `i32` changes values above `i32::MAX` into negative factors, so valid large `--factor` arguments scale in the wrong direction."
+          ]
+        },
+        {
+          "id": "RS03-D08",
+          "file": "src/main.rs",
+          "function": "transpose",
+          "category": "off-by-one",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "transpose-dimension-error in `transpose` (line 65, CWE-682): The transpose allocates and iterates over `cols - 1`, dropping the final input column, and an empty matrix underflows at this subtraction."
+          ]
+        },
+        {
+          "id": "RS03-D09",
+          "file": "src/main.rs",
+          "function": "append_report",
+          "category": "command-injection",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "shell-command-injection in `append_report` (line 117, CWE-78): Interpolating the user-controlled label and output path into a `sh -c` command lets shell metacharacters execute arbitrary commands when `report` is invoked."
+          ]
+        },
+        {
+          "id": "RS03-D10",
+          "file": "src/main.rs",
+          "function": "checksum_file",
+          "category": "weak-crypto",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "RS03-D11",
+          "file": "src/main.rs",
+          "function": "write_cache",
+          "category": "toctou",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "cache-symlink-overwrite in `write_cache` (line 113, CWE-59): Writing to the predictable `/tmp/matrix_tool_cache.txt` follows a pre-placed symlink, allowing a local user to make an invocation overwrite a victim file."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 6,
+        "function_flagged": 4,
+        "missed": 1
+      },
+      "findings": [
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "malformed-input-panic in `parse_cells` (line 19, CWE-248): A non-integer cell makes `parse::<i32>().unwrap()` panic, so a malformed input file terminates the process instead of returning an input error.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "ragged-matrix-truncation in `load_matrix` (line 36, CWE-20): Rows are truncated to the first row's width without checking their lengths, silently discarding extra cells and leaving short rows with inconsistent data that later operations can misread or panic on.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "incorrect-matrix-indexing in `at` (line 44, CWE-682): Using `self.rows` rather than `self.cols` as the row stride makes column totals read incorrect cells and can index past the data for some matrix dimensions.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "mean-sum-overflow in `mean` (line 52, CWE-190): Summing cells in `i32` overflows for sufficiently large values or matrices, causing a panic in debug builds or an incorrect wrapped mean in release builds.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "empty-matrix-division in `mean` (line 53, CWE-369): An empty input has zero rows and columns, so requesting its mean divides by zero and panics.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "scale-overflow in `scale` (line 60, CWE-190): Multiplying cells in `i32` overflows for large factors or cell values, yielding wrapped incorrect results in release builds or a panic in debug builds.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "transpose-dimension-error in `transpose` (line 65, CWE-682): The transpose allocates and iterates over `cols - 1`, dropping the final input column, and an empty matrix underflows at this subtraction.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "singular-matrix-inversion in `invert2x2` (line 88, CWE-369): A zero determinant is not rejected, so inverting a singular 2x2 matrix divides by zero and prints infinities or NaNs instead of reporting that no inverse exists.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "cache-symlink-overwrite in `write_cache` (line 113, CWE-59): Writing to the predictable `/tmp/matrix_tool_cache.txt` follows a pre-placed symlink, allowing a local user to make an invocation overwrite a victim file.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "shell-command-injection in `append_report` (line 117, CWE-78): Interpolating the user-controlled label and output path into a `sh -c` command lets shell metacharacters execute arbitrary commands when `report` is invoked.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "invalid-factor-silently-defaulted in `main` (line 148, CWE-20): An invalid `--factor` value is silently replaced with 1, so a mistyped or malformed requested scale operation produces a plausible but incorrect result.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "file-error-panic in `main` (line 172, CWE-248): Matrix-operation callers unwrap `load_matrix` errors, so a missing or unreadable input file causes an uncaught panic instead of a handled error.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "factor-narrowing-overflow in `main` (line 196, CWE-681): Casting the parsed `u32` factor to `i32` changes values above `i32::MAX` into negative factors, so valid large `--factor` arguments scale in the wrong direction.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 13,
+        "defect_evidence": 6,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 7
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "src/main.rs",
+          "line": 104,
+          "rule": "inaccurate-determinant",
+          "message": "Computing the determinant in `f64` can round distinct large integer products to the same value, so a nonsingular matrix such as `2147483647 2147483646; 2147483646 2147483645` is incorrectly rejected as singular.",
+          "cwe": [],
+          "function": "invert2x2"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 113,
+          "rule": "documented-checksum-mismatch",
+          "message": "The checksum operation returns SHA-256, contradicting the README's promise of an additive byte checksum and producing unexpected results for callers relying on that documented behavior.",
+          "cwe": [],
+          "function": "checksum_file"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 236,
+          "rule": "symlink-following",
+          "message": "Opening the summary path follows symlinks, so an attacker who can plant `summary.txt` in the working directory can cause a report run using the default output path to append to another file the user can write.",
+          "cwe": [
+            59
+          ],
+          "function": "append_report"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 238,
+          "rule": "log-injection",
+          "message": "The label is written without escaping, so a label containing a newline can forge additional report records in the summary file.",
+          "cwe": [
+            117
+          ],
+          "function": "append_report"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 8001,
+        "completion_tokens": 2960,
+        "cost_usd": 0.00248005,
+        "seconds": 48.39,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "RS03-D09"
+        ],
+        "false_alarms": 4,
+        "findings": [
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "inaccurate-determinant in `invert2x2` (line 104): Computing the determinant in `f64` can round distinct large integer products to the same value, so a nonsingular matrix such as `2147483647 2147483646; 2147483646 2147483645` is incorrectly rejected as singular.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "documented-checksum-mismatch in `checksum_file` (line 113): The checksum operation returns SHA-256, contradicting the README's promise of an additive byte checksum and producing unexpected results for callers relying on that documented behavior.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "symlink-following in `append_report` (line 236, CWE-59): Opening the summary path follows symlinks, so an attacker who can plant `summary.txt` in the working directory can cause a report run using the default output path to append to another file the user can write.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "log-injection in `append_report` (line 238, CWE-117): The label is written without escaping, so a label containing a newline can forge additional report records in the summary file.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 4,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 4
+        },
+        "reviews_used": []
+      }
+    }
+  ]
+}
