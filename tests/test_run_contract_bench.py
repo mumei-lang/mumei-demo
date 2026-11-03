@@ -676,22 +676,44 @@ def test_contract_prompt_hides_code_and_reference_contract(repo):
 @pytest.mark.parametrize("notes, expected", [
     ("", ""),
     ("Err is ok == false.", "Err is ok == false."),
-    ("State is passed in. In the original, the limit wraps; the fixed version subtracts queued amounts. "
-     "Closed checks are outside the port.", "State is passed in. Closed checks are outside the port."),
-    ("`distinct_open` stands for the fixed version's check.", ""),
-    ("The buggy path is modelled as x.", ""),
-    ("The ORIGINAL refund is assumed to succeed; Not found is 0.", "Not found is 0."),
+    ("`unchecked` uint256 wrap-around is modelled as the exact difference going below 0; "
+     "the fixed version's checked subtraction reverts (ok == false).",
+     "`unchecked` uint256 wrap-around is modelled as the exact difference going below 0; a revert is ok == false."),
+    ("Raising is ok == false. `distinct_open` stands for the fixed version's closed/same-account check.",
+     "Raising is ok == false. `distinct_open` stands for the check that both accounts are open and different."),
+    ("Account state is passed in; Err is ok == false. In the original, the allowance comes from the wrapping "
+     "remaining_daily_allowance, so an overspent account never hits the limit check; the fixed version also "
+     "subtracts already queued amounts. Same-account and closed checks are outside the ported part.",
+     "Account state is passed in; Err is ok == false. Same-account and closed checks are outside the ported part."),
 ])
-def test_blind_notes_drop_sentences_about_either_implementation(notes, expected):
+def test_blind_notes_rewrite_wording_about_either_implementation(notes, expected):
     assert cb.blind_notes(notes) == expected
 
 
-def test_contract_prompt_hides_notes_about_the_implementations(repo):
+@pytest.mark.parametrize("case_id, kept", [
+    ("SOL03-D02", "ok == false"),
+    ("GO01-D04", "`has_sku`"),
+    ("PY03-D01", "`distinct_open` stands for"),
+    ("GO02-D03", "A negative -top is rejected"),
+])
+def test_blind_notes_keep_the_modelling_conventions(case_id, kept):
+    cases, _ = cb.load_cases()
+    (case,) = [c for c in cases if c["id"] == case_id]
+    assert kept in cb.blind_notes(case["notes"])
+
+
+def test_contract_prompt_uses_the_blind_notes(repo, monkeypatch):
     (case,) = cb.load_cases()[0]
-    case = {**case, "notes": "Days are whole. In the original, days < 0 divides; the fixed version returns 0."}
+    monkeypatch.setattr(cb, "BLIND_NOTE_REWRITES", (("the fixed version returns 0", "a zero result is 0"),))
+    case = {**case, "notes": "Days are whole; the fixed version returns 0."}
     text = "\n".join(m["content"] for m in cb.contract_prompt(case))
-    assert "Modelling notes: Days are whole.\n" in text
-    assert "original, days" not in text and "fixed version" not in text
+    assert "Modelling notes: Days are whole; a zero result is 0.\n" in text and "fixed version" not in text
+
+
+def test_prompt_hash_covers_the_blind_note_rewrites(monkeypatch):
+    before = cb.prompt_hash("llm-contract")
+    monkeypatch.setattr(cb, "BLIND_NOTE_REWRITES", cb.BLIND_NOTE_REWRITES + (("x", "y"),))
+    assert cb.prompt_hash("llm-contract") != before
 
 
 def test_committed_notes_leak_nothing_to_the_blind_arm():

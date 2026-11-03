@@ -121,8 +121,9 @@ def sha256(text: str) -> str:
 
 def prompt_hash(arm: str | None = None) -> str:
     if arm == "llm-contract":
-        templates = [inspect.getsource(f) for f in (contract_prompt, contract_header, signature)]
-        return sha256(json.dumps([PROMPT_VERSION, CONTRACT_SYSTEM, templates], sort_keys=True))[:16]
+        templates = [inspect.getsource(f) for f in (contract_prompt, contract_header, signature, blind_notes)]
+        return sha256(json.dumps([PROMPT_VERSION, CONTRACT_SYSTEM, templates, BLIND_NOTE_REWRITES],
+                                 sort_keys=True))[:16]
     templates = [inspect.getsource(f) for f in (llm_prompt, port_prompt, assemble)]
     return sha256(json.dumps([PROMPT_VERSION, LLM_SYSTEM, PORT_SYSTEM, templates], sort_keys=True))[:16]
 
@@ -337,10 +338,26 @@ def signature(case: dict) -> str:
 BLIND_NOTE_LEAK = re.compile(r"\b(original|fixed version|buggy)\b", re.IGNORECASE)
 
 
+BLIND_NOTE_REWRITES = (
+    ("the fixed version's TrimPrefix result is `sku` with `has_sku`", "the SKU segment is `sku`, present when `has_sku`"),
+    ("The fixed version rejects a negative -top in main before formatSummary runs",
+     "A negative -top is rejected in main before formatSummary runs"),
+    ("the fixed version's closed/same-account check", "the check that both accounts are open and different"),
+    (" In the original, the allowance comes from the wrapping remaining_daily_allowance, so an overspent account "
+     "never hits the limit check; the fixed version also subtracts already queued amounts.", ""),
+    ("the direct refund call of the original", "the direct refund call"),
+    ("the fixed version's checked subtraction reverts (ok == false)", "a revert is ok == false"),
+)
+
+
 def blind_notes(notes: str) -> str:
-    """The modelling notes without the sentences that describe the original or the fixed implementation."""
-    kept = [s for s in re.split(r"(?<=[.;])\s+", notes.strip()) if s and not BLIND_NOTE_LEAK.search(s)]
-    return " ".join(kept)
+    """The modelling notes with the wording about the original or the fixed implementation rewritten away.
+
+    Rewriting keeps the modelling conventions (what `ok == false` or a helper stands for) that dropping the
+    whole sentence would lose. A note that still names an implementation fails the committed-notes test."""
+    for old, new in BLIND_NOTE_REWRITES:
+        notes = notes.replace(old, new)
+    return notes.strip()
 
 
 def contract_prompt(case: dict) -> list[dict]:
