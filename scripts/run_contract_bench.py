@@ -94,7 +94,7 @@ def prompt_hash() -> str:
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
     """(prelude, header, body) of a port whose last atom is `atom`; header ends before `body:`."""
-    m = re.search(rf"^atom\s+{re.escape(atom)}\s*\(", text, re.M)
+    m = re.search(rf"^(?:trusted\s+)?atom\s+{re.escape(atom)}\s*\(", text, re.M)
     if not m:
         return None
     b = text.find("body:", m.start())
