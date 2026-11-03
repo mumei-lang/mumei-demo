@@ -8,16 +8,16 @@ Verifier: mumei 0.6.23 at `d30f725906fa`
 
 | | Mutants | Killed | Survived | Invalid | Score |
 |---|---:|---:|---:|---:|---:|
-| **all** | 358 | 170 | 188 | 0 | 48% |
-| python | 104 | 43 | 61 | 0 | 41% |
+| **all** | 341 | 154 | 187 | 0 | 45% |
+| python | 87 | 27 | 60 | 0 | 31% |
 | go | 60 | 26 | 34 | 0 | 43% |
 | rust | 64 | 25 | 39 | 0 | 39% |
 | typescript | 75 | 53 | 22 | 0 | 71% |
 | solidity | 55 | 23 | 32 | 0 | 42% |
-| relational mutants | 100 | 42 | 58 | 0 | 42% |
-| logical mutants | 29 | 24 | 5 | 0 | 83% |
-| arithmetic mutants | 71 | 37 | 34 | 0 | 52% |
-| constant mutants | 158 | 67 | 91 | 0 | 42% |
+| relational mutants | 94 | 37 | 57 | 0 | 39% |
+| logical mutants | 25 | 20 | 5 | 0 | 80% |
+| arithmetic mutants | 69 | 35 | 34 | 0 | 51% |
+| constant mutants | 153 | 62 | 91 | 0 | 40% |
 
 Ports with no mutable token: `GO03-D07`, `PY04-D11`, `RS03-D08`, `SOL02-D03`, `TS01-D03`, `TS02-D08`.
 
@@ -71,9 +71,8 @@ A survivor is either a behaviour the contract does not pin down or an equivalent
   - constant `0` → `1` at 59 — `… if value <= 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: value } }`
 - `PY02-D04` (python, `parse_row`): 1 of 4
   - constant `0` → `1` at 54 — `if n < 4 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: row[3] } }`
-- `PY02-D05` (python, `overtime_minutes`): 4 of 26
+- `PY02-D05` (python, `overtime_minutes`): 3 of 9
   - constant `0` → `1` at 28 — `let extra = 1;`
-  - relational `>` → `>=` at 144 — `… 0 && i <= n && extra >= 0 && ((i >= 1 && daily[0] >= threshold) => extra >= daily[0] - threshold)`
   - relational `>` → `>=` at 267 — `extra = extra + (if daily[i] >= threshold { daily[i] - threshold } else { 0 });`
   - constant `0` → `1` at 311 — `… ly[i] > threshold { daily[i] - threshold } else { 1 });`
 - `PY02-D08` (python, `parse_duration`): 11 of 13

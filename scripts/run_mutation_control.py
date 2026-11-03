@@ -11,7 +11,9 @@ verifies each one under the unchanged contract:
   arithmetic   +  -
   constant     an integer literal n becomes n + 1
 
-Only the atom body is mutated; the prelude and the contract stay fixed.
+Only the atom body is mutated; the prelude, the contract and the loop
+`invariant:`/`decreases:` annotations stay fixed (changing an annotation only
+breaks the proof, not the code).
 Mutants whose text equals another mutant, or the original, are dropped.
 A mutant is killed when mumei refutes it, survives when mumei proves it, and
 is invalid when it does not verify either way (type errors, timeouts). The
@@ -45,6 +47,7 @@ SWAPS = {"<": "<=", "<=": "<", ">": ">=", ">=": ">", "==": "!=", "!=": "==",
 OPERATOR = {"<": "relational", "<=": "relational", ">": "relational", ">=": "relational",
             "==": "relational", "!=": "relational", "&&": "logical", "||": "logical",
             "+": "arithmetic", "-": "arithmetic"}
+ANNOTATION = re.compile(r"(?m)^[ \t]*(invariant|decreases)\s*:[^\n]*")
 TOKEN = re.compile(r"//[^\n]*|=>|->|<=|>=|==|!=|&&|\|\||[<>+\-]|\b\d+\b")
 OUTCOME = {"refuted": "killed", "proven": "survived"}
 
@@ -52,9 +55,10 @@ OUTCOME = {"refuted": "killed", "proven": "survived"}
 def mutants(body: str) -> list[dict]:
     """First-order mutants of a body, in source order, without duplicates or no-ops."""
     out, seen = [], {body}
+    proof_only = [a.span() for a in ANNOTATION.finditer(body)]
     for m in TOKEN.finditer(body):
         tok = m.group(0)
-        if tok.startswith("//") or tok in ("=>", "->"):
+        if tok.startswith("//") or tok in ("=>", "->") or any(lo <= m.start() < hi for lo, hi in proof_only):
             continue
         if tok.isdigit():
             op, new = "constant", str(int(tok) + 1)
@@ -174,7 +178,11 @@ def check(cases: list[dict]) -> list[str]:
     problems = []
     if not (doc.get("verifier") or {}).get("commit"):
         problems.append("mutation.json does not record the mumei commit it was verified with")
-    recorded = {c["id"]: c for c in doc["cases"]}
+    recorded = {}
+    for c in doc["cases"]:
+        if c["id"] in recorded:
+            problems.append(f"{c['id']}: recorded more than once")
+        recorded[c["id"]] = c
     for c in cases:
         r = recorded.pop(c["id"], None)
         if r is None:
@@ -231,15 +239,20 @@ def main(argv: list[str]) -> int:
     if not args.mumei_bin:
         raise SystemExit("mumei binary not found; pass --mumei-bin or set MUMEI_BIN")
     todo = [c for c in cases if not args.only or c["id"] in set(args.only)]
-    if args.only and not RESULT.is_file():
-        raise SystemExit(f"{RESULT.relative_to(cb.REPO_ROOT)} does not exist yet; run every case before using --only")
+    verifier = cb.verifier_identity(args.mumei_bin)
+    if args.only:
+        if not RESULT.is_file():
+            raise SystemExit(f"{RESULT.relative_to(cb.REPO_ROOT)} does not exist yet; run every case before using --only")
+        if json.loads(RESULT.read_text()).get("verifier") != verifier:
+            raise SystemExit(f"{RESULT.relative_to(cb.REPO_ROOT)} was recorded with another mumei build; "
+                             "rerun every case instead of using --only")
     with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
         done = {r["id"]: r for r in pool.map(lambda c: run_case(c, args.mumei_bin, args.timeout), todo)}
     if args.only:
         old = {c["id"]: c for c in json.loads(RESULT.read_text())["cases"]}
         done = {**old, **done}
     doc = {"recorded_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
-           "verifier": cb.verifier_identity(args.mumei_bin),
+           "verifier": verifier,
            "cases": [done[c["id"]] for c in cases if c["id"] in done]}
     RESULT.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
     REPORT.write_text(render({**doc, "_bodies": bodies_for(cases)}))

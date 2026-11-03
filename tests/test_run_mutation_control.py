@@ -41,6 +41,8 @@ def ops(body):
     ("a // b < c\n", []),
     ("a < b // c > d\nx >= 0", [("relational", "<", "<="), ("relational", ">=", ">"), ("constant", "0", "1")]),
     ("", []),
+    ("while i < n\n    invariant: i >= 0 && i <= n\n    decreases: n - i\n    { i = i + 1; }",
+     [("relational", "<", "<="), ("arithmetic", "+", "-"), ("constant", "1", "2")]),
 ])
 def test_mutation_operators(body, expected):
     assert ops(body) == expected
@@ -161,6 +163,7 @@ def test_report_lists_survivors_with_their_line(results, monkeypatch):
     (lambda d: d["cases"][0]["mutants"][0].update(outcome="maybe"), "without a valid outcome"),
     (lambda d: d["cases"].append({**d["cases"][0], "id": "XX99-D99"}), "no longer exists"),
     (lambda d: d.pop("verifier"), "does not record the mumei commit"),
+    (lambda d: d["cases"].append(dict(d["cases"][0])), "recorded more than once"),
     (lambda d: d["cases"][0]["mutants"][0].update(outcome="survived"), "MUTATION.md is out of date"),
 ])
 def test_check_catches_tampering(results, monkeypatch, capsys, tamper, message):
@@ -215,3 +218,18 @@ def test_context_trims_long_lines_around_the_change():
     got = mc.context(body, m)
     assert got.startswith("… p") and got.endswith("q …") and "a <= b" in got
     assert len(got) < 120
+
+
+def test_only_refuses_a_result_from_another_build(results, monkeypatch):
+    run_all(monkeypatch)
+    monkeypatch.setattr(mc.cb, "verifier_identity", lambda b: {"version": "mumei 0", "commit": "d" * 40, "dirty": False})
+    with pytest.raises(SystemExit, match="another mumei build"):
+        mc.main(["--mumei-bin", "mumei", "--only", CASES[0]["id"]])
+
+
+def test_loop_annotations_are_not_mutated():
+    case = next(c for c in CASES if c["id"] == "PY02-D05")
+    _, body = mc.split_fixed(case)
+    for m in mc.mutants(body):
+        line = body[body.rfind("\n", 0, m["at"]) + 1:].lstrip()
+        assert not line.startswith(("invariant:", "decreases:"))
