@@ -56,6 +56,20 @@ Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreb
 <!-- scoreboard:end -->
 
 <!-- comparison:start -->
+### mumei only vs mumei + LLM vs LLM only
+
+![mumei only vs mumei + LLM vs LLM only](specimens/scoreboard/arms.svg)
+
+| | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
+|---|---:|---:|---:|---:|---:|---:|
+| mumei only | 10 (6%) | 29 (17%) | 32% | 29 | $0.00 | 84 s wall |
+| mumei + LLM | 12 (7%) | 68 (40%) | 10%–87% | 211 | $0.22 | 54 min wall |
+| LLM only (3 runs, median) | 104 (61%), range 104–105 | 136 (80%), range 135–138 | 62%–100% | 76, range 68–79 | $0.06 | 22 min model time |
+
+Same 171 planted defects and the same scoring for every row; the model is `openai/gpt-6-luna` for both LLM rows.
+Precision is a range while findings are unreviewed (median unreviewed per run: mumei + LLM 154, LLM only 65).
+Of the 212 mumei + LLM findings on fixed code, 183 are spec diagnostics (cross-check gaps and spec health issues) rather than verifier violations.
+Details, complementarity, findings by kind and per-language numbers: [specimens/COMPARISON.md](specimens/COMPARISON.md).
 <!-- comparison:end -->
 
 ## Quick Start

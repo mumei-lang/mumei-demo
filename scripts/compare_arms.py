@@ -8,7 +8,7 @@
 
 All three are scored against the same DEFECTS.json ground truth, so the
 counts line up. This script reads committed output only; it calls no model
-and runs no audit. It writes specimens/scoreboard/comparison.{json,svg},
+and runs no audit. It writes specimens/scoreboard/arms.{json,svg},
 specimens/COMPARISON.md and the comparison block of the top-level README.
 """
 from __future__ import annotations
@@ -28,6 +28,13 @@ COMPARISON_END = "<!-- comparison:end -->"
 ARMS = ("mumei", "mumei+llm", "llm")
 ARM_LABEL = {"mumei": "mumei only", "mumei+llm": "mumei + LLM", "llm": "LLM only"}
 ARM_COLOR = {"mumei": "#2f81f7", "mumei+llm": "#8250df", "llm": "#1a7f37"}
+KIND_LABEL = {
+    "verification_violations": "Verifier violations",
+    "cross_validation_gaps": "Spec vs code cross-check gaps",
+    "spec_health_issues": "Spec health issues",
+    "trusted_atoms": "Trusted atoms",
+}
+VERIFIER_KIND = "verification_violations"
 
 
 def _sum_findings(parts: list[dict]) -> dict:
@@ -55,6 +62,7 @@ def load_audit_arm(specimens: list[Path], llm: bool) -> dict | None:
     return {
         "meta": covs[0]["meta"],
         "defects": defects,
+        "kinds": _audit_kinds(specimens, covs, llm),
         "runs": [{
             "detected": _detected(defects),
             "flagged": _detected(defects, ("detected", "function_flagged")),
@@ -63,6 +71,29 @@ def load_audit_arm(specimens: list[Path], llm: bool) -> dict | None:
         }],
         "fixed_specimens": len(fixed),
     }
+
+
+def _kind_counts(findings) -> dict[str, int]:
+    out: dict[str, int] = {}
+    for f in findings:
+        if not rsa.is_supporting(f):
+            out[f["kind"]] = out.get(f["kind"], 0) + 1
+    return dict(sorted(out.items()))
+
+
+def _audit_kinds(specimens: list[Path], covs: list[dict], llm: bool) -> dict:
+    """Findings per audit finding kind on the buggy code and, when every
+    specimen kept its fixed-variant audit.json, on the fixed code."""
+    buggy = _kind_counts(f for c in covs for f in c.get("findings") or [])
+    fixed_findings = []
+    for d in specimens:
+        path = rsa.audit_dir(d, llm) / "fixed" / "audit.json"
+        if not path.is_file():
+            return {"buggy": buggy, "fixed": None}
+        audit = json.loads(path.read_text(encoding="utf-8"))
+        label = str(d.relative_to(rsa.REPO_ROOT))
+        fixed_findings += [f for fs in rsa.findings_by_file(audit, label).values() for f in fs]
+    return {"buggy": buggy, "fixed": _kind_counts(fixed_findings)}
 
 
 def load_llm_arm(specimens: list[Path], model: str) -> dict | None:
@@ -145,6 +176,7 @@ def summarize(arms: dict[str, dict | None], history: dict, total: int,
             run = latest[name == "mumei+llm"] or {}
             entry["cost_usd"] = run.get("llm_cost_usd", 0.0 if name == "mumei" else None)
             entry["seconds"] = run.get("audit_seconds")
+            entry["findings_by_kind"] = arm["kinds"]
         out["arms"][name] = entry
     sets = {name: (set().union(*(r["detected"] for r in arms[name]["runs"])) if arms.get(name) else None)
             for name in ARMS}
@@ -238,12 +270,48 @@ def _model(summary: dict) -> str | None:
     return None
 
 
+def kind_lines(summary: dict) -> list[str]:
+    present = [n for n in ("mumei", "mumei+llm") if summary["arms"].get(n)]
+    if not present:
+        return []
+    kinds = sorted({k for n in present for side in ("buggy", "fixed")
+                    for k in (summary["arms"][n]["findings_by_kind"][side] or {})},
+                   key=lambda k: (list(KIND_LABEL).index(k) if k in KIND_LABEL else len(KIND_LABEL), k))
+    if not kinds:
+        return []
+    head = " | ".join(f"{ARM_LABEL[n]}: buggy | {ARM_LABEL[n]}: fixed" for n in present)
+    lines = [f"| Kind | {head} |", "|---|" + "---:|" * (2 * len(present))]
+
+    def cell(n, side, k):
+        counts = summary["arms"][n]["findings_by_kind"][side]
+        return "—" if counts is None else str(counts.get(k, 0))
+
+    for k in kinds:
+        cells = " | ".join(f"{cell(n, 'buggy', k)} | {cell(n, 'fixed', k)}" for n in present)
+        lines.append(f"| {KIND_LABEL.get(k, k)} | {cells} |")
+    return lines
+
+
+def _spec_note(summary: dict) -> str | None:
+    """One line on how many with-LLM findings on fixed code are spec diagnostics."""
+    arm = summary["arms"].get("mumei+llm")
+    fixed = arm and arm["findings_by_kind"]["fixed"]
+    if not fixed:
+        return None
+    total = sum(fixed.values())
+    other = total - fixed.get(VERIFIER_KIND, 0)
+    if not other:
+        return None
+    return (f"Of the {total} mumei + LLM findings on fixed code, {other} are spec diagnostics "
+            f"(cross-check gaps and spec health issues) rather than verifier violations.")
+
+
 def readme_block(summary: dict) -> str:
     model = _model(summary)
     lines = [
         "### mumei only vs mumei + LLM vs LLM only",
         "",
-        "![mumei only vs mumei + LLM vs LLM only](specimens/scoreboard/comparison.svg)",
+        "![mumei only vs mumei + LLM vs LLM only](specimens/scoreboard/arms.svg)",
         "",
     ]
     if all(summary["arms"].get(n) is None for n in ARMS):
@@ -259,7 +327,10 @@ def readme_block(summary: dict) -> str:
     if pending:
         lines.append("Precision is a range while findings are unreviewed (median unreviewed per run: "
                      + ", ".join(pending) + ").")
-    lines.append("Details, complementarity and per-language numbers: "
+    note = _spec_note(summary)
+    if note:
+        lines.append(note)
+    lines.append("Details, complementarity, findings by kind and per-language numbers: "
                  "[specimens/COMPARISON.md](specimens/COMPARISON.md).")
     return "\n".join(lines)
 
@@ -296,6 +367,15 @@ def report(summary: dict) -> str:
     if ov:
         lines += ["## Complementarity", "",
                   "Defects detected, counting an LLM-only defect when any run found it.", ""] + ov + [""]
+    kl = kind_lines(summary)
+    if kl:
+        lines += ["## mumei findings by kind", "",
+                  "Findings of the two audit rows by the audit section they come from, on the buggy code "
+                  "and on the fixed code. Verifier violations come from Z3 and the smart-contract checks; "
+                  "the other kinds report on the extracted spec itself.", ""] + kl + [""]
+        note = _spec_note(summary)
+        if note:
+            lines += [note, ""]
     langs = sorted({lang for e in summary["arms"].values() if e for lang in e["by_language"]})
     if langs:
         present = [n for n in ARMS if summary["arms"].get(n)]
@@ -422,8 +502,8 @@ def main(argv: list[str]) -> int:
     root = rsa.SPECIMENS_ROOT
     summary = build(root, model)
     outputs = {
-        root / "scoreboard" / "comparison.json": json.dumps(summary, indent=2, sort_keys=True) + "\n",
-        root / "scoreboard" / "comparison.svg": svg(summary),
+        root / "scoreboard" / "arms.json": json.dumps(summary, indent=2, sort_keys=True) + "\n",
+        root / "scoreboard" / "arms.svg": svg(summary),
         root / "COMPARISON.md": report(summary),
     }
     readme = rsa.REPO_ROOT / "README.md"

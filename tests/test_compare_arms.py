@@ -276,7 +276,7 @@ def test_table_and_report(tree):
 def test_readme_block_mentions_model_and_chart(tree):
     s = ca.build(_full(tree), MODEL)
     block = ca.readme_block(s)
-    assert "specimens/scoreboard/comparison.svg" in block
+    assert "specimens/scoreboard/arms.svg" in block
     assert f"`{MODEL}`" in block
     assert "specimens/COMPARISON.md" in block
 
@@ -301,11 +301,11 @@ def test_svg_escapes_model(tree):
 def test_main_writes_and_check(tree, capsys):
     root = _full(tree)
     assert ca.main(["--model", MODEL]) == 0
-    for p in (root / "scoreboard" / "comparison.json", root / "scoreboard" / "comparison.svg",
+    for p in (root / "scoreboard" / "arms.json", root / "scoreboard" / "arms.svg",
               root / "COMPARISON.md"):
         assert p.is_file()
     readme = (root.parent / "README.md").read_text()
-    assert "old" not in readme and "tail" in readme and "comparison.svg" in readme
+    assert "old" not in readme and "tail" in readme and "arms.svg" in readme
     assert ca.main(["--model", MODEL, "--check"]) == 0
     (root / "COMPARISON.md").write_text("stale")
     assert ca.main(["--model", MODEL, "--check"]) == 1
@@ -332,13 +332,13 @@ def test_main_model_from_env(tree, monkeypatch):
     root = _full(tree)
     monkeypatch.setenv("LLM_MODEL", MODEL)
     assert ca.main([]) == 0
-    assert json.loads((root / "scoreboard" / "comparison.json").read_text())["arms"]["llm"]["runs"] == 3
+    assert json.loads((root / "scoreboard" / "arms.json").read_text())["arms"]["llm"]["runs"] == 3
 
 
 def test_main_other_model_has_no_llm_row(tree):
     root = _full(tree)
     assert ca.main(["--model", "other/model"]) == 0
-    assert json.loads((root / "scoreboard" / "comparison.json").read_text())["arms"]["llm"] is None
+    assert json.loads((root / "scoreboard" / "arms.json").read_text())["arms"]["llm"] is None
 
 
 def test_main_makes_no_network_calls(tree, monkeypatch):
@@ -351,3 +351,145 @@ def test_main_makes_no_network_calls(tree, monkeypatch):
     for p in root.rglob("*"):
         if p.is_file():
             assert "SENTINEL" not in p.read_text()
+
+
+# --- findings by kind -----------------------------------------------------------
+
+
+def _with_findings(d, llm, buggy, fixed_files=None):
+    out = rsa.audit_dir(d, llm)
+    cov = json.loads((out / "coverage.json").read_text())
+    cov["findings"] = [{"kind": k, "text": t} for k, t in buggy]
+    (out / "coverage.json").write_text(json.dumps(cov))
+    if fixed_files is not None:
+        label = str(d.relative_to(rsa.REPO_ROOT))
+        audit = {"file_results": [dict({"source_file": f"{label}/{name}"}, **kinds)
+                                  for name, kinds in fixed_files.items()]}
+        (out / "fixed").mkdir(exist_ok=True)
+        (out / "fixed" / "audit.json").write_text(json.dumps(audit))
+
+
+def _kinds_tree(tree, fixed=True):
+    root = _full(tree)
+    _, a, b = tree
+    _with_findings(a, False, [("verification_violations", "f can divide by x"),
+                              ("verification_violations", "Z3 Counter-example: x=0")],
+                   {"app.py": {"verification_violations": ["f can divide by x"]}} if fixed else None)
+    _with_findings(b, False, [], {"main.go": {}} if fixed else None)
+    _with_findings(a, True, [("verification_violations", "f can divide by x"),
+                             ("cross_validation_gaps", "spec ambiguity (missing_requirement): g"),
+                             ("spec_health_issues", "malformed-extraction: g")],
+                   {"app.py": {"cross_validation_gaps": ["spec ambiguity: g", "spec ambiguity: h"],
+                               "verification_violations": ["f can divide by x"],
+                               "counterexample_values": [{"function_name": "f", "counterexample": {}}]}}
+                   if fixed else None)
+    _with_findings(b, True, [("spec_health_issues", "encoding-gap: k")],
+                   {"main.go": {"spec_health_issues": ["encoding-gap: k"]}} if fixed else None)
+    return root
+
+
+def test_kind_counts_skip_supporting_entries():
+    got = ca._kind_counts([{"kind": "verification_violations", "text": "a"},
+                           {"kind": "verification_violations", "text": "Z3 Counter-example: x=0"},
+                           {"kind": "counterexample_values", "text": "counterexample for `f`"},
+                           {"kind": "spec_health_issues", "text": "b"}])
+    assert got == {"spec_health_issues": 1, "verification_violations": 1}
+
+
+def test_audit_kinds_buggy_and_fixed(tree):
+    root = _kinds_tree(tree)
+    specimens = rsa.discover(root)
+    mumei = ca.load_audit_arm(specimens, llm=False)["kinds"]
+    with_llm = ca.load_audit_arm(specimens, llm=True)["kinds"]
+    assert mumei == {"buggy": {"verification_violations": 1}, "fixed": {"verification_violations": 1}}
+    assert with_llm["buggy"] == {"cross_validation_gaps": 1, "spec_health_issues": 2,
+                                 "verification_violations": 1}
+    assert with_llm["fixed"] == {"cross_validation_gaps": 2, "spec_health_issues": 1,
+                                 "verification_violations": 1}
+
+
+def test_audit_kinds_fixed_none_when_any_fixed_audit_missing(tree):
+    root = _kinds_tree(tree)
+    _, a, _ = tree
+    (rsa.audit_dir(a, True) / "fixed" / "audit.json").unlink()
+    kinds = ca.load_audit_arm(rsa.discover(root), llm=True)["kinds"]
+    assert kinds["fixed"] is None
+    assert kinds["buggy"]["spec_health_issues"] == 2
+
+
+def test_audit_kinds_without_findings_list(tree):
+    root = _full(tree)
+    assert ca.load_audit_arm(rsa.discover(root), llm=False)["kinds"] == {"buggy": {}, "fixed": None}
+
+
+def _summary(root):
+    return ca.build(root, MODEL)
+
+
+def test_summary_carries_kinds_for_audit_rows_only(tree):
+    s = _summary(_kinds_tree(tree))
+    assert s["arms"]["mumei"]["findings_by_kind"]["fixed"] == {"verification_violations": 1}
+    assert "findings_by_kind" not in s["arms"]["llm"]
+
+
+def test_kind_lines_table(tree):
+    lines = ca.kind_lines(_summary(_kinds_tree(tree)))
+    assert lines[0] == ("| Kind | mumei only: buggy | mumei only: fixed | mumei + LLM: buggy | "
+                        "mumei + LLM: fixed |")
+    assert lines[2] == "| Verifier violations | 1 | 1 | 1 | 1 |"
+    assert lines[3] == "| Spec vs code cross-check gaps | 0 | 0 | 1 | 2 |"
+    assert lines[4] == "| Spec health issues | 0 | 0 | 2 | 1 |"
+    assert len(lines) == 5
+
+
+def test_kind_lines_dash_when_fixed_unknown(tree):
+    root = _kinds_tree(tree, fixed=False)
+    lines = ca.kind_lines(_summary(root))
+    assert "| Verifier violations | 1 | — | 1 | — |" in lines
+
+
+def test_kind_lines_unknown_kind_sorts_last(tree):
+    root = _kinds_tree(tree)
+    _, a, _ = tree
+    _with_findings(a, True, [("zz_new_kind", "x"), ("verification_violations", "f")])
+    lines = ca.kind_lines(_summary(root))
+    assert lines[-1].startswith("| zz_new_kind |")
+
+
+def test_kind_lines_empty_without_audit_rows():
+    assert ca.kind_lines({"arms": {"mumei": None, "mumei+llm": None, "llm": None}}) == []
+
+
+def test_spec_note_counts_non_verifier_findings(tree):
+    note = ca._spec_note(_summary(_kinds_tree(tree)))
+    assert note.startswith("Of the 4 mumei + LLM findings on fixed code, 3 are spec diagnostics")
+
+
+def test_spec_note_none_when_only_verifier_findings(tree):
+    root = _kinds_tree(tree)
+    _, a, b = tree
+    _with_findings(a, True, [], {"app.py": {"verification_violations": ["f"]}})
+    _with_findings(b, True, [], {"main.go": {}})
+    assert ca._spec_note(_summary(root)) is None
+
+
+def test_spec_note_none_without_fixed_kinds(tree):
+    assert ca._spec_note(_summary(_kinds_tree(tree, fixed=False))) is None
+
+
+def test_report_and_readme_include_kinds(tree):
+    s = _summary(_kinds_tree(tree))
+    rep = ca.report(s)
+    assert "## mumei findings by kind" in rep
+    assert "3 are spec diagnostics" in rep
+    block = ca.readme_block(s)
+    assert "3 are spec diagnostics" in block
+    assert "findings by kind" in block
+
+
+def test_report_omits_kind_section_without_audits(tree):
+    root, a, b = tree
+    _llm_record(a, [["detected", "missed", "missed"]])
+    _llm_record(b, [["detected", "missed"]])
+    s = _summary(root)
+    assert "findings by kind" not in ca.report(s)
