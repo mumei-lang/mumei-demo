@@ -1,0 +1,1868 @@
+{
+  "arm": "mumei",
+  "model": null,
+  "prompt_hash": null,
+  "recorded_at": "2026-11-03T10:32:02+00:00",
+  "runs": [
+    [
+      {
+        "id": "GO01-D02",
+        "language": "go",
+        "specimen": "go-01-inventory-api",
+        "category": "integer-overflow",
+        "function": "restockHandler",
+        "case_hash": "2306c06712ca0b4dd623e63aa68f7ecb2efc606f8341394a2eb7c24c3728ddd2",
+        "source_hash": "4ef81c00d8561763d065ed3cf2f46a46d6012120bd901be88194fbfd6e4723c4",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "restockHandler",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "GO01-D03",
+        "language": "go",
+        "specimen": "go-01-inventory-api",
+        "category": "invariant-violation",
+        "function": "releaseHandler",
+        "case_hash": "ca764cfea4f2e4af6a75de1f17b25f14eeff670f3268d59eadba6da8c669c73d",
+        "source_hash": "4ef81c00d8561763d065ed3cf2f46a46d6012120bd901be88194fbfd6e4723c4",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "releaseHandler",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "GO01-D04",
+        "language": "go",
+        "specimen": "go-01-inventory-api",
+        "category": "out-of-bounds",
+        "function": "itemHandler",
+        "case_hash": "683f69ef1dfb97a0d5e58655a56c8fc54f6a72145cb2bc6ad7f83888a4084d0c",
+        "source_hash": "4ef81c00d8561763d065ed3cf2f46a46d6012120bd901be88194fbfd6e4723c4",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "itemHandler",
+              "code": "failed",
+              "message": "Verification Error: Potential Out-of-Bounds on 'parts' (index may be < 0 or >= len_parts)"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "GO01-D05",
+        "language": "go",
+        "specimen": "go-01-inventory-api",
+        "category": "division-by-zero",
+        "function": "reorderPoint",
+        "case_hash": "ad556a4e388fa788ec01b5fe3bd303184adc1b0f4fb48168d6fa8b06ff50b376",
+        "source_hash": "7aaab891517e70405546d30db8524d7a0b025174c2c56b6b8c5c4cd92b2984be",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "reorderPoint",
+              "code": "failed",
+              "message": "Verification Error: Potential division by zero. Counter-example: dividend = 0, divisor = 0 [semantic_feedback: {\"counter_example\":{\"dividend\":\"0\",\"divisor\":\"0\"},\"explanation\":\"Division by zero: dividend = 0, divisor = 0 (ゼロ除算: 被除数 = 0, 除数 = 0)\",\"failure_type\":\"division_by_zero\",\"suggestion\":\"Add a g"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "GO01-D06",
+        "language": "go",
+        "specimen": "go-01-inventory-api",
+        "category": "null-dereference",
+        "function": "viewItem",
+        "case_hash": "324764f0653090a3988c5020631dd7cbf00ddf40cf044ebcbf3a293ade09e83c",
+        "source_hash": "4ef81c00d8561763d065ed3cf2f46a46d6012120bd901be88194fbfd6e4723c4",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "viewItem",
+              "code": "failed",
+              "message": "Verification Error: Call to 'deref': precondition (requires) not satisfied at call site"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "GO01-D07",
+        "language": "go",
+        "specimen": "go-01-inventory-api",
+        "category": "out-of-bounds",
+        "function": "reportHandler",
+        "case_hash": "404213e5bf4117458c5b9110238a3b63a47dd29c11df627066a18efeb97c6354",
+        "source_hash": "4ef81c00d8561763d065ed3cf2f46a46d6012120bd901be88194fbfd6e4723c4",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "reportHandler",
+              "code": "failed",
+              "message": "Verification Error: Call to 'slice_to': precondition (requires) not satisfied at call site"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "GO02-D01",
+        "language": "go",
+        "specimen": "go-02-logscan-cli",
+        "category": "off-by-one",
+        "function": "percentileAt",
+        "case_hash": "33ea0873d25a892307f6caa034ee8b41ca2d3b84604cf17009c75920c19e7f99",
+        "source_hash": "da739c0438177efbfe12dac80fb065abaa62f2b1ac81b3ba24a36ae4e1f8d26a",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "percentileAt",
+              "code": "failed",
+              "message": "Verification Error: Call to 'pick': precondition (requires) not satisfied at call site"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "GO02-D02",
+        "language": "go",
+        "specimen": "go-02-logscan-cli",
+        "category": "division-by-zero",
+        "function": "formatSummary",
+        "case_hash": "d5ef00897dcb8142f7006c85722384a7e2668da09166222a8fcaec4018832fc3",
+        "source_hash": "da739c0438177efbfe12dac80fb065abaa62f2b1ac81b3ba24a36ae4e1f8d26a",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "formatSummary",
+              "code": "failed",
+              "message": "Verification Error: Potential division by zero. Counter-example: dividend = 0, divisor = 0 [semantic_feedback: {\"counter_example\":{\"dividend\":\"0\",\"divisor\":\"0\"},\"explanation\":\"Division by zero: dividend = 0, divisor = 0 (ゼロ除算: 被除数 = 0, 除数 = 0)\",\"failure_type\":\"division_by_zero\",\"suggestion\":\"Add a g"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "GO02-D03",
+        "language": "go",
+        "specimen": "go-02-logscan-cli",
+        "category": "missing-precondition",
+        "function": "formatSummary",
+        "case_hash": "d64d2362829c9d44916229c6222db45a53ceecaf82edebdfe7dda93a4e5ebcf5",
+        "source_hash": "da739c0438177efbfe12dac80fb065abaa62f2b1ac81b3ba24a36ae4e1f8d26a",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "formatSummary",
+              "code": "failed",
+              "message": "Verification Error: Call to 'slice_to': precondition (requires) not satisfied at call site"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "GO03-D06",
+        "language": "go",
+        "specimen": "go-03-auth-gateway",
+        "category": "invalid-state-transition",
+        "function": "rotateHandler",
+        "case_hash": "f73128848a1fefdc33c26b17f42fb9b32638246ebb78109912b77bc144822fac",
+        "source_hash": "542c8cc01fe104143bd2042d5b16e535949ea101e31718a1a675b746776b0aad",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "rotateHandler",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "GO03-D07",
+        "language": "go",
+        "specimen": "go-03-auth-gateway",
+        "category": "null-dereference",
+        "function": "loginHandler",
+        "case_hash": "ec21923e94ae0bed84e70558d815fe2ffdcc2042c62816ed820dea8b1c4e55ba",
+        "source_hash": "542c8cc01fe104143bd2042d5b16e535949ea101e31718a1a675b746776b0aad",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "loginHandler",
+              "code": "failed",
+              "message": "Verification Error: Call to 'deref': precondition (requires) not satisfied at call site"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY01-D03",
+        "language": "python",
+        "specimen": "py-01-expense-tracker",
+        "category": "division-by-zero",
+        "function": "daily_average",
+        "case_hash": "0098d0618259ced34f3fdd98b051aeb0ab8c6af0a4ac9f508c9571c14467ef1e",
+        "source_hash": "49af59d52908f05cc9955856b6151310888ba62319bb83db1138f9094faf8473",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "daily_average",
+              "code": "failed",
+              "message": "Verification Error: Potential division by zero. Counter-example: dividend = 0, divisor = 0 [semantic_feedback: {\"counter_example\":{\"dividend\":\"0\",\"divisor\":\"0\"},\"explanation\":\"Division by zero: dividend = 0, divisor = 0 (ゼロ除算: 被除数 = 0, 除数 = 0)\",\"failure_type\":\"division_by_zero\",\"suggestion\":\"Add a g"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY01-D05",
+        "language": "python",
+        "specimen": "py-01-expense-tracker",
+        "category": "off-by-one",
+        "function": "is_over_budget",
+        "case_hash": "843855191e50338dbd7ce22c84a70a1cfebfcb448f86ab0fa2a91363ed21dc6e",
+        "source_hash": "49af59d52908f05cc9955856b6151310888ba62319bb83db1138f9094faf8473",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "is_over_budget",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY01-D08",
+        "language": "python",
+        "specimen": "py-01-expense-tracker",
+        "category": "out-of-bounds",
+        "function": "subcategory",
+        "case_hash": "8441cc225a29077f5d63e578f36b368151d9e75eed5d04885f13e4c9ad1c631f",
+        "source_hash": "49af59d52908f05cc9955856b6151310888ba62319bb83db1138f9094faf8473",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "subcategory",
+              "code": "failed",
+              "message": "Verification Error: Potential Out-of-Bounds on 'parts' (index may be < 0 or >= len_parts)"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "subcategory",
+              "code": "failed",
+              "message": "Verification Error: Potential Out-of-Bounds on 'parts' (index may be < 0 or >= len_parts)"
+            }
+          ]
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY01-D10",
+        "language": "python",
+        "specimen": "py-01-expense-tracker",
+        "category": "missing-precondition",
+        "function": "parse_amount",
+        "case_hash": "ef1b299ee4dd476a04de6c9257b9e9cdd5c6c6840513e9d4ebe004ba749bf6ac",
+        "source_hash": "49af59d52908f05cc9955856b6151310888ba62319bb83db1138f9094faf8473",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "parse_amount",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY02-D02",
+        "language": "python",
+        "specimen": "py-02-report-cli",
+        "category": "division-by-zero",
+        "function": "share_of_total",
+        "case_hash": "f594c174d0b0bafe0e94f6f08820dbed4f7fb8bc407d86410d0571f24ce340b7",
+        "source_hash": "03cc294ee9ac75ba2a0ce62e94c7dea0e26a69b1d85e3d7f2495d02acc360537",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "share_of_total",
+              "code": "failed",
+              "message": "Verification Error: Potential division by zero. Counter-example: dividend = 0, divisor = 0 [semantic_feedback: {\"counter_example\":{\"dividend\":\"0\",\"divisor\":\"0\"},\"explanation\":\"Division by zero: dividend = 0, divisor = 0 (ゼロ除算: 被除数 = 0, 除数 = 0)\",\"failure_type\":\"division_by_zero\",\"suggestion\":\"Add a g"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY02-D04",
+        "language": "python",
+        "specimen": "py-02-report-cli",
+        "category": "out-of-bounds",
+        "function": "parse_row",
+        "case_hash": "ef2d814b60e2db6e16ca0d90c19466b3dd71afc0a37524518f28c32c697c9fd2",
+        "source_hash": "2a318c32b546c55dfdb6f56563fb58976166114824eae8b52d5c845c4b15fb67",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "parse_row",
+              "code": "failed",
+              "message": "Verification Error: Potential Out-of-Bounds on 'row' (index may be < 0 or >= len_row)"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "parse_row",
+              "code": "failed",
+              "message": "Verification Error: Potential Out-of-Bounds on 'row' (index may be < 0 or >= len_row)"
+            }
+          ]
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY02-D05",
+        "language": "python",
+        "specimen": "py-02-report-cli",
+        "category": "off-by-one",
+        "function": "overtime_minutes",
+        "case_hash": "77651e875a2f1f723dc24e4405973a48c019f15637fb881176ef69e3700f95af",
+        "source_hash": "03cc294ee9ac75ba2a0ce62e94c7dea0e26a69b1d85e3d7f2495d02acc360537",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "overtime_minutes",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY02-D08",
+        "language": "python",
+        "specimen": "py-02-report-cli",
+        "category": "missing-precondition",
+        "function": "parse_duration",
+        "case_hash": "062d33ee4455d6dafd6ff26d7d1c301189b74182dc19f711fb82cd7b00600027",
+        "source_hash": "03cc294ee9ac75ba2a0ce62e94c7dea0e26a69b1d85e3d7f2495d02acc360537",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "parse_duration",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY03-D01",
+        "language": "python",
+        "specimen": "py-03-ledger-api",
+        "category": "missing-precondition",
+        "function": "transfer",
+        "case_hash": "1c52fbd091d0d4a61f9be13e4c8a22f157510f4120bbe237b969321022742768",
+        "source_hash": "f67b622f2102f07e81268f4d6b13cda06733b01f4b0eed49a1d53e6a6027d1f4",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "transfer",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY03-D02",
+        "language": "python",
+        "specimen": "py-03-ledger-api",
+        "category": "invariant-violation",
+        "function": "transfer",
+        "case_hash": "b78fd0f211ccfedb2b2f5ed66b2f7bc59b32abc3cec0796dd70d81e233b08b36",
+        "source_hash": "f67b622f2102f07e81268f4d6b13cda06733b01f4b0eed49a1d53e6a6027d1f4",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "transfer",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY03-D03",
+        "language": "python",
+        "specimen": "py-03-ledger-api",
+        "category": "invalid-state-transition",
+        "function": "close_account",
+        "case_hash": "3e8b49393838322fc343db6935da734b4c47ebd86163ce44242f9b1380aeab53",
+        "source_hash": "f67b622f2102f07e81268f4d6b13cda06733b01f4b0eed49a1d53e6a6027d1f4",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "close_account",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY03-D05",
+        "language": "python",
+        "specimen": "py-03-ledger-api",
+        "category": "out-of-bounds",
+        "function": "page",
+        "case_hash": "061901a38ee4d86264ed6bed85bb84275d6e6a98bc02d39726add4cac374b796",
+        "source_hash": "f67b622f2102f07e81268f4d6b13cda06733b01f4b0eed49a1d53e6a6027d1f4",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "page",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY03-D06",
+        "language": "python",
+        "specimen": "py-03-ledger-api",
+        "category": "invariant-violation",
+        "function": "transfer",
+        "case_hash": "4d9a6b869262783e991db8f87096b9751a2db2c42b0704d1de9a96f97b5f5d83",
+        "source_hash": "f67b622f2102f07e81268f4d6b13cda06733b01f4b0eed49a1d53e6a6027d1f4",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "transfer",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY04-D10",
+        "language": "python",
+        "specimen": "py-04-doc-vault",
+        "category": "missing-precondition",
+        "function": "share_expiry",
+        "case_hash": "34e867e8cf5a8300da3094d0469d85103e46b08d63a9f32e62aa45c14067d767",
+        "source_hash": "23ea165fb6acc38af4eee181f7a7cfea95c1167ba237c5038756390189571cda",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "share_expiry",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "PY04-D11",
+        "language": "python",
+        "specimen": "py-04-doc-vault",
+        "category": "null-dereference",
+        "function": "can_read",
+        "case_hash": "36932b0d43d53584cbe31f99bcbf4b9bf61eee0f15ded9804d887e48d3cf9bd4",
+        "source_hash": "23ea165fb6acc38af4eee181f7a7cfea95c1167ba237c5038756390189571cda",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "can_read",
+              "code": "failed",
+              "message": "Verification Error: Call to 'deref': precondition (requires) not satisfied at call site"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS01-D02",
+        "language": "rust",
+        "specimen": "rs-01-bank-core",
+        "category": "integer-underflow",
+        "function": "remaining_daily_allowance",
+        "case_hash": "8ab450be963de8796470b6a2a46f83e6b6ef6c34346e50280c7d106bf9497306",
+        "source_hash": "225c2ea0f931137a8a347c4366f9fe8179088275dcfb3568ffa0075f8f30b6e3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "remaining_daily_allowance",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS01-D03",
+        "language": "rust",
+        "specimen": "rs-01-bank-core",
+        "category": "missing-precondition",
+        "function": "request_transfer",
+        "case_hash": "0c2f2fe69d993c3fad94074b78304902e2dd07ad1bdba1052225e34af4c71587",
+        "source_hash": "225c2ea0f931137a8a347c4366f9fe8179088275dcfb3568ffa0075f8f30b6e3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "request_transfer",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS01-D04",
+        "language": "rust",
+        "specimen": "rs-01-bank-core",
+        "category": "division-by-zero",
+        "function": "split_payment",
+        "case_hash": "d1969c949d00acee0b8d401037a25a1a33a0913454d491afc400df362515db78",
+        "source_hash": "225c2ea0f931137a8a347c4366f9fe8179088275dcfb3568ffa0075f8f30b6e3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "split_payment",
+              "code": "failed",
+              "message": "Verification Error: Potential division by zero. Counter-example: dividend = 0, divisor = 0 [semantic_feedback: {\"counter_example\":{\"dividend\":\"0\",\"divisor\":\"0\"},\"explanation\":\"Division by zero: dividend = 0, divisor = 0 (ゼロ除算: 被除数 = 0, 除数 = 0)\",\"failure_type\":\"division_by_zero\",\"suggestion\":\"Add a g"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS01-D05",
+        "language": "rust",
+        "specimen": "rs-01-bank-core",
+        "category": "out-of-bounds",
+        "function": "account_at",
+        "case_hash": "6605f2027ff01bcae26d914a1e1432f823c0377b01c1b3d0dfbb5649036451b2",
+        "source_hash": "225c2ea0f931137a8a347c4366f9fe8179088275dcfb3568ffa0075f8f30b6e3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "account_at",
+              "code": "failed",
+              "message": "Verification Error: Call to 'pick': precondition (requires) not satisfied at call site"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS01-D06",
+        "language": "rust",
+        "specimen": "rs-01-bank-core",
+        "category": "invariant-violation",
+        "function": "request_transfer",
+        "case_hash": "1e2b2496370ed377b97dc0bea0849643267fd26804d1e1401b6449a84b997ad5",
+        "source_hash": "225c2ea0f931137a8a347c4366f9fe8179088275dcfb3568ffa0075f8f30b6e3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "request_transfer",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS01-D07",
+        "language": "rust",
+        "specimen": "rs-01-bank-core",
+        "category": "invalid-state-transition",
+        "function": "close_account",
+        "case_hash": "6d2989c963a28678a83132c761364befd512dc078b3fa2582813ee77272b6b22",
+        "source_hash": "225c2ea0f931137a8a347c4366f9fe8179088275dcfb3568ffa0075f8f30b6e3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "close_account",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS01-D12",
+        "language": "rust",
+        "specimen": "rs-01-bank-core",
+        "category": "missing-precondition",
+        "function": "charge_fee",
+        "case_hash": "c87e469457600dd4ee72dd6b897b3494abf1d2e1f1924717545e50a0414bb9c3",
+        "source_hash": "225c2ea0f931137a8a347c4366f9fe8179088275dcfb3568ffa0075f8f30b6e3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "charge_fee",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS02-D01",
+        "language": "rust",
+        "specimen": "rs-02-kv-server",
+        "category": "out-of-bounds",
+        "function": "read_request",
+        "case_hash": "74fa9fc683d94a02d5d842464a3aa785c7a20a5f29f739d6335d378f8d5562bd",
+        "source_hash": "1a62e18505c6419f597149cdf2cd1cc2a5e2c4f207d66778976ea74d7dd7aaf3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "read_request",
+              "code": "failed",
+              "message": "Verification Error: Call to 'pick': precondition (requires) not satisfied at call site"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS02-D05",
+        "language": "rust",
+        "specimen": "rs-02-kv-server",
+        "category": "integer-overflow",
+        "function": "incr",
+        "case_hash": "9f09bbf20e06e615aaa4a927a5c0860605a9e10371edc247bc819b5606396a1e",
+        "source_hash": "1a62e18505c6419f597149cdf2cd1cc2a5e2c4f207d66778976ea74d7dd7aaf3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "incr",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS03-D01",
+        "language": "rust",
+        "specimen": "rs-03-matrix-tool",
+        "category": "out-of-bounds",
+        "function": "at",
+        "case_hash": "de9964b80a97e218ea8dbe52d6183d02daa8b7b30e8627753eb2e5049930efe8",
+        "source_hash": "a5ad00e3f5f8f5e784dbeb2764f2397df3b6eee066ddeb70939248588d2916f3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "at",
+              "code": "failed",
+              "message": "Verification Error: Call to 'pick': precondition (requires) not satisfied at call site"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS03-D02",
+        "language": "rust",
+        "specimen": "rs-03-matrix-tool",
+        "category": "division-by-zero",
+        "function": "mean",
+        "case_hash": "81cb05e5515d97dd53ce975eb7b3e6a59ab8ce11b369f0cb536b8bdb9e035404",
+        "source_hash": "a5ad00e3f5f8f5e784dbeb2764f2397df3b6eee066ddeb70939248588d2916f3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "mean",
+              "code": "failed",
+              "message": "Verification Error: Potential division by zero. Counter-example: dividend = 0, divisor = 0 [semantic_feedback: {\"counter_example\":{\"dividend\":\"0\",\"divisor\":\"0\"},\"explanation\":\"Division by zero: dividend = 0, divisor = 0 (ゼロ除算: 被除数 = 0, 除数 = 0)\",\"failure_type\":\"division_by_zero\",\"suggestion\":\"Add a g"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS03-D03",
+        "language": "rust",
+        "specimen": "rs-03-matrix-tool",
+        "category": "division-by-zero",
+        "function": "invert2x2",
+        "case_hash": "c9b7105b0e71e7b65608764f336132858c56afd530667850e118bf7c9360e5bb",
+        "source_hash": "a5ad00e3f5f8f5e784dbeb2764f2397df3b6eee066ddeb70939248588d2916f3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "invert2x2",
+              "code": "failed",
+              "message": "Verification Error: Potential division by zero. Counter-example: dividend = 0, divisor = 0 [semantic_feedback: {\"counter_example\":{\"dividend\":\"0\",\"divisor\":\"0\"},\"explanation\":\"Division by zero: dividend = 0, divisor = 0 (ゼロ除算: 被除数 = 0, 除数 = 0)\",\"failure_type\":\"division_by_zero\",\"suggestion\":\"Add a g"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS03-D04",
+        "language": "rust",
+        "specimen": "rs-03-matrix-tool",
+        "category": "integer-overflow",
+        "function": "scale",
+        "case_hash": "2ac515ced820ee44e7ab1389b83104b15d05ef572ad5fa63d3cad97c05966f64",
+        "source_hash": "a5ad00e3f5f8f5e784dbeb2764f2397df3b6eee066ddeb70939248588d2916f3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "scale",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "RS03-D08",
+        "language": "rust",
+        "specimen": "rs-03-matrix-tool",
+        "category": "off-by-one",
+        "function": "transpose",
+        "case_hash": "e4cb017512a60f31567c7c8006308fb044b7b8b48bbcd028dad92d28dbd2443b",
+        "source_hash": "a5ad00e3f5f8f5e784dbeb2764f2397df3b6eee066ddeb70939248588d2916f3",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "transpose",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL01-D01",
+        "language": "solidity",
+        "specimen": "sol-01-token-vault",
+        "category": "reentrancy",
+        "function": "withdraw",
+        "case_hash": "fa8c8288ceb39be21b43eae1d6149f89869f7f3ecc0e482371347d4e3c7d4ec5",
+        "source_hash": "be5095ff76f3d6cd375e3d3a931af401d779ec1a6cf74b1cb5b1f528da2efdbc",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "withdraw",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL01-D02",
+        "language": "solidity",
+        "specimen": "sol-01-token-vault",
+        "category": "integer-underflow",
+        "function": "transferFrom",
+        "case_hash": "3cc3656cd2cd84aacf3e8c7c04d08abd6f8861fd25d7065e7b9a2c3f557ef9be",
+        "source_hash": "6aa4101cf8607b0342f4f3fa8dd039b896271db8546b0d67f0e9aa9e4df87757",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "transferFrom",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL01-D03",
+        "language": "solidity",
+        "specimen": "sol-01-token-vault",
+        "category": "division-by-zero",
+        "function": "sharePrice",
+        "case_hash": "334214a9f96028114d109aeaea58562a18a7385f4d38305369279e77e3f12e73",
+        "source_hash": "be5095ff76f3d6cd375e3d3a931af401d779ec1a6cf74b1cb5b1f528da2efdbc",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "sharePrice",
+              "code": "failed",
+              "message": "Verification Error: Potential division by zero. Counter-example: dividend = 0, divisor = 0 [semantic_feedback: {\"counter_example\":{\"dividend\":\"0\",\"divisor\":\"0\"},\"explanation\":\"Division by zero: dividend = 0, divisor = 0 (ゼロ除算: 被除数 = 0, 除数 = 0)\",\"failure_type\":\"division_by_zero\",\"suggestion\":\"Add a g"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL01-D05",
+        "language": "solidity",
+        "specimen": "sol-01-token-vault",
+        "category": "access-control",
+        "function": "setFeeRecipient",
+        "case_hash": "faf10ad8d6be2f8cacd3574cb8427c0290ae240666ba319b2ec8f3ea0ef9e585",
+        "source_hash": "be5095ff76f3d6cd375e3d3a931af401d779ec1a6cf74b1cb5b1f528da2efdbc",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "setFeeRecipient",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL01-D06",
+        "language": "solidity",
+        "specimen": "sol-01-token-vault",
+        "category": "tx-origin-auth",
+        "function": "setWithdrawFeeBps",
+        "case_hash": "7850ab4f16c98a2e6c9f970745f0da1d27a5669f4a18b45f032695120e195b63",
+        "source_hash": "be5095ff76f3d6cd375e3d3a931af401d779ec1a6cf74b1cb5b1f528da2efdbc",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "setWithdrawFeeBps",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL01-D07",
+        "language": "solidity",
+        "specimen": "sol-01-token-vault",
+        "category": "unchecked-call",
+        "function": "_payFee",
+        "case_hash": "6262cfe867aa37ea2a96e3550b7a69cca94f52ff094b6e2005e75ff04bb9c0a5",
+        "source_hash": "be5095ff76f3d6cd375e3d3a931af401d779ec1a6cf74b1cb5b1f528da2efdbc",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "_payFee",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL01-D08",
+        "language": "solidity",
+        "specimen": "sol-01-token-vault",
+        "category": "integer-overflow",
+        "function": "deposit",
+        "case_hash": "fdebb0cfde5f51dd467b8c3aeb4f23b2a02fe3239588cacc2e14765b9ddfa87c",
+        "source_hash": "be5095ff76f3d6cd375e3d3a931af401d779ec1a6cf74b1cb5b1f528da2efdbc",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "deposit",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL02-D02",
+        "language": "solidity",
+        "specimen": "sol-02-auction",
+        "category": "reentrancy",
+        "function": "withdraw",
+        "case_hash": "ba4079f0a48d39aa639eb2a9059cb5cc11913f1c37ede5eed0934fa0c0eb8e5d",
+        "source_hash": "fec90a5af9f6bacc7d6436bd60afa2146ace8be3072247b5ee8037fe69882122",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "withdraw",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL02-D03",
+        "language": "solidity",
+        "specimen": "sol-02-auction",
+        "category": "invalid-state-transition",
+        "function": "finalize",
+        "case_hash": "9309b2d58b20346c2a8d1e088a836b615a7a9a54f04031360c8c89d4aff452c0",
+        "source_hash": "fec90a5af9f6bacc7d6436bd60afa2146ace8be3072247b5ee8037fe69882122",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "finalize",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL02-D06",
+        "language": "solidity",
+        "specimen": "sol-02-auction",
+        "category": "invariant-violation",
+        "function": "cancelBid",
+        "case_hash": "c431cbdd2655cc1ed6c9b4f771f98c2d2aa97bdb08e70616cb8ed15df0845571",
+        "source_hash": "fec90a5af9f6bacc7d6436bd60afa2146ace8be3072247b5ee8037fe69882122",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "cancelBid",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL02-D07",
+        "language": "solidity",
+        "specimen": "sol-02-auction",
+        "category": "access-control",
+        "function": "init",
+        "case_hash": "c2c861cb87c61bf0b2cfd7f4d5dfb903f18f60b0efa20442766fc052ec4bfb2f",
+        "source_hash": "fec90a5af9f6bacc7d6436bd60afa2146ace8be3072247b5ee8037fe69882122",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "init",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL02-D08",
+        "language": "solidity",
+        "specimen": "sol-02-auction",
+        "category": "integer-overflow",
+        "function": "init",
+        "case_hash": "f611fef250d2dc60c5af5f40ab4ab2537c6f182e5511e76aa088002e7d46c6d5",
+        "source_hash": "fec90a5af9f6bacc7d6436bd60afa2146ace8be3072247b5ee8037fe69882122",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "init",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL02-D11",
+        "language": "solidity",
+        "specimen": "sol-02-auction",
+        "category": "invariant-violation",
+        "function": "bid",
+        "case_hash": "4d89f4b464b3ddc39211eec6d0ca57533d981d108208eebc48534f72fc0daa5b",
+        "source_hash": "fec90a5af9f6bacc7d6436bd60afa2146ace8be3072247b5ee8037fe69882122",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "bid",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL03-D01",
+        "language": "solidity",
+        "specimen": "sol-03-staking-rewards",
+        "category": "division-by-zero",
+        "function": "rewardPerToken",
+        "case_hash": "3ee43df65c75cb3e4d92ecd278442e4a92697380d5a2886cc5ed23f0dc67379b",
+        "source_hash": "ca56c70ead935fed304a2ee97299723fd5af2cade04f6d7a60293ab194072e30",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "rewardPerToken",
+              "code": "failed",
+              "message": "Verification Error: Potential division by zero. Counter-example: dividend = 0, divisor = 0 [semantic_feedback: {\"counter_example\":{\"dividend\":\"0\",\"divisor\":\"0\"},\"explanation\":\"Division by zero: dividend = 0, divisor = 0 (ゼロ除算: 被除数 = 0, 除数 = 0)\",\"failure_type\":\"division_by_zero\",\"suggestion\":\"Add a g"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL03-D02",
+        "language": "solidity",
+        "specimen": "sol-03-staking-rewards",
+        "category": "integer-underflow",
+        "function": "earned",
+        "case_hash": "018e65b3db021694baa6eea00890e548fafe316b42de107c143b20f6a50b354c",
+        "source_hash": "ca56c70ead935fed304a2ee97299723fd5af2cade04f6d7a60293ab194072e30",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "earned",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL03-D03",
+        "language": "solidity",
+        "specimen": "sol-03-staking-rewards",
+        "category": "access-control",
+        "function": "notifyRewardAmount",
+        "case_hash": "4c919d850e52a2ca3480eb628c49ba6cd04646c365f4ff8fab6d59774a1a8c44",
+        "source_hash": "ca56c70ead935fed304a2ee97299723fd5af2cade04f6d7a60293ab194072e30",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "notifyRewardAmount",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL03-D05",
+        "language": "solidity",
+        "specimen": "sol-03-staking-rewards",
+        "category": "reentrancy",
+        "function": "emergencyWithdraw",
+        "case_hash": "4905e26cf80bc13ca9ce4e5c5a4c13009b423938a698c5217246c16be1648ada",
+        "source_hash": "ca56c70ead935fed304a2ee97299723fd5af2cade04f6d7a60293ab194072e30",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "emergencyWithdraw",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL03-D07",
+        "language": "solidity",
+        "specimen": "sol-03-staking-rewards",
+        "category": "invariant-violation",
+        "function": "constructor",
+        "case_hash": "b8884e6756411b37d327b1323aecadaa92513c8c89b6f7fce51a4719ab09d645",
+        "source_hash": "ca56c70ead935fed304a2ee97299723fd5af2cade04f6d7a60293ab194072e30",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "constructor",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "SOL03-D08",
+        "language": "solidity",
+        "specimen": "sol-03-staking-rewards",
+        "category": "unchecked-call",
+        "function": "getReward",
+        "case_hash": "8e310de296b98fda640dbe90c38a32a5e72995eca2ca55f7dc9f2303025ec2db",
+        "source_hash": "ca56c70ead935fed304a2ee97299723fd5af2cade04f6d7a60293ab194072e30",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "getReward",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "TS01-D01",
+        "language": "typescript",
+        "specimen": "ts-01-task-board",
+        "category": "invalid-state-transition",
+        "function": "canMove",
+        "case_hash": "febecd81a602cb75e0e970bf03e684b4bbe9b23729fdd211e550e744588406fa",
+        "source_hash": "4a4c0a7df9d16f39c9662509455736245b51b3eb5bd8ed986d344353961e1b0d",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "canMove",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "TS01-D03",
+        "language": "typescript",
+        "specimen": "ts-01-task-board",
+        "category": "null-dereference",
+        "function": "moveTask",
+        "case_hash": "b0227601b432f0e42e1212890459ebd34cf12c180396d8899fdb62ba697a996c",
+        "source_hash": "4a4c0a7df9d16f39c9662509455736245b51b3eb5bd8ed986d344353961e1b0d",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "moveTask",
+              "code": "failed",
+              "message": "Verification Error: Call to 'deref': precondition (requires) not satisfied at call site"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "TS01-D04",
+        "language": "typescript",
+        "specimen": "ts-01-task-board",
+        "category": "division-by-zero",
+        "function": "completionPercent",
+        "case_hash": "3f2fff97941be23e1729d44a5e5e0e16eb7ddabc99382997ee043847b4d53610",
+        "source_hash": "4a4c0a7df9d16f39c9662509455736245b51b3eb5bd8ed986d344353961e1b0d",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "completionPercent",
+              "code": "failed",
+              "message": "Verification Error: Potential division by zero. Counter-example: dividend = 0, divisor = 0 [semantic_feedback: {\"counter_example\":{\"dividend\":\"0\",\"divisor\":\"0\"},\"explanation\":\"Division by zero: dividend = 0, divisor = 0 (ゼロ除算: 被除数 = 0, 除数 = 0)\",\"failure_type\":\"division_by_zero\",\"suggestion\":\"Add a g"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "TS01-D07",
+        "language": "typescript",
+        "specimen": "ts-01-task-board",
+        "category": "missing-precondition",
+        "function": "parsePriority",
+        "case_hash": "ea224253a77c1d307b8781be3c24ebd8635c7becdafd8448e544b5e38b9e8e4f",
+        "source_hash": "4a4c0a7df9d16f39c9662509455736245b51b3eb5bd8ed986d344353961e1b0d",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "parsePriority",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "TS01-D12",
+        "language": "typescript",
+        "specimen": "ts-01-task-board",
+        "category": "off-by-one",
+        "function": "paginate",
+        "case_hash": "7d2514310384e10e52e5ad0db7f2881b839a1f0f38bb72897a6dbeea12cfd7bb",
+        "source_hash": "4a4c0a7df9d16f39c9662509455736245b51b3eb5bd8ed986d344353961e1b0d",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "paginate",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "TS02-D05",
+        "language": "typescript",
+        "specimen": "ts-02-url-shortener",
+        "category": "division-by-zero",
+        "function": "clicksPerDay",
+        "case_hash": "4f5115e360d5cad0c8e8681a03ffcd73431ada0d71c0971dab85b01024f58840",
+        "source_hash": "ed04b730fa2fd8fa6fd43f833f1287943c97b3b9d82f945e8cbe20d80e19875a",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "clicksPerDay",
+              "code": "failed",
+              "message": "Verification Error: Potential division by zero. Counter-example: dividend = 0, divisor = 0 [semantic_feedback: {\"counter_example\":{\"dividend\":\"0\",\"divisor\":\"0\"},\"explanation\":\"Division by zero: dividend = 0, divisor = 0 (ゼロ除算: 被除数 = 0, 除数 = 0)\",\"failure_type\":\"division_by_zero\",\"suggestion\":\"Add a g"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "TS02-D08",
+        "language": "typescript",
+        "specimen": "ts-02-url-shortener",
+        "category": "off-by-one",
+        "function": "normalizeAlias",
+        "case_hash": "07d7d4fffe9dda5c9180caf4e0387e513ddcb562e484b1c3ba54859dea7998ba",
+        "source_hash": "ed04b730fa2fd8fa6fd43f833f1287943c97b3b9d82f945e8cbe20d80e19875a",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "normalizeAlias",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "TS02-D11",
+        "language": "typescript",
+        "specimen": "ts-02-url-shortener",
+        "category": "null-dereference",
+        "function": "linkStats",
+        "case_hash": "c05018efa4315313d83b14b23d941336d09cdf675712af9264945ad18928644f",
+        "source_hash": "ed04b730fa2fd8fa6fd43f833f1287943c97b3b9d82f945e8cbe20d80e19875a",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "linkStats",
+              "code": "failed",
+              "message": "Verification Error: Call to 'deref': precondition (requires) not satisfied at call site"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "TS03-D03",
+        "language": "typescript",
+        "specimen": "ts-03-invoice-cli",
+        "category": "division-by-zero",
+        "function": "effectiveTaxRate",
+        "case_hash": "3c66a0399df8035b4d83ae2b6cad4a8e6c2f91920db46de0038daa91d1d9cc25",
+        "source_hash": "d385ba4536c7e8648a4e3d8830e8265e275ddc681f010abab2b056c39cea7c5d",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "effectiveTaxRate",
+              "code": "failed",
+              "message": "Verification Error: Potential division by zero. Counter-example: dividend = 0, divisor = 0 [semantic_feedback: {\"counter_example\":{\"dividend\":\"0\",\"divisor\":\"0\"},\"explanation\":\"Division by zero: dividend = 0, divisor = 0 (ゼロ除算: 被除数 = 0, 除数 = 0)\",\"failure_type\":\"division_by_zero\",\"suggestion\":\"Add a g"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "TS03-D04",
+        "language": "typescript",
+        "specimen": "ts-03-invoice-cli",
+        "category": "missing-precondition",
+        "function": "parseItem",
+        "case_hash": "1b79cc98b4bc8b8626f8d8b03fc83aef1ebf246427177579a0550e9d287340c2",
+        "source_hash": "d385ba4536c7e8648a4e3d8830e8265e275ddc681f010abab2b056c39cea7c5d",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "parseItem",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "TS03-D05",
+        "language": "typescript",
+        "specimen": "ts-03-invoice-cli",
+        "category": "out-of-bounds",
+        "function": "pageFooters",
+        "case_hash": "a5a02672ebbf03e7627ad9e98577be1b23aa1830b36d246ffd8b829d9c76c034",
+        "source_hash": "d385ba4536c7e8648a4e3d8830e8265e275ddc681f010abab2b056c39cea7c5d",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "pageFooters",
+              "code": "failed",
+              "message": "Verification Error: Call to 'pick': precondition (requires) not satisfied at call site"
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      },
+      {
+        "id": "TS03-D09",
+        "language": "typescript",
+        "specimen": "ts-03-invoice-cli",
+        "category": "missing-precondition",
+        "function": "applyDiscount",
+        "case_hash": "2680fc75b6720c01c822395f34df0d9013972d96bf8088e0d1ff00e419cea97a",
+        "source_hash": "d385ba4536c7e8648a4e3d8830e8265e275ddc681f010abab2b056c39cea7c5d",
+        "buggy": {
+          "outcome": "refuted",
+          "status": "failed",
+          "diagnostics": [
+            {
+              "atom": "applyDiscount",
+              "code": "failed",
+              "message": "Verification Error: Postcondition (ensures) is not satisfied."
+            }
+          ]
+        },
+        "fixed": {
+          "outcome": "proven",
+          "status": "success",
+          "diagnostics": []
+        },
+        "vacuity": "ok"
+      }
+    ]
+  ]
+}
