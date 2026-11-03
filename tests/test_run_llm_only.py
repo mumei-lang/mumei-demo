@@ -122,6 +122,33 @@ def test_prompt_hash_is_stable_and_tracks_the_prompt(monkeypatch):
     monkeypatch.undo()
     monkeypatch.setattr(rl, "PROMPT_VERSION", rl.PROMPT_VERSION + 1)
     assert rl.prompt_hash() != first
+    monkeypatch.undo()
+    monkeypatch.setattr(rl, "user_prompt", lambda lang, files: "changed layout")
+    assert rl.prompt_hash() != first
+    monkeypatch.undo()
+    monkeypatch.setattr(rl, "TEST_DIRS", rl.TEST_DIRS | {"spec"})
+    assert rl.prompt_hash() != first
+
+
+@pytest.mark.parametrize("rel,expected", [
+    ("app.py", True), ("src/lib.rs", True), ("timesheets.csv", True), ("Cargo.toml", True),
+    ("package.json", True), ("go.mod", True), ("src/Vault.sol", True), ("contest.py", True),
+    ("DEFECTS.json", False), (".gitignore", False), ("README.md", False), ("repro.sh", False), ("run.sh", False),
+    ("race_test.go", False), ("timing_test.go", False), ("test/Repro.t.sol", False),
+    ("test/HappyPath.t.sol", False), ("test_app.py", False), ("app_test.py", False),
+    ("board.test.ts", False), ("board.spec.ts", False), ("tests/it.rs", False),
+    ("testdata/access.log", False), ("src/__tests__/x.ts", False), ("Tests/x.py", False),
+])
+def test_is_review_input(rel, expected):
+    assert rl.is_review_input(rel) is expected
+
+
+def test_source_files_skip_the_repro_harness(tmp_path):
+    for rel in ("main.go", "race_test.go", "repro.sh", "run.sh", "README.md", "testdata/a.log",
+                "test/Repro.t.sol", "src/Vault.sol"):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text("x\n")
+    assert [rel for rel, _ in rl.source_files(tmp_path)] == ["main.go", "src/Vault.sol"]
 
 
 def test_source_files_skip_ground_truth_and_binary(tmp_path):
@@ -536,6 +563,18 @@ def test_main_only_reviews_named_specimens_and_rescores_others(tmp_path, monkeyp
     assert first["runs"][0]["counts"]["detected"] == 1 and second["runs"][0]["counts"]["detected"] == 0
     summary = json.loads((root / "scoreboard" / "llm_only.json").read_text())
     assert summary["specimens"] == 2
+
+
+def test_main_only_rejects_a_run_count_mismatch_before_calling(tmp_path, monkeypatch):
+    root, dirs = _tree(tmp_path, ("py-01-x", "py-02-x"))
+    _patch_root(monkeypatch, root)
+    _main(root, "--runs", "2", provider=StubProvider())
+    provider = StubProvider()
+    with pytest.raises(SystemExit, match="py-01-x: committed review has 2 runs, not --runs 1"):
+        _main(root, "--runs", "1", "--only", "py-02-x", provider=provider)
+    assert provider.calls == []
+    _main(root, "--runs", "2", "--only", "py-02-x", provider=provider)
+    assert len(provider.calls) == 4
 
 
 def test_main_rescore_without_model_calls(tree, monkeypatch):

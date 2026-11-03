@@ -57,7 +57,17 @@ DEFAULT_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_MODEL = "gpt-4o"
 MAX_TOKENS = 8000
 RETRY_STATUSES = {408, 409, 429, 500, 502, 503, 504}
-PROMPT_VERSION = 1
+PROMPT_VERSION = 2
+# The model sees what mumei-agent's audit sees: product code and its data,
+# not the ground truth, the docs or the run/repro harness (which spells the
+# defects out). Test files follow mumei-agent's default test-file rule.
+EXCLUDED_NAMES = frozenset({"DEFECTS.json", ".gitignore"})
+EXCLUDED_SUFFIXES = (".md", ".sh")
+TEST_SUFFIXES = (
+    "_test.go", ".test.ts", ".test.tsx", ".test.js", ".test.jsx", ".spec.ts", ".spec.tsx",
+    ".spec.js", ".spec.jsx", "_test.py", ".t.sol",
+)
+TEST_DIRS = frozenset({"tests", "__tests__", "testdata"})
 SYSTEM_PROMPT = """You are a code reviewer. You are given every source file of one small project.
 Report each security vulnerability or correctness defect you can point to in the code.
 Do not report style, naming, performance tips or missing tests.
@@ -71,7 +81,23 @@ If you find nothing, answer {"findings": []}."""
 
 
 def prompt_hash() -> str:
-    return hashlib.sha256(f"{PROMPT_VERSION}\n{SYSTEM_PROMPT}".encode("utf-8")).hexdigest()[:16]
+    """Pins everything that shapes the model input: version, system prompt,
+    the user-prompt layout (rendered on a fixed sample) and the input rules."""
+    sample = user_prompt("sample", [("a/b.py", "x = 1\ny = 2\n")])
+    rules = json.dumps([sorted(EXCLUDED_NAMES), EXCLUDED_SUFFIXES, TEST_SUFFIXES, sorted(TEST_DIRS)])
+    text = "\n".join([str(PROMPT_VERSION), SYSTEM_PROMPT, sample, rules])
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
+def is_review_input(rel: str) -> bool:
+    """Whether a specimen file (path relative to the specimen) goes to the model."""
+    parts = rel.split("/")
+    name = parts[-1].lower()
+    if parts[-1] in EXCLUDED_NAMES or name.endswith(EXCLUDED_SUFFIXES):
+        return False
+    if name.endswith(TEST_SUFFIXES) or (name.startswith("test_") and name.endswith(".py")):
+        return False
+    return not any(p.lower() in TEST_DIRS for p in parts[:-1])
 
 
 def model_slug(model: str) -> str:
@@ -79,11 +105,11 @@ def model_slug(model: str) -> str:
 
 
 def source_files(scratch: Path) -> list[tuple[str, str]]:
-    """(relative path, text) for every file of the scratch copy except the ground truth."""
+    """(relative path, text) for every file of the scratch copy that is_review_input."""
     out = []
     for p in sorted(scratch.rglob("*")):
         rel = p.relative_to(scratch).as_posix()
-        if not p.is_file() or rel == "DEFECTS.json":
+        if not p.is_file() or not is_review_input(rel):
             continue
         try:
             out.append((rel, p.read_text(encoding="utf-8")))
@@ -456,6 +482,13 @@ def main(argv: list[str], provider: Provider | None = None) -> int:
         model = provider.model
         if args.model and args.model != model:
             raise SystemExit(f"--model {args.model} differs from LLM_MODEL {model}")
+    if not args.rescore:
+        for d in specimens:
+            if only and d.name not in only and record_path(d, model).is_file():
+                kept = json.loads(record_path(d, model).read_text(encoding="utf-8")).get("runs") or []
+                if len(kept) != args.runs:
+                    raise SystemExit(f"{d.name}: committed review has {len(kept)} runs, not "
+                                     f"--runs {args.runs}; all specimens need the same runs")
     reviews = load_reviews(SPECIMENS_ROOT)
     generated_at = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     records = []

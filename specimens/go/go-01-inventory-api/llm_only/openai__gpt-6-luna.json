@@ -3,10 +3,10 @@
   "language": "go",
   "tool": "llm-only",
   "model": "openai/gpt-6-luna",
-  "prompt_version": 1,
-  "prompt_hash": "50865386f4c2f5d6",
+  "prompt_version": 2,
+  "prompt_hash": "2fd1a1213dca8cce",
   "temperature": 0,
-  "generated_at": "2026-11-03T04:59:40Z",
+  "generated_at": "2026-11-03T06:16:58Z",
   "source_hash": "5014fb7d871106c11847f9092f9e18758378b37f1e691a333b4b7ab14540faa5",
   "runs": [
     {
@@ -16,19 +16,29 @@
           "file": "calc.go",
           "line": 12,
           "rule": "division-by-zero",
-          "message": "An item with an empty `locations` slice causes a divide-by-zero panic when its reorder point is computed.",
+          "message": "Items with no locations cause `reorderPoint` to divide by zero whenever a view is generated.",
           "cwe": [
             369
           ],
           "function": "reorderPoint"
         },
         {
+          "file": "calc.go",
+          "line": 22,
+          "rule": "log-forging",
+          "message": "An SKU containing a newline is written directly into the movement log, allowing a request to forge additional log entries.",
+          "cwe": [
+            117
+          ],
+          "function": "appendMovement"
+        },
+        {
           "file": "handlers.go",
           "line": 44,
-          "rule": "path-validation",
-          "message": "A GET request to `/items` leaves `pathParts` too short and panics when this handler indexes element 3.",
+          "rule": "request-triggered-panic",
+          "message": "A GET to `/items` leaves `pathParts` with fewer than four elements, so indexing `pathParts[3]` panics and fails the request.",
           "cwe": [
-            20
+            248
           ],
           "function": "itemHandler"
         },
@@ -36,7 +46,7 @@
           "file": "handlers.go",
           "line": 58,
           "rule": "unbounded-request-body",
-          "message": "`io.ReadAll` reads the entire item request body without a size limit, so a local client can exhaust server memory with a sufficiently large POST.",
+          "message": "The handler reads the entire request body without a size limit, so a client can exhaust server memory with a sufficiently large body.",
           "cwe": [
             400
           ],
@@ -45,8 +55,8 @@
         {
           "file": "handlers.go",
           "line": 60,
-          "rule": "malformed-input-accepted",
-          "message": "The JSON unmarshal error is ignored, so malformed input such as `{` creates and stores an item with zero-value fields and returns success.",
+          "rule": "ignored-json-errors",
+          "message": "Malformed or empty JSON is silently accepted, allowing creation of a zero-valued item and returning success instead of rejecting the request.",
           "cwe": [
             20
           ],
@@ -55,8 +65,8 @@
         {
           "file": "handlers.go",
           "line": 80,
-          "rule": "nil-dereference",
-          "message": "Creating an item without a supplier leaves `item.Supplier` nil, and fetching or reporting that item panics when this line reads its name.",
+          "rule": "nil-pointer-dereference",
+          "message": "A valid item with an omitted or null supplier makes `viewItem` panic when it dereferences `item.Supplier.Name`.",
           "cwe": [
             476
           ],
@@ -65,8 +75,8 @@
         {
           "file": "handlers.go",
           "line": 96,
-          "rule": "invalid-quantity",
-          "message": "A negative reservation quantity passes the stock check and increases stock while reducing reserved inventory.",
+          "rule": "negative-quantity-accepted",
+          "message": "Negative movement quantities are not rejected, so reserve and release requests can reverse their intended stock and reservation effects; restock likewise accepts negative pack values.",
           "cwe": [
             20
           ],
@@ -75,10 +85,10 @@
         {
           "file": "handlers.go",
           "line": 117,
-          "rule": "inventory-invariant-violation",
-          "message": "Releasing more than the reserved quantity makes reserved inventory negative and adds the unreserved excess to stock.",
+          "rule": "over-release-allowed",
+          "message": "Release does not check that the requested quantity is at most the reserved amount, allowing clients to make reservations negative and inflate stock.",
           "cwe": [
-            682
+            20
           ],
           "function": "releaseHandler"
         },
@@ -86,7 +96,7 @@
           "file": "handlers.go",
           "line": 133,
           "rule": "integer-overflow",
-          "message": "The `int32` multiplication can overflow for large pack values and make a restock unexpectedly reduce or corrupt stock.",
+          "message": "Multiplying and adding attacker-controlled `int32` restock values can overflow and leave stock with an incorrect value.",
           "cwe": [
             190
           ],
@@ -95,36 +105,38 @@
         {
           "file": "handlers.go",
           "line": 143,
-          "rule": "unvalidated-slice-index",
-          "message": "An out-of-range or negative `limit` causes a slice-bounds panic, so a request such as `/report?limit=100` can fail this handler.",
+          "rule": "unchecked-slice-bounds",
+          "message": "A negative, oversized, or otherwise invalid `limit` can make the slice expression panic and fail the report request.",
           "cwe": [
-            129
+            754
           ],
           "function": "reportHandler"
         },
         {
           "file": "handlers.go",
           "line": 163,
-          "rule": "missing-search-results",
-          "message": "The handler computes matching items but returns only the query string, so searches never return the matching inventory records.",
-          "cwe": [],
-          "function": "searchHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 163,
-          "rule": "reflected-xss",
-          "message": "The unescaped `q` parameter is inserted into an HTML response, allowing a crafted search URL to execute attacker-supplied markup or script.",
+          "rule": "reflected-cross-site-scripting",
+          "message": "The unescaped `q` parameter is inserted into an HTML response, allowing an attacker to execute script in a viewer's browser.",
           "cwe": [
             79
           ],
           "function": "searchHandler"
         },
         {
+          "file": "handlers.go",
+          "line": 163,
+          "rule": "search-results-omitted",
+          "message": "The handler computes and sorts matches but writes only the query, so search requests never return the matching items.",
+          "cwe": [
+            404
+          ],
+          "function": "searchHandler"
+        },
+        {
           "file": "main.go",
           "line": 9,
-          "rule": "hardcoded-credential",
-          "message": "The reset endpoint's authentication token is a fixed source-code constant, allowing anyone who can inspect the code to authenticate and clear the inventory.",
+          "rule": "hardcoded-credentials",
+          "message": "The reset endpoint's administrator token is embedded in the source, so anyone who obtains the code can authenticate and erase the inventory.",
           "cwe": [
             798
           ],
@@ -134,7 +146,7 @@
           "file": "main.go",
           "line": 33,
           "rule": "file-descriptor-leak",
-          "message": "Each request opens `requests.log` without closing the file, so repeated requests can exhaust the server's file descriptors.",
+          "message": "The request log file is opened for every request and never closed, allowing repeated requests to exhaust the process's file descriptors.",
           "cwe": [
             775
           ],
@@ -142,9 +154,9 @@
         },
         {
           "file": "store.go",
-          "line": 36,
-          "rule": "unsynchronized-item-mutation",
-          "message": "`Get` returns a shared item pointer after releasing the lock, allowing concurrent handlers to race on fields and lose updates or accept reservations against stale stock.",
+          "line": 39,
+          "rule": "unsynchronized-shared-state",
+          "message": "`Get` returns a mutable item pointer after releasing the store lock, so concurrent handlers can race while reading or changing its fields and lose inventory updates.",
           "cwe": [
             362
           ],
@@ -154,10 +166,10 @@
       "invalid_findings": [],
       "tool_errors": 0,
       "usage": {
-        "prompt_tokens": 6750,
-        "completion_tokens": 2961,
-        "cost_usd": 0.00154827,
-        "seconds": 41.54,
+        "prompt_tokens": 3510,
+        "completion_tokens": 2815,
+        "cost_usd": 0.001846175,
+        "seconds": 37.36,
         "attempts": 1
       },
       "defects": [
@@ -170,7 +182,7 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "invalid-quantity in `reserveHandler` (line 96, CWE-20): A negative reservation quantity passes the stock check and increases stock while reducing reserved inventory."
+            "negative-quantity-accepted in `reserveHandler` (line 96, CWE-20): Negative movement quantities are not rejected, so reserve and release requests can reverse their intended stock and reservation effects; restock likewise accepts negative pack values."
           ]
         },
         {
@@ -182,7 +194,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "integer-overflow in `restockHandler` (line 133, CWE-190): The `int32` multiplication can overflow for large pack values and make a restock unexpectedly reduce or corrupt stock."
+            "integer-overflow in `restockHandler` (line 133, CWE-190): Multiplying and adding attacker-controlled `int32` restock values can overflow and leave stock with an incorrect value."
           ]
         },
         {
@@ -194,7 +206,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "inventory-invariant-violation in `releaseHandler` (line 117, CWE-682): Releasing more than the reserved quantity makes reserved inventory negative and adds the unreserved excess to stock."
+            "over-release-allowed in `releaseHandler` (line 117, CWE-20): Release does not check that the requested quantity is at most the reserved amount, allowing clients to make reservations negative and inflate stock."
           ]
         },
         {
@@ -206,7 +218,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "path-validation in `itemHandler` (line 44, CWE-20): A GET request to `/items` leaves `pathParts` too short and panics when this handler indexes element 3."
+            "request-triggered-panic in `itemHandler` (line 44, CWE-248): A GET to `/items` leaves `pathParts` with fewer than four elements, so indexing `pathParts[3]` panics and fails the request."
           ]
         },
         {
@@ -218,7 +230,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "division-by-zero in `reorderPoint` (line 12, CWE-369): An item with an empty `locations` slice causes a divide-by-zero panic when its reorder point is computed."
+            "division-by-zero in `reorderPoint` (line 12, CWE-369): Items with no locations cause `reorderPoint` to divide by zero whenever a view is generated."
           ]
         },
         {
@@ -230,7 +242,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "nil-dereference in `viewItem` (line 80, CWE-476): Creating an item without a supplier leaves `item.Supplier` nil, and fetching or reporting that item panics when this line reads its name."
+            "nil-pointer-dereference in `viewItem` (line 80, CWE-476): A valid item with an omitted or null supplier makes `viewItem` panic when it dereferences `item.Supplier.Name`."
           ]
         },
         {
@@ -242,7 +254,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "unvalidated-slice-index in `reportHandler` (line 143, CWE-129): An out-of-range or negative `limit` causes a slice-bounds panic, so a request such as `/report?limit=100` can fail this handler."
+            "unchecked-slice-bounds in `reportHandler` (line 143, CWE-754): A negative, oversized, or otherwise invalid `limit` can make the slice expression panic and fail the report request."
           ]
         },
         {
@@ -254,7 +266,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "file-descriptor-leak in `auditRequests` (line 33, CWE-775): Each request opens `requests.log` without closing the file, so repeated requests can exhaust the server's file descriptors."
+            "file-descriptor-leak in `auditRequests` (line 33, CWE-775): The request log file is opened for every request and never closed, allowing repeated requests to exhaust the process's file descriptors."
           ]
         },
         {
@@ -266,8 +278,8 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "unbounded-request-body in `createItem` (line 58, CWE-400): `io.ReadAll` reads the entire item request body without a size limit, so a local client can exhaust server memory with a sufficiently large POST.",
-            "malformed-input-accepted in `createItem` (line 60, CWE-20): The JSON unmarshal error is ignored, so malformed input such as `{` creates and stores an item with zero-value fields and returns success."
+            "unbounded-request-body in `createItem` (line 58, CWE-400): The handler reads the entire request body without a size limit, so a client can exhaust server memory with a sufficiently large body.",
+            "ignored-json-errors in `createItem` (line 60, CWE-20): Malformed or empty JSON is silently accepted, allowing creation of a zero-valued item and returning success instead of rejecting the request."
           ]
         },
         {
@@ -279,7 +291,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "reflected-xss in `searchHandler` (line 163, CWE-79): The unescaped `q` parameter is inserted into an HTML response, allowing a crafted search URL to execute attacker-supplied markup or script."
+            "reflected-cross-site-scripting in `searchHandler` (line 163, CWE-79): The unescaped `q` parameter is inserted into an HTML response, allowing an attacker to execute script in a viewer's browser."
           ]
         },
         {
@@ -291,7 +303,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "hardcoded-credential (line 9, CWE-798): The reset endpoint's authentication token is a fixed source-code constant, allowing anyone who can inspect the code to authenticate and clear the inventory."
+            "hardcoded-credentials (line 9, CWE-798): The reset endpoint's administrator token is embedded in the source, so anyone who obtains the code can authenticate and erase the inventory."
           ]
         }
       ],
@@ -305,86 +317,1138 @@
         {
           "file": "calc.go",
           "kind": "baseline",
-          "text": "division-by-zero in `reorderPoint` (line 12, CWE-369): An item with an empty `locations` slice causes a divide-by-zero panic when its reorder point is computed.",
+          "text": "division-by-zero in `reorderPoint` (line 12, CWE-369): Items with no locations cause `reorderPoint` to divide by zero whenever a view is generated.",
           "status": "defect_evidence"
         },
         {
-          "file": "handlers.go",
+          "file": "calc.go",
           "kind": "baseline",
-          "text": "path-validation in `itemHandler` (line 44, CWE-20): A GET request to `/items` leaves `pathParts` too short and panics when this handler indexes element 3.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "unbounded-request-body in `createItem` (line 58, CWE-400): `io.ReadAll` reads the entire item request body without a size limit, so a local client can exhaust server memory with a sufficiently large POST.",
+          "text": "log-forging in `appendMovement` (line 22, CWE-117): An SKU containing a newline is written directly into the movement log, allowing a request to forge additional log entries.",
           "status": "unreviewed"
         },
         {
           "file": "handlers.go",
           "kind": "baseline",
-          "text": "malformed-input-accepted in `createItem` (line 60, CWE-20): The JSON unmarshal error is ignored, so malformed input such as `{` creates and stores an item with zero-value fields and returns success.",
+          "text": "request-triggered-panic in `itemHandler` (line 44, CWE-248): A GET to `/items` leaves `pathParts` with fewer than four elements, so indexing `pathParts[3]` panics and fails the request.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "unbounded-request-body in `createItem` (line 58, CWE-400): The handler reads the entire request body without a size limit, so a client can exhaust server memory with a sufficiently large body.",
           "status": "unreviewed"
         },
         {
           "file": "handlers.go",
           "kind": "baseline",
-          "text": "nil-dereference in `viewItem` (line 80, CWE-476): Creating an item without a supplier leaves `item.Supplier` nil, and fetching or reporting that item panics when this line reads its name.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "invalid-quantity in `reserveHandler` (line 96, CWE-20): A negative reservation quantity passes the stock check and increases stock while reducing reserved inventory.",
+          "text": "ignored-json-errors in `createItem` (line 60, CWE-20): Malformed or empty JSON is silently accepted, allowing creation of a zero-valued item and returning success instead of rejecting the request.",
           "status": "unreviewed"
         },
         {
           "file": "handlers.go",
           "kind": "baseline",
-          "text": "inventory-invariant-violation in `releaseHandler` (line 117, CWE-682): Releasing more than the reserved quantity makes reserved inventory negative and adds the unreserved excess to stock.",
+          "text": "nil-pointer-dereference in `viewItem` (line 80, CWE-476): A valid item with an omitted or null supplier makes `viewItem` panic when it dereferences `item.Supplier.Name`.",
           "status": "defect_evidence"
         },
         {
           "file": "handlers.go",
           "kind": "baseline",
-          "text": "integer-overflow in `restockHandler` (line 133, CWE-190): The `int32` multiplication can overflow for large pack values and make a restock unexpectedly reduce or corrupt stock.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "unvalidated-slice-index in `reportHandler` (line 143, CWE-129): An out-of-range or negative `limit` causes a slice-bounds panic, so a request such as `/report?limit=100` can fail this handler.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "missing-search-results in `searchHandler` (line 163): The handler computes matching items but returns only the query string, so searches never return the matching inventory records.",
+          "text": "negative-quantity-accepted in `reserveHandler` (line 96, CWE-20): Negative movement quantities are not rejected, so reserve and release requests can reverse their intended stock and reservation effects; restock likewise accepts negative pack values.",
           "status": "unreviewed"
         },
         {
           "file": "handlers.go",
           "kind": "baseline",
-          "text": "reflected-xss in `searchHandler` (line 163, CWE-79): The unescaped `q` parameter is inserted into an HTML response, allowing a crafted search URL to execute attacker-supplied markup or script.",
+          "text": "over-release-allowed in `releaseHandler` (line 117, CWE-20): Release does not check that the requested quantity is at most the reserved amount, allowing clients to make reservations negative and inflate stock.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "integer-overflow in `restockHandler` (line 133, CWE-190): Multiplying and adding attacker-controlled `int32` restock values can overflow and leave stock with an incorrect value.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "unchecked-slice-bounds in `reportHandler` (line 143, CWE-754): A negative, oversized, or otherwise invalid `limit` can make the slice expression panic and fail the report request.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "reflected-cross-site-scripting in `searchHandler` (line 163, CWE-79): The unescaped `q` parameter is inserted into an HTML response, allowing an attacker to execute script in a viewer's browser.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "search-results-omitted in `searchHandler` (line 163, CWE-404): The handler computes and sorts matches but writes only the query, so search requests never return the matching items.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "hardcoded-credentials (line 9, CWE-798): The reset endpoint's administrator token is embedded in the source, so anyone who obtains the code can authenticate and erase the inventory.",
           "status": "defect_evidence"
         },
         {
           "file": "main.go",
           "kind": "baseline",
-          "text": "hardcoded-credential (line 9, CWE-798): The reset endpoint's authentication token is a fixed source-code constant, allowing anyone who can inspect the code to authenticate and clear the inventory.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "main.go",
-          "kind": "baseline",
-          "text": "file-descriptor-leak in `auditRequests` (line 33, CWE-775): Each request opens `requests.log` without closing the file, so repeated requests can exhaust the server's file descriptors.",
+          "text": "file-descriptor-leak in `auditRequests` (line 33, CWE-775): The request log file is opened for every request and never closed, allowing repeated requests to exhaust the process's file descriptors.",
           "status": "defect_evidence"
         },
         {
           "file": "store.go",
           "kind": "baseline",
-          "text": "unsynchronized-item-mutation in `Get` (line 36, CWE-362): `Get` returns a shared item pointer after releasing the lock, allowing concurrent handlers to race on fields and lose updates or accept reservations against stale stock.",
+          "text": "unsynchronized-shared-state in `Get` (line 39, CWE-362): `Get` returns a mutable item pointer after releasing the store lock, so concurrent handlers can race while reading or changing its fields and lose inventory updates.",
           "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 15,
+        "defect_evidence": 9,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 6
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "calc.go",
+          "line": 25,
+          "rule": "log-injection",
+          "message": "The user-controlled SKU is written to the movement log without escaping, so a SKU containing a newline can forge movement-log entries.",
+          "cwe": [
+            117
+          ],
+          "function": "appendMovement"
+        },
+        {
+          "file": "handlers.go",
+          "line": 64,
+          "rule": "unbounded-request-body",
+          "message": "The JSON decoder has no body-size limit, so a client can submit an extremely large item payload and exhaust server memory.",
+          "cwe": [
+            400
+          ],
+          "function": "createItem"
+        },
+        {
+          "file": "handlers.go",
+          "line": 68,
+          "rule": "unfetchable-sku",
+          "message": "SKUs containing `/` are accepted here, but the item route rejects paths with an embedded slash, leaving those created items inaccessible by SKU.",
+          "cwe": [],
+          "function": "createItem"
+        },
+        {
+          "file": "handlers.go",
+          "line": 79,
+          "rule": "duplicate-create-overwrites-item",
+          "message": "Creating an item with an existing SKU silently replaces its stored item, allowing a request to erase existing stock and item data while returning a created response.",
+          "cwe": [],
+          "function": "createItem"
+        },
+        {
+          "file": "handlers.go",
+          "line": 123,
+          "rule": "missing-http-method-check",
+          "message": "The reserve, release, restock, and reset handlers do not restrict methods, so requests using methods such as GET can perform state-changing operations.",
+          "cwe": [
+            650
+          ],
+          "function": "reserveHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 160,
+          "rule": "integer-overflow",
+          "message": "Releasing reserved stock can overflow `Stock` when restocking has raised it near `MaxInt32`, wrapping the resulting stock to a negative value.",
+          "cwe": [
+            190
+          ],
+          "function": "releaseHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 220,
+          "rule": "missing-http-method-check",
+          "message": "The reset handler accepts any HTTP method, so an authorized request using GET or another unintended method can reset the inventory.",
+          "cwe": [
+            650
+          ],
+          "function": "resetHandler"
+        },
+        {
+          "file": "main.go",
+          "line": 35,
+          "rule": "log-injection",
+          "message": "The request path is written to the audit log without escaping, so a path containing an encoded newline can forge additional log entries.",
+          "cwe": [
+            117
+          ],
+          "function": "auditRequests"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 4580,
+        "completion_tokens": 3228,
+        "cost_usd": 0.002186425,
+        "seconds": 40.24,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [],
+        "false_alarms": 8,
+        "findings": [
+          {
+            "file": "calc.go",
+            "kind": "baseline",
+            "text": "log-injection in `appendMovement` (line 25, CWE-117): The user-controlled SKU is written to the movement log without escaping, so a SKU containing a newline can forge movement-log entries.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "unbounded-request-body in `createItem` (line 64, CWE-400): The JSON decoder has no body-size limit, so a client can submit an extremely large item payload and exhaust server memory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "unfetchable-sku in `createItem` (line 68): SKUs containing `/` are accepted here, but the item route rejects paths with an embedded slash, leaving those created items inaccessible by SKU.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "duplicate-create-overwrites-item in `createItem` (line 79): Creating an item with an existing SKU silently replaces its stored item, allowing a request to erase existing stock and item data while returning a created response.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "missing-http-method-check in `reserveHandler` (line 123, CWE-650): The reserve, release, restock, and reset handlers do not restrict methods, so requests using methods such as GET can perform state-changing operations.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "integer-overflow in `releaseHandler` (line 160, CWE-190): Releasing reserved stock can overflow `Stock` when restocking has raised it near `MaxInt32`, wrapping the resulting stock to a negative value.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "missing-http-method-check in `resetHandler` (line 220, CWE-650): The reset handler accepts any HTTP method, so an authorized request using GET or another unintended method can reset the inventory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "log-injection in `auditRequests` (line 35, CWE-117): The request path is written to the audit log without escaping, so a path containing an encoded newline can forge additional log entries.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 8,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 8
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 2,
+      "raw_findings": [
+        {
+          "file": "calc.go",
+          "line": 12,
+          "rule": "division-by-zero",
+          "message": "An item with no locations makes `reorderPoint` divide by zero, causing item views and reports to panic.",
+          "cwe": [
+            369
+          ],
+          "function": "reorderPoint"
+        },
+        {
+          "file": "handlers.go",
+          "line": 44,
+          "rule": "unchecked-path-index",
+          "message": "A GET request to `/items` leaves `pathParts` with fewer than four elements, so indexing element 3 panics and terminates that request.",
+          "cwe": [
+            129
+          ],
+          "function": "itemHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 58,
+          "rule": "unbounded-request-body",
+          "message": "`io.ReadAll` accepts an unbounded body, so a client can send a very large `/items` request and exhaust server memory.",
+          "cwe": [
+            400
+          ],
+          "function": "createItem"
+        },
+        {
+          "file": "handlers.go",
+          "line": 60,
+          "rule": "ignored-json-error",
+          "message": "Malformed or overflowing JSON is accepted because the unmarshal error is ignored, allowing invalid or partially decoded items to be inserted or overwrite an existing SKU.",
+          "cwe": [
+            20
+          ],
+          "function": "createItem"
+        },
+        {
+          "file": "handlers.go",
+          "line": 80,
+          "rule": "nil-pointer-dereference",
+          "message": "Creating an item with an omitted or null supplier leaves `item.Supplier` nil, and viewing that item dereferences it and panics.",
+          "cwe": [
+            476
+          ],
+          "function": "viewItem"
+        },
+        {
+          "file": "handlers.go",
+          "line": 96,
+          "rule": "negative-quantity",
+          "message": "A negative reserve quantity passes the stock check and then increases stock while decreasing reserved inventory, allowing callers to manipulate inventory totals.",
+          "cwe": [
+            20
+          ],
+          "function": "reserveHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 117,
+          "rule": "unvalidated-release-quantity",
+          "message": "A release quantity greater than the reserved amount is accepted, making reserved inventory negative and adding unreserved units to stock.",
+          "cwe": [
+            20
+          ],
+          "function": "releaseHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 133,
+          "rule": "integer-overflow",
+          "message": "Untrusted pack values are multiplied and added using `int32` without range checks, so large values can overflow and corrupt stock totals.",
+          "cwe": [
+            190
+          ],
+          "function": "restockHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 143,
+          "rule": "unchecked-slice-bound",
+          "message": "An attacker-controlled limit is used directly as a slice bound, so a negative value or a value greater than the item count panics the report handler.",
+          "cwe": [
+            129
+          ],
+          "function": "reportHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 163,
+          "rule": "reflected-xss",
+          "message": "The search query is written directly into an HTML response, so a query containing markup or script is reflected as executable content.",
+          "cwe": [
+            79
+          ],
+          "function": "searchHandler"
+        },
+        {
+          "file": "main.go",
+          "line": 9,
+          "rule": "hardcoded-credentials",
+          "message": "The reset endpoint's admin token is hardcoded in the source, so anyone who obtains the code can authenticate to reset the inventory.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "main.go",
+          "line": 33,
+          "rule": "unreleased-file-handle",
+          "message": "The audit log is opened for every request but never closed, so repeated requests exhaust the process's file descriptors.",
+          "cwe": [
+            775
+          ],
+          "function": "auditRequests"
+        },
+        {
+          "file": "store.go",
+          "line": 39,
+          "rule": "unsynchronized-shared-state",
+          "message": "`Get` returns a mutable item pointer after releasing the lock, so concurrent handlers can race while reading and updating inventory and lose updates.",
+          "cwe": [
+            362
+          ],
+          "function": "Get"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 3510,
+        "completion_tokens": 2769,
+        "cost_usd": 0.00141987,
+        "seconds": 34.19,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "GO01-D01",
+          "file": "handlers.go",
+          "function": "reserveHandler",
+          "category": "race-condition",
+          "class": "design",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "negative-quantity in `reserveHandler` (line 96, CWE-20): A negative reserve quantity passes the stock check and then increases stock while decreasing reserved inventory, allowing callers to manipulate inventory totals."
+          ]
+        },
+        {
+          "id": "GO01-D02",
+          "file": "handlers.go",
+          "function": "restockHandler",
+          "category": "integer-overflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "integer-overflow in `restockHandler` (line 133, CWE-190): Untrusted pack values are multiplied and added using `int32` without range checks, so large values can overflow and corrupt stock totals."
+          ]
+        },
+        {
+          "id": "GO01-D03",
+          "file": "handlers.go",
+          "function": "releaseHandler",
+          "category": "invariant-violation",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "unvalidated-release-quantity in `releaseHandler` (line 117, CWE-20): A release quantity greater than the reserved amount is accepted, making reserved inventory negative and adding unreserved units to stock."
+          ]
+        },
+        {
+          "id": "GO01-D04",
+          "file": "handlers.go",
+          "function": "itemHandler",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "unchecked-path-index in `itemHandler` (line 44, CWE-129): A GET request to `/items` leaves `pathParts` with fewer than four elements, so indexing element 3 panics and terminates that request."
+          ]
+        },
+        {
+          "id": "GO01-D05",
+          "file": "calc.go",
+          "function": "reorderPoint",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `reorderPoint` (line 12, CWE-369): An item with no locations makes `reorderPoint` divide by zero, causing item views and reports to panic."
+          ]
+        },
+        {
+          "id": "GO01-D06",
+          "file": "handlers.go",
+          "function": "viewItem",
+          "category": "null-dereference",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "nil-pointer-dereference in `viewItem` (line 80, CWE-476): Creating an item with an omitted or null supplier leaves `item.Supplier` nil, and viewing that item dereferences it and panics."
+          ]
+        },
+        {
+          "id": "GO01-D07",
+          "file": "handlers.go",
+          "function": "reportHandler",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "unchecked-slice-bound in `reportHandler` (line 143, CWE-129): An attacker-controlled limit is used directly as a slice bound, so a negative value or a value greater than the item count panics the report handler."
+          ]
+        },
+        {
+          "id": "GO01-D08",
+          "file": "main.go",
+          "function": "auditRequests",
+          "category": "resource-leak",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unreleased-file-handle in `auditRequests` (line 33, CWE-775): The audit log is opened for every request but never closed, so repeated requests exhaust the process's file descriptors."
+          ]
+        },
+        {
+          "id": "GO01-D09",
+          "file": "handlers.go",
+          "function": "createItem",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "unbounded-request-body in `createItem` (line 58, CWE-400): `io.ReadAll` accepts an unbounded body, so a client can send a very large `/items` request and exhaust server memory.",
+            "ignored-json-error in `createItem` (line 60, CWE-20): Malformed or overflowing JSON is accepted because the unmarshal error is ignored, allowing invalid or partially decoded items to be inserted or overwrite an existing SKU."
+          ]
+        },
+        {
+          "id": "GO01-D10",
+          "file": "handlers.go",
+          "function": "searchHandler",
+          "category": "xss",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "reflected-xss in `searchHandler` (line 163, CWE-79): The search query is written directly into an HTML response, so a query containing markup or script is reflected as executable content."
+          ]
+        },
+        {
+          "id": "GO01-D11",
+          "file": "main.go",
+          "function": "main",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "hardcoded-credentials (line 9, CWE-798): The reset endpoint's admin token is hardcoded in the source, so anyone who obtains the code can authenticate to reset the inventory."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 9,
+        "function_flagged": 2,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "calc.go",
+          "kind": "baseline",
+          "text": "division-by-zero in `reorderPoint` (line 12, CWE-369): An item with no locations makes `reorderPoint` divide by zero, causing item views and reports to panic.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "unchecked-path-index in `itemHandler` (line 44, CWE-129): A GET request to `/items` leaves `pathParts` with fewer than four elements, so indexing element 3 panics and terminates that request.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "unbounded-request-body in `createItem` (line 58, CWE-400): `io.ReadAll` accepts an unbounded body, so a client can send a very large `/items` request and exhaust server memory.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "ignored-json-error in `createItem` (line 60, CWE-20): Malformed or overflowing JSON is accepted because the unmarshal error is ignored, allowing invalid or partially decoded items to be inserted or overwrite an existing SKU.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "nil-pointer-dereference in `viewItem` (line 80, CWE-476): Creating an item with an omitted or null supplier leaves `item.Supplier` nil, and viewing that item dereferences it and panics.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "negative-quantity in `reserveHandler` (line 96, CWE-20): A negative reserve quantity passes the stock check and then increases stock while decreasing reserved inventory, allowing callers to manipulate inventory totals.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "unvalidated-release-quantity in `releaseHandler` (line 117, CWE-20): A release quantity greater than the reserved amount is accepted, making reserved inventory negative and adding unreserved units to stock.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "integer-overflow in `restockHandler` (line 133, CWE-190): Untrusted pack values are multiplied and added using `int32` without range checks, so large values can overflow and corrupt stock totals.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "unchecked-slice-bound in `reportHandler` (line 143, CWE-129): An attacker-controlled limit is used directly as a slice bound, so a negative value or a value greater than the item count panics the report handler.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "reflected-xss in `searchHandler` (line 163, CWE-79): The search query is written directly into an HTML response, so a query containing markup or script is reflected as executable content.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "hardcoded-credentials (line 9, CWE-798): The reset endpoint's admin token is hardcoded in the source, so anyone who obtains the code can authenticate to reset the inventory.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "unreleased-file-handle in `auditRequests` (line 33, CWE-775): The audit log is opened for every request but never closed, so repeated requests exhaust the process's file descriptors.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "store.go",
+          "kind": "baseline",
+          "text": "unsynchronized-shared-state in `Get` (line 39, CWE-362): `Get` returns a mutable item pointer after releasing the lock, so concurrent handlers can race while reading and updating inventory and lose updates.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 13,
+        "defect_evidence": 9,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 4
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "calc.go",
+          "line": 25,
+          "rule": "log-injection",
+          "message": "A SKU containing newline characters is written directly to the movement log, allowing a client to inject forged log entries by creating and moving such an item.",
+          "cwe": [
+            117
+          ],
+          "function": "appendMovement"
+        },
+        {
+          "file": "handlers.go",
+          "line": 64,
+          "rule": "unbounded-request-body",
+          "message": "The JSON decoder has no request-body size limit, so a client can submit an extremely large item payload and force excessive memory allocation.",
+          "cwe": [
+            400
+          ],
+          "function": "createItem"
+        },
+        {
+          "file": "handlers.go",
+          "line": 79,
+          "rule": "duplicate-item-overwrite",
+          "message": "Creating an item with an existing SKU silently replaces it, which can discard the existing stock and reserved quantity.",
+          "cwe": [
+            840
+          ],
+          "function": "createItem"
+        },
+        {
+          "file": "handlers.go",
+          "line": 123,
+          "rule": "unsafe-http-method",
+          "message": "The reserve, release, and restock handlers do not restrict HTTP methods, so requests using GET or other methods can mutate inventory when supplied with a JSON body.",
+          "cwe": [],
+          "function": "reserveHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 160,
+          "rule": "integer-overflow",
+          "message": "Releasing reserved stock adds the quantity to Stock without checking the int32 limit, so restocking while stock is reserved and then releasing can overflow Stock to a negative value.",
+          "cwe": [
+            190
+          ],
+          "function": "releaseHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 217,
+          "rule": "missing-search-results",
+          "message": "The handler computes matching items but returns only the escaped query, so search requests never return the matching inventory.",
+          "cwe": [],
+          "function": "searchHandler"
+        },
+        {
+          "file": "main.go",
+          "line": 35,
+          "rule": "log-injection",
+          "message": "A path containing percent-encoded CR or LF characters is written directly to the audit log, allowing a client to forge additional log entries.",
+          "cwe": [
+            117
+          ],
+          "function": "auditRequests"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 4580,
+        "completion_tokens": 2604,
+        "cost_usd": 0.00134807,
+        "seconds": 30.71,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "GO01-D10"
+        ],
+        "false_alarms": 7,
+        "findings": [
+          {
+            "file": "calc.go",
+            "kind": "baseline",
+            "text": "log-injection in `appendMovement` (line 25, CWE-117): A SKU containing newline characters is written directly to the movement log, allowing a client to inject forged log entries by creating and moving such an item.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "unbounded-request-body in `createItem` (line 64, CWE-400): The JSON decoder has no request-body size limit, so a client can submit an extremely large item payload and force excessive memory allocation.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "duplicate-item-overwrite in `createItem` (line 79, CWE-840): Creating an item with an existing SKU silently replaces it, which can discard the existing stock and reserved quantity.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "unsafe-http-method in `reserveHandler` (line 123): The reserve, release, and restock handlers do not restrict HTTP methods, so requests using GET or other methods can mutate inventory when supplied with a JSON body.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "integer-overflow in `releaseHandler` (line 160, CWE-190): Releasing reserved stock adds the quantity to Stock without checking the int32 limit, so restocking while stock is reserved and then releasing can overflow Stock to a negative value.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "missing-search-results in `searchHandler` (line 217): The handler computes matching items but returns only the escaped query, so search requests never return the matching inventory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "log-injection in `auditRequests` (line 35, CWE-117): A path containing percent-encoded CR or LF characters is written directly to the audit log, allowing a client to forge additional log entries.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 7,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 7
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 3,
+      "raw_findings": [
+        {
+          "file": "calc.go",
+          "line": 12,
+          "rule": "division-by-zero",
+          "message": "An item with no locations causes this division to panic whenever its view is generated, such as through GET or /report.",
+          "cwe": [
+            369
+          ],
+          "function": "reorderPoint"
+        },
+        {
+          "file": "handlers.go",
+          "line": 44,
+          "rule": "request-triggered-panic",
+          "message": "A GET to /items leaves pathParts shorter than four elements, so indexing pathParts[3] panics and aborts the request.",
+          "cwe": [
+            248
+          ],
+          "function": "itemHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 58,
+          "rule": "unbounded-request-body",
+          "message": "createItem reads the entire request body without a size limit, allowing a client to exhaust server memory with a sufficiently large body.",
+          "cwe": [
+            400
+          ],
+          "function": "createItem"
+        },
+        {
+          "file": "handlers.go",
+          "line": 60,
+          "rule": "invalid-input-accepted",
+          "message": "The JSON unmarshal error is ignored, so malformed or non-JSON input is stored as an item and receives a success response.",
+          "cwe": [
+            20
+          ],
+          "function": "createItem"
+        },
+        {
+          "file": "handlers.go",
+          "line": 80,
+          "rule": "nil-pointer-dereference",
+          "message": "Creating an item without a supplier leaves Supplier nil, and viewing that item dereferences it and panics.",
+          "cwe": [
+            476
+          ],
+          "function": "viewItem"
+        },
+        {
+          "file": "handlers.go",
+          "line": 95,
+          "rule": "concurrent-inventory-update",
+          "message": "Concurrent reserve requests read and update the shared item without synchronization, so they can race and leave stock and reserved counts inconsistent or allow overselling.",
+          "cwe": [
+            362
+          ],
+          "function": "reserveHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 96,
+          "rule": "negative-quantity",
+          "message": "A negative reserve quantity passes the stock check and increases stock while decreasing reserved inventory.",
+          "cwe": [
+            20
+          ],
+          "function": "reserveHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 117,
+          "rule": "invalid-release-quantity",
+          "message": "Release accepts negative quantities and quantities greater than the reservation, allowing clients to make reserved stock negative or fabricate stock.",
+          "cwe": [
+            20
+          ],
+          "function": "releaseHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 133,
+          "rule": "invalid-restock-quantity",
+          "message": "Negative pack values are accepted and the int32 multiplication can overflow, allowing restocks to reduce stock or produce an unintended quantity.",
+          "cwe": [
+            20
+          ],
+          "function": "restockHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 143,
+          "rule": "request-triggered-panic",
+          "message": "The unvalidated limit is used directly as a slice bound, so a negative, malformed, or greater-than-item-count limit can panic the handler.",
+          "cwe": [
+            248
+          ],
+          "function": "reportHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 163,
+          "rule": "reflected-xss",
+          "message": "The query parameter is written into HTML without escaping, so a crafted q value can execute script in a client's browser.",
+          "cwe": [
+            79
+          ],
+          "function": "searchHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 163,
+          "rule": "search-results-omitted",
+          "message": "The handler computes matching items but returns only the query string, so search requests never return the results.",
+          "cwe": [],
+          "function": "searchHandler"
+        },
+        {
+          "file": "main.go",
+          "line": 9,
+          "rule": "hard-coded-credential",
+          "message": "The reset token is a fixed credential embedded in the source, allowing anyone who obtains the code to authorize a reset request.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "main.go",
+          "line": 33,
+          "rule": "unclosed-file",
+          "message": "auditRequests opens requests.log for every request but never closes the file, allowing repeated requests to exhaust the process's file descriptors.",
+          "cwe": [
+            775
+          ],
+          "function": "auditRequests"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 3510,
+        "completion_tokens": 3148,
+        "cost_usd": 0.002012675,
+        "seconds": 38.42,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "GO01-D01",
+          "file": "handlers.go",
+          "function": "reserveHandler",
+          "category": "race-condition",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "concurrent-inventory-update in `reserveHandler` (line 95, CWE-362): Concurrent reserve requests read and update the shared item without synchronization, so they can race and leave stock and reserved counts inconsistent or allow overselling."
+          ]
+        },
+        {
+          "id": "GO01-D02",
+          "file": "handlers.go",
+          "function": "restockHandler",
+          "category": "integer-overflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "invalid-restock-quantity in `restockHandler` (line 133, CWE-20): Negative pack values are accepted and the int32 multiplication can overflow, allowing restocks to reduce stock or produce an unintended quantity."
+          ]
+        },
+        {
+          "id": "GO01-D03",
+          "file": "handlers.go",
+          "function": "releaseHandler",
+          "category": "invariant-violation",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "invalid-release-quantity in `releaseHandler` (line 117, CWE-20): Release accepts negative quantities and quantities greater than the reservation, allowing clients to make reserved stock negative or fabricate stock."
+          ]
+        },
+        {
+          "id": "GO01-D04",
+          "file": "handlers.go",
+          "function": "itemHandler",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "request-triggered-panic in `itemHandler` (line 44, CWE-248): A GET to /items leaves pathParts shorter than four elements, so indexing pathParts[3] panics and aborts the request."
+          ]
+        },
+        {
+          "id": "GO01-D05",
+          "file": "calc.go",
+          "function": "reorderPoint",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `reorderPoint` (line 12, CWE-369): An item with no locations causes this division to panic whenever its view is generated, such as through GET or /report."
+          ]
+        },
+        {
+          "id": "GO01-D06",
+          "file": "handlers.go",
+          "function": "viewItem",
+          "category": "null-dereference",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "nil-pointer-dereference in `viewItem` (line 80, CWE-476): Creating an item without a supplier leaves Supplier nil, and viewing that item dereferences it and panics."
+          ]
+        },
+        {
+          "id": "GO01-D07",
+          "file": "handlers.go",
+          "function": "reportHandler",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "request-triggered-panic in `reportHandler` (line 143, CWE-248): The unvalidated limit is used directly as a slice bound, so a negative, malformed, or greater-than-item-count limit can panic the handler."
+          ]
+        },
+        {
+          "id": "GO01-D08",
+          "file": "main.go",
+          "function": "auditRequests",
+          "category": "resource-leak",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unclosed-file in `auditRequests` (line 33, CWE-775): auditRequests opens requests.log for every request but never closes the file, allowing repeated requests to exhaust the process's file descriptors."
+          ]
+        },
+        {
+          "id": "GO01-D09",
+          "file": "handlers.go",
+          "function": "createItem",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "unbounded-request-body in `createItem` (line 58, CWE-400): createItem reads the entire request body without a size limit, allowing a client to exhaust server memory with a sufficiently large body.",
+            "invalid-input-accepted in `createItem` (line 60, CWE-20): The JSON unmarshal error is ignored, so malformed or non-JSON input is stored as an item and receives a success response."
+          ]
+        },
+        {
+          "id": "GO01-D10",
+          "file": "handlers.go",
+          "function": "searchHandler",
+          "category": "xss",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "reflected-xss in `searchHandler` (line 163, CWE-79): The query parameter is written into HTML without escaping, so a crafted q value can execute script in a client's browser."
+          ]
+        },
+        {
+          "id": "GO01-D11",
+          "file": "main.go",
+          "function": "main",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "hard-coded-credential (line 9, CWE-798): The reset token is a fixed credential embedded in the source, allowing anyone who obtains the code to authorize a reset request."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 9,
+        "function_flagged": 2,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "calc.go",
+          "kind": "baseline",
+          "text": "division-by-zero in `reorderPoint` (line 12, CWE-369): An item with no locations causes this division to panic whenever its view is generated, such as through GET or /report.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "request-triggered-panic in `itemHandler` (line 44, CWE-248): A GET to /items leaves pathParts shorter than four elements, so indexing pathParts[3] panics and aborts the request.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "unbounded-request-body in `createItem` (line 58, CWE-400): createItem reads the entire request body without a size limit, allowing a client to exhaust server memory with a sufficiently large body.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "invalid-input-accepted in `createItem` (line 60, CWE-20): The JSON unmarshal error is ignored, so malformed or non-JSON input is stored as an item and receives a success response.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "nil-pointer-dereference in `viewItem` (line 80, CWE-476): Creating an item without a supplier leaves Supplier nil, and viewing that item dereferences it and panics.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "concurrent-inventory-update in `reserveHandler` (line 95, CWE-362): Concurrent reserve requests read and update the shared item without synchronization, so they can race and leave stock and reserved counts inconsistent or allow overselling.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "negative-quantity in `reserveHandler` (line 96, CWE-20): A negative reserve quantity passes the stock check and increases stock while decreasing reserved inventory.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "invalid-release-quantity in `releaseHandler` (line 117, CWE-20): Release accepts negative quantities and quantities greater than the reservation, allowing clients to make reserved stock negative or fabricate stock.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "invalid-restock-quantity in `restockHandler` (line 133, CWE-20): Negative pack values are accepted and the int32 multiplication can overflow, allowing restocks to reduce stock or produce an unintended quantity.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "request-triggered-panic in `reportHandler` (line 143, CWE-248): The unvalidated limit is used directly as a slice bound, so a negative, malformed, or greater-than-item-count limit can panic the handler.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "reflected-xss in `searchHandler` (line 163, CWE-79): The query parameter is written into HTML without escaping, so a crafted q value can execute script in a client's browser.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "search-results-omitted in `searchHandler` (line 163): The handler computes matching items but returns only the query string, so search requests never return the results.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "hard-coded-credential (line 9, CWE-798): The reset token is a fixed credential embedded in the source, allowing anyone who obtains the code to authorize a reset request.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "unclosed-file in `auditRequests` (line 33, CWE-775): auditRequests opens requests.log for every request but never closes the file, allowing repeated requests to exhaust the process's file descriptors.",
+          "status": "defect_evidence"
         }
       ],
       "finding_counts": {
@@ -400,7 +1464,7 @@
           "file": "calc.go",
           "line": 25,
           "rule": "log-injection",
-          "message": "SKU values are accepted without newline validation and written directly to the movement log, so a SKU containing a newline can forge additional log entries.",
+          "message": "A SKU containing a newline is accepted and written verbatim, allowing a client to forge entries in `movements.log` by creating and then reserving that SKU.",
           "cwe": [
             117
           ],
@@ -409,18 +1473,26 @@
         {
           "file": "handlers.go",
           "line": 64,
-          "rule": "trailing-json-accepted",
-          "message": "The decoder accepts the first JSON value without checking for EOF, so a request containing a valid item followed by extra JSON or garbage is accepted as a successful creation.",
+          "rule": "resource-exhaustion",
+          "message": "The decoder reads an unbounded client-controlled body and can allocate arbitrarily large names or location arrays, allowing memory exhaustion.",
           "cwe": [
-            20
+            400
           ],
           "function": "createItem"
         },
         {
           "file": "handlers.go",
+          "line": 79,
+          "rule": "inventory-data-overwrite",
+          "message": "Posting an existing SKU silently replaces its item, resetting its reserved quantity and allowing inventory state to be overwritten.",
+          "cwe": [],
+          "function": "createItem"
+        },
+        {
+          "file": "handlers.go",
           "line": 80,
-          "rule": "concurrent-data-access",
-          "message": "The item pointer is stored before it is encoded in the response, so a concurrent update to the same SKU can mutate it while the JSON encoder reads it, causing a data race or inconsistent response.",
+          "rule": "race-condition",
+          "message": "This serializes the same item pointer stored in the inventory while concurrent updates can mutate it, causing a data race and potentially inconsistent responses.",
           "cwe": [
             362
           ],
@@ -430,7 +1502,7 @@
           "file": "handlers.go",
           "line": 160,
           "rule": "integer-overflow",
-          "message": "Adding the released quantity to stock can overflow int32; for example, restock stock to MaxInt32 while a reservation remains, then release that reservation.",
+          "message": "Adding released quantity to stock can overflow int32; for example, restocking to MaxInt32 while one unit is reserved and then releasing it wraps stock negative.",
           "cwe": [
             190
           ],
@@ -439,8 +1511,8 @@
         {
           "file": "handlers.go",
           "line": 217,
-          "rule": "search-results-discarded",
-          "message": "The handler computes and sorts matching items but returns only the escaped query, so search requests never return the matching inventory records.",
+          "rule": "missing-search-results",
+          "message": "The handler computes and sorts matches but returns only the query, so search requests never receive their matching items.",
           "cwe": [],
           "function": "searchHandler"
         },
@@ -448,7 +1520,7 @@
           "file": "main.go",
           "line": 35,
           "rule": "log-injection",
-          "message": "The decoded request path is written to the audit log without neutralizing line breaks, so a path containing an encoded newline can forge additional log entries.",
+          "message": "A request path containing percent-encoded newlines is decoded into `r.URL.Path` and written verbatim, allowing a client to forge entries in `requests.log`.",
           "cwe": [
             117
           ],
@@ -458,1116 +1530,66 @@
       "fixed_invalid_findings": [],
       "fixed_tool_errors": 0,
       "fixed_usage": {
-        "prompt_tokens": 7820,
-        "completion_tokens": 3492,
-        "cost_usd": 0.002723425,
-        "seconds": 51.4,
+        "prompt_tokens": 4580,
+        "completion_tokens": 3454,
+        "cost_usd": 0.00177307,
+        "seconds": 41.82,
         "attempts": 1
       },
       "fixed": {
         "defects": 11,
-        "still_reported": [
-          "GO01-D10"
-        ],
-        "false_alarms": 6,
+        "still_reported": [],
+        "false_alarms": 7,
         "findings": [
           {
             "file": "calc.go",
             "kind": "baseline",
-            "text": "log-injection in `appendMovement` (line 25, CWE-117): SKU values are accepted without newline validation and written directly to the movement log, so a SKU containing a newline can forge additional log entries.",
+            "text": "log-injection in `appendMovement` (line 25, CWE-117): A SKU containing a newline is accepted and written verbatim, allowing a client to forge entries in `movements.log` by creating and then reserving that SKU.",
             "status": "unreviewed"
           },
           {
             "file": "handlers.go",
             "kind": "baseline",
-            "text": "trailing-json-accepted in `createItem` (line 64, CWE-20): The decoder accepts the first JSON value without checking for EOF, so a request containing a valid item followed by extra JSON or garbage is accepted as a successful creation.",
+            "text": "resource-exhaustion in `createItem` (line 64, CWE-400): The decoder reads an unbounded client-controlled body and can allocate arbitrarily large names or location arrays, allowing memory exhaustion.",
             "status": "unreviewed"
           },
           {
             "file": "handlers.go",
             "kind": "baseline",
-            "text": "concurrent-data-access in `createItem` (line 80, CWE-362): The item pointer is stored before it is encoded in the response, so a concurrent update to the same SKU can mutate it while the JSON encoder reads it, causing a data race or inconsistent response.",
+            "text": "inventory-data-overwrite in `createItem` (line 79): Posting an existing SKU silently replaces its item, resetting its reserved quantity and allowing inventory state to be overwritten.",
             "status": "unreviewed"
           },
           {
             "file": "handlers.go",
             "kind": "baseline",
-            "text": "integer-overflow in `releaseHandler` (line 160, CWE-190): Adding the released quantity to stock can overflow int32; for example, restock stock to MaxInt32 while a reservation remains, then release that reservation.",
+            "text": "race-condition in `createItem` (line 80, CWE-362): This serializes the same item pointer stored in the inventory while concurrent updates can mutate it, causing a data race and potentially inconsistent responses.",
             "status": "unreviewed"
           },
           {
             "file": "handlers.go",
             "kind": "baseline",
-            "text": "search-results-discarded in `searchHandler` (line 217): The handler computes and sorts matching items but returns only the escaped query, so search requests never return the matching inventory records.",
+            "text": "integer-overflow in `releaseHandler` (line 160, CWE-190): Adding released quantity to stock can overflow int32; for example, restocking to MaxInt32 while one unit is reserved and then releasing it wraps stock negative.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "missing-search-results in `searchHandler` (line 217): The handler computes and sorts matches but returns only the query, so search requests never receive their matching items.",
             "status": "unreviewed"
           },
           {
             "file": "main.go",
             "kind": "baseline",
-            "text": "log-injection in `auditRequests` (line 35, CWE-117): The decoded request path is written to the audit log without neutralizing line breaks, so a path containing an encoded newline can forge additional log entries.",
+            "text": "log-injection in `auditRequests` (line 35, CWE-117): A request path containing percent-encoded newlines is decoded into `r.URL.Path` and written verbatim, allowing a client to forge entries in `requests.log`.",
             "status": "unreviewed"
           }
         ],
         "finding_counts": {
-          "total": 6,
+          "total": 7,
           "defect_evidence": 0,
           "real": 0,
           "false_positive": 0,
-          "unreviewed": 6
-        },
-        "reviews_used": []
-      }
-    },
-    {
-      "run": 2,
-      "raw_findings": [
-        {
-          "file": "calc.go",
-          "line": 12,
-          "rule": "division-by-zero",
-          "message": "Rendering an item with an empty `locations` slice divides by zero and panics.",
-          "cwe": [
-            369
-          ],
-          "function": "reorderPoint"
-        },
-        {
-          "file": "handlers.go",
-          "line": 44,
-          "rule": "unchecked-index",
-          "message": "A GET request to `/items` produces too few path components for index 3 and panics instead of returning a client error.",
-          "cwe": [
-            129
-          ],
-          "function": "itemHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 58,
-          "rule": "unbounded-request-body",
-          "message": "The handler reads the entire request body without a size limit, allowing a client to consume excessive memory with a large body.",
-          "cwe": [
-            400
-          ],
-          "function": "createItem"
-        },
-        {
-          "file": "handlers.go",
-          "line": 60,
-          "rule": "unchecked-json-error",
-          "message": "The JSON unmarshal error is ignored, so malformed item JSON is accepted and can create an unintended zero-valued item.",
-          "cwe": [
-            20
-          ],
-          "function": "createItem"
-        },
-        {
-          "file": "handlers.go",
-          "line": 80,
-          "rule": "nil-dereference",
-          "message": "Rendering an item whose supplier is nil dereferences `item.Supplier` and panics.",
-          "cwe": [
-            476
-          ],
-          "function": "viewItem"
-        },
-        {
-          "file": "handlers.go",
-          "line": 96,
-          "rule": "negative-quantity",
-          "message": "A negative reserve quantity passes the stock check and increases stock while decreasing the reserved quantity.",
-          "cwe": [
-            20
-          ],
-          "function": "reserveHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 117,
-          "rule": "unvalidated-release-quantity",
-          "message": "The release quantity is not checked against the reserved amount, so releasing too much makes `reserved` negative and inflates stock.",
-          "cwe": [
-            20
-          ],
-          "function": "releaseHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 133,
-          "rule": "integer-overflow",
-          "message": "The `int32` multiplication and stock addition can overflow for large restock values, producing an incorrect wrapped stock count.",
-          "cwe": [
-            190
-          ],
-          "function": "restockHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 133,
-          "rule": "negative-restock-quantity",
-          "message": "Negative pack counts or pack sizes are accepted and can make a restock reduce stock.",
-          "cwe": [
-            20
-          ],
-          "function": "restockHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 143,
-          "rule": "unchecked-slice-bounds",
-          "message": "A negative or greater-than-item-count `limit` slices outside the available items and panics.",
-          "cwe": [
-            129
-          ],
-          "function": "reportHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 163,
-          "rule": "reflected-xss",
-          "message": "The search query is inserted into an HTML response without escaping, so a query containing markup or script executes in a browser.",
-          "cwe": [
-            79
-          ],
-          "function": "searchHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 163,
-          "rule": "search-results-discarded",
-          "message": "The handler computes matching items but responds only with the query, so callers never receive the search results.",
-          "cwe": [],
-          "function": "searchHandler"
-        },
-        {
-          "file": "main.go",
-          "line": 9,
-          "rule": "hardcoded-credentials",
-          "message": "The reset endpoint's authorization token is a constant in source, so anyone with access to the source can send it and clear the inventory.",
-          "cwe": [
-            798
-          ],
-          "function": null
-        },
-        {
-          "file": "main.go",
-          "line": 33,
-          "rule": "unreleased-resource",
-          "message": "Each successfully opened request log file is left open, so repeated requests can exhaust the server's file descriptors.",
-          "cwe": [
-            775
-          ],
-          "function": "auditRequests"
-        },
-        {
-          "file": "store.go",
-          "line": 33,
-          "rule": "duplicate-item-overwrite",
-          "message": "Creating an item with an existing SKU silently replaces it, which can erase its current stock and reservations.",
-          "cwe": [],
-          "function": "Put"
-        },
-        {
-          "file": "store.go",
-          "line": 39,
-          "rule": "unsynchronized-shared-state",
-          "message": "`Get` returns a mutable item pointer after releasing the store lock, allowing concurrent handlers to race on item fields and lose or corrupt inventory updates.",
-          "cwe": [
-            362
-          ],
-          "function": "Get"
-        }
-      ],
-      "invalid_findings": [],
-      "tool_errors": 0,
-      "usage": {
-        "prompt_tokens": 6750,
-        "completion_tokens": 3156,
-        "cost_usd": 0.00164577,
-        "seconds": 43.14,
-        "attempts": 1
-      },
-      "defects": [
-        {
-          "id": "GO01-D01",
-          "file": "handlers.go",
-          "function": "reserveHandler",
-          "category": "race-condition",
-          "class": "design",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "negative-quantity in `reserveHandler` (line 96, CWE-20): A negative reserve quantity passes the stock check and increases stock while decreasing the reserved quantity."
-          ]
-        },
-        {
-          "id": "GO01-D02",
-          "file": "handlers.go",
-          "function": "restockHandler",
-          "category": "integer-overflow",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "integer-overflow in `restockHandler` (line 133, CWE-190): The `int32` multiplication and stock addition can overflow for large restock values, producing an incorrect wrapped stock count."
-          ]
-        },
-        {
-          "id": "GO01-D03",
-          "file": "handlers.go",
-          "function": "releaseHandler",
-          "category": "invariant-violation",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "unvalidated-release-quantity in `releaseHandler` (line 117, CWE-20): The release quantity is not checked against the reserved amount, so releasing too much makes `reserved` negative and inflates stock."
-          ]
-        },
-        {
-          "id": "GO01-D04",
-          "file": "handlers.go",
-          "function": "itemHandler",
-          "category": "out-of-bounds",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "unchecked-index in `itemHandler` (line 44, CWE-129): A GET request to `/items` produces too few path components for index 3 and panics instead of returning a client error."
-          ]
-        },
-        {
-          "id": "GO01-D05",
-          "file": "calc.go",
-          "function": "reorderPoint",
-          "category": "division-by-zero",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "division-by-zero in `reorderPoint` (line 12, CWE-369): Rendering an item with an empty `locations` slice divides by zero and panics."
-          ]
-        },
-        {
-          "id": "GO01-D06",
-          "file": "handlers.go",
-          "function": "viewItem",
-          "category": "null-dereference",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "nil-dereference in `viewItem` (line 80, CWE-476): Rendering an item whose supplier is nil dereferences `item.Supplier` and panics."
-          ]
-        },
-        {
-          "id": "GO01-D07",
-          "file": "handlers.go",
-          "function": "reportHandler",
-          "category": "out-of-bounds",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "unchecked-slice-bounds in `reportHandler` (line 143, CWE-129): A negative or greater-than-item-count `limit` slices outside the available items and panics."
-          ]
-        },
-        {
-          "id": "GO01-D08",
-          "file": "main.go",
-          "function": "auditRequests",
-          "category": "resource-leak",
-          "class": "bug",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "unreleased-resource in `auditRequests` (line 33, CWE-775): Each successfully opened request log file is left open, so repeated requests can exhaust the server's file descriptors."
-          ]
-        },
-        {
-          "id": "GO01-D09",
-          "file": "handlers.go",
-          "function": "createItem",
-          "category": "error-handling",
-          "class": "bug",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "unbounded-request-body in `createItem` (line 58, CWE-400): The handler reads the entire request body without a size limit, allowing a client to consume excessive memory with a large body.",
-            "unchecked-json-error in `createItem` (line 60, CWE-20): The JSON unmarshal error is ignored, so malformed item JSON is accepted and can create an unintended zero-valued item."
-          ]
-        },
-        {
-          "id": "GO01-D10",
-          "file": "handlers.go",
-          "function": "searchHandler",
-          "category": "xss",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "reflected-xss in `searchHandler` (line 163, CWE-79): The search query is inserted into an HTML response without escaping, so a query containing markup or script executes in a browser."
-          ]
-        },
-        {
-          "id": "GO01-D11",
-          "file": "main.go",
-          "function": "main",
-          "category": "hardcoded-secret",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "hardcoded-credentials (line 9, CWE-798): The reset endpoint's authorization token is a constant in source, so anyone with access to the source can send it and clear the inventory."
-          ]
-        }
-      ],
-      "counts": {
-        "total": 11,
-        "detected": 9,
-        "function_flagged": 2,
-        "missed": 0
-      },
-      "findings": [
-        {
-          "file": "calc.go",
-          "kind": "baseline",
-          "text": "division-by-zero in `reorderPoint` (line 12, CWE-369): Rendering an item with an empty `locations` slice divides by zero and panics.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "unchecked-index in `itemHandler` (line 44, CWE-129): A GET request to `/items` produces too few path components for index 3 and panics instead of returning a client error.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "unbounded-request-body in `createItem` (line 58, CWE-400): The handler reads the entire request body without a size limit, allowing a client to consume excessive memory with a large body.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "unchecked-json-error in `createItem` (line 60, CWE-20): The JSON unmarshal error is ignored, so malformed item JSON is accepted and can create an unintended zero-valued item.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "nil-dereference in `viewItem` (line 80, CWE-476): Rendering an item whose supplier is nil dereferences `item.Supplier` and panics.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "negative-quantity in `reserveHandler` (line 96, CWE-20): A negative reserve quantity passes the stock check and increases stock while decreasing the reserved quantity.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "unvalidated-release-quantity in `releaseHandler` (line 117, CWE-20): The release quantity is not checked against the reserved amount, so releasing too much makes `reserved` negative and inflates stock.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "integer-overflow in `restockHandler` (line 133, CWE-190): The `int32` multiplication and stock addition can overflow for large restock values, producing an incorrect wrapped stock count.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "negative-restock-quantity in `restockHandler` (line 133, CWE-20): Negative pack counts or pack sizes are accepted and can make a restock reduce stock.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "unchecked-slice-bounds in `reportHandler` (line 143, CWE-129): A negative or greater-than-item-count `limit` slices outside the available items and panics.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "reflected-xss in `searchHandler` (line 163, CWE-79): The search query is inserted into an HTML response without escaping, so a query containing markup or script executes in a browser.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "search-results-discarded in `searchHandler` (line 163): The handler computes matching items but responds only with the query, so callers never receive the search results.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "main.go",
-          "kind": "baseline",
-          "text": "hardcoded-credentials (line 9, CWE-798): The reset endpoint's authorization token is a constant in source, so anyone with access to the source can send it and clear the inventory.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "main.go",
-          "kind": "baseline",
-          "text": "unreleased-resource in `auditRequests` (line 33, CWE-775): Each successfully opened request log file is left open, so repeated requests can exhaust the server's file descriptors.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "store.go",
-          "kind": "baseline",
-          "text": "duplicate-item-overwrite in `Put` (line 33): Creating an item with an existing SKU silently replaces it, which can erase its current stock and reservations.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "store.go",
-          "kind": "baseline",
-          "text": "unsynchronized-shared-state in `Get` (line 39, CWE-362): `Get` returns a mutable item pointer after releasing the store lock, allowing concurrent handlers to race on item fields and lose or corrupt inventory updates.",
-          "status": "unreviewed"
-        }
-      ],
-      "finding_counts": {
-        "total": 16,
-        "defect_evidence": 9,
-        "real": 0,
-        "false_positive": 0,
-        "unreviewed": 7
-      },
-      "reviews_used": [],
-      "fixed_raw_findings": [
-        {
-          "file": "handlers.go",
-          "line": 64,
-          "rule": "unbounded-request-body",
-          "message": "The JSON decoder has no request-body size limit, so a client can submit a huge name or locations array and exhaust server memory.",
-          "cwe": [
-            400
-          ],
-          "function": "createItem"
-        },
-        {
-          "file": "handlers.go",
-          "line": 68,
-          "rule": "unaddressable-sku",
-          "message": "A SKU containing `/` is accepted here, but the item GET handler rejects paths containing `/`, leaving the created item unreachable through its documented lookup endpoint.",
-          "cwe": [],
-          "function": "createItem"
-        },
-        {
-          "file": "handlers.go",
-          "line": 79,
-          "rule": "duplicate-create-overwrites-item",
-          "message": "Creating an item with an existing SKU silently replaces its record, so a repeated request can discard the existing stock and reserved quantities.",
-          "cwe": [],
-          "function": "createItem"
-        },
-        {
-          "file": "handlers.go",
-          "line": 160,
-          "rule": "integer-overflow",
-          "message": "This addition has no overflow check; after reserving stock and restocking while a reservation remains, releasing it can wrap stock to a negative value.",
-          "cwe": [
-            190
-          ],
-          "function": "releaseHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 217,
-          "rule": "search-results-omitted",
-          "message": "The handler computes matching items but returns only the escaped query, so searches never return the inventory results the endpoint promises.",
-          "cwe": [],
-          "function": "searchHandler"
-        },
-        {
-          "file": "main.go",
-          "line": 35,
-          "rule": "log-injection",
-          "message": "The decoded request path is written to the audit log without escaping, so a path containing an encoded newline can forge additional log entries.",
-          "cwe": [
-            117
-          ],
-          "function": "auditRequests"
-        }
-      ],
-      "fixed_invalid_findings": [],
-      "fixed_tool_errors": 0,
-      "fixed_usage": {
-        "prompt_tokens": 7820,
-        "completion_tokens": 4528,
-        "cost_usd": 0.00234247,
-        "seconds": 67.36,
-        "attempts": 1
-      },
-      "fixed": {
-        "defects": 11,
-        "still_reported": [
-          "GO01-D10"
-        ],
-        "false_alarms": 6,
-        "findings": [
-          {
-            "file": "handlers.go",
-            "kind": "baseline",
-            "text": "unbounded-request-body in `createItem` (line 64, CWE-400): The JSON decoder has no request-body size limit, so a client can submit a huge name or locations array and exhaust server memory.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "handlers.go",
-            "kind": "baseline",
-            "text": "unaddressable-sku in `createItem` (line 68): A SKU containing `/` is accepted here, but the item GET handler rejects paths containing `/`, leaving the created item unreachable through its documented lookup endpoint.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "handlers.go",
-            "kind": "baseline",
-            "text": "duplicate-create-overwrites-item in `createItem` (line 79): Creating an item with an existing SKU silently replaces its record, so a repeated request can discard the existing stock and reserved quantities.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "handlers.go",
-            "kind": "baseline",
-            "text": "integer-overflow in `releaseHandler` (line 160, CWE-190): This addition has no overflow check; after reserving stock and restocking while a reservation remains, releasing it can wrap stock to a negative value.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "handlers.go",
-            "kind": "baseline",
-            "text": "search-results-omitted in `searchHandler` (line 217): The handler computes matching items but returns only the escaped query, so searches never return the inventory results the endpoint promises.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "main.go",
-            "kind": "baseline",
-            "text": "log-injection in `auditRequests` (line 35, CWE-117): The decoded request path is written to the audit log without escaping, so a path containing an encoded newline can forge additional log entries.",
-            "status": "unreviewed"
-          }
-        ],
-        "finding_counts": {
-          "total": 6,
-          "defect_evidence": 0,
-          "real": 0,
-          "false_positive": 0,
-          "unreviewed": 6
-        },
-        "reviews_used": []
-      }
-    },
-    {
-      "run": 3,
-      "raw_findings": [
-        {
-          "file": "calc.go",
-          "line": 22,
-          "rule": "log-injection",
-          "message": "The user-controlled SKU is written verbatim to the movement log, so an SKU containing newlines can forge additional log entries.",
-          "cwe": [
-            117
-          ],
-          "function": "appendMovement"
-        },
-        {
-          "file": "handlers.go",
-          "line": 44,
-          "rule": "panic-on-short-path",
-          "message": "A request such as `GET /items` produces too few path parts and panics at this index, causing the request to fail instead of returning a client error.",
-          "cwe": [
-            248
-          ],
-          "function": "itemHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 58,
-          "rule": "unbounded-request-body",
-          "message": "The handler reads the entire request body without a size limit, so a client can exhaust server memory by sending an oversized item request.",
-          "cwe": [
-            400
-          ],
-          "function": "createItem"
-        },
-        {
-          "file": "handlers.go",
-          "line": 60,
-          "rule": "ignored-json-errors",
-          "message": "JSON decoding errors are ignored, so malformed or non-JSON bodies are accepted as zero-valued item data and stored.",
-          "cwe": [
-            20
-          ],
-          "function": "createItem"
-        },
-        {
-          "file": "handlers.go",
-          "line": 79,
-          "rule": "division-by-zero",
-          "message": "An item with an empty locations slice causes `reorderPoint` to divide by zero when this view is generated, such as on `GET /items/{sku}` or a report.",
-          "cwe": [
-            369
-          ],
-          "function": "viewItem"
-        },
-        {
-          "file": "handlers.go",
-          "line": 80,
-          "rule": "nil-pointer-dereference",
-          "message": "Creating an item without a supplier leaves this pointer nil, and viewing that item dereferences it and panics.",
-          "cwe": [
-            476
-          ],
-          "function": "viewItem"
-        },
-        {
-          "file": "handlers.go",
-          "line": 96,
-          "rule": "negative-quantity-accepted",
-          "message": "Movement quantities and restock counts are not validated as nonnegative, so negative values can increase stock or reduce reservations in unintended ways.",
-          "cwe": [
-            20
-          ],
-          "function": "reserveHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 101,
-          "rule": "unsynchronized-inventory-update",
-          "message": "Concurrent requests can read and modify the same item fields without synchronization, causing data races and lost updates or overselling during reservations.",
-          "cwe": [
-            362
-          ],
-          "function": "reserveHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 117,
-          "rule": "over-release-allowed",
-          "message": "A release larger than the reserved quantity is accepted, allowing `Reserved` to become negative while stock is increased.",
-          "cwe": [
-            1284
-          ],
-          "function": "releaseHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 133,
-          "rule": "integer-overflow",
-          "message": "The `int32` pack multiplication and stock addition can overflow, so large restock values can wrap around and produce an incorrect or negative stock count.",
-          "cwe": [
-            190
-          ],
-          "function": "restockHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 143,
-          "rule": "unchecked-slice-bound",
-          "message": "The parsed limit is not checked against the item count or for negative values, so an out-of-range or negative limit panics when slicing.",
-          "cwe": [
-            129
-          ],
-          "function": "reportHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 163,
-          "rule": "reflected-xss",
-          "message": "The search query is inserted into an HTML response without escaping, so a request containing markup such as a script tag returns executable content.",
-          "cwe": [
-            79
-          ],
-          "function": "searchHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 163,
-          "rule": "search-results-omitted",
-          "message": "The handler computes matching items but responds with only the raw query, so searches never return the matching inventory records.",
-          "cwe": [],
-          "function": "searchHandler"
-        },
-        {
-          "file": "main.go",
-          "line": 9,
-          "rule": "hardcoded-admin-credential",
-          "message": "The reset credential is embedded in source code, allowing anyone who can inspect the code to obtain the token and clear the inventory.",
-          "cwe": [
-            798
-          ],
-          "function": null
-        },
-        {
-          "file": "main.go",
-          "line": 33,
-          "rule": "file-descriptor-leak",
-          "message": "A new request-log file descriptor is opened for every request and never closed, so repeated requests can exhaust the process's file descriptors.",
-          "cwe": [
-            775
-          ],
-          "function": "auditRequests"
-        }
-      ],
-      "invalid_findings": [],
-      "tool_errors": 0,
-      "usage": {
-        "prompt_tokens": 6750,
-        "completion_tokens": 2812,
-        "cost_usd": 0.002249675,
-        "seconds": 40.31,
-        "attempts": 1
-      },
-      "defects": [
-        {
-          "id": "GO01-D01",
-          "file": "handlers.go",
-          "function": "reserveHandler",
-          "category": "race-condition",
-          "class": "design",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "unsynchronized-inventory-update in `reserveHandler` (line 101, CWE-362): Concurrent requests can read and modify the same item fields without synchronization, causing data races and lost updates or overselling during reservations."
-          ]
-        },
-        {
-          "id": "GO01-D02",
-          "file": "handlers.go",
-          "function": "restockHandler",
-          "category": "integer-overflow",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "integer-overflow in `restockHandler` (line 133, CWE-190): The `int32` pack multiplication and stock addition can overflow, so large restock values can wrap around and produce an incorrect or negative stock count."
-          ]
-        },
-        {
-          "id": "GO01-D03",
-          "file": "handlers.go",
-          "function": "releaseHandler",
-          "category": "invariant-violation",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "function_flagged",
-          "findings": [
-            "over-release-allowed in `releaseHandler` (line 117, CWE-1284): A release larger than the reserved quantity is accepted, allowing `Reserved` to become negative while stock is increased."
-          ]
-        },
-        {
-          "id": "GO01-D04",
-          "file": "handlers.go",
-          "function": "itemHandler",
-          "category": "out-of-bounds",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "panic-on-short-path in `itemHandler` (line 44, CWE-248): A request such as `GET /items` produces too few path parts and panics at this index, causing the request to fail instead of returning a client error."
-          ]
-        },
-        {
-          "id": "GO01-D05",
-          "file": "calc.go",
-          "function": "reorderPoint",
-          "category": "division-by-zero",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "missed",
-          "findings": []
-        },
-        {
-          "id": "GO01-D06",
-          "file": "handlers.go",
-          "function": "viewItem",
-          "category": "null-dereference",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "nil-pointer-dereference in `viewItem` (line 80, CWE-476): Creating an item without a supplier leaves this pointer nil, and viewing that item dereferences it and panics."
-          ]
-        },
-        {
-          "id": "GO01-D07",
-          "file": "handlers.go",
-          "function": "reportHandler",
-          "category": "out-of-bounds",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "unchecked-slice-bound in `reportHandler` (line 143, CWE-129): The parsed limit is not checked against the item count or for negative values, so an out-of-range or negative limit panics when slicing."
-          ]
-        },
-        {
-          "id": "GO01-D08",
-          "file": "main.go",
-          "function": "auditRequests",
-          "category": "resource-leak",
-          "class": "bug",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "file-descriptor-leak in `auditRequests` (line 33, CWE-775): A new request-log file descriptor is opened for every request and never closed, so repeated requests can exhaust the process's file descriptors."
-          ]
-        },
-        {
-          "id": "GO01-D09",
-          "file": "handlers.go",
-          "function": "createItem",
-          "category": "error-handling",
-          "class": "bug",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "unbounded-request-body in `createItem` (line 58, CWE-400): The handler reads the entire request body without a size limit, so a client can exhaust server memory by sending an oversized item request.",
-            "ignored-json-errors in `createItem` (line 60, CWE-20): JSON decoding errors are ignored, so malformed or non-JSON bodies are accepted as zero-valued item data and stored."
-          ]
-        },
-        {
-          "id": "GO01-D10",
-          "file": "handlers.go",
-          "function": "searchHandler",
-          "category": "xss",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "reflected-xss in `searchHandler` (line 163, CWE-79): The search query is inserted into an HTML response without escaping, so a request containing markup such as a script tag returns executable content."
-          ]
-        },
-        {
-          "id": "GO01-D11",
-          "file": "main.go",
-          "function": "main",
-          "category": "hardcoded-secret",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "hardcoded-admin-credential (line 9, CWE-798): The reset credential is embedded in source code, allowing anyone who can inspect the code to obtain the token and clear the inventory."
-          ]
-        }
-      ],
-      "counts": {
-        "total": 11,
-        "detected": 8,
-        "function_flagged": 2,
-        "missed": 1
-      },
-      "findings": [
-        {
-          "file": "calc.go",
-          "kind": "baseline",
-          "text": "log-injection in `appendMovement` (line 22, CWE-117): The user-controlled SKU is written verbatim to the movement log, so an SKU containing newlines can forge additional log entries.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "panic-on-short-path in `itemHandler` (line 44, CWE-248): A request such as `GET /items` produces too few path parts and panics at this index, causing the request to fail instead of returning a client error.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "unbounded-request-body in `createItem` (line 58, CWE-400): The handler reads the entire request body without a size limit, so a client can exhaust server memory by sending an oversized item request.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "ignored-json-errors in `createItem` (line 60, CWE-20): JSON decoding errors are ignored, so malformed or non-JSON bodies are accepted as zero-valued item data and stored.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "division-by-zero in `viewItem` (line 79, CWE-369): An item with an empty locations slice causes `reorderPoint` to divide by zero when this view is generated, such as on `GET /items/{sku}` or a report.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "nil-pointer-dereference in `viewItem` (line 80, CWE-476): Creating an item without a supplier leaves this pointer nil, and viewing that item dereferences it and panics.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "negative-quantity-accepted in `reserveHandler` (line 96, CWE-20): Movement quantities and restock counts are not validated as nonnegative, so negative values can increase stock or reduce reservations in unintended ways.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "unsynchronized-inventory-update in `reserveHandler` (line 101, CWE-362): Concurrent requests can read and modify the same item fields without synchronization, causing data races and lost updates or overselling during reservations.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "over-release-allowed in `releaseHandler` (line 117, CWE-1284): A release larger than the reserved quantity is accepted, allowing `Reserved` to become negative while stock is increased.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "integer-overflow in `restockHandler` (line 133, CWE-190): The `int32` pack multiplication and stock addition can overflow, so large restock values can wrap around and produce an incorrect or negative stock count.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "unchecked-slice-bound in `reportHandler` (line 143, CWE-129): The parsed limit is not checked against the item count or for negative values, so an out-of-range or negative limit panics when slicing.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "reflected-xss in `searchHandler` (line 163, CWE-79): The search query is inserted into an HTML response without escaping, so a request containing markup such as a script tag returns executable content.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "handlers.go",
-          "kind": "baseline",
-          "text": "search-results-omitted in `searchHandler` (line 163): The handler computes matching items but responds with only the raw query, so searches never return the matching inventory records.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "main.go",
-          "kind": "baseline",
-          "text": "hardcoded-admin-credential (line 9, CWE-798): The reset credential is embedded in source code, allowing anyone who can inspect the code to obtain the token and clear the inventory.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "main.go",
-          "kind": "baseline",
-          "text": "file-descriptor-leak in `auditRequests` (line 33, CWE-775): A new request-log file descriptor is opened for every request and never closed, so repeated requests can exhaust the process's file descriptors.",
-          "status": "defect_evidence"
-        }
-      ],
-      "finding_counts": {
-        "total": 15,
-        "defect_evidence": 8,
-        "real": 0,
-        "false_positive": 0,
-        "unreviewed": 7
-      },
-      "reviews_used": [],
-      "fixed_raw_findings": [
-        {
-          "file": "handlers.go",
-          "line": 64,
-          "rule": "unbounded-request-body",
-          "message": "The JSON decoder has no request-size limit, so a client can submit a huge item body that requires excessive memory and can exhaust the service.",
-          "cwe": [
-            400
-          ],
-          "function": "createItem"
-        },
-        {
-          "file": "handlers.go",
-          "line": 123,
-          "rule": "http-method-enforcement",
-          "message": "The reservation, release, and restock handlers do not check the HTTP method, so a request using GET or another method with a JSON body can still mutate inventory.",
-          "cwe": [],
-          "function": "reserveHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 160,
-          "rule": "integer-overflow",
-          "message": "Releasing adds to Stock without checking int32 overflow; after reserving stock and restocking while a reservation remains, a valid release can wrap Stock negative.",
-          "cwe": [
-            190
-          ],
-          "function": "releaseHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 217,
-          "rule": "search-results-omitted",
-          "message": "The handler computes matching items but returns only the escaped query, so every search request omits the results it is documented to provide.",
-          "cwe": [],
-          "function": "searchHandler"
-        },
-        {
-          "file": "handlers.go",
-          "line": 220,
-          "rule": "http-method-enforcement",
-          "message": "The reset handler accepts any HTTP method, so an authorized GET request can perform the destructive reset despite the endpoint being documented as POST.",
-          "cwe": [],
-          "function": "resetHandler"
-        },
-        {
-          "file": "main.go",
-          "line": 35,
-          "rule": "log-injection",
-          "message": "The raw URL path is written to the audit log without neutralizing newlines, so a request path containing an encoded newline can forge additional log entries.",
-          "cwe": [
-            117
-          ],
-          "function": "auditRequests"
-        }
-      ],
-      "fixed_invalid_findings": [],
-      "fixed_tool_errors": 0,
-      "fixed_usage": {
-        "prompt_tokens": 7820,
-        "completion_tokens": 4109,
-        "cost_usd": 0.00213297,
-        "seconds": 59.68,
-        "attempts": 1
-      },
-      "fixed": {
-        "defects": 11,
-        "still_reported": [
-          "GO01-D10"
-        ],
-        "false_alarms": 6,
-        "findings": [
-          {
-            "file": "handlers.go",
-            "kind": "baseline",
-            "text": "unbounded-request-body in `createItem` (line 64, CWE-400): The JSON decoder has no request-size limit, so a client can submit a huge item body that requires excessive memory and can exhaust the service.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "handlers.go",
-            "kind": "baseline",
-            "text": "http-method-enforcement in `reserveHandler` (line 123): The reservation, release, and restock handlers do not check the HTTP method, so a request using GET or another method with a JSON body can still mutate inventory.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "handlers.go",
-            "kind": "baseline",
-            "text": "integer-overflow in `releaseHandler` (line 160, CWE-190): Releasing adds to Stock without checking int32 overflow; after reserving stock and restocking while a reservation remains, a valid release can wrap Stock negative.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "handlers.go",
-            "kind": "baseline",
-            "text": "search-results-omitted in `searchHandler` (line 217): The handler computes matching items but returns only the escaped query, so every search request omits the results it is documented to provide.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "handlers.go",
-            "kind": "baseline",
-            "text": "http-method-enforcement in `resetHandler` (line 220): The reset handler accepts any HTTP method, so an authorized GET request can perform the destructive reset despite the endpoint being documented as POST.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "main.go",
-            "kind": "baseline",
-            "text": "log-injection in `auditRequests` (line 35, CWE-117): The raw URL path is written to the audit log without neutralizing newlines, so a request path containing an encoded newline can forge additional log entries.",
-            "status": "unreviewed"
-          }
-        ],
-        "finding_counts": {
-          "total": 6,
-          "defect_evidence": 0,
-          "real": 0,
-          "false_positive": 0,
-          "unreviewed": 6
+          "unreviewed": 7
         },
         "reviews_used": []
       }

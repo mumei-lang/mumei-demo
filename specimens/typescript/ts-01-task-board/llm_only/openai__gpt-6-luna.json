@@ -3,10 +3,10 @@
   "language": "typescript",
   "tool": "llm-only",
   "model": "openai/gpt-6-luna",
-  "prompt_version": 1,
-  "prompt_hash": "50865386f4c2f5d6",
+  "prompt_version": 2,
+  "prompt_hash": "2fd1a1213dca8cce",
   "temperature": 0,
-  "generated_at": "2026-11-03T04:59:40Z",
+  "generated_at": "2026-11-03T06:16:58Z",
   "source_hash": "6bb7847600bb5841c7963e094222d5adbc986c2824fd3e900cd373e7b64c8f02",
   "runs": [
     {
@@ -15,8 +15,8 @@
         {
           "file": "board.ts",
           "line": 55,
-          "rule": "workflow-bypass",
-          "message": "Adjacent-column checks allow a task in `done` to move back to `review`, despite the advertised workflow allowing only `archived` from `done`.",
+          "rule": "workflow-transition-bypass",
+          "message": "Adjacency-based movement allows `done` tasks to move back to `review`, although `NEXT_STATUSES` advertises only `archived` as an allowed next status for `done`.",
           "cwe": [
             841
           ],
@@ -24,9 +24,9 @@
         },
         {
           "file": "board.ts",
-          "line": 61,
+          "line": 62,
           "rule": "invalid-priority-accepted",
-          "message": "`parseInt` accepts malformed values such as `\"2abc\"` and returns `NaN` for non-numeric input, so invalid priorities can be stored and serialized as `null`.",
+          "message": "`parseInt` accepts numeric prefixes and returns `NaN` for nonnumeric input, while both range comparisons let those values through, so priorities such as `2junk` or `foo` are stored as invalid values.",
           "cwe": [
             20
           ],
@@ -36,473 +36,7 @@
           "file": "board.ts",
           "line": 91,
           "rule": "mass-assignment",
-          "message": "Spreading the entire patch lets an owner overwrite protected fields such as `ownerId`, `id`, and `status`, enabling ownership changes and workflow bypasses.",
-          "cwe": [
-            915
-          ],
-          "function": "applyPatch"
-        },
-        {
-          "file": "board.ts",
-          "line": 95,
-          "rule": "missing-task-crash",
-          "message": "When the requested task ID does not exist, `find` returns `undefined` and the next line dereferences it, causing a 500 instead of a not-found response.",
-          "cwe": [
-            476
-          ],
-          "function": "moveTask"
-        },
-        {
-          "file": "board.ts",
-          "line": 106,
-          "rule": "incorrect-column-order",
-          "message": "The default array sort compares numeric IDs as strings, so IDs such as 10 can appear before 2 instead of in oldest-first order.",
-          "cwe": [],
-          "function": "columnOrder"
-        },
-        {
-          "file": "board.ts",
-          "line": 113,
-          "rule": "empty-board-completion",
-          "message": "With no active tasks this divides by zero, producing `NaN` and a `null` completion value in the JSON response.",
-          "cwe": [
-            682
-          ],
-          "function": "completionPercent"
-        },
-        {
-          "file": "board.ts",
-          "line": 127,
-          "rule": "regex-denial-of-service",
-          "message": "Compiling the caller-controlled search query as a regular expression allows catastrophic-backtracking patterns to block the server while tasks are searched.",
-          "cwe": [
-            1333
-          ],
-          "function": "searchTasks"
-        },
-        {
-          "file": "board.ts",
-          "line": 134,
-          "rule": "pagination-drops-results",
-          "message": "Using `size - 1` as the slice endpoint returns one fewer result than the requested page size and can omit matching tasks across pages.",
-          "cwe": [],
-          "function": "paginate"
-        },
-        {
-          "file": "board.ts",
-          "line": 140,
-          "rule": "stored-html-injection",
-          "message": "Task titles are interpolated into an HTML fragment without escaping, so a title containing markup or script can execute when the search result is rendered.",
-          "cwe": [
-            79
-          ],
-          "function": "renderResults"
-        },
-        {
-          "file": "server.ts",
-          "line": 37,
-          "rule": "unbounded-request-body",
-          "message": "The handler buffers every request-body chunk without a size limit, allowing a client to exhaust server memory with a large body.",
-          "cwe": [
-            400
-          ],
-          "function": "readBody"
-        },
-        {
-          "file": "server.ts",
-          "line": 68,
-          "rule": "stack-trace-disclosure",
-          "message": "Unexpected errors are returned with their stack traces, exposing internal paths and implementation details to API callers.",
-          "cwe": [
-            209
-          ],
-          "function": "sendError"
-        },
-        {
-          "file": "server.ts",
-          "line": 73,
-          "rule": "spoofable-user-identity",
-          "message": "The server treats the caller-supplied `X-User` value as an authenticated identity, so a client can claim another user's name and bypass owner checks.",
-          "cwe": [
-            287
-          ],
-          "function": "currentUser"
-        },
-        {
-          "file": "server.ts",
-          "line": 108,
-          "rule": "missing-move-authorization",
-          "message": "The move handler never checks that the caller owns the task, allowing any caller with an `X-User` header to move another user's task.",
-          "cwe": [
-            862
-          ],
-          "function": "handleMove"
-        }
-      ],
-      "invalid_findings": [],
-      "tool_errors": 0,
-      "usage": {
-        "prompt_tokens": 8317,
-        "completion_tokens": 2461,
-        "cost_usd": 0.00131394,
-        "seconds": 34.7,
-        "attempts": 1
-      },
-      "defects": [
-        {
-          "id": "TS01-D01",
-          "file": "board.ts",
-          "function": "canMove",
-          "category": "invalid-state-transition",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "workflow-bypass in `canMove` (line 55, CWE-841): Adjacent-column checks allow a task in `done` to move back to `review`, despite the advertised workflow allowing only `archived` from `done`."
-          ]
-        },
-        {
-          "id": "TS01-D02",
-          "file": "board.ts",
-          "function": "applyPatch",
-          "category": "mass-assignment",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "mass-assignment in `applyPatch` (line 91, CWE-915): Spreading the entire patch lets an owner overwrite protected fields such as `ownerId`, `id`, and `status`, enabling ownership changes and workflow bypasses."
-          ]
-        },
-        {
-          "id": "TS01-D03",
-          "file": "board.ts",
-          "function": "moveTask",
-          "category": "null-dereference",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "missing-task-crash in `moveTask` (line 95, CWE-476): When the requested task ID does not exist, `find` returns `undefined` and the next line dereferences it, causing a 500 instead of a not-found response."
-          ]
-        },
-        {
-          "id": "TS01-D04",
-          "file": "board.ts",
-          "function": "completionPercent",
-          "category": "division-by-zero",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "empty-board-completion in `completionPercent` (line 113, CWE-682): With no active tasks this divides by zero, producing `NaN` and a `null` completion value in the JSON response."
-          ]
-        },
-        {
-          "id": "TS01-D05",
-          "file": "board.ts",
-          "function": "searchTasks",
-          "category": "redos",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "regex-denial-of-service in `searchTasks` (line 127, CWE-1333): Compiling the caller-controlled search query as a regular expression allows catastrophic-backtracking patterns to block the server while tasks are searched."
-          ]
-        },
-        {
-          "id": "TS01-D06",
-          "file": "board.ts",
-          "function": "columnOrder",
-          "category": "logic-error",
-          "class": "bug",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "incorrect-column-order in `columnOrder` (line 106): The default array sort compares numeric IDs as strings, so IDs such as 10 can appear before 2 instead of in oldest-first order."
-          ]
-        },
-        {
-          "id": "TS01-D07",
-          "file": "board.ts",
-          "function": "parsePriority",
-          "category": "missing-precondition",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "invalid-priority-accepted in `parsePriority` (line 61, CWE-20): `parseInt` accepts malformed values such as `\"2abc\"` and returns `NaN` for non-numeric input, so invalid priorities can be stored and serialized as `null`."
-          ]
-        },
-        {
-          "id": "TS01-D08",
-          "file": "board.ts",
-          "function": "renderResults",
-          "category": "xss",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "stored-html-injection in `renderResults` (line 140, CWE-79): Task titles are interpolated into an HTML fragment without escaping, so a title containing markup or script can execute when the search result is rendered."
-          ]
-        },
-        {
-          "id": "TS01-D09",
-          "file": "server.ts",
-          "function": "readBody",
-          "category": "unbounded-resource",
-          "class": "design",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "unbounded-request-body in `readBody` (line 37, CWE-400): The handler buffers every request-body chunk without a size limit, allowing a client to exhaust server memory with a large body."
-          ]
-        },
-        {
-          "id": "TS01-D10",
-          "file": "server.ts",
-          "function": "handleMove",
-          "category": "missing-authorization",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "missing-move-authorization in `handleMove` (line 108, CWE-862): The move handler never checks that the caller owns the task, allowing any caller with an `X-User` header to move another user's task."
-          ]
-        },
-        {
-          "id": "TS01-D11",
-          "file": "server.ts",
-          "function": "sendError",
-          "category": "information-exposure",
-          "class": "design",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "stack-trace-disclosure in `sendError` (line 68, CWE-209): Unexpected errors are returned with their stack traces, exposing internal paths and implementation details to API callers."
-          ]
-        },
-        {
-          "id": "TS01-D12",
-          "file": "board.ts",
-          "function": "paginate",
-          "category": "off-by-one",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "function_flagged",
-          "findings": [
-            "pagination-drops-results in `paginate` (line 134): Using `size - 1` as the slice endpoint returns one fewer result than the requested page size and can omit matching tasks across pages."
-          ]
-        }
-      ],
-      "counts": {
-        "total": 12,
-        "detected": 10,
-        "function_flagged": 2,
-        "missed": 0
-      },
-      "findings": [
-        {
-          "file": "board.ts",
-          "kind": "baseline",
-          "text": "workflow-bypass in `canMove` (line 55, CWE-841): Adjacent-column checks allow a task in `done` to move back to `review`, despite the advertised workflow allowing only `archived` from `done`.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "board.ts",
-          "kind": "baseline",
-          "text": "invalid-priority-accepted in `parsePriority` (line 61, CWE-20): `parseInt` accepts malformed values such as `\"2abc\"` and returns `NaN` for non-numeric input, so invalid priorities can be stored and serialized as `null`.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "board.ts",
-          "kind": "baseline",
-          "text": "mass-assignment in `applyPatch` (line 91, CWE-915): Spreading the entire patch lets an owner overwrite protected fields such as `ownerId`, `id`, and `status`, enabling ownership changes and workflow bypasses.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "board.ts",
-          "kind": "baseline",
-          "text": "missing-task-crash in `moveTask` (line 95, CWE-476): When the requested task ID does not exist, `find` returns `undefined` and the next line dereferences it, causing a 500 instead of a not-found response.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "board.ts",
-          "kind": "baseline",
-          "text": "incorrect-column-order in `columnOrder` (line 106): The default array sort compares numeric IDs as strings, so IDs such as 10 can appear before 2 instead of in oldest-first order.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "board.ts",
-          "kind": "baseline",
-          "text": "empty-board-completion in `completionPercent` (line 113, CWE-682): With no active tasks this divides by zero, producing `NaN` and a `null` completion value in the JSON response.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "board.ts",
-          "kind": "baseline",
-          "text": "regex-denial-of-service in `searchTasks` (line 127, CWE-1333): Compiling the caller-controlled search query as a regular expression allows catastrophic-backtracking patterns to block the server while tasks are searched.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "board.ts",
-          "kind": "baseline",
-          "text": "pagination-drops-results in `paginate` (line 134): Using `size - 1` as the slice endpoint returns one fewer result than the requested page size and can omit matching tasks across pages.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "board.ts",
-          "kind": "baseline",
-          "text": "stored-html-injection in `renderResults` (line 140, CWE-79): Task titles are interpolated into an HTML fragment without escaping, so a title containing markup or script can execute when the search result is rendered.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "server.ts",
-          "kind": "baseline",
-          "text": "unbounded-request-body in `readBody` (line 37, CWE-400): The handler buffers every request-body chunk without a size limit, allowing a client to exhaust server memory with a large body.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "server.ts",
-          "kind": "baseline",
-          "text": "stack-trace-disclosure in `sendError` (line 68, CWE-209): Unexpected errors are returned with their stack traces, exposing internal paths and implementation details to API callers.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "server.ts",
-          "kind": "baseline",
-          "text": "spoofable-user-identity in `currentUser` (line 73, CWE-287): The server treats the caller-supplied `X-User` value as an authenticated identity, so a client can claim another user's name and bypass owner checks.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "server.ts",
-          "kind": "baseline",
-          "text": "missing-move-authorization in `handleMove` (line 108, CWE-862): The move handler never checks that the caller owns the task, allowing any caller with an `X-User` header to move another user's task.",
-          "status": "defect_evidence"
-        }
-      ],
-      "finding_counts": {
-        "total": 13,
-        "defect_evidence": 10,
-        "real": 0,
-        "false_positive": 0,
-        "unreviewed": 3
-      },
-      "reviews_used": [],
-      "fixed_raw_findings": [
-        {
-          "file": "board.ts",
-          "line": 80,
-          "rule": "silent-input-coercion",
-          "message": "A non-string description on task creation is silently replaced with an empty string, so invalid input is accepted and its supplied value is lost rather than rejected.",
-          "cwe": [
-            20
-          ],
-          "function": "newTask"
-        },
-        {
-          "file": "repro.sh",
-          "line": 166,
-          "rule": "missing-input-file",
-          "message": "The script opens DEFECTS.json, which is not included in the project, so it raises an error and cannot complete its advertised reproduction summary.",
-          "cwe": [],
-          "function": null
-        },
-        {
-          "file": "server.ts",
-          "line": 84,
-          "rule": "spoofable-identity",
-          "message": "Any caller who can reach the API can choose an arbitrary X-User value and impersonate a task owner, bypassing the owner-only checks.",
-          "cwe": [
-            287
-          ],
-          "function": "currentUser"
-        },
-        {
-          "file": "server.ts",
-          "line": 128,
-          "rule": "invalid-pagination",
-          "message": "Page and size are converted without validation, so values such as page=0 or size=-1 make slice return incorrect results instead of rejecting the invalid pagination request.",
-          "cwe": [
-            20
-          ],
-          "function": "handleSearch"
-        }
-      ],
-      "fixed_invalid_findings": [],
-      "fixed_tool_errors": 0,
-      "fixed_usage": {
-        "prompt_tokens": 8879,
-        "completion_tokens": 3298,
-        "cost_usd": 0.0027588,
-        "seconds": 50.19,
-        "attempts": 1
-      },
-      "fixed": {
-        "defects": 12,
-        "still_reported": [],
-        "false_alarms": 4,
-        "findings": [
-          {
-            "file": "board.ts",
-            "kind": "baseline",
-            "text": "silent-input-coercion in `newTask` (line 80, CWE-20): A non-string description on task creation is silently replaced with an empty string, so invalid input is accepted and its supplied value is lost rather than rejected.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "repro.sh",
-            "kind": "baseline",
-            "text": "missing-input-file (line 166): The script opens DEFECTS.json, which is not included in the project, so it raises an error and cannot complete its advertised reproduction summary.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "server.ts",
-            "kind": "baseline",
-            "text": "spoofable-identity in `currentUser` (line 84, CWE-287): Any caller who can reach the API can choose an arbitrary X-User value and impersonate a task owner, bypassing the owner-only checks.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "server.ts",
-            "kind": "baseline",
-            "text": "invalid-pagination in `handleSearch` (line 128, CWE-20): Page and size are converted without validation, so values such as page=0 or size=-1 make slice return incorrect results instead of rejecting the invalid pagination request.",
-            "status": "unreviewed"
-          }
-        ],
-        "finding_counts": {
-          "total": 4,
-          "defect_evidence": 0,
-          "real": 0,
-          "false_positive": 0,
-          "unreviewed": 4
-        },
-        "reviews_used": []
-      }
-    },
-    {
-      "run": 2,
-      "raw_findings": [
-        {
-          "file": "board.ts",
-          "line": 55,
-          "rule": "invalid-workflow-transition",
-          "message": "The adjacency check permits `done` tasks to move back to `review`, even though the workflow advertises only `archived` as the next status for `done`.",
-          "cwe": [],
-          "function": "canMove"
-        },
-        {
-          "file": "board.ts",
-          "line": 61,
-          "rule": "invalid-priority-accepted",
-          "message": "`parseInt` accepts partially numeric strings and returns `NaN` for nonnumeric strings, so invalid priorities such as `\"high\"` are stored instead of rejected.",
-          "cwe": [
-            20
-          ],
-          "function": "parsePriority"
-        },
-        {
-          "file": "board.ts",
-          "line": 91,
-          "rule": "mass-assignment",
-          "message": "Spreading the entire client patch into the task lets an owner overwrite protected fields such as `ownerId`, `status`, and `id`, enabling ownership transfer and workflow bypass.",
+          "message": "Spreading the unfiltered patch lets an owner overwrite protected fields such as `ownerId`, `status`, or `id`, enabling ownership changes and workflow bypasses through PATCH.",
           "cwe": [
             915
           ],
@@ -512,7 +46,7 @@
           "file": "board.ts",
           "line": 96,
           "rule": "missing-task-null-dereference",
-          "message": "When the requested task ID does not exist, `task` is undefined and accessing `task.status` throws instead of returning a not-found response.",
+          "message": "When no task has the requested ID, `find` returns `undefined` and dereferencing `task.status` throws instead of returning a not-found response.",
           "cwe": [
             476
           ],
@@ -521,34 +55,28 @@
         {
           "file": "board.ts",
           "line": 106,
-          "rule": "incorrect-numeric-ordering",
-          "message": "The default array sort compares numeric IDs as strings, so column IDs are not reliably ordered oldest first once IDs have different digit lengths.",
-          "cwe": [],
+          "rule": "incorrect-numeric-order",
+          "message": "Default array sorting compares numeric IDs as strings, so a column containing IDs 1, 2, and 10 is returned in the order 1, 10, 2 instead of oldest-first order.",
+          "cwe": [
+            682
+          ],
           "function": "columnOrder"
         },
         {
           "file": "board.ts",
           "line": 113,
-          "rule": "invalid-empty-board-completion",
-          "message": "With no active tasks this divides by zero, producing `NaN` that is serialized as `null` instead of a valid completion percentage.",
-          "cwe": [],
+          "rule": "division-by-zero",
+          "message": "An empty board has zero active tasks, so completion becomes `NaN` and is serialized as `null` rather than a valid percentage.",
+          "cwe": [
+            369
+          ],
           "function": "completionPercent"
         },
         {
           "file": "board.ts",
           "line": 127,
-          "rule": "malformed-search-query-crashes",
-          "message": "A query containing invalid regular-expression syntax, such as `[`, makes `RegExp` throw and causes the search request to fail with a 500 response.",
-          "cwe": [
-            20
-          ],
-          "function": "searchTasks"
-        },
-        {
-          "file": "board.ts",
-          "line": 127,
           "rule": "regular-expression-denial-of-service",
-          "message": "Building a regular expression directly from the query lets an attacker submit a catastrophic-backtracking pattern that blocks the synchronous server while tasks are searched.",
+          "message": "The user-controlled search query is compiled directly as a regular expression, allowing pathological patterns to trigger excessive backtracking or malformed patterns to throw.",
           "cwe": [
             1333
           ],
@@ -557,16 +85,18 @@
         {
           "file": "board.ts",
           "line": 134,
-          "rule": "pagination-drops-results",
-          "message": "The slice end is one less than the requested page size, so pagination omits items (and a size of 1 always returns an empty page).",
-          "cwe": [],
+          "rule": "pagination-off-by-one",
+          "message": "The slice end subtracts one from the requested size, so every page returns one fewer result than requested and a size of one returns no results.",
+          "cwe": [
+            193
+          ],
           "function": "paginate"
         },
         {
           "file": "board.ts",
           "line": 140,
           "rule": "stored-cross-site-scripting",
-          "message": "Task titles are inserted into an HTML fragment without escaping, so a title containing markup or script can execute when the search results are rendered.",
+          "message": "Task titles are interpolated into an HTML fragment without escaping, so a title containing markup or script executes when search results are rendered.",
           "cwe": [
             79
           ],
@@ -576,7 +106,7 @@
           "file": "server.ts",
           "line": 37,
           "rule": "unbounded-request-body",
-          "message": "The server buffers every request-body chunk without a size limit, allowing a client to exhaust memory by sending a sufficiently large body.",
+          "message": "Request chunks are buffered without a size limit, allowing a client to exhaust server memory by sending an excessively large body.",
           "cwe": [
             400
           ],
@@ -586,7 +116,7 @@
           "file": "server.ts",
           "line": 68,
           "rule": "stack-trace-disclosure",
-          "message": "Unhandled errors are returned with their stack traces, exposing internal paths and implementation details to any requester who triggers an exception.",
+          "message": "Unexpected errors are returned with their stack traces and messages, exposing server implementation details to clients when an error occurs.",
           "cwe": [
             209
           ],
@@ -594,22 +124,22 @@
         },
         {
           "file": "server.ts",
-          "line": 102,
-          "rule": "missing-authorization-check",
-          "message": "The move handler checks only that some `X-User` is present and never verifies task ownership, so any identified caller can move another user's task.",
+          "line": 72,
+          "rule": "spoofable-user-identity",
+          "message": "The server treats the client-supplied `X-User` header as authenticated identity, so a caller can impersonate a task owner and pass the owner check.",
           "cwe": [
-            862
+            290
           ],
-          "function": "handleMove"
+          "function": "currentUser"
         }
       ],
       "invalid_findings": [],
       "tool_errors": 0,
       "usage": {
-        "prompt_tokens": 8317,
-        "completion_tokens": 3111,
-        "cost_usd": 0.00259505,
-        "seconds": 43.72,
+        "prompt_tokens": 3972,
+        "completion_tokens": 2495,
+        "cost_usd": 0.00128749,
+        "seconds": 35.25,
         "attempts": 1
       },
       "defects": [
@@ -622,7 +152,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "invalid-workflow-transition in `canMove` (line 55): The adjacency check permits `done` tasks to move back to `review`, even though the workflow advertises only `archived` as the next status for `done`."
+            "workflow-transition-bypass in `canMove` (line 55, CWE-841): Adjacency-based movement allows `done` tasks to move back to `review`, although `NEXT_STATUSES` advertises only `archived` as an allowed next status for `done`."
           ]
         },
         {
@@ -634,7 +164,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "mass-assignment in `applyPatch` (line 91, CWE-915): Spreading the entire client patch into the task lets an owner overwrite protected fields such as `ownerId`, `status`, and `id`, enabling ownership transfer and workflow bypass."
+            "mass-assignment in `applyPatch` (line 91, CWE-915): Spreading the unfiltered patch lets an owner overwrite protected fields such as `ownerId`, `status`, or `id`, enabling ownership changes and workflow bypasses through PATCH."
           ]
         },
         {
@@ -646,7 +176,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "missing-task-null-dereference in `moveTask` (line 96, CWE-476): When the requested task ID does not exist, `task` is undefined and accessing `task.status` throws instead of returning a not-found response."
+            "missing-task-null-dereference in `moveTask` (line 96, CWE-476): When no task has the requested ID, `find` returns `undefined` and dereferencing `task.status` throws instead of returning a not-found response."
           ]
         },
         {
@@ -658,7 +188,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "invalid-empty-board-completion in `completionPercent` (line 113): With no active tasks this divides by zero, producing `NaN` that is serialized as `null` instead of a valid completion percentage."
+            "division-by-zero in `completionPercent` (line 113, CWE-369): An empty board has zero active tasks, so completion becomes `NaN` and is serialized as `null` rather than a valid percentage."
           ]
         },
         {
@@ -670,8 +200,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "malformed-search-query-crashes in `searchTasks` (line 127, CWE-20): A query containing invalid regular-expression syntax, such as `[`, makes `RegExp` throw and causes the search request to fail with a 500 response.",
-            "regular-expression-denial-of-service in `searchTasks` (line 127, CWE-1333): Building a regular expression directly from the query lets an attacker submit a catastrophic-backtracking pattern that blocks the synchronous server while tasks are searched."
+            "regular-expression-denial-of-service in `searchTasks` (line 127, CWE-1333): The user-controlled search query is compiled directly as a regular expression, allowing pathological patterns to trigger excessive backtracking or malformed patterns to throw."
           ]
         },
         {
@@ -683,7 +212,7 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "incorrect-numeric-ordering in `columnOrder` (line 106): The default array sort compares numeric IDs as strings, so column IDs are not reliably ordered oldest first once IDs have different digit lengths."
+            "incorrect-numeric-order in `columnOrder` (line 106, CWE-682): Default array sorting compares numeric IDs as strings, so a column containing IDs 1, 2, and 10 is returned in the order 1, 10, 2 instead of oldest-first order."
           ]
         },
         {
@@ -695,7 +224,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "invalid-priority-accepted in `parsePriority` (line 61, CWE-20): `parseInt` accepts partially numeric strings and returns `NaN` for nonnumeric strings, so invalid priorities such as `\"high\"` are stored instead of rejected."
+            "invalid-priority-accepted in `parsePriority` (line 62, CWE-20): `parseInt` accepts numeric prefixes and returns `NaN` for nonnumeric input, while both range comparisons let those values through, so priorities such as `2junk` or `foo` are stored as invalid values."
           ]
         },
         {
@@ -707,7 +236,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "stored-cross-site-scripting in `renderResults` (line 140, CWE-79): Task titles are inserted into an HTML fragment without escaping, so a title containing markup or script can execute when the search results are rendered."
+            "stored-cross-site-scripting in `renderResults` (line 140, CWE-79): Task titles are interpolated into an HTML fragment without escaping, so a title containing markup or script executes when search results are rendered."
           ]
         },
         {
@@ -719,7 +248,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "unbounded-request-body in `readBody` (line 37, CWE-400): The server buffers every request-body chunk without a size limit, allowing a client to exhaust memory by sending a sufficiently large body."
+            "unbounded-request-body in `readBody` (line 37, CWE-400): Request chunks are buffered without a size limit, allowing a client to exhaust server memory by sending an excessively large body."
           ]
         },
         {
@@ -729,10 +258,8 @@
           "category": "missing-authorization",
           "class": "vulnerability",
           "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "missing-authorization-check in `handleMove` (line 102, CWE-862): The move handler checks only that some `X-User` is present and never verifies task ownership, so any identified caller can move another user's task."
-          ]
+          "status": "missed",
+          "findings": []
         },
         {
           "id": "TS01-D11",
@@ -743,7 +270,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "stack-trace-disclosure in `sendError` (line 68, CWE-209): Unhandled errors are returned with their stack traces, exposing internal paths and implementation details to any requester who triggers an exception."
+            "stack-trace-disclosure in `sendError` (line 68, CWE-209): Unexpected errors are returned with their stack traces and messages, exposing server implementation details to clients when an error occurs."
           ]
         },
         {
@@ -753,101 +280,95 @@
           "category": "off-by-one",
           "class": "bug",
           "in_target_category": true,
-          "status": "function_flagged",
+          "status": "detected",
           "findings": [
-            "pagination-drops-results in `paginate` (line 134): The slice end is one less than the requested page size, so pagination omits items (and a size of 1 always returns an empty page)."
+            "pagination-off-by-one in `paginate` (line 134, CWE-193): The slice end subtracts one from the requested size, so every page returns one fewer result than requested and a size of one returns no results."
           ]
         }
       ],
       "counts": {
         "total": 12,
         "detected": 10,
-        "function_flagged": 2,
-        "missed": 0
+        "function_flagged": 1,
+        "missed": 1
       },
       "findings": [
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "invalid-workflow-transition in `canMove` (line 55): The adjacency check permits `done` tasks to move back to `review`, even though the workflow advertises only `archived` as the next status for `done`.",
+          "text": "workflow-transition-bypass in `canMove` (line 55, CWE-841): Adjacency-based movement allows `done` tasks to move back to `review`, although `NEXT_STATUSES` advertises only `archived` as an allowed next status for `done`.",
           "status": "defect_evidence"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "invalid-priority-accepted in `parsePriority` (line 61, CWE-20): `parseInt` accepts partially numeric strings and returns `NaN` for nonnumeric strings, so invalid priorities such as `\"high\"` are stored instead of rejected.",
+          "text": "invalid-priority-accepted in `parsePriority` (line 62, CWE-20): `parseInt` accepts numeric prefixes and returns `NaN` for nonnumeric input, while both range comparisons let those values through, so priorities such as `2junk` or `foo` are stored as invalid values.",
           "status": "defect_evidence"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "mass-assignment in `applyPatch` (line 91, CWE-915): Spreading the entire client patch into the task lets an owner overwrite protected fields such as `ownerId`, `status`, and `id`, enabling ownership transfer and workflow bypass.",
+          "text": "mass-assignment in `applyPatch` (line 91, CWE-915): Spreading the unfiltered patch lets an owner overwrite protected fields such as `ownerId`, `status`, or `id`, enabling ownership changes and workflow bypasses through PATCH.",
           "status": "defect_evidence"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "missing-task-null-dereference in `moveTask` (line 96, CWE-476): When the requested task ID does not exist, `task` is undefined and accessing `task.status` throws instead of returning a not-found response.",
+          "text": "missing-task-null-dereference in `moveTask` (line 96, CWE-476): When no task has the requested ID, `find` returns `undefined` and dereferencing `task.status` throws instead of returning a not-found response.",
           "status": "defect_evidence"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "incorrect-numeric-ordering in `columnOrder` (line 106): The default array sort compares numeric IDs as strings, so column IDs are not reliably ordered oldest first once IDs have different digit lengths.",
+          "text": "incorrect-numeric-order in `columnOrder` (line 106, CWE-682): Default array sorting compares numeric IDs as strings, so a column containing IDs 1, 2, and 10 is returned in the order 1, 10, 2 instead of oldest-first order.",
           "status": "unreviewed"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "invalid-empty-board-completion in `completionPercent` (line 113): With no active tasks this divides by zero, producing `NaN` that is serialized as `null` instead of a valid completion percentage.",
+          "text": "division-by-zero in `completionPercent` (line 113, CWE-369): An empty board has zero active tasks, so completion becomes `NaN` and is serialized as `null` rather than a valid percentage.",
           "status": "defect_evidence"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "malformed-search-query-crashes in `searchTasks` (line 127, CWE-20): A query containing invalid regular-expression syntax, such as `[`, makes `RegExp` throw and causes the search request to fail with a 500 response.",
+          "text": "regular-expression-denial-of-service in `searchTasks` (line 127, CWE-1333): The user-controlled search query is compiled directly as a regular expression, allowing pathological patterns to trigger excessive backtracking or malformed patterns to throw.",
           "status": "defect_evidence"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "regular-expression-denial-of-service in `searchTasks` (line 127, CWE-1333): Building a regular expression directly from the query lets an attacker submit a catastrophic-backtracking pattern that blocks the synchronous server while tasks are searched.",
+          "text": "pagination-off-by-one in `paginate` (line 134, CWE-193): The slice end subtracts one from the requested size, so every page returns one fewer result than requested and a size of one returns no results.",
           "status": "defect_evidence"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "pagination-drops-results in `paginate` (line 134): The slice end is one less than the requested page size, so pagination omits items (and a size of 1 always returns an empty page).",
+          "text": "stored-cross-site-scripting in `renderResults` (line 140, CWE-79): Task titles are interpolated into an HTML fragment without escaping, so a title containing markup or script executes when search results are rendered.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "unbounded-request-body in `readBody` (line 37, CWE-400): Request chunks are buffered without a size limit, allowing a client to exhaust server memory by sending an excessively large body.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "stack-trace-disclosure in `sendError` (line 68, CWE-209): Unexpected errors are returned with their stack traces and messages, exposing server implementation details to clients when an error occurs.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "spoofable-user-identity in `currentUser` (line 72, CWE-290): The server treats the client-supplied `X-User` header as authenticated identity, so a caller can impersonate a task owner and pass the owner check.",
           "status": "unreviewed"
-        },
-        {
-          "file": "board.ts",
-          "kind": "baseline",
-          "text": "stored-cross-site-scripting in `renderResults` (line 140, CWE-79): Task titles are inserted into an HTML fragment without escaping, so a title containing markup or script can execute when the search results are rendered.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "server.ts",
-          "kind": "baseline",
-          "text": "unbounded-request-body in `readBody` (line 37, CWE-400): The server buffers every request-body chunk without a size limit, allowing a client to exhaust memory by sending a sufficiently large body.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "server.ts",
-          "kind": "baseline",
-          "text": "stack-trace-disclosure in `sendError` (line 68, CWE-209): Unhandled errors are returned with their stack traces, exposing internal paths and implementation details to any requester who triggers an exception.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "server.ts",
-          "kind": "baseline",
-          "text": "missing-authorization-check in `handleMove` (line 102, CWE-862): The move handler checks only that some `X-User` is present and never verifies task ownership, so any identified caller can move another user's task.",
-          "status": "defect_evidence"
         }
       ],
       "finding_counts": {
-        "total": 13,
-        "defect_evidence": 11,
+        "total": 12,
+        "defect_evidence": 10,
         "real": 0,
         "false_positive": 0,
         "unreviewed": 2
@@ -856,9 +377,9 @@
       "fixed_raw_findings": [
         {
           "file": "server.ts",
-          "line": 43,
-          "rule": "unbounded-request-drain",
-          "message": "Oversized bodies are rejected only after the request ends, so a client can keep connections occupied while continuing to stream data beyond the configured body limit.",
+          "line": 39,
+          "rule": "unbounded-request-consumption",
+          "message": "After the body exceeds MAX_BODY_BYTES, the handler stops buffering but continues reading until the client ends the request, allowing an oversized or indefinitely streamed body to consume a connection and server resources.",
           "cwe": [
             400
           ],
@@ -866,19 +387,19 @@
         },
         {
           "file": "server.ts",
-          "line": 84,
+          "line": 83,
           "rule": "spoofable-identity",
-          "message": "Any caller can claim another user's identity by setting `X-User` to their name, so the owner checks do not prevent unauthorized edits or moves.",
+          "message": "The server treats the client-controlled X-User header as the authenticated identity, so any caller able to reach the API can claim a task owner's name and edit or move that owner's tasks.",
           "cwe": [
-            287
+            290
           ],
           "function": "currentUser"
         },
         {
           "file": "server.ts",
           "line": 128,
-          "rule": "invalid-pagination-input",
-          "message": "The page query is not validated as a positive integer, so values such as `page=0` or `page=-1` produce incorrect slice ranges and omit or return unexpected results.",
+          "rule": "unvalidated-pagination",
+          "message": "Page and size are accepted without checking that they are positive or bounded, so values such as page=0 or a negative size produce incorrect slice results and arbitrarily large sizes can return all matches.",
           "cwe": [
             20
           ],
@@ -888,10 +409,10 @@
       "fixed_invalid_findings": [],
       "fixed_tool_errors": 0,
       "fixed_usage": {
-        "prompt_tokens": 8879,
-        "completion_tokens": 2557,
-        "cost_usd": 0.00136756,
-        "seconds": 39.87,
+        "prompt_tokens": 4534,
+        "completion_tokens": 1487,
+        "cost_usd": 0.001310175,
+        "seconds": 22.14,
         "attempts": 1
       },
       "fixed": {
@@ -904,19 +425,433 @@
           {
             "file": "server.ts",
             "kind": "baseline",
-            "text": "unbounded-request-drain in `readBody` (line 43, CWE-400): Oversized bodies are rejected only after the request ends, so a client can keep connections occupied while continuing to stream data beyond the configured body limit.",
+            "text": "unbounded-request-consumption in `readBody` (line 39, CWE-400): After the body exceeds MAX_BODY_BYTES, the handler stops buffering but continues reading until the client ends the request, allowing an oversized or indefinitely streamed body to consume a connection and server resources.",
             "status": "unreviewed"
           },
           {
             "file": "server.ts",
             "kind": "baseline",
-            "text": "spoofable-identity in `currentUser` (line 84, CWE-287): Any caller can claim another user's identity by setting `X-User` to their name, so the owner checks do not prevent unauthorized edits or moves.",
+            "text": "spoofable-identity in `currentUser` (line 83, CWE-290): The server treats the client-controlled X-User header as the authenticated identity, so any caller able to reach the API can claim a task owner's name and edit or move that owner's tasks.",
             "status": "unreviewed"
           },
           {
             "file": "server.ts",
             "kind": "baseline",
-            "text": "invalid-pagination-input in `handleSearch` (line 128, CWE-20): The page query is not validated as a positive integer, so values such as `page=0` or `page=-1` produce incorrect slice ranges and omit or return unexpected results.",
+            "text": "unvalidated-pagination in `handleSearch` (line 128, CWE-20): Page and size are accepted without checking that they are positive or bounded, so values such as page=0 or a negative size produce incorrect slice results and arbitrarily large sizes can return all matches.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 3,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 3
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 2,
+      "raw_findings": [
+        {
+          "file": "board.ts",
+          "line": 61,
+          "rule": "invalid-priority-validation",
+          "message": "parseInt accepts numeric prefixes and returns NaN for nonnumeric strings, so values such as \"2junk\" or \"invalid\" bypass the range check and are stored as invalid priorities.",
+          "cwe": [
+            20
+          ],
+          "function": "parsePriority"
+        },
+        {
+          "file": "board.ts",
+          "line": 91,
+          "rule": "mass-assignment",
+          "message": "Spreading the unfiltered patch lets an owner overwrite protected fields such as status, id, ownerId, and timestamps, including bypassing the workflow transition checks.",
+          "cwe": [
+            915
+          ],
+          "function": "applyPatch"
+        },
+        {
+          "file": "board.ts",
+          "line": 106,
+          "rule": "incorrect-numeric-ordering",
+          "message": "The default sort compares task IDs lexicographically, so IDs such as 1, 10, and 2 are returned in the wrong numeric order.",
+          "cwe": [],
+          "function": "columnOrder"
+        },
+        {
+          "file": "board.ts",
+          "line": 113,
+          "rule": "invalid-empty-completion",
+          "message": "When there are no active tasks, this computes 0 divided by 0 and returns NaN, which the HTTP JSON response serializes as null rather than a completion percentage.",
+          "cwe": [],
+          "function": "completionPercent"
+        },
+        {
+          "file": "board.ts",
+          "line": 127,
+          "rule": "regex-denial-of-service",
+          "message": "The unbounded user query is compiled as a regular expression and tested against task text, so a crafted catastrophic-backtracking pattern can block the server's event loop.",
+          "cwe": [
+            1333
+          ],
+          "function": "searchTasks"
+        },
+        {
+          "file": "board.ts",
+          "line": 134,
+          "rule": "pagination-off-by-one",
+          "message": "The slice end subtracts one from the requested size, so every positive-size page returns one fewer item than requested (and size 1 returns none).",
+          "cwe": [],
+          "function": "paginate"
+        },
+        {
+          "file": "board.ts",
+          "line": 140,
+          "rule": "stored-cross-site-scripting",
+          "message": "Task titles are inserted into an HTML fragment without escaping, so a title containing markup or script executes when search results are rendered by a browser.",
+          "cwe": [
+            79
+          ],
+          "function": "renderResults"
+        },
+        {
+          "file": "server.ts",
+          "line": 37,
+          "rule": "unbounded-request-body",
+          "message": "Request bodies are buffered without a size limit, so a client can exhaust server memory by sending an arbitrarily large body.",
+          "cwe": [
+            400
+          ],
+          "function": "readBody"
+        },
+        {
+          "file": "server.ts",
+          "line": 68,
+          "rule": "stack-trace-disclosure",
+          "message": "Unexpected errors are returned with their message and stack, exposing internal implementation details to any caller who triggers a server error.",
+          "cwe": [
+            209
+          ],
+          "function": "sendError"
+        },
+        {
+          "file": "server.ts",
+          "line": 72,
+          "rule": "spoofable-identity",
+          "message": "The server treats the caller-controlled X-User header as an authenticated identity, so a client can claim a task owner's value and pass the PATCH ownership check.",
+          "cwe": [
+            807
+          ],
+          "function": "currentUser"
+        },
+        {
+          "file": "server.ts",
+          "line": 95,
+          "rule": "unchecked-missing-task",
+          "message": "A move for a nonexistent task makes moveTask dereference undefined, producing a 500 instead of a not-found response.",
+          "cwe": [
+            476
+          ],
+          "function": "handlePatch"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 3972,
+        "completion_tokens": 2566,
+        "cost_usd": 0.00132299,
+        "seconds": 37.02,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "TS01-D01",
+          "file": "board.ts",
+          "function": "canMove",
+          "category": "invalid-state-transition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "TS01-D02",
+          "file": "board.ts",
+          "function": "applyPatch",
+          "category": "mass-assignment",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "mass-assignment in `applyPatch` (line 91, CWE-915): Spreading the unfiltered patch lets an owner overwrite protected fields such as status, id, ownerId, and timestamps, including bypassing the workflow transition checks."
+          ]
+        },
+        {
+          "id": "TS01-D03",
+          "file": "board.ts",
+          "function": "moveTask",
+          "category": "null-dereference",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "TS01-D04",
+          "file": "board.ts",
+          "function": "completionPercent",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "invalid-empty-completion in `completionPercent` (line 113): When there are no active tasks, this computes 0 divided by 0 and returns NaN, which the HTTP JSON response serializes as null rather than a completion percentage."
+          ]
+        },
+        {
+          "id": "TS01-D05",
+          "file": "board.ts",
+          "function": "searchTasks",
+          "category": "redos",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "regex-denial-of-service in `searchTasks` (line 127, CWE-1333): The unbounded user query is compiled as a regular expression and tested against task text, so a crafted catastrophic-backtracking pattern can block the server's event loop."
+          ]
+        },
+        {
+          "id": "TS01-D06",
+          "file": "board.ts",
+          "function": "columnOrder",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "incorrect-numeric-ordering in `columnOrder` (line 106): The default sort compares task IDs lexicographically, so IDs such as 1, 10, and 2 are returned in the wrong numeric order."
+          ]
+        },
+        {
+          "id": "TS01-D07",
+          "file": "board.ts",
+          "function": "parsePriority",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "invalid-priority-validation in `parsePriority` (line 61, CWE-20): parseInt accepts numeric prefixes and returns NaN for nonnumeric strings, so values such as \"2junk\" or \"invalid\" bypass the range check and are stored as invalid priorities."
+          ]
+        },
+        {
+          "id": "TS01-D08",
+          "file": "board.ts",
+          "function": "renderResults",
+          "category": "xss",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "stored-cross-site-scripting in `renderResults` (line 140, CWE-79): Task titles are inserted into an HTML fragment without escaping, so a title containing markup or script executes when search results are rendered by a browser."
+          ]
+        },
+        {
+          "id": "TS01-D09",
+          "file": "server.ts",
+          "function": "readBody",
+          "category": "unbounded-resource",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unbounded-request-body in `readBody` (line 37, CWE-400): Request bodies are buffered without a size limit, so a client can exhaust server memory by sending an arbitrarily large body."
+          ]
+        },
+        {
+          "id": "TS01-D10",
+          "file": "server.ts",
+          "function": "handleMove",
+          "category": "missing-authorization",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "TS01-D11",
+          "file": "server.ts",
+          "function": "sendError",
+          "category": "information-exposure",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "stack-trace-disclosure in `sendError` (line 68, CWE-209): Unexpected errors are returned with their message and stack, exposing internal implementation details to any caller who triggers a server error."
+          ]
+        },
+        {
+          "id": "TS01-D12",
+          "file": "board.ts",
+          "function": "paginate",
+          "category": "off-by-one",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "pagination-off-by-one in `paginate` (line 134): The slice end subtracts one from the requested size, so every positive-size page returns one fewer item than requested (and size 1 returns none)."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 12,
+        "detected": 8,
+        "function_flagged": 1,
+        "missed": 3
+      },
+      "findings": [
+        {
+          "file": "board.ts",
+          "kind": "baseline",
+          "text": "invalid-priority-validation in `parsePriority` (line 61, CWE-20): parseInt accepts numeric prefixes and returns NaN for nonnumeric strings, so values such as \"2junk\" or \"invalid\" bypass the range check and are stored as invalid priorities.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "board.ts",
+          "kind": "baseline",
+          "text": "mass-assignment in `applyPatch` (line 91, CWE-915): Spreading the unfiltered patch lets an owner overwrite protected fields such as status, id, ownerId, and timestamps, including bypassing the workflow transition checks.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "board.ts",
+          "kind": "baseline",
+          "text": "incorrect-numeric-ordering in `columnOrder` (line 106): The default sort compares task IDs lexicographically, so IDs such as 1, 10, and 2 are returned in the wrong numeric order.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "board.ts",
+          "kind": "baseline",
+          "text": "invalid-empty-completion in `completionPercent` (line 113): When there are no active tasks, this computes 0 divided by 0 and returns NaN, which the HTTP JSON response serializes as null rather than a completion percentage.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "board.ts",
+          "kind": "baseline",
+          "text": "regex-denial-of-service in `searchTasks` (line 127, CWE-1333): The unbounded user query is compiled as a regular expression and tested against task text, so a crafted catastrophic-backtracking pattern can block the server's event loop.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "board.ts",
+          "kind": "baseline",
+          "text": "pagination-off-by-one in `paginate` (line 134): The slice end subtracts one from the requested size, so every positive-size page returns one fewer item than requested (and size 1 returns none).",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "board.ts",
+          "kind": "baseline",
+          "text": "stored-cross-site-scripting in `renderResults` (line 140, CWE-79): Task titles are inserted into an HTML fragment without escaping, so a title containing markup or script executes when search results are rendered by a browser.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "unbounded-request-body in `readBody` (line 37, CWE-400): Request bodies are buffered without a size limit, so a client can exhaust server memory by sending an arbitrarily large body.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "stack-trace-disclosure in `sendError` (line 68, CWE-209): Unexpected errors are returned with their message and stack, exposing internal implementation details to any caller who triggers a server error.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "spoofable-identity in `currentUser` (line 72, CWE-807): The server treats the caller-controlled X-User header as an authenticated identity, so a client can claim a task owner's value and pass the PATCH ownership check.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "server.ts",
+          "kind": "baseline",
+          "text": "unchecked-missing-task in `handlePatch` (line 95, CWE-476): A move for a nonexistent task makes moveTask dereference undefined, producing a 500 instead of a not-found response.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 11,
+        "defect_evidence": 8,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 3
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "server.ts",
+          "line": 83,
+          "rule": "spoofable-identity",
+          "message": "The server treats the client-supplied X-User header as authenticated identity, so a caller can claim a task owner's value and pass the owner checks to edit or move that owner's tasks.",
+          "cwe": [
+            290
+          ],
+          "function": "currentUser"
+        },
+        {
+          "file": "server.ts",
+          "line": 96,
+          "rule": "unbounded-memory-growth",
+          "message": "Every accepted task is retained indefinitely in the in-memory array, so a caller can repeatedly create tasks with large descriptions and exhaust the process's memory.",
+          "cwe": [
+            400
+          ],
+          "function": "handleCreate"
+        },
+        {
+          "file": "server.ts",
+          "line": 128,
+          "rule": "invalid-pagination",
+          "message": "The page and size query parameters are not checked for positive integers, so negative values are accepted and JavaScript slice semantics return results from unexpected positions or omit results.",
+          "cwe": [
+            20
+          ],
+          "function": "handleSearch"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 4534,
+        "completion_tokens": 2067,
+        "cost_usd": 0.00107911,
+        "seconds": 33.21,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 12,
+        "still_reported": [],
+        "false_alarms": 3,
+        "findings": [
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "spoofable-identity in `currentUser` (line 83, CWE-290): The server treats the client-supplied X-User header as authenticated identity, so a caller can claim a task owner's value and pass the owner checks to edit or move that owner's tasks.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "unbounded-memory-growth in `handleCreate` (line 96, CWE-400): Every accepted task is retained indefinitely in the in-memory array, so a caller can repeatedly create tasks with large descriptions and exhaust the process's memory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "server.ts",
+            "kind": "baseline",
+            "text": "invalid-pagination in `handleSearch` (line 128, CWE-20): The page and size query parameters are not checked for positive integers, so negative values are accepted and JavaScript slice semantics return results from unexpected positions or omit results.",
             "status": "unreviewed"
           }
         ],
@@ -935,19 +870,9 @@
       "raw_findings": [
         {
           "file": "board.ts",
-          "line": 55,
-          "rule": "invalid-workflow-transition",
-          "message": "Allowing every adjacent column transition lets a task move from `done` back to `review`, even though the workflow advertises only `archived` as the next step from `done`.",
-          "cwe": [
-            841
-          ],
-          "function": "canMove"
-        },
-        {
-          "file": "board.ts",
           "line": 61,
-          "rule": "priority-validation",
-          "message": "`parseInt` accepts partial numeric strings and returns `NaN` for nonnumeric input, while the range comparisons do not reject `NaN`, so invalid priorities can be stored.",
+          "rule": "insufficient-input-validation",
+          "message": "parseInt accepts prefixes and produces NaN for non-numeric input, and the range checks then let values such as \"3abc\" or \"nope\" through as priorities.",
           "cwe": [
             20
           ],
@@ -957,7 +882,7 @@
           "file": "board.ts",
           "line": 91,
           "rule": "mass-assignment",
-          "message": "Spreading the entire client patch into the task lets an owner change protected fields such as `ownerId`, `id`, and `status`, enabling ownership transfer and workflow bypass.",
+          "message": "Spreading the unrestricted patch lets a task owner overwrite protected fields such as ownerId, id, and status, enabling ownership transfer, ID corruption, or workflow-transition bypass.",
           "cwe": [
             915
           ],
@@ -966,38 +891,32 @@
         {
           "file": "board.ts",
           "line": 95,
-          "rule": "missing-task-check",
-          "message": "When the requested ID does not exist, `task` is undefined and the next line dereferences it, causing a 500 instead of a not-found response.",
-          "cwe": [
-            476
-          ],
+          "rule": "missing-task-handling",
+          "message": "When no task has the requested ID, the cast does not prevent find from returning undefined, so accessing task.status throws instead of returning a not-found result.",
+          "cwe": [],
           "function": "moveTask"
         },
         {
           "file": "board.ts",
           "line": 106,
-          "rule": "incorrect-numeric-order",
-          "message": "Default array sorting compares IDs as strings, so IDs such as 10 sort before 2 despite the API promising oldest-first order.",
-          "cwe": [
-            697
-          ],
+          "rule": "incorrect-ordering",
+          "message": "The default sort orders IDs lexicographically, so a column containing IDs 1, 2, and 10 is returned as 1, 10, 2 rather than numeric order.",
+          "cwe": [],
           "function": "columnOrder"
         },
         {
           "file": "board.ts",
           "line": 113,
-          "rule": "division-by-zero",
-          "message": "An empty board has zero active tasks, so this division produces `NaN` and the JSON response reports `completion: null`.",
-          "cwe": [
-            682
-          ],
+          "rule": "invalid-empty-board-completion",
+          "message": "When there are no active tasks, this divides by zero and returns NaN, which the JSON response serializes as null instead of a valid completion percentage.",
+          "cwe": [],
           "function": "completionPercent"
         },
         {
           "file": "board.ts",
           "line": 127,
-          "rule": "regex-denial-of-service",
-          "message": "Treating the user-supplied query as a regular expression allows catastrophic-backtracking patterns to block the event loop and stall the server.",
+          "rule": "regular-expression-denial-of-service",
+          "message": "The client-controlled query is compiled as a regular expression, so a crafted pathological pattern can make searches consume excessive CPU.",
           "cwe": [
             1333
           ],
@@ -1007,17 +926,15 @@
           "file": "board.ts",
           "line": 134,
           "rule": "pagination-off-by-one",
-          "message": "The exclusive slice end is one less than the requested page boundary, so each page omits an item and a page size of 1 returns no results.",
-          "cwe": [
-            682
-          ],
+          "message": "The end index subtracts one even though slice excludes its end, so each page returns one fewer item than requested and a page size of one returns no items.",
+          "cwe": [],
           "function": "paginate"
         },
         {
           "file": "board.ts",
           "line": 140,
-          "rule": "html-injection",
-          "message": "Task titles are interpolated into an HTML fragment without escaping, so a title containing markup or script can execute when the search result is rendered.",
+          "rule": "stored-cross-site-scripting",
+          "message": "Task titles are inserted into an HTML fragment without escaping, so a title containing markup or script executes when the search results are rendered.",
           "cwe": [
             79
           ],
@@ -1027,7 +944,7 @@
           "file": "server.ts",
           "line": 37,
           "rule": "unbounded-request-body",
-          "message": "The server buffers request bodies without a size limit, so a client can send an arbitrarily large body and exhaust process memory.",
+          "message": "Request chunks are accumulated without a size limit, allowing a client to exhaust server memory by sending an arbitrarily large body.",
           "cwe": [
             400
           ],
@@ -1036,8 +953,8 @@
         {
           "file": "server.ts",
           "line": 68,
-          "rule": "error-stack-disclosure",
-          "message": "Returning the exception message and stack to clients exposes internal implementation details when an endpoint throws.",
+          "rule": "error-information-disclosure",
+          "message": "Unexpected errors are returned with their message and stack trace, exposing internal paths and implementation details to callers.",
           "cwe": [
             209
           ],
@@ -1047,30 +964,20 @@
           "file": "server.ts",
           "line": 72,
           "rule": "spoofable-identity",
-          "message": "The caller-controlled `X-User` header is treated as authenticated identity, so any client can claim an owner's name and pass owner checks.",
+          "message": "The server treats the caller-controlled X-User header as authenticated identity, so a client can claim another user's value and bypass the PATCH owner check.",
           "cwe": [
-            287
+            290
           ],
           "function": "currentUser"
-        },
-        {
-          "file": "server.ts",
-          "line": 108,
-          "rule": "missing-authorization",
-          "message": "The move handler changes a task without checking that the caller owns it, allowing any caller with an `X-User` header to move another user's task.",
-          "cwe": [
-            862
-          ],
-          "function": "handleMove"
         }
       ],
       "invalid_findings": [],
       "tool_errors": 0,
       "usage": {
-        "prompt_tokens": 8317,
-        "completion_tokens": 2349,
-        "cost_usd": 0.00125794,
-        "seconds": 33.33,
+        "prompt_tokens": 3972,
+        "completion_tokens": 1957,
+        "cost_usd": 0.001474925,
+        "seconds": 27.93,
         "attempts": 1
       },
       "defects": [
@@ -1081,10 +988,8 @@
           "category": "invalid-state-transition",
           "class": "bug",
           "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "invalid-workflow-transition in `canMove` (line 55, CWE-841): Allowing every adjacent column transition lets a task move from `done` back to `review`, even though the workflow advertises only `archived` as the next step from `done`."
-          ]
+          "status": "missed",
+          "findings": []
         },
         {
           "id": "TS01-D02",
@@ -1095,7 +1000,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "mass-assignment in `applyPatch` (line 91, CWE-915): Spreading the entire client patch into the task lets an owner change protected fields such as `ownerId`, `id`, and `status`, enabling ownership transfer and workflow bypass."
+            "mass-assignment in `applyPatch` (line 91, CWE-915): Spreading the unrestricted patch lets a task owner overwrite protected fields such as ownerId, id, and status, enabling ownership transfer, ID corruption, or workflow-transition bypass."
           ]
         },
         {
@@ -1107,7 +1012,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "missing-task-check in `moveTask` (line 95, CWE-476): When the requested ID does not exist, `task` is undefined and the next line dereferences it, causing a 500 instead of a not-found response."
+            "missing-task-handling in `moveTask` (line 95): When no task has the requested ID, the cast does not prevent find from returning undefined, so accessing task.status throws instead of returning a not-found result."
           ]
         },
         {
@@ -1119,7 +1024,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "division-by-zero in `completionPercent` (line 113, CWE-682): An empty board has zero active tasks, so this division produces `NaN` and the JSON response reports `completion: null`."
+            "invalid-empty-board-completion in `completionPercent` (line 113): When there are no active tasks, this divides by zero and returns NaN, which the JSON response serializes as null instead of a valid completion percentage."
           ]
         },
         {
@@ -1131,7 +1036,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "regex-denial-of-service in `searchTasks` (line 127, CWE-1333): Treating the user-supplied query as a regular expression allows catastrophic-backtracking patterns to block the event loop and stall the server."
+            "regular-expression-denial-of-service in `searchTasks` (line 127, CWE-1333): The client-controlled query is compiled as a regular expression, so a crafted pathological pattern can make searches consume excessive CPU."
           ]
         },
         {
@@ -1143,7 +1048,7 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "incorrect-numeric-order in `columnOrder` (line 106, CWE-697): Default array sorting compares IDs as strings, so IDs such as 10 sort before 2 despite the API promising oldest-first order."
+            "incorrect-ordering in `columnOrder` (line 106): The default sort orders IDs lexicographically, so a column containing IDs 1, 2, and 10 is returned as 1, 10, 2 rather than numeric order."
           ]
         },
         {
@@ -1155,7 +1060,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "priority-validation in `parsePriority` (line 61, CWE-20): `parseInt` accepts partial numeric strings and returns `NaN` for nonnumeric input, while the range comparisons do not reject `NaN`, so invalid priorities can be stored."
+            "insufficient-input-validation in `parsePriority` (line 61, CWE-20): parseInt accepts prefixes and produces NaN for non-numeric input, and the range checks then let values such as \"3abc\" or \"nope\" through as priorities."
           ]
         },
         {
@@ -1167,7 +1072,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "html-injection in `renderResults` (line 140, CWE-79): Task titles are interpolated into an HTML fragment without escaping, so a title containing markup or script can execute when the search result is rendered."
+            "stored-cross-site-scripting in `renderResults` (line 140, CWE-79): Task titles are inserted into an HTML fragment without escaping, so a title containing markup or script executes when the search results are rendered."
           ]
         },
         {
@@ -1179,7 +1084,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "unbounded-request-body in `readBody` (line 37, CWE-400): The server buffers request bodies without a size limit, so a client can send an arbitrarily large body and exhaust process memory."
+            "unbounded-request-body in `readBody` (line 37, CWE-400): Request chunks are accumulated without a size limit, allowing a client to exhaust server memory by sending an arbitrarily large body."
           ]
         },
         {
@@ -1189,10 +1094,8 @@
           "category": "missing-authorization",
           "class": "vulnerability",
           "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "missing-authorization in `handleMove` (line 108, CWE-862): The move handler changes a task without checking that the caller owns it, allowing any caller with an `X-User` header to move another user's task."
-          ]
+          "status": "missed",
+          "findings": []
         },
         {
           "id": "TS01-D11",
@@ -1203,7 +1106,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "error-stack-disclosure in `sendError` (line 68, CWE-209): Returning the exception message and stack to clients exposes internal implementation details when an endpoint throws."
+            "error-information-disclosure in `sendError` (line 68, CWE-209): Unexpected errors are returned with their message and stack trace, exposing internal paths and implementation details to callers."
           ]
         },
         {
@@ -1215,99 +1118,87 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "pagination-off-by-one in `paginate` (line 134, CWE-682): The exclusive slice end is one less than the requested page boundary, so each page omits an item and a page size of 1 returns no results."
+            "pagination-off-by-one in `paginate` (line 134): The end index subtracts one even though slice excludes its end, so each page returns one fewer item than requested and a page size of one returns no items."
           ]
         }
       ],
       "counts": {
         "total": 12,
-        "detected": 11,
+        "detected": 9,
         "function_flagged": 1,
-        "missed": 0
+        "missed": 2
       },
       "findings": [
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "invalid-workflow-transition in `canMove` (line 55, CWE-841): Allowing every adjacent column transition lets a task move from `done` back to `review`, even though the workflow advertises only `archived` as the next step from `done`.",
+          "text": "insufficient-input-validation in `parsePriority` (line 61, CWE-20): parseInt accepts prefixes and produces NaN for non-numeric input, and the range checks then let values such as \"3abc\" or \"nope\" through as priorities.",
           "status": "defect_evidence"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "priority-validation in `parsePriority` (line 61, CWE-20): `parseInt` accepts partial numeric strings and returns `NaN` for nonnumeric input, while the range comparisons do not reject `NaN`, so invalid priorities can be stored.",
+          "text": "mass-assignment in `applyPatch` (line 91, CWE-915): Spreading the unrestricted patch lets a task owner overwrite protected fields such as ownerId, id, and status, enabling ownership transfer, ID corruption, or workflow-transition bypass.",
           "status": "defect_evidence"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "mass-assignment in `applyPatch` (line 91, CWE-915): Spreading the entire client patch into the task lets an owner change protected fields such as `ownerId`, `id`, and `status`, enabling ownership transfer and workflow bypass.",
+          "text": "missing-task-handling in `moveTask` (line 95): When no task has the requested ID, the cast does not prevent find from returning undefined, so accessing task.status throws instead of returning a not-found result.",
           "status": "defect_evidence"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "missing-task-check in `moveTask` (line 95, CWE-476): When the requested ID does not exist, `task` is undefined and the next line dereferences it, causing a 500 instead of a not-found response.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "board.ts",
-          "kind": "baseline",
-          "text": "incorrect-numeric-order in `columnOrder` (line 106, CWE-697): Default array sorting compares IDs as strings, so IDs such as 10 sort before 2 despite the API promising oldest-first order.",
+          "text": "incorrect-ordering in `columnOrder` (line 106): The default sort orders IDs lexicographically, so a column containing IDs 1, 2, and 10 is returned as 1, 10, 2 rather than numeric order.",
           "status": "unreviewed"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "division-by-zero in `completionPercent` (line 113, CWE-682): An empty board has zero active tasks, so this division produces `NaN` and the JSON response reports `completion: null`.",
+          "text": "invalid-empty-board-completion in `completionPercent` (line 113): When there are no active tasks, this divides by zero and returns NaN, which the JSON response serializes as null instead of a valid completion percentage.",
           "status": "defect_evidence"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "regex-denial-of-service in `searchTasks` (line 127, CWE-1333): Treating the user-supplied query as a regular expression allows catastrophic-backtracking patterns to block the event loop and stall the server.",
+          "text": "regular-expression-denial-of-service in `searchTasks` (line 127, CWE-1333): The client-controlled query is compiled as a regular expression, so a crafted pathological pattern can make searches consume excessive CPU.",
           "status": "defect_evidence"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "pagination-off-by-one in `paginate` (line 134, CWE-682): The exclusive slice end is one less than the requested page boundary, so each page omits an item and a page size of 1 returns no results.",
+          "text": "pagination-off-by-one in `paginate` (line 134): The end index subtracts one even though slice excludes its end, so each page returns one fewer item than requested and a page size of one returns no items.",
           "status": "defect_evidence"
         },
         {
           "file": "board.ts",
           "kind": "baseline",
-          "text": "html-injection in `renderResults` (line 140, CWE-79): Task titles are interpolated into an HTML fragment without escaping, so a title containing markup or script can execute when the search result is rendered.",
+          "text": "stored-cross-site-scripting in `renderResults` (line 140, CWE-79): Task titles are inserted into an HTML fragment without escaping, so a title containing markup or script executes when the search results are rendered.",
           "status": "defect_evidence"
         },
         {
           "file": "server.ts",
           "kind": "baseline",
-          "text": "unbounded-request-body in `readBody` (line 37, CWE-400): The server buffers request bodies without a size limit, so a client can send an arbitrarily large body and exhaust process memory.",
+          "text": "unbounded-request-body in `readBody` (line 37, CWE-400): Request chunks are accumulated without a size limit, allowing a client to exhaust server memory by sending an arbitrarily large body.",
           "status": "defect_evidence"
         },
         {
           "file": "server.ts",
           "kind": "baseline",
-          "text": "error-stack-disclosure in `sendError` (line 68, CWE-209): Returning the exception message and stack to clients exposes internal implementation details when an endpoint throws.",
+          "text": "error-information-disclosure in `sendError` (line 68, CWE-209): Unexpected errors are returned with their message and stack trace, exposing internal paths and implementation details to callers.",
           "status": "defect_evidence"
         },
         {
           "file": "server.ts",
           "kind": "baseline",
-          "text": "spoofable-identity in `currentUser` (line 72, CWE-287): The caller-controlled `X-User` header is treated as authenticated identity, so any client can claim an owner's name and pass owner checks.",
+          "text": "spoofable-identity in `currentUser` (line 72, CWE-290): The server treats the caller-controlled X-User header as authenticated identity, so a client can claim another user's value and bypass the PATCH owner check.",
           "status": "unreviewed"
-        },
-        {
-          "file": "server.ts",
-          "kind": "baseline",
-          "text": "missing-authorization in `handleMove` (line 108, CWE-862): The move handler changes a task without checking that the caller owns it, allowing any caller with an `X-User` header to move another user's task.",
-          "status": "defect_evidence"
         }
       ],
       "finding_counts": {
-        "total": 13,
-        "defect_evidence": 11,
+        "total": 11,
+        "defect_evidence": 9,
         "real": 0,
         "false_positive": 0,
         "unreviewed": 2
@@ -1315,77 +1206,59 @@
       "reviews_used": [],
       "fixed_raw_findings": [
         {
-          "file": "server.ts",
-          "line": 39,
-          "rule": "unbounded-request-consumption",
-          "message": "Oversized request bodies are discarded but still read until the client finishes sending, so a client can hold connections and server resources with very large or indefinitely slow uploads.",
-          "cwe": [
-            400
-          ],
-          "function": "readBody"
-        },
-        {
-          "file": "server.ts",
-          "line": 84,
-          "rule": "authentication-bypass",
-          "message": "The caller identity is taken directly from the unauthenticated `X-User` header, so any client that can reach the server can impersonate a task owner by supplying that owner's name.",
-          "cwe": [
-            290
-          ],
-          "function": "currentUser"
-        },
-        {
-          "file": "server.ts",
-          "line": 128,
-          "rule": "invalid-pagination-input",
-          "message": "`page` and `size` are not validated before pagination, so negative or non-numeric query values are accepted and produce empty or truncated result sets instead of an error or a valid page.",
+          "file": "board.ts",
+          "line": 157,
+          "rule": "invalid-pagination",
+          "message": "The function does not validate its 1-based page and positive size arguments, so values such as page=0 or a negative size make slice return unintended results from the end of the collection.",
           "cwe": [
             20
           ],
-          "function": "handleSearch"
+          "function": "paginate"
+        },
+        {
+          "file": "server.ts",
+          "line": 83,
+          "rule": "spoofable-identity",
+          "message": "The server treats the caller-supplied X-User header as an authenticated identity, so a client can claim a task owner's value and pass the ownership checks to edit or move that task.",
+          "cwe": [
+            807
+          ],
+          "function": "currentUser"
         }
       ],
       "fixed_invalid_findings": [],
       "fixed_tool_errors": 0,
       "fixed_usage": {
-        "prompt_tokens": 8879,
-        "completion_tokens": 2086,
-        "cost_usd": 0.00113206,
-        "seconds": 31.94,
+        "prompt_tokens": 4534,
+        "completion_tokens": 1339,
+        "cost_usd": 0.00071511,
+        "seconds": 21.39,
         "attempts": 1
       },
       "fixed": {
         "defects": 12,
-        "still_reported": [
-          "TS01-D09"
-        ],
-        "false_alarms": 3,
+        "still_reported": [],
+        "false_alarms": 2,
         "findings": [
           {
-            "file": "server.ts",
+            "file": "board.ts",
             "kind": "baseline",
-            "text": "unbounded-request-consumption in `readBody` (line 39, CWE-400): Oversized request bodies are discarded but still read until the client finishes sending, so a client can hold connections and server resources with very large or indefinitely slow uploads.",
+            "text": "invalid-pagination in `paginate` (line 157, CWE-20): The function does not validate its 1-based page and positive size arguments, so values such as page=0 or a negative size make slice return unintended results from the end of the collection.",
             "status": "unreviewed"
           },
           {
             "file": "server.ts",
             "kind": "baseline",
-            "text": "authentication-bypass in `currentUser` (line 84, CWE-290): The caller identity is taken directly from the unauthenticated `X-User` header, so any client that can reach the server can impersonate a task owner by supplying that owner's name.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "server.ts",
-            "kind": "baseline",
-            "text": "invalid-pagination-input in `handleSearch` (line 128, CWE-20): `page` and `size` are not validated before pagination, so negative or non-numeric query values are accepted and produce empty or truncated result sets instead of an error or a valid page.",
+            "text": "spoofable-identity in `currentUser` (line 83, CWE-807): The server treats the caller-supplied X-User header as an authenticated identity, so a client can claim a task owner's value and pass the ownership checks to edit or move that task.",
             "status": "unreviewed"
           }
         ],
         "finding_counts": {
-          "total": 3,
+          "total": 2,
           "defect_evidence": 0,
           "real": 0,
           "false_positive": 0,
-          "unreviewed": 3
+          "unreviewed": 2
         },
         "reviews_used": []
       }
