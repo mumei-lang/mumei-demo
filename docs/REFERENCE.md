@@ -161,7 +161,7 @@ Contract benchmark: can a defect be refuted and its fix be proven against one fi
 
 | Option | Value | Required | Default | Description |
 |---|---|---|---|---|
-| `--arm` | `{mumei, llm, mumei-llm}` | no | — | arm to run (repeatable) |
+| `--arm` | `{mumei, llm, mumei-llm, llm-contract}` | no | — | arm to run (repeatable) |
 | `--only` | `<ONLY>` | no | — | limit to these defect ids |
 | `--runs` | `<RUNS>` | no | `1` | runs per LLM arm (seed = run number) |
 | `--jobs` | `<JOBS>` | no | `4` | cases run in parallel |
