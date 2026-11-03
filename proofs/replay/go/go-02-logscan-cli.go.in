@@ -1,0 +1,59 @@
+// imports: reflect regexp strconv unsafe
+// formatSummary takes []record in the buggy tree and []int64 in the fixed one.
+func replaySummary(count int, total int64, nPaths int, top int) (string, error) {
+	fn := reflect.ValueOf(formatSummary)
+	first := fn.Type().In(0)
+	arg := reflect.MakeSlice(first, count, count)
+	for i := 0; i < count; i++ {
+		latency := int64(0)
+		if i == 0 {
+			latency = total
+		}
+		if first.Elem().Kind() == reflect.Int64 {
+			arg.Index(i).SetInt(latency)
+		} else {
+			// The record type is unexported and absent from the fixed tree, so set its field by name.
+			field := arg.Index(i).FieldByName("latency")
+			reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem().SetInt(latency)
+		}
+	}
+	counts := map[string]int{}
+	for i := 0; i < nPaths; i++ {
+		counts[fmt.Sprintf("/p%d", i)] = 1
+	}
+	out := fn.Call([]reflect.Value{arg, reflect.ValueOf(counts), reflect.ValueOf(top), reflect.ValueOf([]float64(nil))})
+	err, _ := out[1].Interface().(error)
+	return out[0].String(), err
+}
+
+func replayCheck(id string, v map[string]any) (bool, string, bool) {
+	switch id {
+	case "GO02-D01":
+		n, pct := replayInt(v, "n"), replayInt(v, "pct")
+		r := percentileAt(make([]int64, n), float64(pct)/100)
+		return n == 0 && r != 0, fmt.Sprintf("percentileAt(len %d, %d%%) -> %d", n, pct, r), true
+	case "GO02-D02":
+		count, total := replayInt(v, "count"), replayInt(v, "total")
+		s, err := replaySummary(int(count), total, 0, 0)
+		m := regexp.MustCompile(`Average latency: (-?\d+)ms`).FindStringSubmatch(s)
+		want := int64(0)
+		if count > 0 {
+			want = total / count
+		}
+		return err != nil || m == nil || m[1] != strconv.FormatInt(want, 10), fmt.Sprintf("formatSummary -> %q", s), true
+	case "GO02-D03":
+		nPaths, top := replayInt(v, "n_paths"), replayInt(v, "top")
+		if top < 0 {
+			// The fixed version rejects a negative -top in run() before formatSummary.
+			out, _ := os.CreateTemp("", "summary")
+			out.Close()
+			defer os.Remove(out.Name())
+			err := run([]string{"-top", strconv.FormatInt(top, 10), "-out", out.Name()})
+			return err == nil, fmt.Sprintf("run -top %d -> %v", top, err), true
+		}
+		s, err := replaySummary(1, 0, int(nPaths), int(top))
+		shown := strings.Count(s, "\n/p")
+		return err == nil && int64(shown) > nPaths, fmt.Sprintf("formatSummary(top %d) -> %d paths", top, shown), true
+	}
+	return false, "", false
+}

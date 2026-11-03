@@ -1,0 +1,28 @@
+
+    impl ReplayOutcome for Request {
+        fn replay(self) -> (bool, Option<i64>, String) { (true, None, format!("{} {}", self.method, self.path)) }
+    }
+
+    fn check(case: &str, v: &Values) -> Option<(bool, String)> {
+        Some(match case {
+            "RS02-D01" => {
+                let words = int(v, "words");
+                let line = ["GET", "/kv/a", "HTTP/1.1", "extra"][..(words.min(4) as usize)].join(" ");
+                let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+                let mut client = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+                client.write_all(format!("{line}\r\n\r\n").as_bytes()).unwrap();
+                let (mut server, _) = listener.accept().unwrap();
+                let (ok, _, shown) = read_request(&mut server).replay();
+                (ok && words < 2, format!("read_request({line:?}) -> {shown}"))
+            }
+            "RS02-D05" => {
+                let (current, delta) = (int(v, "current"), int(v, "delta"));
+                let state = State { kv: Mutex::new(HashMap::new()), counters: Mutex::new(HashMap::new()) };
+                state.counters.lock().unwrap().insert("k".into(), current as i32);
+                let (ok, value, shown) = incr(&state, "k", delta as i32).replay();
+                (ok && value != Some(current + delta), format!("incr({current}, {delta}) -> {shown}"))
+            }
+            _ => return None,
+        })
+    }
+}

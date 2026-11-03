@@ -1,0 +1,54 @@
+
+func replayCheck(id string, v map[string]any) (bool, string, bool) {
+	inventory = NewStore()
+	switch id {
+	case "GO01-D02":
+		stock := replayInt(v, "stock")
+		inventory.Put(&Item{SKU: "a", Stock: int32(stock), Reserved: int32(replayInt(v, "reserved"))})
+		rec := replayRequest(restockHandler, "POST", "/restock", map[string]any{"sku": "a", "packs": replayInt(v, "packs"), "perPack": replayInt(v, "per_pack")}, nil)
+		after := inventory.Get("a").Stock
+		return rec.Code == 200 && int64(after) < stock, fmt.Sprintf("restock -> %d, stock %d", rec.Code, after), true
+	case "GO01-D03":
+		inventory.Put(&Item{SKU: "a", Stock: int32(replayInt(v, "stock")), Reserved: int32(replayInt(v, "reserved"))})
+		rec := replayRequest(releaseHandler, "POST", "/release", map[string]any{"sku": "a", "qty": replayInt(v, "qty")}, nil)
+		after := inventory.Get("a").Reserved
+		return rec.Code == 200 && after < 0, fmt.Sprintf("release -> %d, reserved %d", rec.Code, after), true
+	case "GO01-D04":
+		inventory.Put(&Item{SKU: "a", Name: "a"})
+		target := "/items"
+		if replayBool(v, "has_sku") {
+			target = "/items/a"
+		}
+		rec := replayRequest(itemHandler, "GET", target, nil, nil)
+		return !replayBool(v, "has_sku") && rec.Code != 404, fmt.Sprintf("GET %s -> %d", target, rec.Code), true
+	case "GO01-D05":
+		total, n := replayInt(v, "total"), replayInt(v, "locations")
+		r := reorderPoint(int32(total), make([]string, n))
+		want := int64(0)
+		if n > 0 {
+			want = total / n
+		}
+		return int64(r) != want, fmt.Sprintf("reorderPoint -> %d", r), true
+	case "GO01-D06":
+		item := &Item{SKU: "a", Locations: []string{"main"}}
+		if replayBool(v, "has_supplier") {
+			item.Supplier = &Supplier{Name: "acme"}
+		}
+		view := viewItem(item)
+		return !replayBool(v, "has_supplier") && view.SupplierName != "", fmt.Sprintf("viewItem -> supplier %q", view.SupplierName), true
+	case "GO01-D07":
+		n := replayInt(v, "n")
+		for i := int64(0); i < n; i++ {
+			inventory.Put(&Item{SKU: fmt.Sprintf("s%d", i)})
+		}
+		target := "/report"
+		if replayBool(v, "has_limit") {
+			target = fmt.Sprintf("/report?limit=%d", replayInt(v, "limit"))
+		}
+		rec := replayRequest(reportHandler, "GET", target, nil, nil)
+		var rows []any
+		_ = json.Unmarshal(rec.Body.Bytes(), &rows)
+		return rec.Code == 200 && int64(len(rows)) > n, fmt.Sprintf("GET %s -> %d, %d rows", target, rec.Code, len(rows)), true
+	}
+	return false, "", false
+}

@@ -67,6 +67,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/run_llm_only.py` | 8 | Ask an LLM alone (no Mumei) to review the specimens, and score it like the baselines. |
 | `scripts/compare_arms.py` | 2 | Compare three ways of reviewing the specimen corpus side by side. |
 | `scripts/run_contract_bench.py` | 8 | Contract benchmark: can a defect be refuted and its fix be proven against one fixed contract? |
+| `scripts/run_native_replay.py` | 4 | Replay concrete inputs on the native code and on the .mm ports of the contract benchmark. |
 | `scripts/run_mutation_control.py` | 6 | Mutation control for the contract benchmark: does each contract reject small changes to the fixed port? |
 | `scripts/record_scenario.py` | 2 | Finite record-operation checks and intentionally broken host variants. |
 | `scripts/record_model_evidence.py` | 2 | Collect independent Lean model evidence; never promote a Python operation. |
@@ -168,6 +169,17 @@ Contract benchmark: can a defect be refuted and its fix be proven against one fi
 | `--mumei-bin` | `<MUMEI_BIN>` | no | — | mumei binary (default: $MUMEI_BIN, then mumei on PATH) |
 | `--check` | — | no | `false` | validate cases and committed results offline |
 | `--render-only` | — | no | `false` | re-render RESULTS.md and the README block |
+
+### `scripts/run_native_replay.py`
+
+Replay concrete inputs on the native code and on the .mm ports of the contract benchmark.
+
+| Option | Value | Required | Default | Description |
+|---|---|---|---|---|
+| `--check` | — | no | `false` | check the committed results offline and exit |
+| `--mumei-bin` | `<MUMEI_BIN>` | no | — | mumei binary (default: $MUMEI_BIN, then mumei on PATH) |
+| `--jobs` | `<JOBS>` | no | `4` | parallel mumei runs (default: 4) |
+| `--timeout` | `<TIMEOUT>` | no | `120` | seconds per mumei run (default: 120) |
 
 ### `scripts/run_mutation_control.py`
 

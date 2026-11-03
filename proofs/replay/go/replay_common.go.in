@@ -1,0 +1,92 @@
+package main
+
+// Native replay driver, copied into a scratch copy of the specimen as
+// zz_native_replay_test.go. REPLAY_IN holds JSON lines {"case", "values"}; one
+// {"case", "violates", "observed"} line per input is written to REPLAY_OUT.
+// A panic counts as a violation of the requirement.
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"testing"
+)
+
+func TestNativeReplay(t *testing.T) {
+	in := os.Getenv("REPLAY_IN")
+	if in == "" {
+		t.Skip("REPLAY_IN not set")
+	}
+	data, err := os.ReadFile(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err := os.Create(os.Getenv("REPLAY_OUT"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer out.Close()
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		var req struct {
+			Case   string         `json:"case"`
+			Values map[string]any `json:"values"`
+		}
+		dec := json.NewDecoder(strings.NewReader(line))
+		dec.UseNumber()
+		if err := dec.Decode(&req); err != nil {
+			t.Fatal(err)
+		}
+		violates, observed, known := replaySafe(req.Case, req.Values)
+		if !known {
+			t.Fatalf("unknown case %s", req.Case)
+		}
+		if len(observed) > 300 {
+			observed = observed[:300]
+		}
+		row, _ := json.Marshal(map[string]any{"case": req.Case, "violates": violates, "observed": observed})
+		fmt.Fprintln(out, string(row))
+	}
+}
+
+func replaySafe(id string, v map[string]any) (violates bool, observed string, known bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			violates, observed, known = true, fmt.Sprintf("panic: %v", r), true
+		}
+	}()
+	return replayCheck(id, v)
+}
+
+func replayInt(v map[string]any, key string) int64 {
+	n, err := v[key].(json.Number).Int64()
+	if err != nil {
+		panic(fmt.Sprintf("bad integer %s", key))
+	}
+	return n
+}
+
+func replayBool(v map[string]any, key string) bool { return v[key].(bool) }
+
+func replayRequest(h http.HandlerFunc, method, target string, body any, header map[string]string) *httptest.ResponseRecorder {
+	var reader *bytes.Reader
+	if body != nil {
+		raw, _ := json.Marshal(body)
+		reader = bytes.NewReader(raw)
+	} else {
+		reader = bytes.NewReader(nil)
+	}
+	req := httptest.NewRequest(method, target, reader)
+	for k, val := range header {
+		req.Header.Set(k, val)
+	}
+	rec := httptest.NewRecorder()
+	h(rec, req)
+	return rec
+}
