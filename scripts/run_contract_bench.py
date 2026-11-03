@@ -19,10 +19,18 @@ Arms:
   mumei-llm  the model gets the same input plus the prelude and writes only
              the atom body. The body is assembled under the pinned header and
              verified; a body that declares an atom is rejected.
+  llm-contract
+             the model writes the contract instead: it gets the requirement,
+             the modelling notes, the prelude and the atom signature, but no
+             code and not the reference requires/ensures. Its one contract is
+             put on both reference bodies, which mumei verifies, with the
+             same vacuity control as the mumei arm. This measures the step
+             the mumei arm skips: turning a requirement into a contract
+             without knowing the defect.
 
 The reference ports were written with knowledge of the defects, so the mumei
 arm shows what the contracts can express and that the checker separates the
-two versions; it is not a detection result. The two LLM arms are the
+two versions; it is not a detection result. The LLM arms are the
 comparison.
 
 LLM arms use the same OpenAI-compatible settings as run_llm_only.py
@@ -63,7 +71,7 @@ LANGUAGES = ("python", "go", "rust", "typescript", "solidity")
 VARIANTS = ("buggy", "fixed")
 EXPECTED = {"buggy": "refuted", "fixed": "proven"}
 PROMPT_VERSION = 2
-ARMS = ("mumei", "llm", "mumei-llm")
+ARMS = ("mumei", "llm", "mumei-llm", "llm-contract")
 RATE_LIMIT_RETRIES = 8
 TRANSPORT_ERROR = "LLM request failed"
 REFUTATION = re.compile(r"^Verification Error: (Postcondition|Call to \S+: precondition|Potential |"
@@ -93,12 +101,28 @@ PORT_SYSTEM = (
     "Reply with JSON only: {\"body\": \"<the statements that go inside body: { ... }>\"}."
 )
 
+CONTRACT_SYSTEM = (
+    "You write the formal contract of one function from its written requirement, without seeing its code. "
+    "The contract is in Mumei, over a model of the function's inputs and state; the modelling notes say how "
+    "the model maps to the code. `requires` is what callers guarantee about inputs and state (not what the "
+    "function checks itself); `ensures` is what the requirement promises about `result` for every such input. "
+    "Each clause is one boolean expression over the parameters, `result` (in ensures), struct fields "
+    "(`result.ok`), `len(a)`, `a[i]`, integer arithmetic, comparisons, `&&`, `||`, `!`, `=>` and calls to the "
+    "prelude atoms. Write negative literals as `(0 - 3)`. Use `true` for no assumption. Do not guess at a "
+    "possible mistake in the code; state the requirement. "
+    'Reply with JSON only: {"requires": "<expression>", "ensures": "<expression>"}.'
+)
+CLAUSE_FORBIDDEN = re.compile(r";|\b(requires|ensures|body)\s*:|\batom\s|\btrusted\b")
+
 
 def sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def prompt_hash() -> str:
+def prompt_hash(arm: str | None = None) -> str:
+    if arm == "llm-contract":
+        templates = [inspect.getsource(f) for f in (contract_prompt, contract_header, signature)]
+        return sha256(json.dumps([PROMPT_VERSION, CONTRACT_SYSTEM, templates], sort_keys=True))[:16]
     templates = [inspect.getsource(f) for f in (llm_prompt, port_prompt, assemble)]
     return sha256(json.dumps([PROMPT_VERSION, LLM_SYSTEM, PORT_SYSTEM, templates], sort_keys=True))[:16]
 
@@ -262,23 +286,28 @@ def verify_text(mumei_bin: str, text: str, timeout: int) -> dict:
         return classify(doc, proc.returncode)
 
 
-def vacuity_text(case: dict) -> str:
-    ens = header_ensures(case["header"])
-    header = case["header"].replace(f"ensures: {ens};", "ensures: false;", 1)
+def vacuity_text(case: dict, header: str | None = None) -> str:
+    header = case["header"] if header is None else header
+    ens = header_ensures(header)
+    header = header.replace(f"ensures: {ens};", "ensures: false;", 1)
     return case["prelude"] + header + split_port(case["ports"]["fixed"], case["atom"])[2]
+
+
+def vacuity(case: dict, out: dict, mumei_bin: str, timeout: int, header: str | None = None) -> str:
+    control = verify_text(mumei_bin, vacuity_text(case, header), timeout)
+    # mumei may reject `ensures: false` up front as contradicting `requires`. That alone would also pass an
+    # unsatisfiable `requires`, so it only counts when the buggy port was refuted, i.e. some input meets `requires`.
+    contradiction = control["status"] == "failed" and control["diagnostics"] and all(
+        "Spec contradiction" in d["message"] or REFUTATION.search(d["message"]) for d in control["diagnostics"])
+    rejected = control["outcome"] == "refuted" or (contradiction and out["buggy"]["outcome"] == "refuted")
+    return "ok" if rejected else ("vacuous" if control["outcome"] == "proven" else "inconclusive")
 
 
 def run_mumei_case(case: dict, mumei_bin: str, timeout: int) -> dict:
     out = {k: case[k] for k in ("id", "language", "specimen", "category", "function", "case_hash", "source_hash")}
     for v in VARIANTS:
         out[v] = verify_text(mumei_bin, case["ports"][v], timeout)
-    control = verify_text(mumei_bin, vacuity_text(case), timeout)
-    # mumei may reject `ensures: false` up front as contradicting `requires`. That alone would also pass an
-    # unsatisfiable `requires`, so it only counts when the buggy port was refuted, i.e. some input meets `requires`.
-    contradiction = control["status"] == "failed" and control["diagnostics"] and all(
-        "Spec contradiction" in d["message"] or REFUTATION.search(d["message"]) for d in control["diagnostics"])
-    rejected = control["outcome"] == "refuted" or (contradiction and out["buggy"]["outcome"] == "refuted")
-    out["vacuity"] = "ok" if rejected else ("vacuous" if control["outcome"] == "proven" else "inconclusive")
+    out["vacuity"] = vacuity(case, out, mumei_bin, timeout)
     return out
 
 
@@ -298,6 +327,60 @@ def port_prompt(case: dict, variant: str) -> list[dict]:
             f"Pinned atom header; write only what goes inside body: {{ ... }}:\n```\n{case['header']}body: {{ ... }}\n```\n\n"
             f"Source file:\n```\n{case['native'][variant]}\n```")
     return [{"role": "system", "content": PORT_SYSTEM}, {"role": "user", "content": user}]
+
+
+def signature(case: dict) -> str:
+    """The atom's signature line, without requires/ensures."""
+    return case["header"].splitlines()[0].rstrip()
+
+
+def contract_prompt(case: dict) -> list[dict]:
+    prelude = case["prelude"].strip() or "(none)"
+    user = (f"Language of the original code: {case['language']}\nFunction: {case['function']}\n"
+            f"Requirement: {case['requirement']}\nModelling notes: {case['notes'] or '(none)'}\n\n"
+            f"Mumei prelude (already defined):\n```\n{prelude}\n```\n\n"
+            f"Write requires and ensures for this atom:\n```\n{signature(case)}\n```")
+    return [{"role": "system", "content": CONTRACT_SYSTEM}, {"role": "user", "content": user}]
+
+
+def contract_header(case: dict, requires: str, ensures: str) -> str:
+    return f"{signature(case)}\n    requires: {requires};\n    ensures: {ensures};\n    "
+
+
+def contract_clauses(reply: dict | None) -> tuple[str, str] | None:
+    """(requires, ensures) from a model reply, each a single expression, or None."""
+    clauses = []
+    for key in ("requires", "ensures"):
+        value = (reply or {}).get(key)
+        if not isinstance(value, str):
+            return None
+        value = " ".join(value.split()).removesuffix(";").strip()
+        if not value or CLAUSE_FORBIDDEN.search(value) or len(value) > 2000:
+            return None
+        clauses.append(value)
+    return clauses[0], clauses[1]
+
+
+def run_contract_case(case: dict, provider, seed: int, mumei_bin: str, timeout: int) -> dict:
+    out = {k: case[k] for k in ("id", "language", "specimen", "category", "function", "case_hash", "source_hash")}
+    try:
+        text, usage = provider.complete(contract_prompt(case), seed)
+    except RuntimeError as e:
+        out.update({v: {"outcome": "inconclusive", "status": str(e)} for v in VARIANTS})
+        out["usage"] = None
+        return out
+    out["usage"] = usage
+    clauses = contract_clauses(parse_json_reply(text))
+    if clauses is None:
+        out.update({v: {"outcome": "inconclusive", "status": "no-contract"} for v in VARIANTS})
+        out["reply"] = text[:2000]
+        return out
+    out["contract"] = {"requires": clauses[0], "ensures": clauses[1]}
+    header = contract_header(case, *clauses)
+    for v in VARIANTS:
+        out[v] = verify_text(mumei_bin, case["prelude"] + header + split_port(case["ports"][v], case["atom"])[2], timeout)
+    out["vacuity"] = vacuity(case, out, mumei_bin, timeout, header)
+    return out
 
 
 def parse_json_reply(text: str) -> dict | None:
@@ -359,8 +442,7 @@ def score(records: list[dict]) -> dict:
 def usage_total(records: list[dict]) -> dict:
     cost, seconds, calls, unknown = 0.0, 0.0, 0, 0
     for r in records:
-        for v in VARIANTS:
-            u = r[v].get("usage")
+        for u in [r[v].get("usage") for v in VARIANTS] + [r.get("usage")]:
             if not u:
                 continue
             calls += 1
@@ -384,7 +466,7 @@ def stale_records(cases: list[dict], results: list[dict]) -> list[str]:
     by_id = {c["id"]: c for c in cases}
     out = []
     for doc in results:
-        if doc["arm"] != "mumei" and doc.get("prompt_hash") != prompt_hash():
+        if doc["arm"] != "mumei" and doc.get("prompt_hash") != prompt_hash(doc["arm"]):
             out.append(f"{doc['arm']} ({doc.get('model')}): prompt changed")
         label = f"{doc['arm']} ({doc.get('model') or 'reference'})"
         for n, run in enumerate(doc["runs"], 1):
@@ -426,7 +508,8 @@ def arm_rows(results: list[dict]) -> list[dict]:
 
 
 ARM_LABEL = {"mumei": "mumei (reference ports)", "llm": "LLM only (judges the source)",
-             "mumei-llm": "mumei + LLM (LLM ports, mumei checks)"}
+             "mumei-llm": "mumei + LLM (LLM ports, mumei checks)",
+             "llm-contract": "mumei + LLM contract (LLM writes the contract, reference ports)"}
 
 
 def fmt(row: dict, key: str) -> str:
@@ -466,6 +549,11 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             "or the reference ports. LLM only answers holds/violated itself; a \"holds\" is the model's "
             "opinion, not a proof. mumei + LLM asks the model only for the `.mm` body under the pinned header, "
             "and mumei decides.", "",
+            "mumei + LLM contract removes the hand-written contract instead: the model gets the requirement, the "
+            "modelling notes, the prelude and the atom signature, but no code and not the reference requires/ensures. "
+            "Its one contract is put on both reference bodies, so a wrong answer here is a contract-writing error: "
+            "a buggy body accepted means the contract is too weak to catch the defect, a fixed body rejected means "
+            "it asks for more than the requirement does. The same vacuity control as for the reference applies.", "",
             "A buggy function whose LLM port mumei proves is a translation problem: the reference port of the "
             "same function under the same contract is refuted, so the LLM port does not keep the defect. "
             "mumei's verdict is only as faithful as the port it checks.", "",
@@ -508,6 +596,13 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
                 f"`{i}` {'buggy accepted' if v == 'buggy' else 'fixed rejected'} ({n}/{len(d['runs'])})"
                 for (i, v), n in sorted(counts.items())))
             wrong += [f"  - `{i}` fixed rejected, witness: {w}" for i, w in sorted(witnesses.items())]
+            contracts = {}
+            for run in d["runs"]:
+                for r in run:
+                    if (r["id"], "buggy") in counts or (r["id"], "fixed") in counts:
+                        if r.get("contract"):
+                            contracts.setdefault(r["id"], " ".join(r["contract"]["ensures"].split())[:160])
+            wrong += [f"  - `{i}` model's ensures: `{e}`" for i, e in sorted(contracts.items())]
     if wrong:
         out += ["## Wrong answers by case (runs out of total)", ""] + wrong + [""]
     out += ["## By language (cases with both answers right)", "",
@@ -561,7 +656,7 @@ def merge_runs(arm: str, model: str | None, runs: list[list[dict]]) -> list[list
     if not path.is_file():
         raise SystemExit(f"{path.relative_to(REPO_ROOT)} does not exist yet; run every case before using --only")
     old = json.loads(path.read_text())
-    if len(old["runs"]) != len(runs) or (arm != "mumei" and old.get("prompt_hash") != prompt_hash()):
+    if len(old["runs"]) != len(runs) or (arm != "mumei" and old.get("prompt_hash") != prompt_hash(arm)):
         raise SystemExit(f"{path.relative_to(REPO_ROOT)} has another prompt or run count; rerun without --only")
     merged = []
     for o, n in zip(old["runs"], runs):
@@ -595,7 +690,7 @@ def verifier_identity(mumei_bin: str) -> dict:
 
 def write_result(arm: str, model: str | None, runs: list[list[dict]], mumei_bin: str | None = None) -> Path:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    doc = {"arm": arm, "model": model, "prompt_hash": None if arm == "mumei" else prompt_hash(),
+    doc = {"arm": arm, "model": model, "prompt_hash": None if arm == "mumei" else prompt_hash(arm),
            "recorded_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()}
     if mumei_bin and arm != "llm":
         doc["verifier"] = verifier_identity(mumei_bin)
@@ -647,7 +742,7 @@ def main(argv: list[str], provider=None) -> int:
     if args.only:
         cases = [c for c in cases if c["id"] in set(args.only)]
     for arm in args.arm or ["mumei"]:
-        if arm in ("mumei", "mumei-llm") and not args.mumei_bin:
+        if arm != "llm" and not args.mumei_bin:
             raise SystemExit("mumei binary not found; pass --mumei-bin or set MUMEI_BIN")
         if arm == "mumei":
             with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
@@ -660,7 +755,12 @@ def main(argv: list[str], provider=None) -> int:
             runs = []
             for seed in range(args.runs):
                 with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
-                    runs.append(list(pool.map(lambda c: run_llm_case(c, prov, arm, seed, args.mumei_bin, args.timeout), cases)))
+                    if arm == "llm-contract":
+                        runs.append(list(pool.map(
+                            lambda c: run_contract_case(c, prov, seed, args.mumei_bin, args.timeout), cases)))
+                    else:
+                        runs.append(list(pool.map(
+                            lambda c: run_llm_case(c, prov, arm, seed, args.mumei_bin, args.timeout), cases)))
             path = write_result(arm, prov.model, merge_runs(arm, prov.model, runs) if args.only else runs,
                                 args.mumei_bin)
         if arm != "mumei" and any(score(run)["errors"] for run in json.loads(path.read_text())["runs"]):
