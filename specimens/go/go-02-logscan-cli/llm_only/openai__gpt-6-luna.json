@@ -1,0 +1,1316 @@
+{
+  "specimen": "go-02-logscan-cli",
+  "language": "go",
+  "tool": "llm-only",
+  "model": "openai/gpt-6-luna",
+  "prompt_version": 1,
+  "prompt_hash": "50865386f4c2f5d6",
+  "temperature": 0,
+  "generated_at": "2026-11-03T04:59:40Z",
+  "source_hash": "a5a69d85c516d2f1ec294bb93e892cb8ddc816ff91da0bc6ddbe244a1df40f0d",
+  "runs": [
+    {
+      "run": 1,
+      "raw_findings": [
+        {
+          "file": "main.go",
+          "line": 68,
+          "rule": "overly-permissive-file-permissions",
+          "message": "The summary is created with mode 0666, so a permissive umask (including umask 0) makes potentially sensitive report contents readable and writable by everyone.",
+          "cwe": [
+            732
+          ],
+          "function": "run"
+        },
+        {
+          "file": "main.go",
+          "line": 71,
+          "rule": "ignored-command-error",
+          "message": "The gzip command's error is discarded, so the program returns success even when compression fails and the promised compressed output was not produced.",
+          "cwe": [
+            252
+          ],
+          "function": "run"
+        },
+        {
+          "file": "main.go",
+          "line": 71,
+          "rule": "os-command-injection",
+          "message": "The output path is concatenated into a shell command without quoting, so a path containing shell metacharacters can execute arbitrary commands.",
+          "cwe": [
+            78
+          ],
+          "function": "run"
+        },
+        {
+          "file": "main.go",
+          "line": 96,
+          "rule": "deadlock",
+          "message": "Setting workers to zero or less starts no consumers, leaving the job producer and the caller blocked indefinitely.",
+          "cwe": [
+            833
+          ],
+          "function": "readFiles"
+        },
+        {
+          "file": "main.go",
+          "line": 104,
+          "rule": "unclosed-file-descriptor",
+          "message": "Deferring each file close until the worker exits keeps every file opened by that worker open while it processes later jobs, so many input files can exhaust the process's file descriptors.",
+          "cwe": [
+            775
+          ],
+          "function": "readFiles"
+        },
+        {
+          "file": "main.go",
+          "line": 111,
+          "rule": "race-condition",
+          "message": "Multiple workers increment the shared counts map without synchronization, causing data races and potentially a concurrent-map panic when files contain records.",
+          "cwe": [
+            362
+          ],
+          "function": "readFiles"
+        },
+        {
+          "file": "main.go",
+          "line": 144,
+          "rule": "unbounded-memory-consumption",
+          "message": "Every input line is copied into the unused raw buffer, so processing a sufficiently large log can consume memory proportional to the entire file and exhaust the process.",
+          "cwe": [
+            400
+          ],
+          "function": "parseFile"
+        },
+        {
+          "file": "main.go",
+          "line": 150,
+          "rule": "ignored-parse-error",
+          "message": "A malformed timestamp is silently replaced with the zero time and the record is still counted when no since filter is supplied, producing an incorrect report.",
+          "cwe": [
+            20
+          ],
+          "function": "parseFile"
+        },
+        {
+          "file": "main.go",
+          "line": 169,
+          "rule": "integer-overflow",
+          "message": "Adding accepted int64 latencies can overflow total, causing the reported average to be incorrect for sufficiently large values or enough records.",
+          "cwe": [
+            190
+          ],
+          "function": "formatSummary"
+        },
+        {
+          "file": "main.go",
+          "line": 171,
+          "rule": "division-by-zero",
+          "message": "If the since filter or input leaves no valid records, dividing by the record count panics instead of returning an empty report or an error.",
+          "cwe": [
+            369
+          ],
+          "function": "formatSummary"
+        },
+        {
+          "file": "main.go",
+          "line": 186,
+          "rule": "improper-index-validation",
+          "message": "A negative top value or a value larger than the number of distinct paths causes this slice operation to panic.",
+          "cwe": [
+            129
+          ],
+          "function": "formatSummary"
+        },
+        {
+          "file": "main.go",
+          "line": 201,
+          "rule": "improper-index-validation",
+          "message": "A percentile of 100 or an out-of-range percentile is accepted by parsing but indexes beyond the latency slice and panics.",
+          "cwe": [
+            129
+          ],
+          "function": "percentileAt"
+        },
+        {
+          "file": "main.go",
+          "line": 201,
+          "rule": "off-by-one",
+          "message": "The percentile index uses len(sorted)*percentile, which selects one rank too high at exact percentile boundaries (for example, p50 of two values selects the larger value).",
+          "cwe": [
+            193
+          ],
+          "function": "percentileAt"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 5555,
+        "completion_tokens": 3308,
+        "cost_usd": 0.00170982,
+        "seconds": 51.63,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "GO02-D01",
+          "file": "main.go",
+          "function": "percentileAt",
+          "category": "off-by-one",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "improper-index-validation in `percentileAt` (line 201, CWE-129): A percentile of 100 or an out-of-range percentile is accepted by parsing but indexes beyond the latency slice and panics.",
+            "off-by-one in `percentileAt` (line 201, CWE-193): The percentile index uses len(sorted)*percentile, which selects one rank too high at exact percentile boundaries (for example, p50 of two values selects the larger value)."
+          ]
+        },
+        {
+          "id": "GO02-D02",
+          "file": "main.go",
+          "function": "formatSummary",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `formatSummary` (line 171, CWE-369): If the since filter or input leaves no valid records, dividing by the record count panics instead of returning an empty report or an error."
+          ]
+        },
+        {
+          "id": "GO02-D03",
+          "file": "main.go",
+          "function": "formatSummary",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "improper-index-validation in `formatSummary` (line 186, CWE-129): A negative top value or a value larger than the number of distinct paths causes this slice operation to panic."
+          ]
+        },
+        {
+          "id": "GO02-D04",
+          "file": "main.go",
+          "function": "parseFile",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "unbounded-memory-consumption in `parseFile` (line 144, CWE-400): Every input line is copied into the unused raw buffer, so processing a sufficiently large log can consume memory proportional to the entire file and exhaust the process.",
+            "ignored-parse-error in `parseFile` (line 150, CWE-20): A malformed timestamp is silently replaced with the zero time and the record is still counted when no since filter is supplied, producing an incorrect report."
+          ]
+        },
+        {
+          "id": "GO02-D05",
+          "file": "main.go",
+          "function": "run",
+          "category": "command-injection",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "ignored-command-error in `run` (line 71, CWE-252): The gzip command's error is discarded, so the program returns success even when compression fails and the promised compressed output was not produced.",
+            "os-command-injection in `run` (line 71, CWE-78): The output path is concatenated into a shell command without quoting, so a path containing shell metacharacters can execute arbitrary commands."
+          ]
+        },
+        {
+          "id": "GO02-D06",
+          "file": "main.go",
+          "function": "readFiles",
+          "category": "race-condition",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "race-condition in `readFiles` (line 111, CWE-362): Multiple workers increment the shared counts map without synchronization, causing data races and potentially a concurrent-map panic when files contain records."
+          ]
+        },
+        {
+          "id": "GO02-D07",
+          "file": "main.go",
+          "function": "readFiles",
+          "category": "resource-leak",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unclosed-file-descriptor in `readFiles` (line 104, CWE-775): Deferring each file close until the worker exits keeps every file opened by that worker open while it processes later jobs, so many input files can exhaust the process's file descriptors."
+          ]
+        },
+        {
+          "id": "GO02-D08",
+          "file": "main.go",
+          "function": "parseFile",
+          "category": "unbounded-resource",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unbounded-memory-consumption in `parseFile` (line 144, CWE-400): Every input line is copied into the unused raw buffer, so processing a sufficiently large log can consume memory proportional to the entire file and exhaust the process."
+          ]
+        },
+        {
+          "id": "GO02-D09",
+          "file": "main.go",
+          "function": "run",
+          "category": "information-exposure",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "overly-permissive-file-permissions in `run` (line 68, CWE-732): The summary is created with mode 0666, so a permissive umask (including umask 0) makes potentially sensitive report contents readable and writable by everyone."
+          ]
+        },
+        {
+          "id": "GO02-D10",
+          "file": "main.go",
+          "function": "readFiles",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "deadlock in `readFiles` (line 96, CWE-833): Setting workers to zero or less starts no consumers, leaving the job producer and the caller blocked indefinitely.",
+            "unclosed-file-descriptor in `readFiles` (line 104, CWE-775): Deferring each file close until the worker exits keeps every file opened by that worker open while it processes later jobs, so many input files can exhaust the process's file descriptors.",
+            "race-condition in `readFiles` (line 111, CWE-362): Multiple workers increment the shared counts map without synchronization, causing data races and potentially a concurrent-map panic when files contain records."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 10,
+        "detected": 8,
+        "function_flagged": 2,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "overly-permissive-file-permissions in `run` (line 68, CWE-732): The summary is created with mode 0666, so a permissive umask (including umask 0) makes potentially sensitive report contents readable and writable by everyone.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "ignored-command-error in `run` (line 71, CWE-252): The gzip command's error is discarded, so the program returns success even when compression fails and the promised compressed output was not produced.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "os-command-injection in `run` (line 71, CWE-78): The output path is concatenated into a shell command without quoting, so a path containing shell metacharacters can execute arbitrary commands.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "deadlock in `readFiles` (line 96, CWE-833): Setting workers to zero or less starts no consumers, leaving the job producer and the caller blocked indefinitely.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "unclosed-file-descriptor in `readFiles` (line 104, CWE-775): Deferring each file close until the worker exits keeps every file opened by that worker open while it processes later jobs, so many input files can exhaust the process's file descriptors.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "race-condition in `readFiles` (line 111, CWE-362): Multiple workers increment the shared counts map without synchronization, causing data races and potentially a concurrent-map panic when files contain records.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "unbounded-memory-consumption in `parseFile` (line 144, CWE-400): Every input line is copied into the unused raw buffer, so processing a sufficiently large log can consume memory proportional to the entire file and exhaust the process.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "ignored-parse-error in `parseFile` (line 150, CWE-20): A malformed timestamp is silently replaced with the zero time and the record is still counted when no since filter is supplied, producing an incorrect report.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "integer-overflow in `formatSummary` (line 169, CWE-190): Adding accepted int64 latencies can overflow total, causing the reported average to be incorrect for sufficiently large values or enough records.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "division-by-zero in `formatSummary` (line 171, CWE-369): If the since filter or input leaves no valid records, dividing by the record count panics instead of returning an empty report or an error.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "improper-index-validation in `formatSummary` (line 186, CWE-129): A negative top value or a value larger than the number of distinct paths causes this slice operation to panic.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "improper-index-validation in `percentileAt` (line 201, CWE-129): A percentile of 100 or an out-of-range percentile is accepted by parsing but indexes beyond the latency slice and panics.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "off-by-one in `percentileAt` (line 201, CWE-193): The percentile index uses len(sorted)*percentile, which selects one rank too high at exact percentile boundaries (for example, p50 of two values selects the larger value).",
+          "status": "defect_evidence"
+        }
+      ],
+      "finding_counts": {
+        "total": 13,
+        "defect_evidence": 10,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 3
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "main.go",
+          "line": 161,
+          "rule": "boundary-condition-error",
+          "message": "The filter includes records whose timestamp exactly equals `-since`, despite the flag describing records after that boundary; an exact-boundary record is therefore incorrectly counted.",
+          "cwe": [
+            682
+          ],
+          "function": "parseFile"
+        },
+        {
+          "file": "main.go",
+          "line": 164,
+          "rule": "invalid-input-validation",
+          "message": "Negative latency values are accepted as valid measurements, so a log entry such as `-5ms` can produce incorrect averages and percentiles.",
+          "cwe": [
+            20
+          ],
+          "function": "parseFile"
+        },
+        {
+          "file": "main.go",
+          "line": 168,
+          "rule": "uncontrolled-memory-allocation",
+          "message": "Every accepted request's latency is retained in memory, so processing a sufficiently large log can exhaust the process's memory.",
+          "cwe": [
+            789
+          ],
+          "function": "parseFile"
+        },
+        {
+          "file": "main.go",
+          "line": 177,
+          "rule": "integer-overflow",
+          "message": "Adding parsed latencies can overflow `int64` (for example, two large positive values), producing an incorrect average.",
+          "cwe": [
+            190
+          ],
+          "function": "formatSummary"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 5773,
+        "completion_tokens": 1979,
+        "cost_usd": 0.00171105,
+        "seconds": 30.48,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 10,
+        "still_reported": [
+          "GO02-D03",
+          "GO02-D08"
+        ],
+        "false_alarms": 4,
+        "findings": [
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "boundary-condition-error in `parseFile` (line 161, CWE-682): The filter includes records whose timestamp exactly equals `-since`, despite the flag describing records after that boundary; an exact-boundary record is therefore incorrectly counted.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "invalid-input-validation in `parseFile` (line 164, CWE-20): Negative latency values are accepted as valid measurements, so a log entry such as `-5ms` can produce incorrect averages and percentiles.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "uncontrolled-memory-allocation in `parseFile` (line 168, CWE-789): Every accepted request's latency is retained in memory, so processing a sufficiently large log can exhaust the process's memory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "integer-overflow in `formatSummary` (line 177, CWE-190): Adding parsed latencies can overflow `int64` (for example, two large positive values), producing an incorrect average.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 4,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 4
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 2,
+      "raw_findings": [
+        {
+          "file": "main.go",
+          "line": 68,
+          "rule": "unsafe-file-permissions",
+          "message": "Creating the summary with mode `0666` allows group or world access when the process has a permissive umask, potentially exposing or permitting modification of report data.",
+          "cwe": [
+            732
+          ],
+          "function": "run"
+        },
+        {
+          "file": "main.go",
+          "line": 71,
+          "rule": "ignored-command-error",
+          "message": "The gzip command's error is ignored, so the program reports success even when compression fails and leaves the expected compressed output missing.",
+          "cwe": [
+            390
+          ],
+          "function": "run"
+        },
+        {
+          "file": "main.go",
+          "line": 71,
+          "rule": "os-command-injection",
+          "message": "The output path is concatenated into a shell command, so a crafted `-out` value containing shell metacharacters can execute arbitrary commands.",
+          "cwe": [
+            78
+          ],
+          "function": "run"
+        },
+        {
+          "file": "main.go",
+          "line": 96,
+          "rule": "deadlock",
+          "message": "A zero or negative `-workers` value starts no consumers, leaving the producer blocked on `jobs` while `readFiles` waits forever for results.",
+          "cwe": [
+            833
+          ],
+          "function": "readFiles"
+        },
+        {
+          "file": "main.go",
+          "line": 104,
+          "rule": "file-descriptor-leak",
+          "message": "Deferring each file close inside the worker loop keeps every processed file open until that worker exits, so processing many files can exhaust the process file-descriptor limit.",
+          "cwe": [
+            775
+          ],
+          "function": "readFiles"
+        },
+        {
+          "file": "main.go",
+          "line": 111,
+          "rule": "race-condition",
+          "message": "Workers concurrently update the shared `counts` map without synchronization, so concurrent input files can trigger a data race or fatal concurrent-map write.",
+          "cwe": [
+            362
+          ],
+          "function": "readFiles"
+        },
+        {
+          "file": "main.go",
+          "line": 144,
+          "rule": "unbounded-memory-consumption",
+          "message": "Every input line is copied into `raw`, which is never used, so a large log can consume memory proportional to its full size in addition to the parsed records.",
+          "cwe": [
+            400
+          ],
+          "function": "parseFile"
+        },
+        {
+          "file": "main.go",
+          "line": 150,
+          "rule": "improper-input-validation",
+          "message": "The timestamp parse error is discarded, so a malformed timestamp is accepted as a record with a zero timestamp and can produce incorrect reports.",
+          "cwe": [
+            20
+          ],
+          "function": "parseFile"
+        },
+        {
+          "file": "main.go",
+          "line": 169,
+          "rule": "integer-overflow",
+          "message": "Summing untrusted `int64` latency values can overflow, causing the reported average to be incorrect for inputs with sufficiently large latencies.",
+          "cwe": [
+            190
+          ],
+          "function": "formatSummary"
+        },
+        {
+          "file": "main.go",
+          "line": 171,
+          "rule": "division-by-zero",
+          "message": "When filtering or parsing leaves no records, this divides by zero and panics instead of returning an empty report or an error.",
+          "cwe": [
+            369
+          ],
+          "function": "formatSummary"
+        },
+        {
+          "file": "main.go",
+          "line": 186,
+          "rule": "improper-index-validation",
+          "message": "Slicing with an unchecked `top` value panics when `-top` is negative or exceeds the number of distinct paths.",
+          "cwe": [
+            129
+          ],
+          "function": "formatSummary"
+        },
+        {
+          "file": "main.go",
+          "line": 201,
+          "rule": "improper-index-validation",
+          "message": "A percentile of 100 or an out-of-range percentile produces an invalid index and panics; `parsePercentiles` accepts these values without validation.",
+          "cwe": [
+            129
+          ],
+          "function": "percentileAt"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 5555,
+        "completion_tokens": 3666,
+        "cost_usd": 0.00188882,
+        "seconds": 55.12,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "GO02-D01",
+          "file": "main.go",
+          "function": "percentileAt",
+          "category": "off-by-one",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "improper-index-validation in `percentileAt` (line 201, CWE-129): A percentile of 100 or an out-of-range percentile produces an invalid index and panics; `parsePercentiles` accepts these values without validation."
+          ]
+        },
+        {
+          "id": "GO02-D02",
+          "file": "main.go",
+          "function": "formatSummary",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `formatSummary` (line 171, CWE-369): When filtering or parsing leaves no records, this divides by zero and panics instead of returning an empty report or an error."
+          ]
+        },
+        {
+          "id": "GO02-D03",
+          "file": "main.go",
+          "function": "formatSummary",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "improper-index-validation in `formatSummary` (line 186, CWE-129): Slicing with an unchecked `top` value panics when `-top` is negative or exceeds the number of distinct paths."
+          ]
+        },
+        {
+          "id": "GO02-D04",
+          "file": "main.go",
+          "function": "parseFile",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "unbounded-memory-consumption in `parseFile` (line 144, CWE-400): Every input line is copied into `raw`, which is never used, so a large log can consume memory proportional to its full size in addition to the parsed records.",
+            "improper-input-validation in `parseFile` (line 150, CWE-20): The timestamp parse error is discarded, so a malformed timestamp is accepted as a record with a zero timestamp and can produce incorrect reports."
+          ]
+        },
+        {
+          "id": "GO02-D05",
+          "file": "main.go",
+          "function": "run",
+          "category": "command-injection",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "ignored-command-error in `run` (line 71, CWE-390): The gzip command's error is ignored, so the program reports success even when compression fails and leaves the expected compressed output missing.",
+            "os-command-injection in `run` (line 71, CWE-78): The output path is concatenated into a shell command, so a crafted `-out` value containing shell metacharacters can execute arbitrary commands."
+          ]
+        },
+        {
+          "id": "GO02-D06",
+          "file": "main.go",
+          "function": "readFiles",
+          "category": "race-condition",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "race-condition in `readFiles` (line 111, CWE-362): Workers concurrently update the shared `counts` map without synchronization, so concurrent input files can trigger a data race or fatal concurrent-map write."
+          ]
+        },
+        {
+          "id": "GO02-D07",
+          "file": "main.go",
+          "function": "readFiles",
+          "category": "resource-leak",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "file-descriptor-leak in `readFiles` (line 104, CWE-775): Deferring each file close inside the worker loop keeps every processed file open until that worker exits, so processing many files can exhaust the process file-descriptor limit."
+          ]
+        },
+        {
+          "id": "GO02-D08",
+          "file": "main.go",
+          "function": "parseFile",
+          "category": "unbounded-resource",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unbounded-memory-consumption in `parseFile` (line 144, CWE-400): Every input line is copied into `raw`, which is never used, so a large log can consume memory proportional to its full size in addition to the parsed records."
+          ]
+        },
+        {
+          "id": "GO02-D09",
+          "file": "main.go",
+          "function": "run",
+          "category": "information-exposure",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unsafe-file-permissions in `run` (line 68, CWE-732): Creating the summary with mode `0666` allows group or world access when the process has a permissive umask, potentially exposing or permitting modification of report data."
+          ]
+        },
+        {
+          "id": "GO02-D10",
+          "file": "main.go",
+          "function": "readFiles",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "deadlock in `readFiles` (line 96, CWE-833): A zero or negative `-workers` value starts no consumers, leaving the producer blocked on `jobs` while `readFiles` waits forever for results.",
+            "file-descriptor-leak in `readFiles` (line 104, CWE-775): Deferring each file close inside the worker loop keeps every processed file open until that worker exits, so processing many files can exhaust the process file-descriptor limit.",
+            "race-condition in `readFiles` (line 111, CWE-362): Workers concurrently update the shared `counts` map without synchronization, so concurrent input files can trigger a data race or fatal concurrent-map write."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 10,
+        "detected": 8,
+        "function_flagged": 2,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "unsafe-file-permissions in `run` (line 68, CWE-732): Creating the summary with mode `0666` allows group or world access when the process has a permissive umask, potentially exposing or permitting modification of report data.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "ignored-command-error in `run` (line 71, CWE-390): The gzip command's error is ignored, so the program reports success even when compression fails and leaves the expected compressed output missing.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "os-command-injection in `run` (line 71, CWE-78): The output path is concatenated into a shell command, so a crafted `-out` value containing shell metacharacters can execute arbitrary commands.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "deadlock in `readFiles` (line 96, CWE-833): A zero or negative `-workers` value starts no consumers, leaving the producer blocked on `jobs` while `readFiles` waits forever for results.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "file-descriptor-leak in `readFiles` (line 104, CWE-775): Deferring each file close inside the worker loop keeps every processed file open until that worker exits, so processing many files can exhaust the process file-descriptor limit.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "race-condition in `readFiles` (line 111, CWE-362): Workers concurrently update the shared `counts` map without synchronization, so concurrent input files can trigger a data race or fatal concurrent-map write.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "unbounded-memory-consumption in `parseFile` (line 144, CWE-400): Every input line is copied into `raw`, which is never used, so a large log can consume memory proportional to its full size in addition to the parsed records.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "improper-input-validation in `parseFile` (line 150, CWE-20): The timestamp parse error is discarded, so a malformed timestamp is accepted as a record with a zero timestamp and can produce incorrect reports.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "integer-overflow in `formatSummary` (line 169, CWE-190): Summing untrusted `int64` latency values can overflow, causing the reported average to be incorrect for inputs with sufficiently large latencies.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "division-by-zero in `formatSummary` (line 171, CWE-369): When filtering or parsing leaves no records, this divides by zero and panics instead of returning an empty report or an error.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "improper-index-validation in `formatSummary` (line 186, CWE-129): Slicing with an unchecked `top` value panics when `-top` is negative or exceeds the number of distinct paths.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "improper-index-validation in `percentileAt` (line 201, CWE-129): A percentile of 100 or an out-of-range percentile produces an invalid index and panics; `parsePercentiles` accepts these values without validation.",
+          "status": "defect_evidence"
+        }
+      ],
+      "finding_counts": {
+        "total": 12,
+        "defect_evidence": 9,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 3
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "main.go",
+          "line": 161,
+          "rule": "time-boundary-error",
+          "message": "The `Before` check excludes only timestamps earlier than `since`, so a record exactly at the boundary is included even though the flag promises records after it.",
+          "cwe": [
+            682
+          ],
+          "function": "parseFile"
+        },
+        {
+          "file": "main.go",
+          "line": 164,
+          "rule": "invalid-latency-accepted",
+          "message": "`ParseInt` accepts negative latency values, so a record such as `-5ms` is counted and can produce negative averages and percentiles.",
+          "cwe": [
+            20
+          ],
+          "function": "parseFile"
+        },
+        {
+          "file": "main.go",
+          "line": 168,
+          "rule": "unbounded-memory-use",
+          "message": "Every accepted request's latency is retained in memory, so processing a sufficiently large log can exhaust the process's memory.",
+          "cwe": [
+            789
+          ],
+          "function": "parseFile"
+        },
+        {
+          "file": "main.go",
+          "line": 177,
+          "rule": "integer-overflow",
+          "message": "Summing accepted latencies into an `int64` can overflow (for example, two large positive values), producing an incorrect average.",
+          "cwe": [
+            190
+          ],
+          "function": "formatSummary"
+        },
+        {
+          "file": "main.go",
+          "line": 202,
+          "rule": "terminal-control-injection",
+          "message": "A path token containing terminal escape sequences is printed verbatim, allowing a crafted log to manipulate or spoof a terminal when its summary is displayed.",
+          "cwe": [
+            150
+          ],
+          "function": "formatSummary"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 5773,
+        "completion_tokens": 3030,
+        "cost_usd": 0.001573,
+        "seconds": 49.44,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 10,
+        "still_reported": [
+          "GO02-D03",
+          "GO02-D08"
+        ],
+        "false_alarms": 5,
+        "findings": [
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "time-boundary-error in `parseFile` (line 161, CWE-682): The `Before` check excludes only timestamps earlier than `since`, so a record exactly at the boundary is included even though the flag promises records after it.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "invalid-latency-accepted in `parseFile` (line 164, CWE-20): `ParseInt` accepts negative latency values, so a record such as `-5ms` is counted and can produce negative averages and percentiles.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "unbounded-memory-use in `parseFile` (line 168, CWE-789): Every accepted request's latency is retained in memory, so processing a sufficiently large log can exhaust the process's memory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "integer-overflow in `formatSummary` (line 177, CWE-190): Summing accepted latencies into an `int64` can overflow (for example, two large positive values), producing an incorrect average.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "terminal-control-injection in `formatSummary` (line 202, CWE-150): A path token containing terminal escape sequences is printed verbatim, allowing a crafted log to manipulate or spoof a terminal when its summary is displayed.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 5,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 5
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 3,
+      "raw_findings": [
+        {
+          "file": "main.go",
+          "line": 68,
+          "rule": "insecure-file-permissions",
+          "message": "New summary files are created with mode 0666 before umask, so a permissive umask can expose report contents to other users.",
+          "cwe": [
+            732
+          ],
+          "function": "run"
+        },
+        {
+          "file": "main.go",
+          "line": 71,
+          "rule": "os-command-injection",
+          "message": "The user-controlled output path is concatenated into a shell command, so an output value containing shell metacharacters can execute arbitrary commands with the program's privileges.",
+          "cwe": [
+            78
+          ],
+          "function": "run"
+        },
+        {
+          "file": "main.go",
+          "line": 71,
+          "rule": "unchecked-error",
+          "message": "The gzip command's error is discarded, so the program reports success even when compression fails and the promised compressed output is not produced.",
+          "cwe": [
+            252
+          ],
+          "function": "run"
+        },
+        {
+          "file": "main.go",
+          "line": 96,
+          "rule": "deadlock",
+          "message": "A zero or negative worker count starts no consumers, so the job sender blocks and the command hangs when any input path is supplied.",
+          "cwe": [
+            833
+          ],
+          "function": "readFiles"
+        },
+        {
+          "file": "main.go",
+          "line": 104,
+          "rule": "file-descriptor-leak",
+          "message": "Each opened file is deferred for closing until its worker exits, so a worker processing many paths retains every descriptor and can exhaust the process's file limit.",
+          "cwe": [
+            775
+          ],
+          "function": "readFiles"
+        },
+        {
+          "file": "main.go",
+          "line": 111,
+          "rule": "race-condition",
+          "message": "Workers concurrently update the shared counts map without synchronization, causing a data race and potentially a concurrent-map-write panic.",
+          "cwe": [
+            362
+          ],
+          "function": "readFiles"
+        },
+        {
+          "file": "main.go",
+          "line": 150,
+          "rule": "improper-input-validation",
+          "message": "Timestamp parse errors are ignored, so malformed timestamps are accepted as zero-time records and included in summaries when no since filter is set.",
+          "cwe": [
+            20
+          ],
+          "function": "parseFile"
+        },
+        {
+          "file": "main.go",
+          "line": 171,
+          "rule": "divide-by-zero",
+          "message": "When filtering or input leaves no records, average calculation divides by zero and panics instead of returning a summary or error.",
+          "cwe": [
+            369
+          ],
+          "function": "formatSummary"
+        },
+        {
+          "file": "main.go",
+          "line": 186,
+          "rule": "improper-index-validation",
+          "message": "The top value is not checked against the available path count or for negativity, so values outside the valid slice range panic.",
+          "cwe": [
+            129
+          ],
+          "function": "formatSummary"
+        },
+        {
+          "file": "main.go",
+          "line": 201,
+          "rule": "improper-index-validation",
+          "message": "Percentiles are not restricted to a valid index range, so a valid-looking value of 100 or any value outside 0–100 causes an out-of-range panic for nonempty input.",
+          "cwe": [
+            129
+          ],
+          "function": "percentileAt"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 5555,
+        "completion_tokens": 2604,
+        "cost_usd": 0.0019963,
+        "seconds": 41.17,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "GO02-D01",
+          "file": "main.go",
+          "function": "percentileAt",
+          "category": "off-by-one",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "improper-index-validation in `percentileAt` (line 201, CWE-129): Percentiles are not restricted to a valid index range, so a valid-looking value of 100 or any value outside 0–100 causes an out-of-range panic for nonempty input."
+          ]
+        },
+        {
+          "id": "GO02-D02",
+          "file": "main.go",
+          "function": "formatSummary",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "divide-by-zero in `formatSummary` (line 171, CWE-369): When filtering or input leaves no records, average calculation divides by zero and panics instead of returning a summary or error."
+          ]
+        },
+        {
+          "id": "GO02-D03",
+          "file": "main.go",
+          "function": "formatSummary",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "divide-by-zero in `formatSummary` (line 171, CWE-369): When filtering or input leaves no records, average calculation divides by zero and panics instead of returning a summary or error.",
+            "improper-index-validation in `formatSummary` (line 186, CWE-129): The top value is not checked against the available path count or for negativity, so values outside the valid slice range panic."
+          ]
+        },
+        {
+          "id": "GO02-D04",
+          "file": "main.go",
+          "function": "parseFile",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "improper-input-validation in `parseFile` (line 150, CWE-20): Timestamp parse errors are ignored, so malformed timestamps are accepted as zero-time records and included in summaries when no since filter is set."
+          ]
+        },
+        {
+          "id": "GO02-D05",
+          "file": "main.go",
+          "function": "run",
+          "category": "command-injection",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "os-command-injection in `run` (line 71, CWE-78): The user-controlled output path is concatenated into a shell command, so an output value containing shell metacharacters can execute arbitrary commands with the program's privileges.",
+            "unchecked-error in `run` (line 71, CWE-252): The gzip command's error is discarded, so the program reports success even when compression fails and the promised compressed output is not produced."
+          ]
+        },
+        {
+          "id": "GO02-D06",
+          "file": "main.go",
+          "function": "readFiles",
+          "category": "race-condition",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "race-condition in `readFiles` (line 111, CWE-362): Workers concurrently update the shared counts map without synchronization, causing a data race and potentially a concurrent-map-write panic."
+          ]
+        },
+        {
+          "id": "GO02-D07",
+          "file": "main.go",
+          "function": "readFiles",
+          "category": "resource-leak",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "file-descriptor-leak in `readFiles` (line 104, CWE-775): Each opened file is deferred for closing until its worker exits, so a worker processing many paths retains every descriptor and can exhaust the process's file limit."
+          ]
+        },
+        {
+          "id": "GO02-D08",
+          "file": "main.go",
+          "function": "parseFile",
+          "category": "unbounded-resource",
+          "class": "design",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "improper-input-validation in `parseFile` (line 150, CWE-20): Timestamp parse errors are ignored, so malformed timestamps are accepted as zero-time records and included in summaries when no since filter is set."
+          ]
+        },
+        {
+          "id": "GO02-D09",
+          "file": "main.go",
+          "function": "run",
+          "category": "information-exposure",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "insecure-file-permissions in `run` (line 68, CWE-732): New summary files are created with mode 0666 before umask, so a permissive umask can expose report contents to other users."
+          ]
+        },
+        {
+          "id": "GO02-D10",
+          "file": "main.go",
+          "function": "readFiles",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "deadlock in `readFiles` (line 96, CWE-833): A zero or negative worker count starts no consumers, so the job sender blocks and the command hangs when any input path is supplied.",
+            "file-descriptor-leak in `readFiles` (line 104, CWE-775): Each opened file is deferred for closing until its worker exits, so a worker processing many paths retains every descriptor and can exhaust the process's file limit.",
+            "race-condition in `readFiles` (line 111, CWE-362): Workers concurrently update the shared counts map without synchronization, causing a data race and potentially a concurrent-map-write panic."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 10,
+        "detected": 6,
+        "function_flagged": 4,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "insecure-file-permissions in `run` (line 68, CWE-732): New summary files are created with mode 0666 before umask, so a permissive umask can expose report contents to other users.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "os-command-injection in `run` (line 71, CWE-78): The user-controlled output path is concatenated into a shell command, so an output value containing shell metacharacters can execute arbitrary commands with the program's privileges.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "unchecked-error in `run` (line 71, CWE-252): The gzip command's error is discarded, so the program reports success even when compression fails and the promised compressed output is not produced.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "deadlock in `readFiles` (line 96, CWE-833): A zero or negative worker count starts no consumers, so the job sender blocks and the command hangs when any input path is supplied.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "file-descriptor-leak in `readFiles` (line 104, CWE-775): Each opened file is deferred for closing until its worker exits, so a worker processing many paths retains every descriptor and can exhaust the process's file limit.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "race-condition in `readFiles` (line 111, CWE-362): Workers concurrently update the shared counts map without synchronization, causing a data race and potentially a concurrent-map-write panic.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "improper-input-validation in `parseFile` (line 150, CWE-20): Timestamp parse errors are ignored, so malformed timestamps are accepted as zero-time records and included in summaries when no since filter is set.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "divide-by-zero in `formatSummary` (line 171, CWE-369): When filtering or input leaves no records, average calculation divides by zero and panics instead of returning a summary or error.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "improper-index-validation in `formatSummary` (line 186, CWE-129): The top value is not checked against the available path count or for negativity, so values outside the valid slice range panic.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "improper-index-validation in `percentileAt` (line 201, CWE-129): Percentiles are not restricted to a valid index range, so a valid-looking value of 100 or any value outside 0–100 causes an out-of-range panic for nonempty input.",
+          "status": "defect_evidence"
+        }
+      ],
+      "finding_counts": {
+        "total": 10,
+        "defect_evidence": 7,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 3
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "main.go",
+          "line": 161,
+          "rule": "incorrect-time-boundary",
+          "message": "The `since` filter includes records exactly at the boundary, despite the flag describing records after it, so an equal-timestamp record is incorrectly counted.",
+          "cwe": [],
+          "function": "parseFile"
+        },
+        {
+          "file": "main.go",
+          "line": 177,
+          "rule": "integer-overflow",
+          "message": "Summing parsed latencies can overflow `int64` (for example, two `9223372036854775807ms` records), producing an incorrect average.",
+          "cwe": [
+            190
+          ],
+          "function": "formatSummary"
+        },
+        {
+          "file": "main.go",
+          "line": 202,
+          "rule": "terminal-escape-injection",
+          "message": "A path containing terminal escape sequences is written verbatim into the report and printed to the terminal, allowing crafted log input to manipulate terminal behavior.",
+          "cwe": [
+            150
+          ],
+          "function": "formatSummary"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 5773,
+        "completion_tokens": 2666,
+        "cost_usd": 0.00205455,
+        "seconds": 40.74,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 10,
+        "still_reported": [],
+        "false_alarms": 3,
+        "findings": [
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "incorrect-time-boundary in `parseFile` (line 161): The `since` filter includes records exactly at the boundary, despite the flag describing records after it, so an equal-timestamp record is incorrectly counted.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "integer-overflow in `formatSummary` (line 177, CWE-190): Summing parsed latencies can overflow `int64` (for example, two `9223372036854775807ms` records), producing an incorrect average.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "main.go",
+            "kind": "baseline",
+            "text": "terminal-escape-injection in `formatSummary` (line 202, CWE-150): A path containing terminal escape sequences is written verbatim into the report and printed to the terminal, allowing crafted log input to manipulate terminal behavior.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 3,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 3
+        },
+        "reviews_used": []
+      }
+    }
+  ]
+}

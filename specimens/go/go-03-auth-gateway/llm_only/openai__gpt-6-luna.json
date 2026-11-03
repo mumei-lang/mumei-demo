@@ -1,0 +1,1407 @@
+{
+  "specimen": "go-03-auth-gateway",
+  "language": "go",
+  "tool": "llm-only",
+  "model": "openai/gpt-6-luna",
+  "prompt_version": 1,
+  "prompt_hash": "50865386f4c2f5d6",
+  "temperature": 0,
+  "generated_at": "2026-11-03T04:59:40Z",
+  "source_hash": "a7f22803f92f10a530668fdb2e95355a4ad0869e0f8ea6c9418121ac5cba70a5",
+  "runs": [
+    {
+      "run": 1,
+      "raw_findings": [
+        {
+          "file": "auth.go",
+          "line": 25,
+          "rule": "hardcoded-user-credentials",
+          "message": "Alice and Bob share a fixed source-controlled password, allowing anyone who knows the documented seeded credentials to authenticate to deployed instances.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "auth.go",
+          "line": 37,
+          "rule": "timing-side-channel",
+          "message": "Direct string equality can reveal how much of a presented token matches a stored token through response-time differences, enabling token-guessing attacks.",
+          "cwe": [
+            208
+          ],
+          "function": "tokenMatches"
+        },
+        {
+          "file": "auth.go",
+          "line": 67,
+          "rule": "ineffective-login-rate-limit",
+          "message": "The limiter never records a new `windowStarted`, so it remains zero and every attempt resets the count, allowing unlimited password guesses from one address.",
+          "cwe": [
+            307
+          ],
+          "function": "allowAttempt"
+        },
+        {
+          "file": "handlers.go",
+          "line": 30,
+          "rule": "nil-pointer-dereference",
+          "message": "A login attempt with an unknown username makes `account` nil and panics when this line reads its password hash, producing a server error instead of rejecting the credentials.",
+          "cwe": [
+            476
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 34,
+          "rule": "predictable-session-token",
+          "message": "Session tokens are derived from the current nanosecond timestamp, making them guessable from login timing and unsuitable as bearer credentials.",
+          "cwe": [
+            330
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 39,
+          "rule": "open-redirect",
+          "message": "A successful login accepts an arbitrary external `next` URL and redirects the browser to it, enabling trusted-site open-redirect phishing.",
+          "cwe": [
+            601
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 50,
+          "rule": "missing-object-authorization",
+          "message": "Any authenticated user can choose another account's `user` query value and retrieve that profile because the handler never checks that the requested account belongs to the bearer user.",
+          "cwe": [
+            862
+          ],
+          "function": "profileHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 58,
+          "rule": "password-hash-disclosure",
+          "message": "The profile response exposes unsalted SHA-1 password hashes, including the admin hash, allowing attackers to perform offline password cracking.",
+          "cwe": [
+            200
+          ],
+          "function": "profileHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 68,
+          "rule": "server-side-request-forgery",
+          "message": "An authenticated caller controls the URL passed to `http.Get`, allowing requests to loopback, private-network, or other reachable internal services.",
+          "cwe": [
+            918
+          ],
+          "function": "proxyHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 68,
+          "rule": "unbounded-upstream-request",
+          "message": "The default HTTP client has no timeout, so a caller can make proxy requests to nonresponsive upstreams that hold server handlers and connections indefinitely.",
+          "cwe": [
+            400
+          ],
+          "function": "proxyHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 90,
+          "rule": "ineffective-key-rotation",
+          "message": "Rotation only changes `signingKey`, which is not used to sign or validate sessions, so previously issued bearer tokens remain valid after rotation.",
+          "cwe": [
+            693
+          ],
+          "function": "rotateHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 102,
+          "rule": "signing-key-disclosure",
+          "message": "The unauthenticated health endpoint returns the active signing key, exposing secret configuration to any caller.",
+          "cwe": [
+            200
+          ],
+          "function": "healthHandler"
+        },
+        {
+          "file": "main.go",
+          "line": 9,
+          "rule": "hardcoded-admin-credential",
+          "message": "Every deployment uses the source-controlled admin password, so anyone who knows or obtains the code can log in as an administrator.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 6399,
+        "completion_tokens": 3550,
+        "cost_usd": 0.00183926,
+        "seconds": 55.24,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "GO03-D01",
+          "file": "handlers.go",
+          "function": "loginHandler",
+          "category": "insecure-randomness",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "predictable-session-token in `loginHandler` (line 34, CWE-330): Session tokens are derived from the current nanosecond timestamp, making them guessable from login timing and unsuitable as bearer credentials."
+          ]
+        },
+        {
+          "id": "GO03-D02",
+          "file": "auth.go",
+          "function": "tokenMatches",
+          "category": "timing-side-channel",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "timing-side-channel in `tokenMatches` (line 37, CWE-208): Direct string equality can reveal how much of a presented token matches a stored token through response-time differences, enabling token-guessing attacks."
+          ]
+        },
+        {
+          "id": "GO03-D03",
+          "file": "handlers.go",
+          "function": "proxyHandler",
+          "category": "ssrf",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "server-side-request-forgery in `proxyHandler` (line 68, CWE-918): An authenticated caller controls the URL passed to `http.Get`, allowing requests to loopback, private-network, or other reachable internal services."
+          ]
+        },
+        {
+          "id": "GO03-D04",
+          "file": "handlers.go",
+          "function": "profileHandler",
+          "category": "idor",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "missing-object-authorization in `profileHandler` (line 50, CWE-862): Any authenticated user can choose another account's `user` query value and retrieve that profile because the handler never checks that the requested account belongs to the bearer user."
+          ]
+        },
+        {
+          "id": "GO03-D05",
+          "file": "handlers.go",
+          "function": "profileHandler",
+          "category": "weak-crypto",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "password-hash-disclosure in `profileHandler` (line 58, CWE-200): The profile response exposes unsalted SHA-1 password hashes, including the admin hash, allowing attackers to perform offline password cracking."
+          ]
+        },
+        {
+          "id": "GO03-D06",
+          "file": "handlers.go",
+          "function": "rotateHandler",
+          "category": "invalid-state-transition",
+          "class": "design",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "ineffective-key-rotation in `rotateHandler` (line 90, CWE-693): Rotation only changes `signingKey`, which is not used to sign or validate sessions, so previously issued bearer tokens remain valid after rotation."
+          ]
+        },
+        {
+          "id": "GO03-D07",
+          "file": "handlers.go",
+          "function": "loginHandler",
+          "category": "null-dereference",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "nil-pointer-dereference in `loginHandler` (line 30, CWE-476): A login attempt with an unknown username makes `account` nil and panics when this line reads its password hash, producing a server error instead of rejecting the credentials."
+          ]
+        },
+        {
+          "id": "GO03-D08",
+          "file": "auth.go",
+          "function": "allowAttempt",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "ineffective-login-rate-limit in `allowAttempt` (line 67, CWE-307): The limiter never records a new `windowStarted`, so it remains zero and every attempt resets the count, allowing unlimited password guesses from one address."
+          ]
+        },
+        {
+          "id": "GO03-D09",
+          "file": "main.go",
+          "function": "main",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "hardcoded-admin-credential (line 9, CWE-798): Every deployment uses the source-controlled admin password, so anyone who knows or obtains the code can log in as an administrator."
+          ]
+        },
+        {
+          "id": "GO03-D10",
+          "file": "handlers.go",
+          "function": "healthHandler",
+          "category": "information-exposure",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "signing-key-disclosure in `healthHandler` (line 102, CWE-200): The unauthenticated health endpoint returns the active signing key, exposing secret configuration to any caller."
+          ]
+        },
+        {
+          "id": "GO03-D11",
+          "file": "handlers.go",
+          "function": "loginHandler",
+          "category": "open-redirect",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "open-redirect in `loginHandler` (line 39, CWE-601): A successful login accepts an arbitrary external `next` URL and redirects the browser to it, enabling trusted-site open-redirect phishing."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 10,
+        "function_flagged": 1,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "auth.go",
+          "kind": "baseline",
+          "text": "hardcoded-user-credentials (line 25, CWE-798): Alice and Bob share a fixed source-controlled password, allowing anyone who knows the documented seeded credentials to authenticate to deployed instances.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "auth.go",
+          "kind": "baseline",
+          "text": "timing-side-channel in `tokenMatches` (line 37, CWE-208): Direct string equality can reveal how much of a presented token matches a stored token through response-time differences, enabling token-guessing attacks.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "auth.go",
+          "kind": "baseline",
+          "text": "ineffective-login-rate-limit in `allowAttempt` (line 67, CWE-307): The limiter never records a new `windowStarted`, so it remains zero and every attempt resets the count, allowing unlimited password guesses from one address.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "nil-pointer-dereference in `loginHandler` (line 30, CWE-476): A login attempt with an unknown username makes `account` nil and panics when this line reads its password hash, producing a server error instead of rejecting the credentials.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "predictable-session-token in `loginHandler` (line 34, CWE-330): Session tokens are derived from the current nanosecond timestamp, making them guessable from login timing and unsuitable as bearer credentials.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "open-redirect in `loginHandler` (line 39, CWE-601): A successful login accepts an arbitrary external `next` URL and redirects the browser to it, enabling trusted-site open-redirect phishing.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "missing-object-authorization in `profileHandler` (line 50, CWE-862): Any authenticated user can choose another account's `user` query value and retrieve that profile because the handler never checks that the requested account belongs to the bearer user.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "password-hash-disclosure in `profileHandler` (line 58, CWE-200): The profile response exposes unsalted SHA-1 password hashes, including the admin hash, allowing attackers to perform offline password cracking.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "server-side-request-forgery in `proxyHandler` (line 68, CWE-918): An authenticated caller controls the URL passed to `http.Get`, allowing requests to loopback, private-network, or other reachable internal services.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "unbounded-upstream-request in `proxyHandler` (line 68, CWE-400): The default HTTP client has no timeout, so a caller can make proxy requests to nonresponsive upstreams that hold server handlers and connections indefinitely.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "ineffective-key-rotation in `rotateHandler` (line 90, CWE-693): Rotation only changes `signingKey`, which is not used to sign or validate sessions, so previously issued bearer tokens remain valid after rotation.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "signing-key-disclosure in `healthHandler` (line 102, CWE-200): The unauthenticated health endpoint returns the active signing key, exposing secret configuration to any caller.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "hardcoded-admin-credential (line 9, CWE-798): Every deployment uses the source-controlled admin password, so anyone who knows or obtains the code can log in as an administrator.",
+          "status": "defect_evidence"
+        }
+      ],
+      "finding_counts": {
+        "total": 13,
+        "defect_evidence": 10,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 3
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "auth.go",
+          "line": 55,
+          "rule": "hard-coded-credentials",
+          "message": "Alice and Bob always receive the fixed password `bluebird42`, so anyone who can reach the loopback service can authenticate as either account and use its authenticated endpoints.",
+          "cwe": [
+            798
+          ],
+          "function": "seedUsers"
+        },
+        {
+          "file": "auth.go",
+          "line": 58,
+          "rule": "missing-default-admin",
+          "message": "The admin account is created only when `ADMIN_PASSWORD` is set, so the documented seeded admin account and `/rotate` functionality are unavailable in a default launch.",
+          "cwe": [],
+          "function": "seedUsers"
+        },
+        {
+          "file": "handlers.go",
+          "line": 28,
+          "rule": "unbounded-request-body",
+          "message": "The login decoder accepts an unbounded body, allowing a client to submit an enormous password value that consumes excessive memory and hashing time.",
+          "cwe": [
+            400
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 44,
+          "rule": "unbounded-session-storage",
+          "message": "Every successful login adds a session that is never expired or evicted, allowing repeated logins to grow the map indefinitely and make session lookups increasingly costly.",
+          "cwe": [
+            400
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 51,
+          "rule": "discarded-login-token",
+          "message": "When `next` is supplied, the handler redirects without returning the newly created bearer token or setting a cookie, so the client cannot authenticate subsequent requests with that session.",
+          "cwe": [],
+          "function": "loginHandler"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 7952,
+        "completion_tokens": 4152,
+        "cost_usd": 0.003069925,
+        "seconds": 67.79,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "GO03-D11"
+        ],
+        "false_alarms": 5,
+        "findings": [
+          {
+            "file": "auth.go",
+            "kind": "baseline",
+            "text": "hard-coded-credentials in `seedUsers` (line 55, CWE-798): Alice and Bob always receive the fixed password `bluebird42`, so anyone who can reach the loopback service can authenticate as either account and use its authenticated endpoints.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "auth.go",
+            "kind": "baseline",
+            "text": "missing-default-admin in `seedUsers` (line 58): The admin account is created only when `ADMIN_PASSWORD` is set, so the documented seeded admin account and `/rotate` functionality are unavailable in a default launch.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "unbounded-request-body in `loginHandler` (line 28, CWE-400): The login decoder accepts an unbounded body, allowing a client to submit an enormous password value that consumes excessive memory and hashing time.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "unbounded-session-storage in `loginHandler` (line 44, CWE-400): Every successful login adds a session that is never expired or evicted, allowing repeated logins to grow the map indefinitely and make session lookups increasingly costly.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "discarded-login-token in `loginHandler` (line 51): When `next` is supplied, the handler redirects without returning the newly created bearer token or setting a cookie, so the client cannot authenticate subsequent requests with that session.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 5,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 5
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 2,
+      "raw_findings": [
+        {
+          "file": "auth.go",
+          "line": 25,
+          "rule": "weak-password-hashing",
+          "message": "Passwords are stored as unsalted SHA-1 hashes, allowing a database or source-code reader to crack them efficiently with offline guessing.",
+          "cwe": [
+            916
+          ],
+          "function": null
+        },
+        {
+          "file": "auth.go",
+          "line": 37,
+          "rule": "timing-side-channel",
+          "message": "Direct string equality can take longer when more token bytes match, allowing repeated comparisons to reveal valid token contents through timing.",
+          "cwe": [
+            208
+          ],
+          "function": "tokenMatches"
+        },
+        {
+          "file": "auth.go",
+          "line": 67,
+          "rule": "ineffective-login-rate-limit",
+          "message": "The rate-limit window is never updated from its zero value, so every login attempt resets the counter and clients can make unlimited guesses.",
+          "cwe": [
+            307
+          ],
+          "function": "allowAttempt"
+        },
+        {
+          "file": "handlers.go",
+          "line": 30,
+          "rule": "nil-pointer-dereference",
+          "message": "A login using an unknown username makes account nil and panics when its PasswordHash is read, returning a server error and flooding server logs if repeated.",
+          "cwe": [
+            476
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 34,
+          "rule": "predictable-session-token",
+          "message": "Session tokens are generated from the current timestamp rather than cryptographic randomness, so an attacker who can estimate a login time can guess valid tokens.",
+          "cwe": [
+            330
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 39,
+          "rule": "open-redirect",
+          "message": "The login handler redirects to an unvalidated next value, so a crafted login URL can send users to an attacker-controlled site.",
+          "cwe": [
+            601
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 50,
+          "rule": "broken-object-authorization",
+          "message": "The handler uses the caller-supplied user query without checking it against the authenticated user, so any valid account can retrieve another account's profile.",
+          "cwe": [
+            639
+          ],
+          "function": "profileHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 58,
+          "rule": "password-hash-disclosure",
+          "message": "The profile response exposes each account's password hash to any authenticated user, enabling offline password cracking.",
+          "cwe": [
+            200
+          ],
+          "function": "profileHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 68,
+          "rule": "server-side-request-forgery",
+          "message": "An authenticated user can choose an arbitrary URL for http.Get, allowing requests to loopback, private-network, or other reachable services.",
+          "cwe": [
+            918
+          ],
+          "function": "proxyHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 90,
+          "rule": "session-not-revoked-on-key-rotation",
+          "message": "Rotating the signing key does not affect the sessions map used for authentication, so previously issued tokens remain valid after rotation.",
+          "cwe": [
+            613
+          ],
+          "function": "rotateHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 102,
+          "rule": "signing-key-disclosure",
+          "message": "The unauthenticated health endpoint returns the signing key, exposing signing configuration to any client that can reach the server.",
+          "cwe": [
+            200
+          ],
+          "function": "healthHandler"
+        },
+        {
+          "file": "main.go",
+          "line": 9,
+          "rule": "hardcoded-credentials",
+          "message": "The administrator password is compiled into the source, so anyone who can inspect the binary or repository can obtain credentials that grant administrator access.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 6399,
+        "completion_tokens": 2693,
+        "cost_usd": 0.00141076,
+        "seconds": 42.15,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "GO03-D01",
+          "file": "handlers.go",
+          "function": "loginHandler",
+          "category": "insecure-randomness",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "predictable-session-token in `loginHandler` (line 34, CWE-330): Session tokens are generated from the current timestamp rather than cryptographic randomness, so an attacker who can estimate a login time can guess valid tokens."
+          ]
+        },
+        {
+          "id": "GO03-D02",
+          "file": "auth.go",
+          "function": "tokenMatches",
+          "category": "timing-side-channel",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "timing-side-channel in `tokenMatches` (line 37, CWE-208): Direct string equality can take longer when more token bytes match, allowing repeated comparisons to reveal valid token contents through timing."
+          ]
+        },
+        {
+          "id": "GO03-D03",
+          "file": "handlers.go",
+          "function": "proxyHandler",
+          "category": "ssrf",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "server-side-request-forgery in `proxyHandler` (line 68, CWE-918): An authenticated user can choose an arbitrary URL for http.Get, allowing requests to loopback, private-network, or other reachable services."
+          ]
+        },
+        {
+          "id": "GO03-D04",
+          "file": "handlers.go",
+          "function": "profileHandler",
+          "category": "idor",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "broken-object-authorization in `profileHandler` (line 50, CWE-639): The handler uses the caller-supplied user query without checking it against the authenticated user, so any valid account can retrieve another account's profile."
+          ]
+        },
+        {
+          "id": "GO03-D05",
+          "file": "handlers.go",
+          "function": "profileHandler",
+          "category": "weak-crypto",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "password-hash-disclosure in `profileHandler` (line 58, CWE-200): The profile response exposes each account's password hash to any authenticated user, enabling offline password cracking."
+          ]
+        },
+        {
+          "id": "GO03-D06",
+          "file": "handlers.go",
+          "function": "rotateHandler",
+          "category": "invalid-state-transition",
+          "class": "design",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "session-not-revoked-on-key-rotation in `rotateHandler` (line 90, CWE-613): Rotating the signing key does not affect the sessions map used for authentication, so previously issued tokens remain valid after rotation."
+          ]
+        },
+        {
+          "id": "GO03-D07",
+          "file": "handlers.go",
+          "function": "loginHandler",
+          "category": "null-dereference",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "nil-pointer-dereference in `loginHandler` (line 30, CWE-476): A login using an unknown username makes account nil and panics when its PasswordHash is read, returning a server error and flooding server logs if repeated."
+          ]
+        },
+        {
+          "id": "GO03-D08",
+          "file": "auth.go",
+          "function": "allowAttempt",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "ineffective-login-rate-limit in `allowAttempt` (line 67, CWE-307): The rate-limit window is never updated from its zero value, so every login attempt resets the counter and clients can make unlimited guesses."
+          ]
+        },
+        {
+          "id": "GO03-D09",
+          "file": "main.go",
+          "function": "main",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "hardcoded-credentials (line 9, CWE-798): The administrator password is compiled into the source, so anyone who can inspect the binary or repository can obtain credentials that grant administrator access."
+          ]
+        },
+        {
+          "id": "GO03-D10",
+          "file": "handlers.go",
+          "function": "healthHandler",
+          "category": "information-exposure",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "signing-key-disclosure in `healthHandler` (line 102, CWE-200): The unauthenticated health endpoint returns the signing key, exposing signing configuration to any client that can reach the server."
+          ]
+        },
+        {
+          "id": "GO03-D11",
+          "file": "handlers.go",
+          "function": "loginHandler",
+          "category": "open-redirect",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "open-redirect in `loginHandler` (line 39, CWE-601): The login handler redirects to an unvalidated next value, so a crafted login URL can send users to an attacker-controlled site."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 11,
+        "function_flagged": 0,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "auth.go",
+          "kind": "baseline",
+          "text": "weak-password-hashing (line 25, CWE-916): Passwords are stored as unsalted SHA-1 hashes, allowing a database or source-code reader to crack them efficiently with offline guessing.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "auth.go",
+          "kind": "baseline",
+          "text": "timing-side-channel in `tokenMatches` (line 37, CWE-208): Direct string equality can take longer when more token bytes match, allowing repeated comparisons to reveal valid token contents through timing.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "auth.go",
+          "kind": "baseline",
+          "text": "ineffective-login-rate-limit in `allowAttempt` (line 67, CWE-307): The rate-limit window is never updated from its zero value, so every login attempt resets the counter and clients can make unlimited guesses.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "nil-pointer-dereference in `loginHandler` (line 30, CWE-476): A login using an unknown username makes account nil and panics when its PasswordHash is read, returning a server error and flooding server logs if repeated.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "predictable-session-token in `loginHandler` (line 34, CWE-330): Session tokens are generated from the current timestamp rather than cryptographic randomness, so an attacker who can estimate a login time can guess valid tokens.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "open-redirect in `loginHandler` (line 39, CWE-601): The login handler redirects to an unvalidated next value, so a crafted login URL can send users to an attacker-controlled site.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "broken-object-authorization in `profileHandler` (line 50, CWE-639): The handler uses the caller-supplied user query without checking it against the authenticated user, so any valid account can retrieve another account's profile.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "password-hash-disclosure in `profileHandler` (line 58, CWE-200): The profile response exposes each account's password hash to any authenticated user, enabling offline password cracking.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "server-side-request-forgery in `proxyHandler` (line 68, CWE-918): An authenticated user can choose an arbitrary URL for http.Get, allowing requests to loopback, private-network, or other reachable services.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "session-not-revoked-on-key-rotation in `rotateHandler` (line 90, CWE-613): Rotating the signing key does not affect the sessions map used for authentication, so previously issued tokens remain valid after rotation.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "signing-key-disclosure in `healthHandler` (line 102, CWE-200): The unauthenticated health endpoint returns the signing key, exposing signing configuration to any client that can reach the server.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "hardcoded-credentials (line 9, CWE-798): The administrator password is compiled into the source, so anyone who can inspect the binary or repository can obtain credentials that grant administrator access.",
+          "status": "defect_evidence"
+        }
+      ],
+      "finding_counts": {
+        "total": 12,
+        "defect_evidence": 11,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 1
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "auth.go",
+          "line": 55,
+          "rule": "hardcoded-credentials",
+          "message": "Alice and Bob are created with the fixed, source-visible password `bluebird42`, so anyone who can reach the loopback service can authenticate as either seeded user.",
+          "cwe": [
+            798
+          ],
+          "function": "seedUsers"
+        },
+        {
+          "file": "auth.go",
+          "line": 58,
+          "rule": "missing-default-admin",
+          "message": "Without `ADMIN_PASSWORD`, no admin account is created, so the documented admin account and `/rotate` functionality are unavailable on a default start.",
+          "cwe": [],
+          "function": "seedUsers"
+        },
+        {
+          "file": "handlers.go",
+          "line": 28,
+          "rule": "unbounded-request-body",
+          "message": "The login decoder has no body-size limit, so a local client can submit an enormous JSON password and force the server to allocate excessive memory while decoding it.",
+          "cwe": [
+            789
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 44,
+          "rule": "unbounded-session-retention",
+          "message": "A successful login stores a session before validating or handling `next`, and requests using `next` never receive the token, allowing repeated logins to accumulate unusable sessions indefinitely.",
+          "cwe": [
+            401
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 51,
+          "rule": "redirect-login-token-loss",
+          "message": "When a valid `next` value is supplied, the handler redirects without returning the newly created token or setting it in a cookie, so the client cannot authenticate subsequent requests with that login.",
+          "cwe": [],
+          "function": "loginHandler"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 7952,
+        "completion_tokens": 3334,
+        "cost_usd": 0.00174679,
+        "seconds": 51.18,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "GO03-D11"
+        ],
+        "false_alarms": 5,
+        "findings": [
+          {
+            "file": "auth.go",
+            "kind": "baseline",
+            "text": "hardcoded-credentials in `seedUsers` (line 55, CWE-798): Alice and Bob are created with the fixed, source-visible password `bluebird42`, so anyone who can reach the loopback service can authenticate as either seeded user.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "auth.go",
+            "kind": "baseline",
+            "text": "missing-default-admin in `seedUsers` (line 58): Without `ADMIN_PASSWORD`, no admin account is created, so the documented admin account and `/rotate` functionality are unavailable on a default start.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "unbounded-request-body in `loginHandler` (line 28, CWE-789): The login decoder has no body-size limit, so a local client can submit an enormous JSON password and force the server to allocate excessive memory while decoding it.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "unbounded-session-retention in `loginHandler` (line 44, CWE-401): A successful login stores a session before validating or handling `next`, and requests using `next` never receive the token, allowing repeated logins to accumulate unusable sessions indefinitely.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "redirect-login-token-loss in `loginHandler` (line 51): When a valid `next` value is supplied, the handler redirects without returning the newly created token or setting it in a cookie, so the client cannot authenticate subsequent requests with that login.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 5,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 5
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 3,
+      "raw_findings": [
+        {
+          "file": "auth.go",
+          "line": 29,
+          "rule": "weak-password-hashing",
+          "message": "Passwords are verified with unsalted SHA-1, which is too fast for password storage and makes stolen hashes inexpensive to crack.",
+          "cwe": [
+            916
+          ],
+          "function": null
+        },
+        {
+          "file": "auth.go",
+          "line": 37,
+          "rule": "timing-side-channel",
+          "message": "Token equality uses an early-exit string comparison, so response timing can reveal how much of a guessed token matches.",
+          "cwe": [
+            208
+          ],
+          "function": "tokenMatches"
+        },
+        {
+          "file": "auth.go",
+          "line": 40,
+          "rule": "ineffective-signing-key-rotation",
+          "message": "Session authentication only checks the in-memory token map and never uses the signing key or epoch, so rotating the key leaves existing bearer tokens valid.",
+          "cwe": [
+            648
+          ],
+          "function": "sessionUser"
+        },
+        {
+          "file": "auth.go",
+          "line": 67,
+          "rule": "ineffective-rate-limiting",
+          "message": "The limiter never updates `windowStarted`, so it remains zero and every attempt resets the count, allowing unlimited login guesses.",
+          "cwe": [
+            307
+          ],
+          "function": "allowAttempt"
+        },
+        {
+          "file": "handlers.go",
+          "line": 30,
+          "rule": "nil-pointer-dereference",
+          "message": "An unknown username makes `account` nil, and dereferencing it panics the login handler instead of returning an invalid-credentials response.",
+          "cwe": [
+            476
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 34,
+          "rule": "predictable-session-token",
+          "message": "Session tokens are derived directly from the current nanosecond timestamp, making bearer credentials guessable from their issuance time.",
+          "cwe": [
+            330
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 39,
+          "rule": "open-redirect",
+          "message": "A successful login redirects to the unrestricted `next` value, so an attacker can send users through the gateway to a phishing site.",
+          "cwe": [
+            601
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 50,
+          "rule": "missing-authorization",
+          "message": "The handler uses the caller-controlled `user` query parameter without checking that the authenticated user may view that account, allowing any logged-in user to read other profiles.",
+          "cwe": [
+            862
+          ],
+          "function": "profileHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 58,
+          "rule": "credential-hash-disclosure",
+          "message": "Every authenticated user can retrieve each account's password hash, enabling offline password cracking, especially because the hashes use unsalted SHA-1.",
+          "cwe": [
+            200
+          ],
+          "function": "profileHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 68,
+          "rule": "server-side-request-forgery",
+          "message": "Any authenticated user can make the gateway fetch an arbitrary target, including loopback or internal services, by supplying it in the `target` query parameter.",
+          "cwe": [
+            918
+          ],
+          "function": "proxyHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 100,
+          "rule": "sensitive-information-disclosure",
+          "message": "The unauthenticated health endpoint returns the active signing key, exposing secret configuration to any caller.",
+          "cwe": [
+            200
+          ],
+          "function": "healthHandler"
+        },
+        {
+          "file": "main.go",
+          "line": 9,
+          "rule": "hardcoded-credentials",
+          "message": "The administrator password is embedded in source, allowing anyone with the code to log in as an administrator using the fixed password.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 6399,
+        "completion_tokens": 2771,
+        "cost_usd": 0.0021853,
+        "seconds": 40.77,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "GO03-D01",
+          "file": "handlers.go",
+          "function": "loginHandler",
+          "category": "insecure-randomness",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "predictable-session-token in `loginHandler` (line 34, CWE-330): Session tokens are derived directly from the current nanosecond timestamp, making bearer credentials guessable from their issuance time."
+          ]
+        },
+        {
+          "id": "GO03-D02",
+          "file": "auth.go",
+          "function": "tokenMatches",
+          "category": "timing-side-channel",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "timing-side-channel in `tokenMatches` (line 37, CWE-208): Token equality uses an early-exit string comparison, so response timing can reveal how much of a guessed token matches."
+          ]
+        },
+        {
+          "id": "GO03-D03",
+          "file": "handlers.go",
+          "function": "proxyHandler",
+          "category": "ssrf",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "server-side-request-forgery in `proxyHandler` (line 68, CWE-918): Any authenticated user can make the gateway fetch an arbitrary target, including loopback or internal services, by supplying it in the `target` query parameter."
+          ]
+        },
+        {
+          "id": "GO03-D04",
+          "file": "handlers.go",
+          "function": "profileHandler",
+          "category": "idor",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "missing-authorization in `profileHandler` (line 50, CWE-862): The handler uses the caller-controlled `user` query parameter without checking that the authenticated user may view that account, allowing any logged-in user to read other profiles."
+          ]
+        },
+        {
+          "id": "GO03-D05",
+          "file": "handlers.go",
+          "function": "profileHandler",
+          "category": "weak-crypto",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "credential-hash-disclosure in `profileHandler` (line 58, CWE-200): Every authenticated user can retrieve each account's password hash, enabling offline password cracking, especially because the hashes use unsalted SHA-1."
+          ]
+        },
+        {
+          "id": "GO03-D06",
+          "file": "handlers.go",
+          "function": "rotateHandler",
+          "category": "invalid-state-transition",
+          "class": "design",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "GO03-D07",
+          "file": "handlers.go",
+          "function": "loginHandler",
+          "category": "null-dereference",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "nil-pointer-dereference in `loginHandler` (line 30, CWE-476): An unknown username makes `account` nil, and dereferencing it panics the login handler instead of returning an invalid-credentials response."
+          ]
+        },
+        {
+          "id": "GO03-D08",
+          "file": "auth.go",
+          "function": "allowAttempt",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "ineffective-rate-limiting in `allowAttempt` (line 67, CWE-307): The limiter never updates `windowStarted`, so it remains zero and every attempt resets the count, allowing unlimited login guesses."
+          ]
+        },
+        {
+          "id": "GO03-D09",
+          "file": "main.go",
+          "function": "main",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "hardcoded-credentials (line 9, CWE-798): The administrator password is embedded in source, allowing anyone with the code to log in as an administrator using the fixed password."
+          ]
+        },
+        {
+          "id": "GO03-D10",
+          "file": "handlers.go",
+          "function": "healthHandler",
+          "category": "information-exposure",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "sensitive-information-disclosure in `healthHandler` (line 100, CWE-200): The unauthenticated health endpoint returns the active signing key, exposing secret configuration to any caller."
+          ]
+        },
+        {
+          "id": "GO03-D11",
+          "file": "handlers.go",
+          "function": "loginHandler",
+          "category": "open-redirect",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "open-redirect in `loginHandler` (line 39, CWE-601): A successful login redirects to the unrestricted `next` value, so an attacker can send users through the gateway to a phishing site."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 10,
+        "function_flagged": 0,
+        "missed": 1
+      },
+      "findings": [
+        {
+          "file": "auth.go",
+          "kind": "baseline",
+          "text": "weak-password-hashing (line 29, CWE-916): Passwords are verified with unsalted SHA-1, which is too fast for password storage and makes stolen hashes inexpensive to crack.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "auth.go",
+          "kind": "baseline",
+          "text": "timing-side-channel in `tokenMatches` (line 37, CWE-208): Token equality uses an early-exit string comparison, so response timing can reveal how much of a guessed token matches.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "auth.go",
+          "kind": "baseline",
+          "text": "ineffective-signing-key-rotation in `sessionUser` (line 40, CWE-648): Session authentication only checks the in-memory token map and never uses the signing key or epoch, so rotating the key leaves existing bearer tokens valid.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "auth.go",
+          "kind": "baseline",
+          "text": "ineffective-rate-limiting in `allowAttempt` (line 67, CWE-307): The limiter never updates `windowStarted`, so it remains zero and every attempt resets the count, allowing unlimited login guesses.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "nil-pointer-dereference in `loginHandler` (line 30, CWE-476): An unknown username makes `account` nil, and dereferencing it panics the login handler instead of returning an invalid-credentials response.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "predictable-session-token in `loginHandler` (line 34, CWE-330): Session tokens are derived directly from the current nanosecond timestamp, making bearer credentials guessable from their issuance time.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "open-redirect in `loginHandler` (line 39, CWE-601): A successful login redirects to the unrestricted `next` value, so an attacker can send users through the gateway to a phishing site.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "missing-authorization in `profileHandler` (line 50, CWE-862): The handler uses the caller-controlled `user` query parameter without checking that the authenticated user may view that account, allowing any logged-in user to read other profiles.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "credential-hash-disclosure in `profileHandler` (line 58, CWE-200): Every authenticated user can retrieve each account's password hash, enabling offline password cracking, especially because the hashes use unsalted SHA-1.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "server-side-request-forgery in `proxyHandler` (line 68, CWE-918): Any authenticated user can make the gateway fetch an arbitrary target, including loopback or internal services, by supplying it in the `target` query parameter.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "handlers.go",
+          "kind": "baseline",
+          "text": "sensitive-information-disclosure in `healthHandler` (line 100, CWE-200): The unauthenticated health endpoint returns the active signing key, exposing secret configuration to any caller.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "main.go",
+          "kind": "baseline",
+          "text": "hardcoded-credentials (line 9, CWE-798): The administrator password is embedded in source, allowing anyone with the code to log in as an administrator using the fixed password.",
+          "status": "defect_evidence"
+        }
+      ],
+      "finding_counts": {
+        "total": 12,
+        "defect_evidence": 10,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 2
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "auth.go",
+          "line": 44,
+          "rule": "session-expiration",
+          "message": "Sessions have no expiration and remain valid in the map until rotation or process restart, so a stolen bearer token can be reused indefinitely.",
+          "cwe": [
+            613
+          ],
+          "function": null
+        },
+        {
+          "file": "auth.go",
+          "line": 55,
+          "rule": "hard-coded-credentials",
+          "message": "Alice and Bob always receive the source-defined password `bluebird42`, so anyone who can reach the gateway can authenticate as either seeded user without an administrator configuring credentials.",
+          "cwe": [
+            798
+          ],
+          "function": "seedUsers"
+        },
+        {
+          "file": "auth.go",
+          "line": 58,
+          "rule": "missing-default-account",
+          "message": "Without `ADMIN_PASSWORD`, the default startup omits the admin account, despite the README listing it as seeded, so the documented default setup cannot authenticate an administrator or use `/rotate`.",
+          "cwe": [],
+          "function": "seedUsers"
+        },
+        {
+          "file": "handlers.go",
+          "line": 28,
+          "rule": "unbounded-request-body",
+          "message": "The login handler decodes the request body without a size limit, so a client can submit a huge JSON body and force unbounded memory allocation.",
+          "cwe": [
+            789
+          ],
+          "function": "loginHandler"
+        },
+        {
+          "file": "handlers.go",
+          "line": 42,
+          "rule": "unusable-redirect-login",
+          "message": "The handler stores a new session before processing `next`, but a successful redirect returns neither the token nor a session cookie, leaving the redirected client unable to authenticate and the stored session inaccessible.",
+          "cwe": [],
+          "function": "loginHandler"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 7952,
+        "completion_tokens": 3929,
+        "cost_usd": 0.00204429,
+        "seconds": 66.22,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "GO03-D11"
+        ],
+        "false_alarms": 5,
+        "findings": [
+          {
+            "file": "auth.go",
+            "kind": "baseline",
+            "text": "session-expiration (line 44, CWE-613): Sessions have no expiration and remain valid in the map until rotation or process restart, so a stolen bearer token can be reused indefinitely.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "auth.go",
+            "kind": "baseline",
+            "text": "hard-coded-credentials in `seedUsers` (line 55, CWE-798): Alice and Bob always receive the source-defined password `bluebird42`, so anyone who can reach the gateway can authenticate as either seeded user without an administrator configuring credentials.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "auth.go",
+            "kind": "baseline",
+            "text": "missing-default-account in `seedUsers` (line 58): Without `ADMIN_PASSWORD`, the default startup omits the admin account, despite the README listing it as seeded, so the documented default setup cannot authenticate an administrator or use `/rotate`.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "unbounded-request-body in `loginHandler` (line 28, CWE-789): The login handler decodes the request body without a size limit, so a client can submit a huge JSON body and force unbounded memory allocation.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "handlers.go",
+            "kind": "baseline",
+            "text": "unusable-redirect-login in `loginHandler` (line 42): The handler stores a new session before processing `next`, but a successful redirect returns neither the token nor a session cookie, leaving the redirected client unable to authenticate and the stored session inaccessible.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 5,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 5
+        },
+        "reviews_used": []
+      }
+    }
+  ]
+}

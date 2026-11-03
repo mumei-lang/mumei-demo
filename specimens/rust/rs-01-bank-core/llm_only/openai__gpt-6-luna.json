@@ -1,0 +1,1896 @@
+{
+  "specimen": "rs-01-bank-core",
+  "language": "rust",
+  "tool": "llm-only",
+  "model": "openai/gpt-6-luna",
+  "prompt_version": 1,
+  "prompt_hash": "50865386f4c2f5d6",
+  "temperature": 0,
+  "generated_at": "2026-11-03T04:59:40Z",
+  "source_hash": "bdf0e46563e4a6ecd2f5328f78c91f9a5f5e2280c83965bb4c4934e45ac6484c",
+  "runs": [
+    {
+      "run": 1,
+      "raw_findings": [
+        {
+          "file": "src/bank.rs",
+          "line": 5,
+          "rule": "hardcoded-operator-secret",
+          "message": "The built-in operator token is present in the source and used as the default authorization secret, allowing anyone who knows it to run privileged commands.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 31,
+          "rule": "inaccurate-financial-calculation",
+          "message": "Floating-point interest calculation loses cent precision for sufficiently large balances, so interest credited can differ from exact integer arithmetic.",
+          "cwe": [
+            682
+          ],
+          "function": "accrue_interest"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 35,
+          "rule": "allowance-underflow",
+          "message": "When spending exceeds the limit, wrapping subtraction turns the remaining allowance into a huge value and permits further transfers.",
+          "cwe": [
+            191
+          ],
+          "function": "remaining_daily_allowance"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 39,
+          "rule": "division-by-zero",
+          "message": "An empty recipient list makes the divisor zero, so `split` panics when invoked without recipients.",
+          "cwe": [
+            369
+          ],
+          "function": "split_payment"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 52,
+          "rule": "unchecked-index",
+          "message": "An out-of-range account index panics instead of returning an error, and a user can trigger this through `account-at`.",
+          "cwe": [],
+          "function": "account_at"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 56,
+          "rule": "duplicate-account",
+          "message": "Opening an already-used account name creates duplicate records while lookups and mutations select only the first, making subsequent operations ambiguous and potentially inaccessible.",
+          "cwe": [
+            20
+          ],
+          "function": "open_account"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 68,
+          "rule": "unchecked-balance-arithmetic",
+          "message": "Balance mutations use unchecked signed arithmetic, so sufficiently large deposits or other balance operations can overflow and corrupt balances in release builds.",
+          "cwe": [
+            190
+          ],
+          "function": "deposit"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 85,
+          "rule": "negative-transfer",
+          "message": "A negative transfer passes the funds check and is queued, causing settlement to credit the source and debit the destination.",
+          "cwe": [
+            20
+          ],
+          "function": "request_transfer"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 92,
+          "rule": "spend-counter-reset",
+          "message": "A transfer rejected for exceeding the daily allowance resets all prior spending, allowing a later transfer to bypass the limit.",
+          "cwe": [
+            840
+          ],
+          "function": "request_transfer"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 114,
+          "rule": "closed-account-settlement",
+          "message": "Settlement credits destinations without checking whether they are closed, so a transfer queued before closure can change a closed account's balance.",
+          "cwe": [
+            841
+          ],
+          "function": "settle"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 131,
+          "rule": "fee-limit-bypass",
+          "message": "Fees are applied without checking the daily limit, so a positive fee can push spending beyond the configured limit.",
+          "cwe": [],
+          "function": "charge_fee"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 131,
+          "rule": "negative-fee",
+          "message": "A negative fee increases the account balance, and its cast to `u64` on the next line also wraps the daily-spend counter.",
+          "cwe": [
+            20
+          ],
+          "function": "charge_fee"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 153,
+          "rule": "unbounded-audit-growth",
+          "message": "Every operation appends an audit entry indefinitely and persistence retains all entries, so repeated commands can exhaust memory or disk.",
+          "cwe": [
+            400
+          ],
+          "function": "record_audit"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 14,
+          "rule": "invalid-input-panic",
+          "message": "Non-numeric monetary arguments panic because parsing unwraps the error, allowing malformed CLI or batch input to terminate the process.",
+          "cwe": [
+            20
+          ],
+          "function": "parse_cents"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 63,
+          "rule": "report-path-traversal",
+          "message": "Joining an unvalidated output name permits `..` components or an absolute path, allowing statements to be written outside the reports directory.",
+          "cwe": [
+            22
+          ],
+          "function": "write_statement"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 92,
+          "rule": "negative-limit-wrap",
+          "message": "A negative daily limit is cast from `i64` to `u64`, becoming an enormous limit that effectively disables spending restrictions.",
+          "cwe": [
+            195
+          ],
+          "function": "run_line"
+        },
+        {
+          "file": "src/store.rs",
+          "line": 53,
+          "rule": "state-file-injection",
+          "message": "Account names are serialized without escaping delimiters or newlines, so a crafted name can inject additional records into the persisted ledger.",
+          "cwe": [
+            74
+          ],
+          "function": "save"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 9425,
+        "completion_tokens": 4186,
+        "cost_usd": 0.00327105,
+        "seconds": 68.42,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "RS01-D01",
+          "file": "src/bank.rs",
+          "function": "accrue_interest",
+          "category": "float-money",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "inaccurate-financial-calculation in `accrue_interest` (line 31, CWE-682): Floating-point interest calculation loses cent precision for sufficiently large balances, so interest credited can differ from exact integer arithmetic."
+          ]
+        },
+        {
+          "id": "RS01-D02",
+          "file": "src/bank.rs",
+          "function": "remaining_daily_allowance",
+          "category": "integer-underflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "allowance-underflow in `remaining_daily_allowance` (line 35, CWE-191): When spending exceeds the limit, wrapping subtraction turns the remaining allowance into a huge value and permits further transfers."
+          ]
+        },
+        {
+          "id": "RS01-D03",
+          "file": "src/bank.rs",
+          "function": "request_transfer",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "negative-transfer in `request_transfer` (line 85, CWE-20): A negative transfer passes the funds check and is queued, causing settlement to credit the source and debit the destination."
+          ]
+        },
+        {
+          "id": "RS01-D04",
+          "file": "src/bank.rs",
+          "function": "split_payment",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `split_payment` (line 39, CWE-369): An empty recipient list makes the divisor zero, so `split` panics when invoked without recipients."
+          ]
+        },
+        {
+          "id": "RS01-D05",
+          "file": "src/bank.rs",
+          "function": "account_at",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "unchecked-index in `account_at` (line 52): An out-of-range account index panics instead of returning an error, and a user can trigger this through `account-at`."
+          ]
+        },
+        {
+          "id": "RS01-D06",
+          "file": "src/bank.rs",
+          "function": "request_transfer",
+          "category": "invariant-violation",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "negative-transfer in `request_transfer` (line 85, CWE-20): A negative transfer passes the funds check and is queued, causing settlement to credit the source and debit the destination.",
+            "spend-counter-reset in `request_transfer` (line 92, CWE-840): A transfer rejected for exceeding the daily allowance resets all prior spending, allowing a later transfer to bypass the limit."
+          ]
+        },
+        {
+          "id": "RS01-D07",
+          "file": "src/bank.rs",
+          "function": "close_account",
+          "category": "invalid-state-transition",
+          "class": "design",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "RS01-D08",
+          "file": "src/bank.rs",
+          "function": "record_audit",
+          "category": "unbounded-resource",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unbounded-audit-growth in `record_audit` (line 153, CWE-400): Every operation appends an audit entry indefinitely and persistence retains all entries, so repeated commands can exhaust memory or disk."
+          ]
+        },
+        {
+          "id": "RS01-D09",
+          "file": "src/main.rs",
+          "function": "parse_cents",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "invalid-input-panic in `parse_cents` (line 14, CWE-20): Non-numeric monetary arguments panic because parsing unwraps the error, allowing malformed CLI or batch input to terminate the process."
+          ]
+        },
+        {
+          "id": "RS01-D10",
+          "file": "src/main.rs",
+          "function": "operator_token",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "RS01-D11",
+          "file": "src/main.rs",
+          "function": "write_statement",
+          "category": "path-traversal",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "report-path-traversal in `write_statement` (line 63, CWE-22): Joining an unvalidated output name permits `..` components or an absolute path, allowing statements to be written outside the reports directory."
+          ]
+        },
+        {
+          "id": "RS01-D12",
+          "file": "src/bank.rs",
+          "function": "charge_fee",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "fee-limit-bypass in `charge_fee` (line 131): Fees are applied without checking the daily limit, so a positive fee can push spending beyond the configured limit.",
+            "negative-fee in `charge_fee` (line 131, CWE-20): A negative fee increases the account balance, and its cast to `u64` on the next line also wraps the daily-spend counter."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 12,
+        "detected": 9,
+        "function_flagged": 1,
+        "missed": 2
+      },
+      "findings": [
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "hardcoded-operator-secret (line 5, CWE-798): The built-in operator token is present in the source and used as the default authorization secret, allowing anyone who knows it to run privileged commands.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "inaccurate-financial-calculation in `accrue_interest` (line 31, CWE-682): Floating-point interest calculation loses cent precision for sufficiently large balances, so interest credited can differ from exact integer arithmetic.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "allowance-underflow in `remaining_daily_allowance` (line 35, CWE-191): When spending exceeds the limit, wrapping subtraction turns the remaining allowance into a huge value and permits further transfers.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "division-by-zero in `split_payment` (line 39, CWE-369): An empty recipient list makes the divisor zero, so `split` panics when invoked without recipients.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "unchecked-index in `account_at` (line 52): An out-of-range account index panics instead of returning an error, and a user can trigger this through `account-at`.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "duplicate-account in `open_account` (line 56, CWE-20): Opening an already-used account name creates duplicate records while lookups and mutations select only the first, making subsequent operations ambiguous and potentially inaccessible.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "unchecked-balance-arithmetic in `deposit` (line 68, CWE-190): Balance mutations use unchecked signed arithmetic, so sufficiently large deposits or other balance operations can overflow and corrupt balances in release builds.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "negative-transfer in `request_transfer` (line 85, CWE-20): A negative transfer passes the funds check and is queued, causing settlement to credit the source and debit the destination.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "spend-counter-reset in `request_transfer` (line 92, CWE-840): A transfer rejected for exceeding the daily allowance resets all prior spending, allowing a later transfer to bypass the limit.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "closed-account-settlement in `settle` (line 114, CWE-841): Settlement credits destinations without checking whether they are closed, so a transfer queued before closure can change a closed account's balance.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "fee-limit-bypass in `charge_fee` (line 131): Fees are applied without checking the daily limit, so a positive fee can push spending beyond the configured limit.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "negative-fee in `charge_fee` (line 131, CWE-20): A negative fee increases the account balance, and its cast to `u64` on the next line also wraps the daily-spend counter.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "unbounded-audit-growth in `record_audit` (line 153, CWE-400): Every operation appends an audit entry indefinitely and persistence retains all entries, so repeated commands can exhaust memory or disk.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "invalid-input-panic in `parse_cents` (line 14, CWE-20): Non-numeric monetary arguments panic because parsing unwraps the error, allowing malformed CLI or batch input to terminate the process.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "report-path-traversal in `write_statement` (line 63, CWE-22): Joining an unvalidated output name permits `..` components or an absolute path, allowing statements to be written outside the reports directory.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "negative-limit-wrap in `run_line` (line 92, CWE-195): A negative daily limit is cast from `i64` to `u64`, becoming an enormous limit that effectively disables spending restrictions.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/store.rs",
+          "kind": "baseline",
+          "text": "state-file-injection in `save` (line 53, CWE-74): Account names are serialized without escaping delimiters or newlines, so a crafted name can inject additional records into the persisted ledger.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 17,
+        "defect_evidence": 10,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 7
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "src/bank.rs",
+          "line": 124,
+          "rule": "daily-limit-never-resets",
+          "message": "The spend counter is only incremented and never reset by day, so after an account uses its daily allowance it remains unable to transfer that amount on subsequent days.",
+          "cwe": [
+            841
+          ],
+          "function": "request_transfer"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 145,
+          "rule": "settlement-does-not-revalidate-funds",
+          "message": "Settlement subtracts queued amounts without checking the source's current balance, so a fee or adjustment made after queuing can cause a transfer to overdraw the account.",
+          "cwe": [
+            841
+          ],
+          "function": "settle"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 148,
+          "rule": "unchecked-settlement-overflow",
+          "message": "Adding a transfer to the destination balance is unchecked, so settling into an account near `i64::MAX` wraps in release builds and corrupts its balance.",
+          "cwe": [
+            190
+          ],
+          "function": "settle"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 171,
+          "rule": "fee-allows-overdraft",
+          "message": "A fee is subtracted without checking available funds, so `fee acct <amount>` can make an account balance negative.",
+          "cwe": [
+            841
+          ],
+          "function": "charge_fee"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 102,
+          "rule": "report-symlink-following",
+          "message": "The validated report path can still name a symlink inside `reports/`, so writing a statement can overwrite the symlink's target outside that directory.",
+          "cwe": [
+            59
+          ],
+          "function": "write_statement"
+        },
+        {
+          "file": "src/store.rs",
+          "line": 27,
+          "rule": "malformed-state-silently-coerced",
+          "message": "Malformed persisted numeric fields are silently replaced with zero, so a corrupted state file can erase balances or limits when the next command saves it.",
+          "cwe": [
+            20
+          ],
+          "function": "load"
+        },
+        {
+          "file": "src/store.rs",
+          "line": 53,
+          "rule": "state-record-injection",
+          "message": "Account names are written into the line-oriented state format without escaping, so a name containing a newline and crafted record can inject accounts or other state records on the next load.",
+          "cwe": [
+            116
+          ],
+          "function": "save"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 10510,
+        "completion_tokens": 4213,
+        "cost_usd": 0.00221187,
+        "seconds": 65.0,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 12,
+        "still_reported": [
+          "RS01-D12"
+        ],
+        "false_alarms": 7,
+        "findings": [
+          {
+            "file": "src/bank.rs",
+            "kind": "baseline",
+            "text": "daily-limit-never-resets in `request_transfer` (line 124, CWE-841): The spend counter is only incremented and never reset by day, so after an account uses its daily allowance it remains unable to transfer that amount on subsequent days.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/bank.rs",
+            "kind": "baseline",
+            "text": "settlement-does-not-revalidate-funds in `settle` (line 145, CWE-841): Settlement subtracts queued amounts without checking the source's current balance, so a fee or adjustment made after queuing can cause a transfer to overdraw the account.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/bank.rs",
+            "kind": "baseline",
+            "text": "unchecked-settlement-overflow in `settle` (line 148, CWE-190): Adding a transfer to the destination balance is unchecked, so settling into an account near `i64::MAX` wraps in release builds and corrupts its balance.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/bank.rs",
+            "kind": "baseline",
+            "text": "fee-allows-overdraft in `charge_fee` (line 171, CWE-841): A fee is subtracted without checking available funds, so `fee acct <amount>` can make an account balance negative.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "report-symlink-following in `write_statement` (line 102, CWE-59): The validated report path can still name a symlink inside `reports/`, so writing a statement can overwrite the symlink's target outside that directory.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/store.rs",
+            "kind": "baseline",
+            "text": "malformed-state-silently-coerced in `load` (line 27, CWE-20): Malformed persisted numeric fields are silently replaced with zero, so a corrupted state file can erase balances or limits when the next command saves it.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/store.rs",
+            "kind": "baseline",
+            "text": "state-record-injection in `save` (line 53, CWE-116): Account names are written into the line-oriented state format without escaping, so a name containing a newline and crafted record can inject accounts or other state records on the next load.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 7,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 7
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 2,
+      "raw_findings": [
+        {
+          "file": "src/bank.rs",
+          "line": 5,
+          "rule": "hardcoded-operator-credential",
+          "message": "The operator token is embedded in the source and is used as the default credential, so anyone who knows the code can authorize `close` and `adjust` when no environment token is configured.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 31,
+          "rule": "imprecise-money-calculation",
+          "message": "Interest is calculated through `f64`, which cannot represent all large cent balances exactly, so valid balances can be credited a cent amount different from integer arithmetic.",
+          "cwe": [
+            682
+          ],
+          "function": "accrue_interest"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 35,
+          "rule": "allowance-underflow",
+          "message": "When spending exceeds the limit, `wrapping_sub` turns the remaining allowance into a huge value, allowing subsequent transfers to bypass the daily limit.",
+          "cwe": [
+            191
+          ],
+          "function": "remaining_daily_allowance"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 39,
+          "rule": "division-by-zero",
+          "message": "An empty recipient list makes `split_payment` divide by zero, so invoking `split` with only an amount panics.",
+          "cwe": [
+            369
+          ],
+          "function": "split_payment"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 52,
+          "rule": "unchecked-index",
+          "message": "`account_at` indexes without validating the index, so an out-of-range or negative CLI index panics and terminates the process.",
+          "cwe": [
+            248
+          ],
+          "function": "account_at"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 55,
+          "rule": "duplicate-account",
+          "message": "Opening an existing account name creates another account with the same name, making lookups and balance-changing operations ambiguous and potentially leaving duplicate balances in the ledger.",
+          "cwe": [
+            20
+          ],
+          "function": "open_account"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 68,
+          "rule": "negative-deposit",
+          "message": "A negative deposit is accepted as an unvalidated withdrawal, letting callers reduce an account balance without checking funds or charging daily spending.",
+          "cwe": [
+            841
+          ],
+          "function": "deposit"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 68,
+          "rule": "unchecked-balance-arithmetic",
+          "message": "Balance mutations use unchecked signed arithmetic, so sufficiently large deposits, transfers, fees, interest, or adjustments can overflow and corrupt balances in release builds or panic in debug builds.",
+          "cwe": [
+            190
+          ],
+          "function": "deposit"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 85,
+          "rule": "negative-transfer",
+          "message": "Negative transfer amounts pass the balance check and are settled with reversed signs, allowing a queued transfer to move money from the named recipient to the source.",
+          "cwe": [
+            841
+          ],
+          "function": "request_transfer"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 85,
+          "rule": "queued-transfers-overdraw-account",
+          "message": "Each queued transfer is checked only against the current balance and not other pending debits, so multiple individually accepted transfers can settle to a negative source balance.",
+          "cwe": [
+            841
+          ],
+          "function": "request_transfer"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 92,
+          "rule": "rejected-transfer-resets-limit",
+          "message": "Rejecting an over-limit transfer resets the source account's spent counter, and the caller persists this mutation even on error, so repeated rejected requests can bypass the daily limit.",
+          "cwe": [
+            362
+          ],
+          "function": "request_transfer"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 114,
+          "rule": "closed-account-settlement",
+          "message": "Settlement does not check whether an account is closed, so a transfer queued before closure can still credit the closed destination.",
+          "cwe": [
+            841
+          ],
+          "function": "settle"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 131,
+          "rule": "negative-fee",
+          "message": "A negative fee is accepted, credits the account, and is cast to `u64` when updating spending, wrapping the counter to a huge value.",
+          "cwe": [
+            841
+          ],
+          "function": "charge_fee"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 132,
+          "rule": "fee-limit-bypass",
+          "message": "Fees increase the spending counter without checking the daily limit, so an arbitrarily large fee can exceed the configured limit.",
+          "cwe": [
+            841
+          ],
+          "function": "charge_fee"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 153,
+          "rule": "unbounded-audit-log",
+          "message": "Every operation appends an audit entry without any bound or pruning, so repeated commands grow the state file and memory use indefinitely.",
+          "cwe": [
+            400
+          ],
+          "function": "record_audit"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 14,
+          "rule": "malformed-number-panics",
+          "message": "Numeric command arguments are parsed with `unwrap`, so a non-numeric amount or limit panics and terminates the CLI instead of returning an input error.",
+          "cwe": [
+            248
+          ],
+          "function": "parse_cents"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 58,
+          "rule": "cross-account-audit-disclosure",
+          "message": "Statements include the ledger-wide audit log rather than entries for the requested account, so anyone able to request a statement can see other accounts' activity and transaction amounts.",
+          "cwe": [
+            200
+          ],
+          "function": "write_statement"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 63,
+          "rule": "report-path-traversal",
+          "message": "The user-supplied report name is joined without restricting traversal or absolute paths, so `statement --out` can overwrite files outside the reports directory.",
+          "cwe": [
+            22
+          ],
+          "function": "write_statement"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 92,
+          "rule": "negative-limit-wrap",
+          "message": "A negative daily limit parses as `i64` and is cast to `u64`, turning it into an enormous limit that effectively disables transfer limits.",
+          "cwe": [
+            195
+          ],
+          "function": "run_line"
+        },
+        {
+          "file": "src/store.rs",
+          "line": 27,
+          "rule": "malformed-state-zeroing",
+          "message": "Invalid persisted balances are silently replaced with zero, so a malformed or truncated state file can silently erase account funds rather than failing safely.",
+          "cwe": [
+            20
+          ],
+          "function": "load"
+        },
+        {
+          "file": "src/store.rs",
+          "line": 53,
+          "rule": "state-record-injection",
+          "message": "Account names are written into the line-oriented state format without escaping, so a name containing newlines and crafted record text can inject ledger records when the state is loaded again.",
+          "cwe": [
+            93
+          ],
+          "function": "save"
+        },
+        {
+          "file": "src/store.rs",
+          "line": 67,
+          "rule": "non-atomic-concurrent-updates",
+          "message": "State is overwritten directly with no locking or atomic update, so concurrent CLI invocations can load the same old ledger and overwrite one another's successful changes.",
+          "cwe": [
+            362
+          ],
+          "function": "save"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 9425,
+        "completion_tokens": 4497,
+        "cost_usd": 0.00234302,
+        "seconds": 65.7,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "RS01-D01",
+          "file": "src/bank.rs",
+          "function": "accrue_interest",
+          "category": "float-money",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "imprecise-money-calculation in `accrue_interest` (line 31, CWE-682): Interest is calculated through `f64`, which cannot represent all large cent balances exactly, so valid balances can be credited a cent amount different from integer arithmetic."
+          ]
+        },
+        {
+          "id": "RS01-D02",
+          "file": "src/bank.rs",
+          "function": "remaining_daily_allowance",
+          "category": "integer-underflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "allowance-underflow in `remaining_daily_allowance` (line 35, CWE-191): When spending exceeds the limit, `wrapping_sub` turns the remaining allowance into a huge value, allowing subsequent transfers to bypass the daily limit."
+          ]
+        },
+        {
+          "id": "RS01-D03",
+          "file": "src/bank.rs",
+          "function": "request_transfer",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "negative-transfer in `request_transfer` (line 85, CWE-841): Negative transfer amounts pass the balance check and are settled with reversed signs, allowing a queued transfer to move money from the named recipient to the source.",
+            "queued-transfers-overdraw-account in `request_transfer` (line 85, CWE-841): Each queued transfer is checked only against the current balance and not other pending debits, so multiple individually accepted transfers can settle to a negative source balance."
+          ]
+        },
+        {
+          "id": "RS01-D04",
+          "file": "src/bank.rs",
+          "function": "split_payment",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `split_payment` (line 39, CWE-369): An empty recipient list makes `split_payment` divide by zero, so invoking `split` with only an amount panics."
+          ]
+        },
+        {
+          "id": "RS01-D05",
+          "file": "src/bank.rs",
+          "function": "account_at",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "unchecked-index in `account_at` (line 52, CWE-248): `account_at` indexes without validating the index, so an out-of-range or negative CLI index panics and terminates the process."
+          ]
+        },
+        {
+          "id": "RS01-D06",
+          "file": "src/bank.rs",
+          "function": "request_transfer",
+          "category": "invariant-violation",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "negative-transfer in `request_transfer` (line 85, CWE-841): Negative transfer amounts pass the balance check and are settled with reversed signs, allowing a queued transfer to move money from the named recipient to the source.",
+            "queued-transfers-overdraw-account in `request_transfer` (line 85, CWE-841): Each queued transfer is checked only against the current balance and not other pending debits, so multiple individually accepted transfers can settle to a negative source balance.",
+            "rejected-transfer-resets-limit in `request_transfer` (line 92, CWE-362): Rejecting an over-limit transfer resets the source account's spent counter, and the caller persists this mutation even on error, so repeated rejected requests can bypass the daily limit."
+          ]
+        },
+        {
+          "id": "RS01-D07",
+          "file": "src/bank.rs",
+          "function": "close_account",
+          "category": "invalid-state-transition",
+          "class": "design",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "RS01-D08",
+          "file": "src/bank.rs",
+          "function": "record_audit",
+          "category": "unbounded-resource",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unbounded-audit-log in `record_audit` (line 153, CWE-400): Every operation appends an audit entry without any bound or pruning, so repeated commands grow the state file and memory use indefinitely."
+          ]
+        },
+        {
+          "id": "RS01-D09",
+          "file": "src/main.rs",
+          "function": "parse_cents",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "malformed-number-panics in `parse_cents` (line 14, CWE-248): Numeric command arguments are parsed with `unwrap`, so a non-numeric amount or limit panics and terminates the CLI instead of returning an input error."
+          ]
+        },
+        {
+          "id": "RS01-D10",
+          "file": "src/main.rs",
+          "function": "operator_token",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "RS01-D11",
+          "file": "src/main.rs",
+          "function": "write_statement",
+          "category": "path-traversal",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "report-path-traversal in `write_statement` (line 63, CWE-22): The user-supplied report name is joined without restricting traversal or absolute paths, so `statement --out` can overwrite files outside the reports directory."
+          ]
+        },
+        {
+          "id": "RS01-D12",
+          "file": "src/bank.rs",
+          "function": "charge_fee",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "negative-fee in `charge_fee` (line 131, CWE-841): A negative fee is accepted, credits the account, and is cast to `u64` when updating spending, wrapping the counter to a huge value."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 12,
+        "detected": 8,
+        "function_flagged": 2,
+        "missed": 2
+      },
+      "findings": [
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "hardcoded-operator-credential (line 5, CWE-798): The operator token is embedded in the source and is used as the default credential, so anyone who knows the code can authorize `close` and `adjust` when no environment token is configured.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "imprecise-money-calculation in `accrue_interest` (line 31, CWE-682): Interest is calculated through `f64`, which cannot represent all large cent balances exactly, so valid balances can be credited a cent amount different from integer arithmetic.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "allowance-underflow in `remaining_daily_allowance` (line 35, CWE-191): When spending exceeds the limit, `wrapping_sub` turns the remaining allowance into a huge value, allowing subsequent transfers to bypass the daily limit.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "division-by-zero in `split_payment` (line 39, CWE-369): An empty recipient list makes `split_payment` divide by zero, so invoking `split` with only an amount panics.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "unchecked-index in `account_at` (line 52, CWE-248): `account_at` indexes without validating the index, so an out-of-range or negative CLI index panics and terminates the process.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "duplicate-account in `open_account` (line 55, CWE-20): Opening an existing account name creates another account with the same name, making lookups and balance-changing operations ambiguous and potentially leaving duplicate balances in the ledger.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "negative-deposit in `deposit` (line 68, CWE-841): A negative deposit is accepted as an unvalidated withdrawal, letting callers reduce an account balance without checking funds or charging daily spending.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "unchecked-balance-arithmetic in `deposit` (line 68, CWE-190): Balance mutations use unchecked signed arithmetic, so sufficiently large deposits, transfers, fees, interest, or adjustments can overflow and corrupt balances in release builds or panic in debug builds.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "negative-transfer in `request_transfer` (line 85, CWE-841): Negative transfer amounts pass the balance check and are settled with reversed signs, allowing a queued transfer to move money from the named recipient to the source.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "queued-transfers-overdraw-account in `request_transfer` (line 85, CWE-841): Each queued transfer is checked only against the current balance and not other pending debits, so multiple individually accepted transfers can settle to a negative source balance.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "rejected-transfer-resets-limit in `request_transfer` (line 92, CWE-362): Rejecting an over-limit transfer resets the source account's spent counter, and the caller persists this mutation even on error, so repeated rejected requests can bypass the daily limit.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "closed-account-settlement in `settle` (line 114, CWE-841): Settlement does not check whether an account is closed, so a transfer queued before closure can still credit the closed destination.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "negative-fee in `charge_fee` (line 131, CWE-841): A negative fee is accepted, credits the account, and is cast to `u64` when updating spending, wrapping the counter to a huge value.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "fee-limit-bypass in `charge_fee` (line 132, CWE-841): Fees increase the spending counter without checking the daily limit, so an arbitrarily large fee can exceed the configured limit.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "unbounded-audit-log in `record_audit` (line 153, CWE-400): Every operation appends an audit entry without any bound or pruning, so repeated commands grow the state file and memory use indefinitely.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "malformed-number-panics in `parse_cents` (line 14, CWE-248): Numeric command arguments are parsed with `unwrap`, so a non-numeric amount or limit panics and terminates the CLI instead of returning an input error.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "cross-account-audit-disclosure in `write_statement` (line 58, CWE-200): Statements include the ledger-wide audit log rather than entries for the requested account, so anyone able to request a statement can see other accounts' activity and transaction amounts.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "report-path-traversal in `write_statement` (line 63, CWE-22): The user-supplied report name is joined without restricting traversal or absolute paths, so `statement --out` can overwrite files outside the reports directory.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "negative-limit-wrap in `run_line` (line 92, CWE-195): A negative daily limit parses as `i64` and is cast to `u64`, turning it into an enormous limit that effectively disables transfer limits.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/store.rs",
+          "kind": "baseline",
+          "text": "malformed-state-zeroing in `load` (line 27, CWE-20): Invalid persisted balances are silently replaced with zero, so a malformed or truncated state file can silently erase account funds rather than failing safely.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/store.rs",
+          "kind": "baseline",
+          "text": "state-record-injection in `save` (line 53, CWE-93): Account names are written into the line-oriented state format without escaping, so a name containing newlines and crafted record text can inject ledger records when the state is loaded again.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/store.rs",
+          "kind": "baseline",
+          "text": "non-atomic-concurrent-updates in `save` (line 67, CWE-362): State is overwritten directly with no locking or atomic update, so concurrent CLI invocations can load the same old ledger and overwrite one another's successful changes.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 22,
+        "defect_evidence": 9,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 13
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "src/bank.rs",
+          "line": 145,
+          "rule": "queued-funds-not-reserved",
+          "message": "Settlement deducts queued amounts without rechecking that funds remain available, so a fee charged after queuing a transfer can consume the same balance and settlement can overdraw the source account.",
+          "cwe": [
+            362
+          ],
+          "function": "settle"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 148,
+          "rule": "integer-overflow",
+          "message": "Settlement adds a transfer amount to the destination balance without checked arithmetic, so queuing a transfer and then adjusting the destination near `i64::MAX` can panic or wrap its balance.",
+          "cwe": [
+            190
+          ],
+          "function": "settle"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 95,
+          "rule": "cross-account-information-disclosure",
+          "message": "A statement includes the ledger-wide recent audit log rather than entries for the requested account, so anyone able to request one account's statement can see activity and account names belonging to other accounts.",
+          "cwe": [
+            200
+          ],
+          "function": "write_statement"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 102,
+          "rule": "symlink-following",
+          "message": "`fs::write` follows symlinks in `reports`, so a pre-created `reports/<name>` symlink can make a statement overwrite a file outside the reports directory despite the filename check.",
+          "cwe": [
+            59
+          ],
+          "function": "write_statement"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 283,
+          "rule": "secret-in-command-line",
+          "message": "The operator token is accepted as a command-line argument, exposing it in process argument listings to other local users while the command runs.",
+          "cwe": [
+            214
+          ],
+          "function": "main"
+        },
+        {
+          "file": "src/store.rs",
+          "line": 27,
+          "rule": "malformed-state-accepted",
+          "message": "A malformed persisted balance is silently replaced with zero, and subsequent commands can save that altered ledger over the original state instead of rejecting the corrupt file.",
+          "cwe": [
+            703
+          ],
+          "function": "load"
+        },
+        {
+          "file": "src/store.rs",
+          "line": 53,
+          "rule": "state-file-injection",
+          "message": "Account names are written into the line-oriented state file without escaping delimiters or newlines, so an account name containing `|` and a newline can inject records that are loaded as other accounts or pending transfers.",
+          "cwe": [
+            74
+          ],
+          "function": "save"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 10510,
+        "completion_tokens": 4087,
+        "cost_usd": 0.00214887,
+        "seconds": 68.12,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 12,
+        "still_reported": [],
+        "false_alarms": 7,
+        "findings": [
+          {
+            "file": "src/bank.rs",
+            "kind": "baseline",
+            "text": "queued-funds-not-reserved in `settle` (line 145, CWE-362): Settlement deducts queued amounts without rechecking that funds remain available, so a fee charged after queuing a transfer can consume the same balance and settlement can overdraw the source account.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/bank.rs",
+            "kind": "baseline",
+            "text": "integer-overflow in `settle` (line 148, CWE-190): Settlement adds a transfer amount to the destination balance without checked arithmetic, so queuing a transfer and then adjusting the destination near `i64::MAX` can panic or wrap its balance.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "cross-account-information-disclosure in `write_statement` (line 95, CWE-200): A statement includes the ledger-wide recent audit log rather than entries for the requested account, so anyone able to request one account's statement can see activity and account names belonging to other accounts.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "symlink-following in `write_statement` (line 102, CWE-59): `fs::write` follows symlinks in `reports`, so a pre-created `reports/<name>` symlink can make a statement overwrite a file outside the reports directory despite the filename check.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "secret-in-command-line in `main` (line 283, CWE-214): The operator token is accepted as a command-line argument, exposing it in process argument listings to other local users while the command runs.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/store.rs",
+            "kind": "baseline",
+            "text": "malformed-state-accepted in `load` (line 27, CWE-703): A malformed persisted balance is silently replaced with zero, and subsequent commands can save that altered ledger over the original state instead of rejecting the corrupt file.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/store.rs",
+            "kind": "baseline",
+            "text": "state-file-injection in `save` (line 53, CWE-74): Account names are written into the line-oriented state file without escaping delimiters or newlines, so an account name containing `|` and a newline can inject records that are loaded as other accounts or pending transfers.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 7,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 7
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 3,
+      "raw_findings": [
+        {
+          "file": "src/bank.rs",
+          "line": 5,
+          "rule": "hardcoded-credentials",
+          "message": "When `BANK_OPERATOR_TOKEN` is unset, the built-in token authorizes `close` and `adjust`, so anyone who knows this source-embedded value can perform operator actions.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 31,
+          "rule": "floating-point-money",
+          "message": "Interest is calculated with `f64` and truncated to cents, so sufficiently large balances can receive an incorrect amount due to floating-point precision loss.",
+          "cwe": [
+            682
+          ],
+          "function": "accrue_interest"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 35,
+          "rule": "allowance-underflow",
+          "message": "If spending exceeds the limit, `wrapping_sub` reports a huge allowance instead of zero, allowing later transfers to bypass the daily limit.",
+          "cwe": [
+            191
+          ],
+          "function": "remaining_daily_allowance"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 39,
+          "rule": "division-by-zero",
+          "message": "Calling `split` without recipients divides by zero and panics the process.",
+          "cwe": [
+            369
+          ],
+          "function": "split_payment"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 52,
+          "rule": "unchecked-index",
+          "message": "An index outside the account vector, including a negative CLI index cast to `usize`, panics instead of returning an error.",
+          "cwe": [
+            129
+          ],
+          "function": "account_at"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 55,
+          "rule": "duplicate-account",
+          "message": "Opening an already-used name appends a second account, while name lookups continue selecting the first, making the new account inaccessible through normal name-based operations.",
+          "cwe": [
+            694
+          ],
+          "function": "open_account"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 68,
+          "rule": "integer-overflow",
+          "message": "Balance arithmetic is unchecked, so a deposit that pushes an account beyond `i64` range panics in debug builds or wraps the balance in release builds.",
+          "cwe": [
+            190
+          ],
+          "function": "deposit"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 68,
+          "rule": "negative-deposit",
+          "message": "A negative deposit is accepted as a withdrawal without transfer-limit checks, allowing callers to remove funds through the deposit command.",
+          "cwe": [
+            1284
+          ],
+          "function": "deposit"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 85,
+          "rule": "negative-transfer",
+          "message": "Negative transfer amounts pass the balance check and are queued, so settlement credits the source and debits the destination.",
+          "cwe": [
+            1284
+          ],
+          "function": "request_transfer"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 85,
+          "rule": "unreserved-transfer-funds",
+          "message": "Queued transfers are checked against the unchanged current balance rather than reserving funds, so multiple individually valid transfers can settle to a negative source balance.",
+          "cwe": [
+            841
+          ],
+          "function": "request_transfer"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 92,
+          "rule": "daily-limit-bypass",
+          "message": "Rejecting an over-limit transfer resets all prior spending to zero, allowing a caller to retry and then spend beyond the daily limit.",
+          "cwe": [
+            840
+          ],
+          "function": "request_transfer"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 95,
+          "rule": "daily-counter-never-resets",
+          "message": "Successful spending only increments `spent_today_cents` and no code resets it at a day boundary, so the nominal daily limit persists across days unless an over-limit request resets it.",
+          "cwe": [
+            840
+          ],
+          "function": "request_transfer"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 114,
+          "rule": "closed-account-transfer",
+          "message": "Settlement credits queued transfers without checking whether the destination was closed, so a transfer queued before closure still changes the closed account's balance.",
+          "cwe": [
+            841
+          ],
+          "function": "settle"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 132,
+          "rule": "negative-fee",
+          "message": "A negative fee increases the account balance and casts the negative amount to `u64`, wrapping the spending counter to a huge value.",
+          "cwe": [
+            1284
+          ],
+          "function": "charge_fee"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 153,
+          "rule": "unbounded-audit-log",
+          "message": "Every operation appends an audit entry indefinitely, so repeated commands can grow the persisted state and in-memory ledger without limit.",
+          "cwe": [
+            400
+          ],
+          "function": "record_audit"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 14,
+          "rule": "panic-on-invalid-input",
+          "message": "A non-numeric amount reaches `unwrap()` and panics the process instead of producing a handled input error.",
+          "cwe": [
+            755
+          ],
+          "function": "parse_cents"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 57,
+          "rule": "cross-account-audit-disclosure",
+          "message": "A statement includes the ledger-wide audit log rather than entries for the requested account, exposing other accounts' activity in that statement.",
+          "cwe": [
+            200
+          ],
+          "function": "write_statement"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 63,
+          "rule": "path-traversal",
+          "message": "The supplied statement filename is joined without restricting traversal or absolute paths, allowing `statement --out` to write outside the reports directory.",
+          "cwe": [
+            22
+          ],
+          "function": "write_statement"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 92,
+          "rule": "negative-limit-cast",
+          "message": "A negative daily limit is cast from `i64` to `u64`, turning it into a very large limit that can effectively disable transfer limits.",
+          "cwe": [
+            681
+          ],
+          "function": "run_line"
+        },
+        {
+          "file": "src/store.rs",
+          "line": 53,
+          "rule": "record-injection",
+          "message": "Account names are serialized without escaping `|` or newlines, so a crafted name can inject or corrupt line-oriented state records when the ledger is saved.",
+          "cwe": [
+            74
+          ],
+          "function": "save"
+        },
+        {
+          "file": "src/store.rs",
+          "line": 67,
+          "rule": "lost-update-race",
+          "message": "State is overwritten without locking or transactional updates, so concurrent CLI invocations can load the same old ledger and silently overwrite one another's changes.",
+          "cwe": [
+            362
+          ],
+          "function": "save"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 9425,
+        "completion_tokens": 5613,
+        "cost_usd": 0.00290102,
+        "seconds": 91.59,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "RS01-D01",
+          "file": "src/bank.rs",
+          "function": "accrue_interest",
+          "category": "float-money",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "floating-point-money in `accrue_interest` (line 31, CWE-682): Interest is calculated with `f64` and truncated to cents, so sufficiently large balances can receive an incorrect amount due to floating-point precision loss."
+          ]
+        },
+        {
+          "id": "RS01-D02",
+          "file": "src/bank.rs",
+          "function": "remaining_daily_allowance",
+          "category": "integer-underflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "allowance-underflow in `remaining_daily_allowance` (line 35, CWE-191): If spending exceeds the limit, `wrapping_sub` reports a huge allowance instead of zero, allowing later transfers to bypass the daily limit."
+          ]
+        },
+        {
+          "id": "RS01-D03",
+          "file": "src/bank.rs",
+          "function": "request_transfer",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "negative-transfer in `request_transfer` (line 85, CWE-1284): Negative transfer amounts pass the balance check and are queued, so settlement credits the source and debits the destination.",
+            "unreserved-transfer-funds in `request_transfer` (line 85, CWE-841): Queued transfers are checked against the unchanged current balance rather than reserving funds, so multiple individually valid transfers can settle to a negative source balance."
+          ]
+        },
+        {
+          "id": "RS01-D04",
+          "file": "src/bank.rs",
+          "function": "split_payment",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `split_payment` (line 39, CWE-369): Calling `split` without recipients divides by zero and panics the process."
+          ]
+        },
+        {
+          "id": "RS01-D05",
+          "file": "src/bank.rs",
+          "function": "account_at",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "unchecked-index in `account_at` (line 52, CWE-129): An index outside the account vector, including a negative CLI index cast to `usize`, panics instead of returning an error."
+          ]
+        },
+        {
+          "id": "RS01-D06",
+          "file": "src/bank.rs",
+          "function": "request_transfer",
+          "category": "invariant-violation",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "negative-transfer in `request_transfer` (line 85, CWE-1284): Negative transfer amounts pass the balance check and are queued, so settlement credits the source and debits the destination.",
+            "unreserved-transfer-funds in `request_transfer` (line 85, CWE-841): Queued transfers are checked against the unchanged current balance rather than reserving funds, so multiple individually valid transfers can settle to a negative source balance.",
+            "daily-limit-bypass in `request_transfer` (line 92, CWE-840): Rejecting an over-limit transfer resets all prior spending to zero, allowing a caller to retry and then spend beyond the daily limit.",
+            "daily-counter-never-resets in `request_transfer` (line 95, CWE-840): Successful spending only increments `spent_today_cents` and no code resets it at a day boundary, so the nominal daily limit persists across days unless an over-limit request resets it."
+          ]
+        },
+        {
+          "id": "RS01-D07",
+          "file": "src/bank.rs",
+          "function": "close_account",
+          "category": "invalid-state-transition",
+          "class": "design",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "RS01-D08",
+          "file": "src/bank.rs",
+          "function": "record_audit",
+          "category": "unbounded-resource",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unbounded-audit-log in `record_audit` (line 153, CWE-400): Every operation appends an audit entry indefinitely, so repeated commands can grow the persisted state and in-memory ledger without limit."
+          ]
+        },
+        {
+          "id": "RS01-D09",
+          "file": "src/main.rs",
+          "function": "parse_cents",
+          "category": "error-handling",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "panic-on-invalid-input in `parse_cents` (line 14, CWE-755): A non-numeric amount reaches `unwrap()` and panics the process instead of producing a handled input error."
+          ]
+        },
+        {
+          "id": "RS01-D10",
+          "file": "src/main.rs",
+          "function": "operator_token",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "RS01-D11",
+          "file": "src/main.rs",
+          "function": "write_statement",
+          "category": "path-traversal",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "path-traversal in `write_statement` (line 63, CWE-22): The supplied statement filename is joined without restricting traversal or absolute paths, allowing `statement --out` to write outside the reports directory."
+          ]
+        },
+        {
+          "id": "RS01-D12",
+          "file": "src/bank.rs",
+          "function": "charge_fee",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "negative-fee in `charge_fee` (line 132, CWE-1284): A negative fee increases the account balance and casts the negative amount to `u64`, wrapping the spending counter to a huge value."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 12,
+        "detected": 9,
+        "function_flagged": 1,
+        "missed": 2
+      },
+      "findings": [
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "hardcoded-credentials (line 5, CWE-798): When `BANK_OPERATOR_TOKEN` is unset, the built-in token authorizes `close` and `adjust`, so anyone who knows this source-embedded value can perform operator actions.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "floating-point-money in `accrue_interest` (line 31, CWE-682): Interest is calculated with `f64` and truncated to cents, so sufficiently large balances can receive an incorrect amount due to floating-point precision loss.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "allowance-underflow in `remaining_daily_allowance` (line 35, CWE-191): If spending exceeds the limit, `wrapping_sub` reports a huge allowance instead of zero, allowing later transfers to bypass the daily limit.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "division-by-zero in `split_payment` (line 39, CWE-369): Calling `split` without recipients divides by zero and panics the process.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "unchecked-index in `account_at` (line 52, CWE-129): An index outside the account vector, including a negative CLI index cast to `usize`, panics instead of returning an error.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "duplicate-account in `open_account` (line 55, CWE-694): Opening an already-used name appends a second account, while name lookups continue selecting the first, making the new account inaccessible through normal name-based operations.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "integer-overflow in `deposit` (line 68, CWE-190): Balance arithmetic is unchecked, so a deposit that pushes an account beyond `i64` range panics in debug builds or wraps the balance in release builds.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "negative-deposit in `deposit` (line 68, CWE-1284): A negative deposit is accepted as a withdrawal without transfer-limit checks, allowing callers to remove funds through the deposit command.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "negative-transfer in `request_transfer` (line 85, CWE-1284): Negative transfer amounts pass the balance check and are queued, so settlement credits the source and debits the destination.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "unreserved-transfer-funds in `request_transfer` (line 85, CWE-841): Queued transfers are checked against the unchanged current balance rather than reserving funds, so multiple individually valid transfers can settle to a negative source balance.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "daily-limit-bypass in `request_transfer` (line 92, CWE-840): Rejecting an over-limit transfer resets all prior spending to zero, allowing a caller to retry and then spend beyond the daily limit.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "daily-counter-never-resets in `request_transfer` (line 95, CWE-840): Successful spending only increments `spent_today_cents` and no code resets it at a day boundary, so the nominal daily limit persists across days unless an over-limit request resets it.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "closed-account-transfer in `settle` (line 114, CWE-841): Settlement credits queued transfers without checking whether the destination was closed, so a transfer queued before closure still changes the closed account's balance.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "negative-fee in `charge_fee` (line 132, CWE-1284): A negative fee increases the account balance and casts the negative amount to `u64`, wrapping the spending counter to a huge value.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/bank.rs",
+          "kind": "baseline",
+          "text": "unbounded-audit-log in `record_audit` (line 153, CWE-400): Every operation appends an audit entry indefinitely, so repeated commands can grow the persisted state and in-memory ledger without limit.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "panic-on-invalid-input in `parse_cents` (line 14, CWE-755): A non-numeric amount reaches `unwrap()` and panics the process instead of producing a handled input error.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "cross-account-audit-disclosure in `write_statement` (line 57, CWE-200): A statement includes the ledger-wide audit log rather than entries for the requested account, exposing other accounts' activity in that statement.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "path-traversal in `write_statement` (line 63, CWE-22): The supplied statement filename is joined without restricting traversal or absolute paths, allowing `statement --out` to write outside the reports directory.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/main.rs",
+          "kind": "baseline",
+          "text": "negative-limit-cast in `run_line` (line 92, CWE-681): A negative daily limit is cast from `i64` to `u64`, turning it into a very large limit that can effectively disable transfer limits.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/store.rs",
+          "kind": "baseline",
+          "text": "record-injection in `save` (line 53, CWE-74): Account names are serialized without escaping `|` or newlines, so a crafted name can inject or corrupt line-oriented state records when the ledger is saved.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/store.rs",
+          "kind": "baseline",
+          "text": "lost-update-race in `save` (line 67, CWE-362): State is overwritten without locking or transactional updates, so concurrent CLI invocations can load the same old ledger and silently overwrite one another's changes.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 21,
+        "defect_evidence": 10,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 11
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "src/bank.rs",
+          "line": 145,
+          "rule": "stale-transfer-reservation",
+          "message": "Settlement does not recheck the source balance after a transfer is queued, so a subsequent fee or adjustment can reduce the balance and settlement can overdraw the account.",
+          "cwe": [
+            841
+          ],
+          "function": "settle"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 148,
+          "rule": "unchecked-recipient-overflow",
+          "message": "Adding a settled transfer to the recipient uses unchecked arithmetic, so crediting an account near `i64::MAX` can panic in debug builds or wrap its balance in release builds.",
+          "cwe": [
+            190
+          ],
+          "function": "settle"
+        },
+        {
+          "file": "src/bank.rs",
+          "line": 171,
+          "rule": "fee-overdraws-account",
+          "message": "A fee is subtracted without checking available funds, so `fee a 200` can turn an account with 100 cents into a negative balance.",
+          "cwe": [
+            20
+          ],
+          "function": "charge_fee"
+        },
+        {
+          "file": "src/main.rs",
+          "line": 95,
+          "rule": "cross-account-statement-disclosure",
+          "message": "A statement includes the ledger-wide recent audit entries rather than entries for the requested account, exposing other accounts' activity to anyone who requests a statement.",
+          "cwe": [
+            359
+          ],
+          "function": "write_statement"
+        },
+        {
+          "file": "src/store.rs",
+          "line": 27,
+          "rule": "silent-invalid-state-coercion",
+          "message": "Malformed persisted balances are silently converted to zero, so loading a corrupted or tampered state file can silently erase an account's balance instead of rejecting the state.",
+          "cwe": [
+            20
+          ],
+          "function": "load"
+        },
+        {
+          "file": "src/store.rs",
+          "line": 53,
+          "rule": "persistence-record-injection",
+          "message": "Account names are serialized without escaping delimiters or newlines, so an account name containing crafted record text can inject records into the state file when it is saved.",
+          "cwe": [
+            74
+          ],
+          "function": "save"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 10510,
+        "completion_tokens": 3926,
+        "cost_usd": 0.003276675,
+        "seconds": 62.39,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 12,
+        "still_reported": [
+          "RS01-D12"
+        ],
+        "false_alarms": 6,
+        "findings": [
+          {
+            "file": "src/bank.rs",
+            "kind": "baseline",
+            "text": "stale-transfer-reservation in `settle` (line 145, CWE-841): Settlement does not recheck the source balance after a transfer is queued, so a subsequent fee or adjustment can reduce the balance and settlement can overdraw the account.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/bank.rs",
+            "kind": "baseline",
+            "text": "unchecked-recipient-overflow in `settle` (line 148, CWE-190): Adding a settled transfer to the recipient uses unchecked arithmetic, so crediting an account near `i64::MAX` can panic in debug builds or wrap its balance in release builds.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/bank.rs",
+            "kind": "baseline",
+            "text": "fee-overdraws-account in `charge_fee` (line 171, CWE-20): A fee is subtracted without checking available funds, so `fee a 200` can turn an account with 100 cents into a negative balance.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/main.rs",
+            "kind": "baseline",
+            "text": "cross-account-statement-disclosure in `write_statement` (line 95, CWE-359): A statement includes the ledger-wide recent audit entries rather than entries for the requested account, exposing other accounts' activity to anyone who requests a statement.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/store.rs",
+            "kind": "baseline",
+            "text": "silent-invalid-state-coercion in `load` (line 27, CWE-20): Malformed persisted balances are silently converted to zero, so loading a corrupted or tampered state file can silently erase an account's balance instead of rejecting the state.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/store.rs",
+            "kind": "baseline",
+            "text": "persistence-record-injection in `save` (line 53, CWE-74): Account names are serialized without escaping delimiters or newlines, so an account name containing crafted record text can inject records into the state file when it is saved.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 6,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 6
+        },
+        "reviews_used": []
+      }
+    }
+  ]
+}

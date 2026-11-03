@@ -1,0 +1,1828 @@
+{
+  "specimen": "py-01-expense-tracker",
+  "language": "python",
+  "tool": "llm-only",
+  "model": "openai/gpt-6-luna",
+  "prompt_version": 1,
+  "prompt_hash": "50865386f4c2f5d6",
+  "temperature": 0,
+  "generated_at": "2026-11-03T04:59:40Z",
+  "source_hash": "0468722f07853392606cdfb4cd0014613e56edf40f4506d4dcfe2007d466c3d2",
+  "runs": [
+    {
+      "run": 1,
+      "raw_findings": [
+        {
+          "file": "app.py",
+          "line": 44,
+          "rule": "unbounded-request-body",
+          "message": "The handler trusts an arbitrary Content-Length and reads that many bytes with no size limit, allowing large or incomplete bodies to consume memory or tie up request threads.",
+          "cwe": [
+            400
+          ],
+          "function": "_read_json"
+        },
+        {
+          "file": "app.py",
+          "line": 84,
+          "rule": "stacktrace-disclosure",
+          "message": "Returning the full traceback in HTTP 500 responses exposes filesystem paths and internal implementation details whenever a handler raises an exception.",
+          "cwe": [
+            209
+          ],
+          "function": "_dispatch"
+        },
+        {
+          "file": "app.py",
+          "line": 93,
+          "rule": "database-connection-leak",
+          "message": "Connections are acquired before request validation but are not released on the malformed-body or invalid-date early returns, so repeated bad POSTs accumulate open connections.",
+          "cwe": [
+            775
+          ],
+          "function": "create_expense"
+        },
+        {
+          "file": "app.py",
+          "line": 108,
+          "rule": "user-identity-spoofing",
+          "message": "Any caller can choose an arbitrary X-User value and create expenses attributed to another user because the header is trusted without authentication.",
+          "cwe": [
+            287
+          ],
+          "function": "create_expense"
+        },
+        {
+          "file": "app.py",
+          "line": 120,
+          "rule": "missing-read-authorization",
+          "message": "The expenses endpoint returns records for any user named in the query string without checking that the caller is authorized to read that user's data.",
+          "cwe": [
+            862
+          ],
+          "function": "list_expenses"
+        },
+        {
+          "file": "app.py",
+          "line": 124,
+          "rule": "sql-injection",
+          "message": "The user query parameter is interpolated directly into SQL, allowing a crafted value such as an OR condition to return other users' expenses.",
+          "cwe": [
+            89
+          ],
+          "function": "list_expenses"
+        },
+        {
+          "file": "app.py",
+          "line": 155,
+          "rule": "division-by-zero",
+          "message": "A summary for a user and month with no expenses passes zero active days to daily_average and raises an exception instead of returning an empty summary.",
+          "cwe": [
+            369
+          ],
+          "function": "summary"
+        },
+        {
+          "file": "app.py",
+          "line": 162,
+          "rule": "missing-budget-authorization",
+          "message": "The budget endpoint accepts the target user from the request body without verifying the caller may modify that user's budget.",
+          "cwe": [
+            862
+          ],
+          "function": "set_budget"
+        },
+        {
+          "file": "app.py",
+          "line": 203,
+          "rule": "csv-escaping",
+          "message": "Joining fields without CSV quoting lets commas and newlines in categories or notes corrupt the report's row and column structure.",
+          "cwe": [
+            116
+          ],
+          "function": "create_report"
+        },
+        {
+          "file": "app.py",
+          "line": 203,
+          "rule": "csv-formula-injection",
+          "message": "User-controlled category and note values are written unescaped, so a value beginning with a spreadsheet formula marker can execute as a formula when the report is opened.",
+          "cwe": [
+            1236
+          ],
+          "function": "create_report"
+        },
+        {
+          "file": "app.py",
+          "line": 208,
+          "rule": "path-traversal",
+          "message": "The export path is joined without confinement checks, so a request such as path=../../app.py can read files outside the reports directory.",
+          "cwe": [
+            22
+          ],
+          "function": "export"
+        },
+        {
+          "file": "config.py",
+          "line": 3,
+          "rule": "hardcoded-admin-credential",
+          "message": "The administrator token is a fixed value embedded in source, allowing anyone who obtains the code to authenticate to the admin endpoint.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "ledger.py",
+          "line": 7,
+          "rule": "fractional-amount-truncation",
+          "message": "int() silently truncates fractional JSON amounts, so a request with amount_cents 1.9 is recorded as 1 instead of being rejected as non-integer.",
+          "cwe": [
+            681
+          ],
+          "function": "parse_amount"
+        },
+        {
+          "file": "ledger.py",
+          "line": 7,
+          "rule": "negative-expense-accepted",
+          "message": "Negative amounts are accepted without validation, allowing a caller to post a negative expense that reduces reported spending totals.",
+          "cwe": [
+            20
+          ],
+          "function": "parse_amount"
+        },
+        {
+          "file": "ledger.py",
+          "line": 12,
+          "rule": "division-by-zero",
+          "message": "The function divides by the active-day count without handling zero, so calling it for an empty period raises ZeroDivisionError.",
+          "cwe": [
+            369
+          ],
+          "function": "daily_average"
+        },
+        {
+          "file": "ledger.py",
+          "line": 17,
+          "rule": "incorrect-rounding",
+          "message": "Python's round uses ties-to-even, so an average of 2.5 cents is reported as 2 rather than the documented half-up result of 3.",
+          "cwe": [
+            682
+          ],
+          "function": "average_expense"
+        },
+        {
+          "file": "ledger.py",
+          "line": 22,
+          "rule": "budget-boundary-error",
+          "message": "The strict greater-than comparison reports status ok when spending exactly reaches the budget, despite the API specifying that reaching the limit is exceeded.",
+          "cwe": [
+            682
+          ],
+          "function": "is_over_budget"
+        },
+        {
+          "file": "ledger.py",
+          "line": 27,
+          "rule": "malformed-category-crash",
+          "message": "A category without a colon makes split(':')[1] raise IndexError, causing summaries for otherwise accepted expenses to fail.",
+          "cwe": [
+            755
+          ],
+          "function": "subcategory"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 8874,
+        "completion_tokens": 3978,
+        "cost_usd": 0.00207801,
+        "seconds": 60.91,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "PY01-D01",
+          "file": "app.py",
+          "function": "list_expenses",
+          "category": "sql-injection",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "sql-injection in `list_expenses` (line 124, CWE-89): The user query parameter is interpolated directly into SQL, allowing a crafted value such as an OR condition to return other users' expenses."
+          ]
+        },
+        {
+          "id": "PY01-D02",
+          "file": "app.py",
+          "function": "export",
+          "category": "path-traversal",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "path-traversal in `export` (line 208, CWE-22): The export path is joined without confinement checks, so a request such as path=../../app.py can read files outside the reports directory."
+          ]
+        },
+        {
+          "id": "PY01-D03",
+          "file": "ledger.py",
+          "function": "daily_average",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `daily_average` (line 12, CWE-369): The function divides by the active-day count without handling zero, so calling it for an empty period raises ZeroDivisionError."
+          ]
+        },
+        {
+          "id": "PY01-D04",
+          "file": "ledger.py",
+          "function": "average_expense",
+          "category": "rounding-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "incorrect-rounding in `average_expense` (line 17, CWE-682): Python's round uses ties-to-even, so an average of 2.5 cents is reported as 2 rather than the documented half-up result of 3."
+          ]
+        },
+        {
+          "id": "PY01-D05",
+          "file": "ledger.py",
+          "function": "is_over_budget",
+          "category": "off-by-one",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "budget-boundary-error in `is_over_budget` (line 22, CWE-682): The strict greater-than comparison reports status ok when spending exactly reaches the budget, despite the API specifying that reaching the limit is exceeded."
+          ]
+        },
+        {
+          "id": "PY01-D06",
+          "file": "app.py",
+          "function": "list_expenses",
+          "category": "idor",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "missing-read-authorization in `list_expenses` (line 120, CWE-862): The expenses endpoint returns records for any user named in the query string without checking that the caller is authorized to read that user's data."
+          ]
+        },
+        {
+          "id": "PY01-D07",
+          "file": "app.py",
+          "function": "create_expense",
+          "category": "resource-leak",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "database-connection-leak in `create_expense` (line 93, CWE-775): Connections are acquired before request validation but are not released on the malformed-body or invalid-date early returns, so repeated bad POSTs accumulate open connections."
+          ]
+        },
+        {
+          "id": "PY01-D08",
+          "file": "ledger.py",
+          "function": "subcategory",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "malformed-category-crash in `subcategory` (line 27, CWE-755): A category without a colon makes split(':')[1] raise IndexError, causing summaries for otherwise accepted expenses to fail."
+          ]
+        },
+        {
+          "id": "PY01-D09",
+          "file": "config.py",
+          "function": "ADMIN_TOKEN",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "hardcoded-admin-credential (line 3, CWE-798): The administrator token is a fixed value embedded in source, allowing anyone who obtains the code to authenticate to the admin endpoint."
+          ]
+        },
+        {
+          "id": "PY01-D10",
+          "file": "ledger.py",
+          "function": "parse_amount",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "negative-expense-accepted in `parse_amount` (line 7, CWE-20): Negative amounts are accepted without validation, allowing a caller to post a negative expense that reduces reported spending totals."
+          ]
+        },
+        {
+          "id": "PY01-D11",
+          "file": "app.py",
+          "function": "_dispatch",
+          "category": "information-exposure",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "stacktrace-disclosure in `_dispatch` (line 84, CWE-209): Returning the full traceback in HTTP 500 responses exposes filesystem paths and internal implementation details whenever a handler raises an exception."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 10,
+        "function_flagged": 1,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "unbounded-request-body in `_read_json` (line 44, CWE-400): The handler trusts an arbitrary Content-Length and reads that many bytes with no size limit, allowing large or incomplete bodies to consume memory or tie up request threads.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "stacktrace-disclosure in `_dispatch` (line 84, CWE-209): Returning the full traceback in HTTP 500 responses exposes filesystem paths and internal implementation details whenever a handler raises an exception.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "database-connection-leak in `create_expense` (line 93, CWE-775): Connections are acquired before request validation but are not released on the malformed-body or invalid-date early returns, so repeated bad POSTs accumulate open connections.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "user-identity-spoofing in `create_expense` (line 108, CWE-287): Any caller can choose an arbitrary X-User value and create expenses attributed to another user because the header is trusted without authentication.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "missing-read-authorization in `list_expenses` (line 120, CWE-862): The expenses endpoint returns records for any user named in the query string without checking that the caller is authorized to read that user's data.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "sql-injection in `list_expenses` (line 124, CWE-89): The user query parameter is interpolated directly into SQL, allowing a crafted value such as an OR condition to return other users' expenses.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "division-by-zero in `summary` (line 155, CWE-369): A summary for a user and month with no expenses passes zero active days to daily_average and raises an exception instead of returning an empty summary.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "missing-budget-authorization in `set_budget` (line 162, CWE-862): The budget endpoint accepts the target user from the request body without verifying the caller may modify that user's budget.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "csv-escaping in `create_report` (line 203, CWE-116): Joining fields without CSV quoting lets commas and newlines in categories or notes corrupt the report's row and column structure.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "csv-formula-injection in `create_report` (line 203, CWE-1236): User-controlled category and note values are written unescaped, so a value beginning with a spreadsheet formula marker can execute as a formula when the report is opened.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "path-traversal in `export` (line 208, CWE-22): The export path is joined without confinement checks, so a request such as path=../../app.py can read files outside the reports directory.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "config.py",
+          "kind": "baseline",
+          "text": "hardcoded-admin-credential (line 3, CWE-798): The administrator token is a fixed value embedded in source, allowing anyone who obtains the code to authenticate to the admin endpoint.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "fractional-amount-truncation in `parse_amount` (line 7, CWE-681): int() silently truncates fractional JSON amounts, so a request with amount_cents 1.9 is recorded as 1 instead of being rejected as non-integer.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "negative-expense-accepted in `parse_amount` (line 7, CWE-20): Negative amounts are accepted without validation, allowing a caller to post a negative expense that reduces reported spending totals.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "division-by-zero in `daily_average` (line 12, CWE-369): The function divides by the active-day count without handling zero, so calling it for an empty period raises ZeroDivisionError.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "incorrect-rounding in `average_expense` (line 17, CWE-682): Python's round uses ties-to-even, so an average of 2.5 cents is reported as 2 rather than the documented half-up result of 3.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "budget-boundary-error in `is_over_budget` (line 22, CWE-682): The strict greater-than comparison reports status ok when spending exactly reaches the budget, despite the API specifying that reaching the limit is exceeded.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "malformed-category-crash in `subcategory` (line 27, CWE-755): A category without a colon makes split(':')[1] raise IndexError, causing summaries for otherwise accepted expenses to fail.",
+          "status": "defect_evidence"
+        }
+      ],
+      "finding_counts": {
+        "total": 18,
+        "defect_evidence": 10,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 8
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "app.py",
+          "line": 93,
+          "rule": "identity-spoofing",
+          "message": "The server trusts the caller-supplied X-User header as identity without authenticating it, so any client can send X-User: victim and read that user's expenses.",
+          "cwe": [
+            287
+          ],
+          "function": "_caller"
+        },
+        {
+          "file": "app.py",
+          "line": 108,
+          "rule": "date-format-validation",
+          "message": "date.fromisoformat accepts formats beyond YYYY-MM-DD, such as 20260914, so requests that violate the documented day format are accepted.",
+          "cwe": [
+            20
+          ],
+          "function": "create_expense"
+        },
+        {
+          "file": "app.py",
+          "line": 117,
+          "rule": "database-connection-leak",
+          "message": "A database connection is acquired without a finally-based release, so an out-of-range amount that makes SQLite raise during insertion leaves the connection open and repeated requests can exhaust resources.",
+          "cwe": [
+            772
+          ],
+          "function": "create_expense"
+        },
+        {
+          "file": "app.py",
+          "line": 153,
+          "rule": "month-filter-bypass",
+          "message": "The unvalidated month is used as a LIKE pattern, so a value containing % or _ can make summaries include expenses from multiple months instead of only the requested month.",
+          "cwe": [
+            20
+          ],
+          "function": "summary"
+        },
+        {
+          "file": "app.py",
+          "line": 179,
+          "rule": "missing-authorization",
+          "message": "set_budget accepts any user from the request body without checking it against X-User, so a caller can overwrite another user's budget.",
+          "cwe": [
+            862
+          ],
+          "function": "set_budget"
+        },
+        {
+          "file": "app.py",
+          "line": 207,
+          "rule": "report-data-disclosure",
+          "message": "create_report does not verify that the requester may access the requested user, and the resulting report is publicly retrievable through export, so anyone can generate and download another user's expense report.",
+          "cwe": [
+            862
+          ],
+          "function": "create_report"
+        },
+        {
+          "file": "app.py",
+          "line": 220,
+          "rule": "csv-formula-injection",
+          "message": "User-controlled report fields are emitted directly into CSV, so a note or category beginning with a spreadsheet formula marker can execute when the report is opened in a spreadsheet.",
+          "cwe": [
+            1236
+          ],
+          "function": "create_report"
+        },
+        {
+          "file": "app.py",
+          "line": 220,
+          "rule": "invalid-csv-escaping",
+          "message": "Fields are joined without CSV quoting or escaping, so user-supplied commas, quotes, or newlines can corrupt the report's columns and rows.",
+          "cwe": [
+            116
+          ],
+          "function": "create_report"
+        },
+        {
+          "file": "ledger.py",
+          "line": 7,
+          "rule": "amount-truncation",
+          "message": "int() silently truncates fractional JSON amounts, so a request such as amount_cents=1.9 is accepted and recorded as 1 cent instead of being rejected as non-integer input.",
+          "cwe": [
+            681
+          ],
+          "function": "parse_amount"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 9254,
+        "completion_tokens": 4891,
+        "cost_usd": 0.003602175,
+        "seconds": 75.88,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "PY01-D07"
+        ],
+        "false_alarms": 9,
+        "findings": [
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "identity-spoofing in `_caller` (line 93, CWE-287): The server trusts the caller-supplied X-User header as identity without authenticating it, so any client can send X-User: victim and read that user's expenses.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "date-format-validation in `create_expense` (line 108, CWE-20): date.fromisoformat accepts formats beyond YYYY-MM-DD, such as 20260914, so requests that violate the documented day format are accepted.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "database-connection-leak in `create_expense` (line 117, CWE-772): A database connection is acquired without a finally-based release, so an out-of-range amount that makes SQLite raise during insertion leaves the connection open and repeated requests can exhaust resources.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "month-filter-bypass in `summary` (line 153, CWE-20): The unvalidated month is used as a LIKE pattern, so a value containing % or _ can make summaries include expenses from multiple months instead of only the requested month.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "missing-authorization in `set_budget` (line 179, CWE-862): set_budget accepts any user from the request body without checking it against X-User, so a caller can overwrite another user's budget.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "report-data-disclosure in `create_report` (line 207, CWE-862): create_report does not verify that the requester may access the requested user, and the resulting report is publicly retrievable through export, so anyone can generate and download another user's expense report.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "csv-formula-injection in `create_report` (line 220, CWE-1236): User-controlled report fields are emitted directly into CSV, so a note or category beginning with a spreadsheet formula marker can execute when the report is opened in a spreadsheet.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "invalid-csv-escaping in `create_report` (line 220, CWE-116): Fields are joined without CSV quoting or escaping, so user-supplied commas, quotes, or newlines can corrupt the report's columns and rows.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "ledger.py",
+            "kind": "baseline",
+            "text": "amount-truncation in `parse_amount` (line 7, CWE-681): int() silently truncates fractional JSON amounts, so a request such as amount_cents=1.9 is accepted and recorded as 1 cent instead of being rejected as non-integer input.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 9,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 9
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 2,
+      "raw_findings": [
+        {
+          "file": "app.py",
+          "line": 45,
+          "rule": "unbounded-request-body",
+          "message": "The handler reads the entire client-declared body length without a limit, allowing large or stalled requests to consume memory and server threads.",
+          "cwe": [
+            400
+          ],
+          "function": "_read_json"
+        },
+        {
+          "file": "app.py",
+          "line": 84,
+          "rule": "stack-trace-disclosure",
+          "message": "When a handler raises an exception, the response exposes the full traceback and server file paths to the caller.",
+          "cwe": [
+            209
+          ],
+          "function": "_dispatch"
+        },
+        {
+          "file": "app.py",
+          "line": 93,
+          "rule": "connection-leak",
+          "message": "If JSON parsing or date validation returns early, or later processing raises, the acquired database connection is never released, so repeated requests exhaust resources.",
+          "cwe": [
+            772
+          ],
+          "function": "create_expense"
+        },
+        {
+          "file": "app.py",
+          "line": 100,
+          "rule": "date-validation",
+          "message": "`date.fromisoformat` accepts ISO forms such as week dates that are not `YYYY-MM-DD`, so inputs outside the documented format are silently accepted and normalized.",
+          "cwe": [
+            20
+          ],
+          "function": "create_expense"
+        },
+        {
+          "file": "app.py",
+          "line": 108,
+          "rule": "user-impersonation",
+          "message": "The handler treats the caller-controlled `X-User` header as authenticated identity, allowing any client to create expenses as another user.",
+          "cwe": [
+            287
+          ],
+          "function": "create_expense"
+        },
+        {
+          "file": "app.py",
+          "line": 120,
+          "rule": "cross-user-data-access",
+          "message": "The read handlers trust the caller-supplied `user` query parameter without checking identity, so a caller can retrieve another user's expenses, summaries, or reports.",
+          "cwe": [
+            639
+          ],
+          "function": "list_expenses"
+        },
+        {
+          "file": "app.py",
+          "line": 124,
+          "rule": "sql-injection",
+          "message": "Interpolating the query-string user directly into SQL lets a crafted value alter the query and return other users' expense rows.",
+          "cwe": [
+            89
+          ],
+          "function": "list_expenses"
+        },
+        {
+          "file": "app.py",
+          "line": 199,
+          "rule": "path-traversal-write",
+          "message": "User-controlled report parameters are incorporated into a filename without path validation, allowing crafted values to write report contents outside the reports directory.",
+          "cwe": [
+            22
+          ],
+          "function": "create_report"
+        },
+        {
+          "file": "app.py",
+          "line": 203,
+          "rule": "csv-injection",
+          "message": "Joining unescaped fields lets user-controlled commas and newlines forge CSV columns or rows, and formula-prefixed category or note values can execute when opened in a spreadsheet.",
+          "cwe": [
+            116
+          ],
+          "function": "create_report"
+        },
+        {
+          "file": "app.py",
+          "line": 208,
+          "rule": "path-traversal-read",
+          "message": "Joining the unvalidated `path` parameter to the reports directory allows traversal or an absolute path to read arbitrary files accessible to the process.",
+          "cwe": [
+            22
+          ],
+          "function": "export"
+        },
+        {
+          "file": "config.py",
+          "line": 3,
+          "rule": "hardcoded-credential",
+          "message": "The admin token is a fixed credential in source code, so anyone who can inspect the project can authenticate to the admin endpoint.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "ledger.py",
+          "line": 7,
+          "rule": "negative-expense-amount",
+          "message": "The amount parser accepts negative values, allowing a caller to post a refund-like expense that reduces reported spending without any validation or separate refund handling.",
+          "cwe": [
+            20
+          ],
+          "function": "parse_amount"
+        },
+        {
+          "file": "ledger.py",
+          "line": 12,
+          "rule": "division-by-zero",
+          "message": "A summary for a user and month with no expenses passes zero active days and raises `ZeroDivisionError` instead of returning an empty summary.",
+          "cwe": [
+            369
+          ],
+          "function": "daily_average"
+        },
+        {
+          "file": "ledger.py",
+          "line": 17,
+          "rule": "incorrect-rounding",
+          "message": "Python's ties-to-even rounding makes an average of 2.5 cents return 2 rather than the expected half-up result of 3.",
+          "cwe": [],
+          "function": "average_expense"
+        },
+        {
+          "file": "ledger.py",
+          "line": 22,
+          "rule": "budget-boundary",
+          "message": "Using `>` treats spending exactly equal to the limit as `ok`, despite the documented rule that status becomes exceeded once spending reaches the limit.",
+          "cwe": [],
+          "function": "is_over_budget"
+        },
+        {
+          "file": "ledger.py",
+          "line": 27,
+          "rule": "subcategory-parsing",
+          "message": "A category without `:` raises `IndexError`, and a category with multiple separators is truncated instead of returning the entire portion after the first separator.",
+          "cwe": [],
+          "function": "subcategory"
+        },
+        {
+          "file": "repro.sh",
+          "line": 173,
+          "rule": "missing-runtime-file",
+          "message": "The script reads `DEFECTS.json`, which is absent from the supplied project, so `set -e` makes `repro.sh` fail after running its reproductions.",
+          "cwe": [],
+          "function": null
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 8874,
+        "completion_tokens": 5257,
+        "cost_usd": 0.00271751,
+        "seconds": 81.45,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "PY01-D01",
+          "file": "app.py",
+          "function": "list_expenses",
+          "category": "sql-injection",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "sql-injection in `list_expenses` (line 124, CWE-89): Interpolating the query-string user directly into SQL lets a crafted value alter the query and return other users' expense rows."
+          ]
+        },
+        {
+          "id": "PY01-D02",
+          "file": "app.py",
+          "function": "export",
+          "category": "path-traversal",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "path-traversal-read in `export` (line 208, CWE-22): Joining the unvalidated `path` parameter to the reports directory allows traversal or an absolute path to read arbitrary files accessible to the process."
+          ]
+        },
+        {
+          "id": "PY01-D03",
+          "file": "ledger.py",
+          "function": "daily_average",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `daily_average` (line 12, CWE-369): A summary for a user and month with no expenses passes zero active days and raises `ZeroDivisionError` instead of returning an empty summary."
+          ]
+        },
+        {
+          "id": "PY01-D04",
+          "file": "ledger.py",
+          "function": "average_expense",
+          "category": "rounding-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "incorrect-rounding in `average_expense` (line 17): Python's ties-to-even rounding makes an average of 2.5 cents return 2 rather than the expected half-up result of 3."
+          ]
+        },
+        {
+          "id": "PY01-D05",
+          "file": "ledger.py",
+          "function": "is_over_budget",
+          "category": "off-by-one",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "budget-boundary in `is_over_budget` (line 22): Using `>` treats spending exactly equal to the limit as `ok`, despite the documented rule that status becomes exceeded once spending reaches the limit."
+          ]
+        },
+        {
+          "id": "PY01-D06",
+          "file": "app.py",
+          "function": "list_expenses",
+          "category": "idor",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "cross-user-data-access in `list_expenses` (line 120, CWE-639): The read handlers trust the caller-supplied `user` query parameter without checking identity, so a caller can retrieve another user's expenses, summaries, or reports."
+          ]
+        },
+        {
+          "id": "PY01-D07",
+          "file": "app.py",
+          "function": "create_expense",
+          "category": "resource-leak",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "connection-leak in `create_expense` (line 93, CWE-772): If JSON parsing or date validation returns early, or later processing raises, the acquired database connection is never released, so repeated requests exhaust resources."
+          ]
+        },
+        {
+          "id": "PY01-D08",
+          "file": "ledger.py",
+          "function": "subcategory",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "subcategory-parsing in `subcategory` (line 27): A category without `:` raises `IndexError`, and a category with multiple separators is truncated instead of returning the entire portion after the first separator."
+          ]
+        },
+        {
+          "id": "PY01-D09",
+          "file": "config.py",
+          "function": "ADMIN_TOKEN",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "hardcoded-credential (line 3, CWE-798): The admin token is a fixed credential in source code, so anyone who can inspect the project can authenticate to the admin endpoint."
+          ]
+        },
+        {
+          "id": "PY01-D10",
+          "file": "ledger.py",
+          "function": "parse_amount",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "negative-expense-amount in `parse_amount` (line 7, CWE-20): The amount parser accepts negative values, allowing a caller to post a refund-like expense that reduces reported spending without any validation or separate refund handling."
+          ]
+        },
+        {
+          "id": "PY01-D11",
+          "file": "app.py",
+          "function": "_dispatch",
+          "category": "information-exposure",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "stack-trace-disclosure in `_dispatch` (line 84, CWE-209): When a handler raises an exception, the response exposes the full traceback and server file paths to the caller."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 10,
+        "function_flagged": 1,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "unbounded-request-body in `_read_json` (line 45, CWE-400): The handler reads the entire client-declared body length without a limit, allowing large or stalled requests to consume memory and server threads.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "stack-trace-disclosure in `_dispatch` (line 84, CWE-209): When a handler raises an exception, the response exposes the full traceback and server file paths to the caller.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "connection-leak in `create_expense` (line 93, CWE-772): If JSON parsing or date validation returns early, or later processing raises, the acquired database connection is never released, so repeated requests exhaust resources.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "date-validation in `create_expense` (line 100, CWE-20): `date.fromisoformat` accepts ISO forms such as week dates that are not `YYYY-MM-DD`, so inputs outside the documented format are silently accepted and normalized.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "user-impersonation in `create_expense` (line 108, CWE-287): The handler treats the caller-controlled `X-User` header as authenticated identity, allowing any client to create expenses as another user.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "cross-user-data-access in `list_expenses` (line 120, CWE-639): The read handlers trust the caller-supplied `user` query parameter without checking identity, so a caller can retrieve another user's expenses, summaries, or reports.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "sql-injection in `list_expenses` (line 124, CWE-89): Interpolating the query-string user directly into SQL lets a crafted value alter the query and return other users' expense rows.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "path-traversal-write in `create_report` (line 199, CWE-22): User-controlled report parameters are incorporated into a filename without path validation, allowing crafted values to write report contents outside the reports directory.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "csv-injection in `create_report` (line 203, CWE-116): Joining unescaped fields lets user-controlled commas and newlines forge CSV columns or rows, and formula-prefixed category or note values can execute when opened in a spreadsheet.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "path-traversal-read in `export` (line 208, CWE-22): Joining the unvalidated `path` parameter to the reports directory allows traversal or an absolute path to read arbitrary files accessible to the process.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "config.py",
+          "kind": "baseline",
+          "text": "hardcoded-credential (line 3, CWE-798): The admin token is a fixed credential in source code, so anyone who can inspect the project can authenticate to the admin endpoint.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "negative-expense-amount in `parse_amount` (line 7, CWE-20): The amount parser accepts negative values, allowing a caller to post a refund-like expense that reduces reported spending without any validation or separate refund handling.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "division-by-zero in `daily_average` (line 12, CWE-369): A summary for a user and month with no expenses passes zero active days and raises `ZeroDivisionError` instead of returning an empty summary.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "incorrect-rounding in `average_expense` (line 17): Python's ties-to-even rounding makes an average of 2.5 cents return 2 rather than the expected half-up result of 3.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "budget-boundary in `is_over_budget` (line 22): Using `>` treats spending exactly equal to the limit as `ok`, despite the documented rule that status becomes exceeded once spending reaches the limit.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "subcategory-parsing in `subcategory` (line 27): A category without `:` raises `IndexError`, and a category with multiple separators is truncated instead of returning the entire portion after the first separator.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "repro.sh",
+          "kind": "baseline",
+          "text": "missing-runtime-file (line 173): The script reads `DEFECTS.json`, which is absent from the supplied project, so `set -e` makes `repro.sh` fail after running its reproductions.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 17,
+        "defect_evidence": 10,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 7
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "app.py",
+          "line": 44,
+          "rule": "unbounded-request-body",
+          "message": "The handler reads the entire client-supplied Content-Length without a size limit, so a client can send a huge body and exhaust memory or tie up request threads.",
+          "cwe": [
+            400
+          ],
+          "function": "_read_json"
+        },
+        {
+          "file": "app.py",
+          "line": 108,
+          "rule": "noncanonical-expense-day",
+          "message": "date.fromisoformat accepts formats such as 2026-W01-1 despite the API requiring YYYY-MM-DD, so a non-calendar-formatted input is silently stored as a different canonical day.",
+          "cwe": [
+            20
+          ],
+          "function": "create_expense"
+        },
+        {
+          "file": "app.py",
+          "line": 119,
+          "rule": "database-connection-leak",
+          "message": "If this insert raises an exception (for example, when amount_cents exceeds SQLite's integer range), the acquired connection is never released, allowing repeated requests to exhaust connections and file descriptors.",
+          "cwe": [
+            772
+          ],
+          "function": "create_expense"
+        },
+        {
+          "file": "app.py",
+          "line": 153,
+          "rule": "unvalidated-month-filter",
+          "message": "The month is concatenated into a LIKE pattern without format validation or wildcard escaping, so a query such as month=% makes the summary aggregate every month for that user.",
+          "cwe": [
+            20
+          ],
+          "function": "summary"
+        },
+        {
+          "file": "app.py",
+          "line": 179,
+          "rule": "budget-authorization-bypass",
+          "message": "The handler trusts the body’s user field without checking it against X-User, so any caller can change another user's budget and receive that user's spending total.",
+          "cwe": [
+            862
+          ],
+          "function": "set_budget"
+        },
+        {
+          "file": "app.py",
+          "line": 181,
+          "rule": "fractional-budget-truncation",
+          "message": "int() silently truncates a fractional limit_cents value, so a budget such as 1.9 is stored as 1 rather than rejected as non-integer input.",
+          "cwe": [
+            681
+          ],
+          "function": "set_budget"
+        },
+        {
+          "file": "app.py",
+          "line": 207,
+          "rule": "report-authorization-bypass",
+          "message": "The handler does not verify that the caller owns the requested user, so anyone can generate a report containing another user's expenses.",
+          "cwe": [
+            862
+          ],
+          "function": "create_report"
+        },
+        {
+          "file": "app.py",
+          "line": 220,
+          "rule": "csv-formula-injection",
+          "message": "User-controlled category and note fields are written directly into CSV cells, so a value beginning with a spreadsheet formula marker can execute when the exported report is opened.",
+          "cwe": [
+            1236
+          ],
+          "function": "create_report"
+        },
+        {
+          "file": "app.py",
+          "line": 220,
+          "rule": "unescaped-csv-fields",
+          "message": "Joining fields with commas without CSV quoting lets commas, quotes, or newlines in a category or note corrupt the report's row and column structure.",
+          "cwe": [
+            116
+          ],
+          "function": "create_report"
+        },
+        {
+          "file": "app.py",
+          "line": 224,
+          "rule": "unauthorized-report-export",
+          "message": "The export route serves predictable report filenames without checking the caller's identity, allowing anyone who knows a filename to read another user's report.",
+          "cwe": [
+            862
+          ],
+          "function": "export"
+        },
+        {
+          "file": "ledger.py",
+          "line": 7,
+          "rule": "fractional-amount-truncation",
+          "message": "int(value) silently truncates fractional JSON amounts such as 1.9 to 1 cent instead of rejecting values that are not integers.",
+          "cwe": [
+            681
+          ],
+          "function": "parse_amount"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 9254,
+        "completion_tokens": 4218,
+        "cost_usd": 0.00220181,
+        "seconds": 64.77,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "PY01-D07"
+        ],
+        "false_alarms": 11,
+        "findings": [
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "unbounded-request-body in `_read_json` (line 44, CWE-400): The handler reads the entire client-supplied Content-Length without a size limit, so a client can send a huge body and exhaust memory or tie up request threads.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "noncanonical-expense-day in `create_expense` (line 108, CWE-20): date.fromisoformat accepts formats such as 2026-W01-1 despite the API requiring YYYY-MM-DD, so a non-calendar-formatted input is silently stored as a different canonical day.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "database-connection-leak in `create_expense` (line 119, CWE-772): If this insert raises an exception (for example, when amount_cents exceeds SQLite's integer range), the acquired connection is never released, allowing repeated requests to exhaust connections and file descriptors.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "unvalidated-month-filter in `summary` (line 153, CWE-20): The month is concatenated into a LIKE pattern without format validation or wildcard escaping, so a query such as month=% makes the summary aggregate every month for that user.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "budget-authorization-bypass in `set_budget` (line 179, CWE-862): The handler trusts the body’s user field without checking it against X-User, so any caller can change another user's budget and receive that user's spending total.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "fractional-budget-truncation in `set_budget` (line 181, CWE-681): int() silently truncates a fractional limit_cents value, so a budget such as 1.9 is stored as 1 rather than rejected as non-integer input.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "report-authorization-bypass in `create_report` (line 207, CWE-862): The handler does not verify that the caller owns the requested user, so anyone can generate a report containing another user's expenses.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "csv-formula-injection in `create_report` (line 220, CWE-1236): User-controlled category and note fields are written directly into CSV cells, so a value beginning with a spreadsheet formula marker can execute when the exported report is opened.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "unescaped-csv-fields in `create_report` (line 220, CWE-116): Joining fields with commas without CSV quoting lets commas, quotes, or newlines in a category or note corrupt the report's row and column structure.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "unauthorized-report-export in `export` (line 224, CWE-862): The export route serves predictable report filenames without checking the caller's identity, allowing anyone who knows a filename to read another user's report.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "ledger.py",
+            "kind": "baseline",
+            "text": "fractional-amount-truncation in `parse_amount` (line 7, CWE-681): int(value) silently truncates fractional JSON amounts such as 1.9 to 1 cent instead of rejecting values that are not integers.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 11,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 11
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 3,
+      "raw_findings": [
+        {
+          "file": "app.py",
+          "line": 44,
+          "rule": "unbounded-request-body",
+          "message": "The handler reads the entire caller-specified Content-Length without a size limit, so a client can exhaust memory or tie up request threads with oversized or slowly sent POST bodies.",
+          "cwe": [
+            400
+          ],
+          "function": "_read_json"
+        },
+        {
+          "file": "app.py",
+          "line": 84,
+          "rule": "stack-trace-disclosure",
+          "message": "Unhandled exceptions are returned with full tracebacks, exposing server file paths and implementation details whenever a request triggers an error.",
+          "cwe": [
+            209
+          ],
+          "function": "_dispatch"
+        },
+        {
+          "file": "app.py",
+          "line": 93,
+          "rule": "database-connection-leak",
+          "message": "Connections acquired here are not released on malformed JSON, invalid dates, or later exceptions, so repeated failing requests can exhaust database connections and file descriptors.",
+          "cwe": [
+            772
+          ],
+          "function": "create_expense"
+        },
+        {
+          "file": "app.py",
+          "line": 108,
+          "rule": "unauthenticated-user-impersonation",
+          "message": "Any caller can choose the X-User header and create expenses as another user, and can likewise choose another user's identity in POST /budget.",
+          "cwe": [
+            862
+          ],
+          "function": "create_expense"
+        },
+        {
+          "file": "app.py",
+          "line": 120,
+          "rule": "missing-read-authorization",
+          "message": "Read handlers trust a caller-supplied user query parameter without authenticating or authorizing it, so anyone can retrieve another user's expenses, summaries, or reports.",
+          "cwe": [
+            862
+          ],
+          "function": "list_expenses"
+        },
+        {
+          "file": "app.py",
+          "line": 124,
+          "rule": "sql-injection",
+          "message": "The query interpolates the user parameter directly into SQL, allowing crafted input such as `' OR '1'='1` to bypass the user filter and disclose all users' expenses.",
+          "cwe": [
+            89
+          ],
+          "function": "list_expenses"
+        },
+        {
+          "file": "app.py",
+          "line": 203,
+          "rule": "csv-injection",
+          "message": "User-controlled category and note fields are written into CSV without quoting or formula neutralization, allowing crafted values to corrupt columns or execute formulas when opened in a spreadsheet.",
+          "cwe": [
+            1236
+          ],
+          "function": "create_report"
+        },
+        {
+          "file": "app.py",
+          "line": 208,
+          "rule": "path-traversal",
+          "message": "The export path is joined without containment checks, so a path such as `../secret.txt` can make the endpoint read files outside the reports directory.",
+          "cwe": [
+            22
+          ],
+          "function": "export"
+        },
+        {
+          "file": "config.py",
+          "line": 3,
+          "rule": "hardcoded-admin-credential",
+          "message": "The admin token is a fixed, source-visible credential, so anyone who can inspect the project can authenticate to the admin statistics endpoint.",
+          "cwe": [
+            798
+          ],
+          "function": null
+        },
+        {
+          "file": "ledger.py",
+          "line": 7,
+          "rule": "fractional-amount-truncation",
+          "message": "int silently truncates JSON floating-point amounts, so submitting an amount such as 1.9 records 1 cent instead of rejecting a non-integer amount.",
+          "cwe": [
+            681
+          ],
+          "function": "parse_amount"
+        },
+        {
+          "file": "ledger.py",
+          "line": 7,
+          "rule": "negative-expense-accepted",
+          "message": "Converting the amount with int does not reject negative values, so a caller can record a negative expense that reduces reported spending totals.",
+          "cwe": [
+            20
+          ],
+          "function": "parse_amount"
+        },
+        {
+          "file": "ledger.py",
+          "line": 12,
+          "rule": "division-by-zero",
+          "message": "An empty month produces zero active days, causing daily_average to raise ZeroDivisionError and return HTTP 500 for a valid summary request.",
+          "cwe": [
+            369
+          ],
+          "function": "daily_average"
+        },
+        {
+          "file": "ledger.py",
+          "line": 17,
+          "rule": "bankers-rounding",
+          "message": "round uses ties-to-even, so averages ending in half a cent can be rounded down contrary to conventional half-up monetary rounding, for example [1, 4] yields 2 rather than 3.",
+          "cwe": [
+            682
+          ],
+          "function": "average_expense"
+        },
+        {
+          "file": "ledger.py",
+          "line": 22,
+          "rule": "budget-limit-boundary",
+          "message": "The strict greater-than comparison reports status `ok` when spending exactly reaches the limit, despite the API specifying that reaching the limit is exceeded.",
+          "cwe": [
+            682
+          ],
+          "function": "is_over_budget"
+        },
+        {
+          "file": "ledger.py",
+          "line": 27,
+          "rule": "subcategory-index-error",
+          "message": "A category without a colon makes split(':')[1] raise IndexError, so a validly accepted expense such as category `rent` causes its summary request to fail with HTTP 500.",
+          "cwe": [],
+          "function": "subcategory"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 8874,
+        "completion_tokens": 4318,
+        "cost_usd": 0.003268175,
+        "seconds": 67.48,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "PY01-D01",
+          "file": "app.py",
+          "function": "list_expenses",
+          "category": "sql-injection",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "sql-injection in `list_expenses` (line 124, CWE-89): The query interpolates the user parameter directly into SQL, allowing crafted input such as `' OR '1'='1` to bypass the user filter and disclose all users' expenses."
+          ]
+        },
+        {
+          "id": "PY01-D02",
+          "file": "app.py",
+          "function": "export",
+          "category": "path-traversal",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "path-traversal in `export` (line 208, CWE-22): The export path is joined without containment checks, so a path such as `../secret.txt` can make the endpoint read files outside the reports directory."
+          ]
+        },
+        {
+          "id": "PY01-D03",
+          "file": "ledger.py",
+          "function": "daily_average",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `daily_average` (line 12, CWE-369): An empty month produces zero active days, causing daily_average to raise ZeroDivisionError and return HTTP 500 for a valid summary request."
+          ]
+        },
+        {
+          "id": "PY01-D04",
+          "file": "ledger.py",
+          "function": "average_expense",
+          "category": "rounding-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "bankers-rounding in `average_expense` (line 17, CWE-682): round uses ties-to-even, so averages ending in half a cent can be rounded down contrary to conventional half-up monetary rounding, for example [1, 4] yields 2 rather than 3."
+          ]
+        },
+        {
+          "id": "PY01-D05",
+          "file": "ledger.py",
+          "function": "is_over_budget",
+          "category": "off-by-one",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "budget-limit-boundary in `is_over_budget` (line 22, CWE-682): The strict greater-than comparison reports status `ok` when spending exactly reaches the limit, despite the API specifying that reaching the limit is exceeded."
+          ]
+        },
+        {
+          "id": "PY01-D06",
+          "file": "app.py",
+          "function": "list_expenses",
+          "category": "idor",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "missing-read-authorization in `list_expenses` (line 120, CWE-862): Read handlers trust a caller-supplied user query parameter without authenticating or authorizing it, so anyone can retrieve another user's expenses, summaries, or reports."
+          ]
+        },
+        {
+          "id": "PY01-D07",
+          "file": "app.py",
+          "function": "create_expense",
+          "category": "resource-leak",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "database-connection-leak in `create_expense` (line 93, CWE-772): Connections acquired here are not released on malformed JSON, invalid dates, or later exceptions, so repeated failing requests can exhaust database connections and file descriptors."
+          ]
+        },
+        {
+          "id": "PY01-D08",
+          "file": "ledger.py",
+          "function": "subcategory",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "subcategory-index-error in `subcategory` (line 27): A category without a colon makes split(':')[1] raise IndexError, so a validly accepted expense such as category `rent` causes its summary request to fail with HTTP 500."
+          ]
+        },
+        {
+          "id": "PY01-D09",
+          "file": "config.py",
+          "function": "ADMIN_TOKEN",
+          "category": "hardcoded-secret",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "hardcoded-admin-credential (line 3, CWE-798): The admin token is a fixed, source-visible credential, so anyone who can inspect the project can authenticate to the admin statistics endpoint."
+          ]
+        },
+        {
+          "id": "PY01-D10",
+          "file": "ledger.py",
+          "function": "parse_amount",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "negative-expense-accepted in `parse_amount` (line 7, CWE-20): Converting the amount with int does not reject negative values, so a caller can record a negative expense that reduces reported spending totals."
+          ]
+        },
+        {
+          "id": "PY01-D11",
+          "file": "app.py",
+          "function": "_dispatch",
+          "category": "information-exposure",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "stack-trace-disclosure in `_dispatch` (line 84, CWE-209): Unhandled exceptions are returned with full tracebacks, exposing server file paths and implementation details whenever a request triggers an error."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 10,
+        "function_flagged": 1,
+        "missed": 0
+      },
+      "findings": [
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "unbounded-request-body in `_read_json` (line 44, CWE-400): The handler reads the entire caller-specified Content-Length without a size limit, so a client can exhaust memory or tie up request threads with oversized or slowly sent POST bodies.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "stack-trace-disclosure in `_dispatch` (line 84, CWE-209): Unhandled exceptions are returned with full tracebacks, exposing server file paths and implementation details whenever a request triggers an error.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "database-connection-leak in `create_expense` (line 93, CWE-772): Connections acquired here are not released on malformed JSON, invalid dates, or later exceptions, so repeated failing requests can exhaust database connections and file descriptors.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "unauthenticated-user-impersonation in `create_expense` (line 108, CWE-862): Any caller can choose the X-User header and create expenses as another user, and can likewise choose another user's identity in POST /budget.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "missing-read-authorization in `list_expenses` (line 120, CWE-862): Read handlers trust a caller-supplied user query parameter without authenticating or authorizing it, so anyone can retrieve another user's expenses, summaries, or reports.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "sql-injection in `list_expenses` (line 124, CWE-89): The query interpolates the user parameter directly into SQL, allowing crafted input such as `' OR '1'='1` to bypass the user filter and disclose all users' expenses.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "csv-injection in `create_report` (line 203, CWE-1236): User-controlled category and note fields are written into CSV without quoting or formula neutralization, allowing crafted values to corrupt columns or execute formulas when opened in a spreadsheet.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "path-traversal in `export` (line 208, CWE-22): The export path is joined without containment checks, so a path such as `../secret.txt` can make the endpoint read files outside the reports directory.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "config.py",
+          "kind": "baseline",
+          "text": "hardcoded-admin-credential (line 3, CWE-798): The admin token is a fixed, source-visible credential, so anyone who can inspect the project can authenticate to the admin statistics endpoint.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "fractional-amount-truncation in `parse_amount` (line 7, CWE-681): int silently truncates JSON floating-point amounts, so submitting an amount such as 1.9 records 1 cent instead of rejecting a non-integer amount.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "negative-expense-accepted in `parse_amount` (line 7, CWE-20): Converting the amount with int does not reject negative values, so a caller can record a negative expense that reduces reported spending totals.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "division-by-zero in `daily_average` (line 12, CWE-369): An empty month produces zero active days, causing daily_average to raise ZeroDivisionError and return HTTP 500 for a valid summary request.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "bankers-rounding in `average_expense` (line 17, CWE-682): round uses ties-to-even, so averages ending in half a cent can be rounded down contrary to conventional half-up monetary rounding, for example [1, 4] yields 2 rather than 3.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "budget-limit-boundary in `is_over_budget` (line 22, CWE-682): The strict greater-than comparison reports status `ok` when spending exactly reaches the limit, despite the API specifying that reaching the limit is exceeded.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "subcategory-index-error in `subcategory` (line 27): A category without a colon makes split(':')[1] raise IndexError, so a validly accepted expense such as category `rent` causes its summary request to fail with HTTP 500.",
+          "status": "defect_evidence"
+        }
+      ],
+      "finding_counts": {
+        "total": 15,
+        "defect_evidence": 10,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 5
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "app.py",
+          "line": 44,
+          "rule": "unbounded-request-body",
+          "message": "The handler trusts an unbounded Content-Length and reads that many bytes (or blocks on read(-1) for a negative value), allowing clients to exhaust memory or tie up request threads.",
+          "cwe": [
+            400
+          ],
+          "function": "_read_json"
+        },
+        {
+          "file": "app.py",
+          "line": 93,
+          "rule": "spoofable-identity",
+          "message": "The service treats the caller-supplied X-User header as authenticated identity, so anyone who can reach it can set X-User to a victim's name and pass the self-check to read or write as that victim.",
+          "cwe": [
+            287
+          ],
+          "function": "_caller"
+        },
+        {
+          "file": "app.py",
+          "line": 108,
+          "rule": "date-format-validation",
+          "message": "date.fromisoformat accepts formats beyond the documented YYYY-MM-DD form, such as ISO week dates, so a request with a nonconforming day is silently accepted and stored as a different calendar date.",
+          "cwe": [
+            20
+          ],
+          "function": "create_expense"
+        },
+        {
+          "file": "app.py",
+          "line": 117,
+          "rule": "database-connection-leak",
+          "message": "Connections are acquired without guaranteed cleanup, so a request that raises during a database operation—for example, an amount too large for SQLite to bind—leaves the connection open and repeated requests can exhaust resources.",
+          "cwe": [
+            772
+          ],
+          "function": "create_expense"
+        },
+        {
+          "file": "app.py",
+          "line": 179,
+          "rule": "missing-authorization",
+          "message": "set_budget trusts the request body's user without checking the caller, letting anyone who can reach the endpoint overwrite another user's budget and retrieve that user's spending total in the response.",
+          "cwe": [
+            862
+          ],
+          "function": "set_budget"
+        },
+        {
+          "file": "app.py",
+          "line": 207,
+          "rule": "unauthorized-report-access",
+          "message": "create_report accepts any user without authorization, and the resulting predictable filename can be fetched through the unauthenticated export endpoint to disclose that user's expenses and notes.",
+          "cwe": [
+            862
+          ],
+          "function": "create_report"
+        },
+        {
+          "file": "app.py",
+          "line": 220,
+          "rule": "csv-injection",
+          "message": "User-controlled category and note values are written into CSV without quoting or formula neutralization, so commas or newlines can corrupt columns and spreadsheet-formula values can execute when opened.",
+          "cwe": [
+            1236
+          ],
+          "function": "create_report"
+        },
+        {
+          "file": "ledger.py",
+          "line": 7,
+          "rule": "amount-truncation",
+          "message": "int(value) silently truncates JSON floating-point amounts, so a request for 1.9 cents is accepted and stored as 1 cent instead of rejecting the non-integer input.",
+          "cwe": [
+            20
+          ],
+          "function": "parse_amount"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 9254,
+        "completion_tokens": 3956,
+        "cost_usd": 0.00207081,
+        "seconds": 61.74,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [
+          "PY01-D07",
+          "PY01-D10"
+        ],
+        "false_alarms": 8,
+        "findings": [
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "unbounded-request-body in `_read_json` (line 44, CWE-400): The handler trusts an unbounded Content-Length and reads that many bytes (or blocks on read(-1) for a negative value), allowing clients to exhaust memory or tie up request threads.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "spoofable-identity in `_caller` (line 93, CWE-287): The service treats the caller-supplied X-User header as authenticated identity, so anyone who can reach it can set X-User to a victim's name and pass the self-check to read or write as that victim.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "date-format-validation in `create_expense` (line 108, CWE-20): date.fromisoformat accepts formats beyond the documented YYYY-MM-DD form, such as ISO week dates, so a request with a nonconforming day is silently accepted and stored as a different calendar date.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "database-connection-leak in `create_expense` (line 117, CWE-772): Connections are acquired without guaranteed cleanup, so a request that raises during a database operation—for example, an amount too large for SQLite to bind—leaves the connection open and repeated requests can exhaust resources.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "missing-authorization in `set_budget` (line 179, CWE-862): set_budget trusts the request body's user without checking the caller, letting anyone who can reach the endpoint overwrite another user's budget and retrieve that user's spending total in the response.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "unauthorized-report-access in `create_report` (line 207, CWE-862): create_report accepts any user without authorization, and the resulting predictable filename can be fetched through the unauthenticated export endpoint to disclose that user's expenses and notes.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "csv-injection in `create_report` (line 220, CWE-1236): User-controlled category and note values are written into CSV without quoting or formula neutralization, so commas or newlines can corrupt columns and spreadsheet-formula values can execute when opened.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "ledger.py",
+            "kind": "baseline",
+            "text": "amount-truncation in `parse_amount` (line 7, CWE-20): int(value) silently truncates JSON floating-point amounts, so a request for 1.9 cents is accepted and stored as 1 cent instead of rejecting the non-integer input.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 8,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 8
+        },
+        "reviews_used": []
+      }
+    }
+  ]
+}
