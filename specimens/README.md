@@ -179,7 +179,9 @@ directory and writes `audit/audit.json` and `audit/audit.md`, plus
 `audit/coverage.json`, which maps each planted defect to the audit findings
 that name the same function. For a specimen with a `fixed.patch` it also
 audits a patched copy into `audit/fixed/` and records false alarms on the
-fixed code under `fixed` in `coverage.json`. `specimens/AUDIT_SUMMARY.md`
+fixed code under `fixed` in `coverage.json`. When mumei-agent has an LLM
+provider configured, the same files go to `audit/with-llm/` instead, so the
+no-LLM and with-LLM audits sit side by side. `specimens/AUDIT_SUMMARY.md`
 aggregates detected and missed defects across all specimens.
 
 ## Validate
@@ -249,7 +251,8 @@ python3 scripts/run_specimen_audits.py --render-only   # re-render charts/README
 The scoreboard tracks two series: audits run without an LLM provider and audits run with
 one. To record a with-LLM run, configure an LLM provider for mumei-agent — `LLM_API_KEY`
 (or `OPENAI_API_KEY`), plus `LLM_BASE_URL` / `LLM_MODEL` as needed, or a `.env` file in the
-agent repo — and re-run the full audit. Each mode keeps its own history entries and the
+agent repo — and re-run the full audit. A with-LLM run writes to `audit/with-llm/` and records
+the model, audit time and (on OpenRouter) cost. Each mode keeps its own history entries and the
 tables above show the latest run of each side by side.
 
 Precision is (defect evidence + findings reviewed as real) / findings; it is a range while some
