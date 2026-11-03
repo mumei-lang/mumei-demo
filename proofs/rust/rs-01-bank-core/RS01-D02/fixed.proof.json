@@ -1,0 +1,102 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-03T15:21:52Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "remaining_daily_allowance",
+      "z3_check_result": "unsat",
+      "content_hash": "000abf11d7dcbeb9e96e7334c74afd315faa4ec2e9e9496c8e756c5d2f8f3dd5",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "b62d371963c8a158d6bc51d6ab9f91aa73b49c9e1d5328062b83f8824fdd0f0b",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 2,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 2,
+        "diagnostics": []
+      },
+      "proof_hash": "fb5d0fa41a629e83dc985196c5b31a1c24aa8bb3658783cbee8b7a987bfd519f",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "limit_cents >= 0 && spent_cents >= 0",
+      "ensures": "result >= 0 &&(spent_cents <= limit_cents => result == limit_cents - spent_cents)",
+      "forall_constraints": [],
+      "body_expr": "{ if spent_cents > limit_cents { 0 } else { limit_cents - spent_cents } }",
+      "body_summary": "{ if spent_cents > limit_cents { 0 } else { limit_cents - spent_cents } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "limit_cents": "limit_cents",
+        "result": "result",
+        "spent_cents": "spent_cents"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "limit_cents",
+            "lean_name": "limit_cents",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "spent_cents",
+            "lean_name": "spent_cents",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(limit_cents >= 0 && spent_cents >= 0) -> (result >= 0 &&(spent_cents <= limit_cents => result == limit_cents - spent_cents))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "1837cb94aec67b96f226a1c6c1c4c4fce24dc630dc136e533f6dfec399c10824",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:52Z"
+      }
+    }
+  ],
+  "certificate_hash": "6ef649ad022cd91722497d4cc01c29164fd57f105452f23b294587681ce015a4",
+  "all_verified": true
+}

@@ -1,0 +1,94 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-03T15:21:55Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "emergencyWithdraw",
+      "z3_check_result": "unsat",
+      "content_hash": "96c19f4446be738d90dc191411d98068dae015de7de425e723ba485a94ab513f",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "a13058fb4bb732924564b701218a6cdfb71361968f5eff81329dbb25791ab99c",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "70ac1e6948a7434906fbb308f369506b51d5f6e92eea2aa0a70ce80226cf6342",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "balance > 0",
+      "ensures": "result == 0",
+      "forall_constraints": [],
+      "body_expr": "{ let after = 0; after }",
+      "body_summary": "{ let after = 0; after }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "balance": "balance",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "balance",
+            "lean_name": "balance",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(balance > 0) -> (result == 0)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "5187a5e31cab555f7d60ed1abc7a9e0d1cac17240c9c74059760fb9860e7f2e3",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:55Z"
+      }
+    }
+  ],
+  "certificate_hash": "e064b4c63947e19d4b0736c03b81a7eb57efee7b1d12fcda3b6d364294523d0e",
+  "all_verified": true
+}

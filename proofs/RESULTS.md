@@ -18,6 +18,18 @@ A proof covers the model in the port, not native behaviour the model leaves out,
 
 Vacuity control (fixed port re-checked with `ensures: false`, must fail): 71 / 71 pass.
 
+Proof certificates: 71 / 71 proven fixed ports have one, emitted with `mumei verify --proof-cert` and re-checked with `mumei verify-cert --strict`. Trust: Z3 71. `--check` compares each committed `fixed.proof.json` with its recorded hash and with the current `fixed.mm`.
+
+Lean bridge dual check (mumei-lean `c0ee8f3`): each certified obligation is restated in Lean 4 and must close there too. `partial_translation` means the bridge could not state the whole obligation in Lean, so nothing was checked; a failed dual check does not change the Z3 result. failed 18, lean_verified 4, partial_translation 49 of 71.
+
+Most common first Lean errors:
+
+- 11 × `unexpected token '=>'; expected ')', ',' or ':'`
+- 3 × `application type mismatch`
+- 2 × `type mismatch`
+- 1 × `type expected, got`
+- 1 × `unexpected token 'from'; expected '_' or identifier`
+
 ## Wrong answers by case (runs out of total)
 
 - LLM only (judges the source): `GO01-D05` fixed rejected (3/3), `GO02-D03` fixed rejected (2/3), `GO03-D06` fixed rejected (1/3), `GO03-D07` fixed rejected (1/3), `PY02-D04` fixed rejected (3/3), `PY03-D05` buggy accepted (1/3), `RS03-D08` fixed rejected (2/3), `TS01-D12` fixed rejected (2/3)

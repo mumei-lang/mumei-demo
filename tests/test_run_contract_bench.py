@@ -58,7 +58,18 @@ def repo(tmp_path, monkeypatch):
                         "RESULTS_MD": tmp_path / "proofs" / "RESULTS.md",
                         "README": tmp_path / "README.md"}.items():
         monkeypatch.setattr(cb, name, value)
+    monkeypatch.setattr(cb, "real_certify", cb.certify, raising=False)
+    monkeypatch.setattr(cb, "certify", fake_certify)
     return tmp_path
+
+
+def fake_cert(atom="bad", result="unsat", all_verified=True):
+    return json.dumps({"all_verified": all_verified, "atoms": [{"name": atom, "z3_check_result": result}]})
+
+
+def fake_certify(_bin, case, _timeout):
+    text = fake_cert(case["atom"])
+    return {**cb.cert_summary(text, case), "verify_cert": "ok"}, text
 
 
 def fake_verify(outcomes):
@@ -700,3 +711,229 @@ def test_only_merges_into_a_result_without_a_verifier_and_keeps_it_unrecorded(re
     assert cb.main(["--arm", "mumei-llm", "--runs", "1", "--mumei-bin", "mumei", "--only", "PY09-D01"],
                    provider=prov) == 0
     assert "verifier" not in json.loads(cb.result_path("mumei-llm", prov.model).read_text())
+
+
+# --- proof certificates and the Lean bridge -------------------------------------
+
+class FakeProc:
+    def __init__(self, returncode=0, stdout="", stderr=""):
+        self.returncode, self.stdout, self.stderr = returncode, stdout, stderr
+
+
+def case(repo):
+    return cb.load_cases()[0][0]
+
+
+def fake_mumei(cert_text, verify_cert_rc=0, calls=None):
+    def run(cmd, cwd=None, **_kw):
+        if calls is not None:
+            calls.append(cmd)
+        if cmd[1] == "verify" and cert_text is not None:
+            (Path(cwd) / cmd[cmd.index("--output") + 1]).write_text(cert_text)
+        return FakeProc(verify_cert_rc if cmd[1] == "verify-cert" else 0)
+    return run
+
+
+@pytest.mark.parametrize("text,trust,expected", [
+    (fake_cert("average"), "z3", {"z3_check_result": "unsat", "all_verified": True}),
+    (fake_cert("average", "lean_verified"), "lean", {"z3_check_result": "lean_verified"}),
+    (fake_cert("average", "unknown"), "unproven", {"z3_check_result": "unknown"}),
+    (fake_cert("other"), "unproven", {"z3_check_result": None}),
+    (fake_cert("average", all_verified=False), "z3", {"all_verified": False}),
+    ('{"atoms": "nope"}', "unproven", {"z3_check_result": None, "all_verified": False}),
+    ('[1, 2]', "unproven", {"z3_check_result": None}),
+])
+def test_cert_summary(repo, text, trust, expected):
+    got = cb.cert_summary(text, case(repo))
+    assert got["trust"] == trust and got["status"] == "recorded" and got["sha256"] == cb.sha256(text)
+    assert got["port_sha256"] == cb.sha256(case(repo)["ports"]["fixed"])
+    assert expected.items() <= got.items()
+
+
+def test_cert_summary_malformed(repo):
+    assert cb.cert_summary("{not json", case(repo)) == {"status": "malformed"}
+
+
+@pytest.mark.parametrize("rc,verdict", [(0, "ok"), (1, "failed")])
+def test_certify_emits_and_rechecks(repo, monkeypatch, rc, verdict):
+    c = case(repo)
+    calls = []
+    monkeypatch.setattr(cb.subprocess, "run", fake_mumei(fake_cert("average"), rc, calls))
+    summary, text = cb.real_certify("mumei", c, 5)
+    assert summary["verify_cert"] == verdict and summary["trust"] == "z3" and text == fake_cert("average")
+    assert calls[0][:5] == ["mumei", "verify", "--json", "--proof-cert", "--output"]
+    assert calls[1] == ["mumei", "verify-cert", "--strict", cb.CERT_FILE, "fixed.mm"]
+
+
+def test_certify_without_certificate(repo, monkeypatch):
+    c = case(repo)
+    monkeypatch.setattr(cb.subprocess, "run", fake_mumei(None))
+    assert cb.real_certify("mumei", c, 5) == ({"status": "not-emitted"}, None)
+
+
+def test_certify_timeout(repo, monkeypatch):
+    c = case(repo)
+    def boom(*a, **k):
+        raise cb.subprocess.TimeoutExpired("mumei", 5)
+    monkeypatch.setattr(cb.subprocess, "run", boom)
+    assert cb.real_certify("mumei", c, 5) == ({"status": "timeout"}, None)
+
+
+CERT_PATH = "proofs/python/py-09-x/PY09-D01/fixed.proof.json"
+
+
+def test_reference_run_commits_the_certificate(repo, monkeypatch):
+    run_reference(repo, monkeypatch)
+    doc = json.loads((repo / "proofs/results/mumei.json").read_text())
+    cert = doc["runs"][0][0]["fixed"]["certificate"]
+    assert cert["trust"] == "z3" and cert["verify_cert"] == "ok" and cert["file"] == cb.CERT_FILE
+    assert cb.sha256((repo / CERT_PATH).read_text()) == cert["sha256"]
+    assert "certificate" not in doc["runs"][0][0]["buggy"] and "lean_bridge" not in doc
+    md = (repo / "proofs/RESULTS.md").read_text()
+    assert "Proof certificates: 1 / 1 proven fixed ports" in md and "Trust: Z3 1." in md
+    assert "Lean bridge: not run" in md
+
+
+def test_unproven_fixed_port_removes_an_old_certificate(repo, monkeypatch):
+    (repo / CERT_PATH).write_text("old")
+    monkeypatch.setattr(cb, "certify", lambda *a: pytest.fail("must not certify"))
+    monkeypatch.setattr(cb, "verify_text", fake_verify([("ensures: false", "refuted"), ("total / days\n", "refuted")]))
+    out = cb.run_mumei_case(case(repo), "mumei", 5)
+    assert out["fixed"]["outcome"] == "inconclusive" and "certificate" not in out["fixed"]
+    assert not (repo / CERT_PATH).exists()
+
+
+def test_certificate_that_was_not_emitted_is_not_written(repo, monkeypatch):
+    monkeypatch.setattr(cb, "certify", lambda *a: ({"status": "timeout"}, None))
+    monkeypatch.setattr(cb, "verify_text", fake_verify(REFERENCE))
+    out = cb.run_mumei_case(case(repo), "mumei", 5)
+    assert out["fixed"]["certificate"] == {"status": "timeout"} and not (repo / CERT_PATH).exists()
+
+
+def edit_record(repo, **changes):
+    path = repo / "proofs/results/mumei.json"
+    doc = json.loads(path.read_text())
+    doc["runs"][0][0]["fixed"]["certificate"].update(changes)
+    if changes.get("drop"):
+        del doc["runs"][0][0]["fixed"]["certificate"]
+    path.write_text(json.dumps(doc))
+
+
+@pytest.mark.parametrize("mutate,message", [
+    (lambda r: (r / CERT_PATH).unlink(), "fixed.proof.json is missing"),
+    (lambda r: (r / CERT_PATH).write_text(fake_cert("average") + " "), "does not match its recorded hash"),
+    (lambda r: edit_record(r, drop=True), "PY09-D01: the proven fixed port has no proof certificate"),
+    (lambda r: edit_record(r, status="timeout"), "PY09-D01: the proven fixed port has no proof certificate"),
+    (lambda r: edit_record(r, port_sha256="0" * 64), "is stale: fixed.mm changed after it was certified"),
+    (lambda r: edit_record(r, trust="lean"), "does not say what its record says"),
+    (lambda r: edit_record(r, verify_cert="failed"), "does not prove average (trust z3, verify-cert failed)"),
+])
+def test_check_rejects_bad_certificates(repo, monkeypatch, capsys, mutate, message):
+    run_reference(repo, monkeypatch)
+    mutate(repo)
+    assert cb.main(["--check"]) == 1
+    assert message in capsys.readouterr().err
+
+
+def test_check_rejects_an_unproven_certificate(repo, monkeypatch, capsys):
+    text = fake_cert("average", "unknown")
+    monkeypatch.setattr(cb, "certify", lambda _b, c, _t: ({**cb.cert_summary(text, c), "verify_cert": "ok"}, text))
+    run_reference(repo, monkeypatch)
+    assert cb.main(["--check"]) == 1
+    assert "does not prove average (trust unproven" in capsys.readouterr().err
+
+
+def test_check_rejects_a_certificate_for_an_unproven_port(repo, monkeypatch, capsys):
+    run_reference(repo, monkeypatch)
+    path = repo / "proofs/results/mumei.json"
+    doc = json.loads(path.read_text())
+    doc["runs"][0][0]["fixed"] = {"outcome": "inconclusive", "status": "timeout", "diagnostics": []}
+    path.write_text(json.dumps(doc))
+    problems = cb.certificate_problems(cb.load_cases()[0], cb.load_results())
+    assert problems == [f"{CERT_PATH}: the fixed port is not proven, so it has no certificate to keep"]
+
+
+def test_certificate_problems_without_reference(repo):
+    assert cb.certificate_problems(cb.load_cases()[0], []) == []
+
+
+def fake_bridge(status=None, stdout="", write=True, calls=None):
+    def run(cmd, cwd=None, **_kw):
+        if cmd[0] == "git":
+            return FakeProc(0, "f" * 40 if "rev-parse" in cmd else "")
+        if calls is not None:
+            calls.append((cmd, cwd))
+        module = Path(cwd) / "generated/Generated/Fixed.lean"
+        module.parent.mkdir(parents=True, exist_ok=True)
+        module.write_text("theorem")
+        atom = {"name": "average"}
+        if status:
+            atom["lean_dual_check"] = {"status": status, "proof_path": "/abs/secret/path/Fixed.lean"}
+        if write:
+            Path(cmd[cmd.index("--lean-cert-out") + 1]).write_text(json.dumps({"atoms": [atom]}))
+        return FakeProc(0, stdout)
+    return run
+
+
+LAKE = ("trace: noise\nerror: ./././generated/Generated/Fixed.lean:26:72: unexpected token '=>'; expected ')'\n"
+        "error: Lean exited with code 1\n")
+
+
+@pytest.mark.parametrize("status,stdout,write,expected", [
+    ("passed", LAKE, True, {"status": "passed"}),
+    ("lean_verified", LAKE, True, {"status": "lean_verified"}),
+    ("partial_translation", LAKE, True, {"status": "partial_translation"}),
+    ("failed", LAKE, True, {"status": "failed", "error": "unexpected token '=>'; expected ')'"}),
+    ("failed", "error: build failed\n", True, {"status": "failed"}),
+    (None, "", True, {"status": "not-checked"}),
+    ("failed", "", False, {"status": "no-certificate"}),
+])
+def test_lean_dual_check(repo, tmp_path, monkeypatch, status, stdout, write, expected):
+    c = case(repo)
+    lean = tmp_path / "lean"
+    calls = []
+    monkeypatch.setattr(cb.subprocess, "run", fake_bridge(status, stdout, write, calls))
+    assert cb.lean_dual_check(str(lean), c, fake_cert("average"), 5) == expected
+    cmd, cwd = calls[0]
+    assert cwd == str(lean) and cmd[1:3] == ["scripts/bridge.py", "--cert"] and "--dual-check" in cmd
+    assert not (lean / "generated/Generated/Fixed.lean").exists()
+    assert "/abs/secret" not in json.dumps(expected)
+
+
+def test_lean_dual_check_timeout_cleans_up(repo, tmp_path, monkeypatch):
+    c = case(repo)
+    lean = tmp_path / "lean"
+    (lean / "generated/Generated").mkdir(parents=True)
+    (lean / "generated/Generated/Fixed.lean").write_text("x")
+
+    def boom(*a, **k):
+        raise cb.subprocess.TimeoutExpired("lake", 5)
+    monkeypatch.setattr(cb.subprocess, "run", boom)
+    assert cb.lean_dual_check(str(lean), c, fake_cert("average"), 5) == {"status": "timeout"}
+    assert not (lean / "generated/Generated/Fixed.lean").exists()
+
+
+def test_reference_run_with_lean_bridge(repo, tmp_path, monkeypatch):
+    monkeypatch.setattr(cb, "lean_dual_check",
+                        lambda d, c, text, t: {"status": "failed", "error": "unexpected token '=>'"})
+    monkeypatch.setattr(cb, "git_identity", lambda d: {"commit": "abcdef1234", "dirty": False})
+    monkeypatch.setattr(cb, "verify_text", fake_verify(REFERENCE))
+    monkeypatch.setattr(cb, "verifier_identity", lambda _bin: dict(VERIFIER))
+    assert cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--lean-bridge", str(tmp_path)]) == 0
+    doc = json.loads((repo / "proofs/results/mumei.json").read_text())
+    assert doc["lean_bridge"] == {"commit": "abcdef1234", "dirty": False}
+    assert doc["runs"][0][0]["fixed"]["lean_dual_check"]["status"] == "failed"
+    md = (repo / "proofs/RESULTS.md").read_text()
+    assert "Lean bridge dual check (mumei-lean `abcdef1`)" in md and "failed 1 of 1" in md
+    assert "- 1 × `unexpected token '=>'`" in md
+    assert cb.main(["--check"]) == 0
+    # --only without --lean-bridge keeps the recorded bridge identity
+    assert cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--only", "PY09-D01"]) == 0
+    assert json.loads((repo / "proofs/results/mumei.json").read_text())["lean_bridge"]["commit"] == "abcdef1234"
+
+
+def test_git_identity(tmp_path, monkeypatch):
+    monkeypatch.setattr(cb.subprocess, "run", lambda cmd, **k: FakeProc(0, "c" * 40 if "rev-parse" in cmd else " M x"))
+    assert cb.git_identity(str(tmp_path)) == {"commit": "c" * 40, "dirty": True}
+    monkeypatch.setattr(cb.subprocess, "run", lambda cmd, **k: FakeProc(128))
+    assert cb.git_identity(str(tmp_path)) == {"commit": None, "dirty": None}

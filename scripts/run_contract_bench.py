@@ -46,6 +46,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -268,6 +269,84 @@ def vacuity_text(case: dict) -> str:
     return case["prelude"] + header + split_port(case["ports"]["fixed"], case["atom"])[2]
 
 
+CERT_FILE = "fixed.proof.json"
+TRUST = {"unsat": "z3", "lean_verified": "lean"}
+TRUST_LABEL = {"z3": "Z3", "lean": "Lean", "unproven": "not proven"}
+LAKE_ERROR = re.compile(r"^error: \S*?\.lean:\d+:\d+: (.*)$", re.MULTILINE)
+
+
+def cert_summary(text: str, case: dict) -> dict:
+    """What a proof certificate says about the case's atom, and the hashes that pin it to the fixed port."""
+    try:
+        doc = json.loads(text)
+    except json.JSONDecodeError:
+        return {"status": "malformed"}
+    atoms = doc.get("atoms") if isinstance(doc, dict) else None
+    atom = next((a for a in atoms or [] if isinstance(a, dict) and a.get("name") == case["atom"]), None)
+    result = atom.get("z3_check_result") if atom else None
+    return {"status": "recorded", "file": CERT_FILE, "sha256": sha256(text),
+            "port_sha256": sha256(case["ports"]["fixed"]), "all_verified": isinstance(doc, dict) and doc.get("all_verified") is True,
+            "z3_check_result": result, "trust": TRUST.get(result, "unproven")}
+
+
+def certify(mumei_bin: str, case: dict, timeout: int) -> tuple[dict, str | None]:
+    """Emit a proof certificate for the fixed port and re-check it: (summary, certificate text)."""
+    with tempfile.TemporaryDirectory(prefix="contract-bench-") as tmp:
+        (Path(tmp) / "fixed.mm").write_text(case["ports"]["fixed"])
+        try:
+            subprocess.run([mumei_bin, "verify", "--json", "--proof-cert", "--output", CERT_FILE, "fixed.mm"],
+                           cwd=tmp, capture_output=True, text=True, timeout=timeout, check=False)
+            cert = Path(tmp) / CERT_FILE
+            if not cert.is_file():
+                return {"status": "not-emitted"}, None
+            check = subprocess.run([mumei_bin, "verify-cert", "--strict", CERT_FILE, "fixed.mm"],
+                                   cwd=tmp, capture_output=True, text=True, timeout=timeout, check=False)
+        except subprocess.TimeoutExpired:
+            return {"status": "timeout"}, None
+        text = cert.read_text()
+    return {**cert_summary(text, case), "verify_cert": "ok" if check.returncode == 0 else "failed"}, text
+
+
+def lean_dual_check(lean_dir: str, case: dict, cert_text: str, timeout: int) -> dict:
+    """Restate the certified Z3 obligation in Lean 4 with the mumei-lean bridge and record whether it closes.
+
+    The bridge builds inside the mumei-lean checkout, so calls must not run in parallel.
+    """
+    module = Path(lean_dir) / "generated" / "Generated" / "Fixed.lean"
+    with tempfile.TemporaryDirectory(prefix="contract-bench-lean-") as tmp:
+        cert, out = Path(tmp) / CERT_FILE, Path(tmp) / "fixed.lean-cert.json"
+        cert.write_text(cert_text)
+        try:
+            proc = subprocess.run([sys.executable, "scripts/bridge.py", "--cert", str(cert), "--dual-check",
+                                   "--lean-cert-out", str(out)],
+                                  cwd=lean_dir, capture_output=True, text=True, timeout=timeout, check=False)
+        except subprocess.TimeoutExpired:
+            return {"status": "timeout"}
+        finally:
+            module.unlink(missing_ok=True)
+        try:
+            doc = json.loads(out.read_text())
+        except (OSError, json.JSONDecodeError):
+            return {"status": "no-certificate"}
+    atoms = doc.get("atoms") if isinstance(doc, dict) else None
+    atom = next((a for a in atoms or [] if isinstance(a, dict) and a.get("name") == case["atom"]), {})
+    check = atom.get("lean_dual_check")
+    result = {"status": str(check.get("status") or "not-checked") if isinstance(check, dict) else "not-checked"}
+    if result["status"] == "failed":
+        error = LAKE_ERROR.search(proc.stdout + proc.stderr)
+        if error:
+            result["error"] = error.group(1)[:200]
+    return result
+
+
+def git_identity(path: str) -> dict:
+    def git(*args: str) -> str | None:
+        res = subprocess.run(["git", "-C", path, *args], capture_output=True, text=True, check=False)
+        return res.stdout.strip() if res.returncode == 0 else None
+    commit = git("rev-parse", "HEAD")
+    return {"commit": commit, "dirty": bool(git("status", "--porcelain", "--untracked-files=no")) if commit else None}
+
+
 def run_mumei_case(case: dict, mumei_bin: str, timeout: int) -> dict:
     out = {k: case[k] for k in ("id", "language", "specimen", "category", "function", "case_hash", "source_hash")}
     for v in VARIANTS:
@@ -279,6 +358,42 @@ def run_mumei_case(case: dict, mumei_bin: str, timeout: int) -> dict:
         "Spec contradiction" in d["message"] or REFUTATION.search(d["message"]) for d in control["diagnostics"])
     rejected = control["outcome"] == "refuted" or (contradiction and out["buggy"]["outcome"] == "refuted")
     out["vacuity"] = "ok" if rejected else ("vacuous" if control["outcome"] == "proven" else "inconclusive")
+    path = REPO_ROOT / case["dir"] / CERT_FILE
+    path.unlink(missing_ok=True)
+    if out["fixed"]["outcome"] == "proven":
+        out["fixed"]["certificate"], text = certify(mumei_bin, case, timeout)
+        if text is not None:
+            path.write_text(text)
+    return out
+
+
+def certificate_problems(cases: list[dict], results: list[dict]) -> list[str]:
+    """Offline: every proven reference fixed port has a committed certificate that matches its record and port."""
+    ref = next((d for d in results if d["arm"] == "mumei"), None)
+    if ref is None or not ref["runs"]:
+        return []
+    by_id, out = {c["id"]: c for c in cases}, []
+    for r in ref["runs"][0]:
+        c = by_id.get(r["id"])
+        if c is None:
+            continue
+        rel = f"{c['dir']}/{CERT_FILE}"
+        path, cert = REPO_ROOT / rel, r["fixed"].get("certificate")
+        if r["fixed"]["outcome"] != "proven":
+            if path.is_file():
+                out.append(f"{rel}: the fixed port is not proven, so it has no certificate to keep")
+        elif not cert or cert.get("status") != "recorded":
+            out.append(f"{r['id']}: the proven fixed port has no proof certificate")
+        elif not path.is_file():
+            out.append(f"{rel} is missing")
+        elif sha256(path.read_text()) != cert.get("sha256"):
+            out.append(f"{rel} does not match its recorded hash")
+        elif cert.get("port_sha256") != sha256(c["ports"]["fixed"]):
+            out.append(f"{rel} is stale: fixed.mm changed after it was certified")
+        elif {**cert_summary(path.read_text(), c), "verify_cert": cert.get("verify_cert")} != cert:
+            out.append(f"{rel} does not say what its record says")
+        elif cert["verify_cert"] != "ok" or cert["trust"] == "unproven" or not cert["all_verified"]:
+            out.append(f"{rel} does not prove {c['atom']} (trust {cert['trust']}, verify-cert {cert['verify_cert']})")
     return out
 
 
@@ -486,6 +601,7 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
                 out.append(f"- `{r['id']}` ({r['language']}, `{r['function']}`): buggy {r['buggy']['outcome']}, "
                            f"fixed {r['fixed']['outcome']} — {msg.splitlines()[0][:160]}")
             out.append("")
+        out += certificate_lines(ref)
     wrong = []
     for d in results:
         if d["arm"] == "mumei":
@@ -532,6 +648,32 @@ def replace_block(text: str, block: str) -> str | None:
         return None
     a, b = text.index(README_START), text.index(README_END) + len(README_END)
     return text[:a] + block + text[b:]
+
+
+def certificate_lines(ref: dict) -> list[str]:
+    proven = [r for r in ref["runs"][0] if r["fixed"]["outcome"] == "proven"]
+    certs = [r["fixed"].get("certificate") or {} for r in proven]
+    ok = sum(1 for c in certs if c.get("verify_cert") == "ok")
+    trust = Counter(c.get("trust", "none") for c in certs)
+    out = [f"Proof certificates: {ok} / {len(proven)} proven fixed ports have one, emitted with "
+           "`mumei verify --proof-cert` and re-checked with `mumei verify-cert --strict`. Trust: "
+           + ", ".join(f"{TRUST_LABEL.get(k, k)} {v}" for k, v in sorted(trust.items())) + ". "
+           "`--check` compares each committed `fixed.proof.json` with its recorded hash and with the "
+           "current `fixed.mm`.", ""]
+    lean = [r["fixed"]["lean_dual_check"] for r in proven if r["fixed"].get("lean_dual_check")]
+    if not lean:
+        return out + ["Lean bridge: not run for this result (`--lean-bridge`).", ""]
+    commit = ((ref.get("lean_bridge") or {}).get("commit") or "unknown")[:7]
+    status = Counter(d["status"] for d in lean)
+    out += [f"Lean bridge dual check (mumei-lean `{commit}`): each certified obligation is restated in "
+            "Lean 4 and must close there too. `partial_translation` means the bridge could not state the whole "
+            "obligation in Lean, so nothing was checked; a failed dual check does not change the Z3 result. "
+            + ", ".join(f"{k} {v}" for k, v in sorted(status.items())) + f" of {len(lean)}.", ""]
+    errors = Counter(d["error"] for d in lean if d.get("error"))
+    if errors:
+        out += ["Most common first Lean errors:", ""]
+        out += [f"- {n} × `{e[:120]}`" for e, n in errors.most_common(5)] + [""]
+    return out
 
 
 def render_all(cases: list[dict], write: bool) -> list[str]:
@@ -611,12 +753,15 @@ def verifier_identity(mumei_bin: str) -> dict:
     return {"version": version or None, "commit": commit, "dirty": bool(dirty) if commit else None}
 
 
-def write_result(arm: str, model: str | None, runs: list[list[dict]], mumei_bin: str | None = None) -> Path:
+def write_result(arm: str, model: str | None, runs: list[list[dict]], mumei_bin: str | None = None,
+                 lean_bridge: dict | None = None) -> Path:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     doc = {"arm": arm, "model": model, "prompt_hash": None if arm == "mumei" else prompt_hash(),
            "recorded_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()}
     if mumei_bin and arm != "llm":
         doc["verifier"] = verifier_identity(mumei_bin)
+    if lean_bridge:
+        doc["lean_bridge"] = lean_bridge
     doc["runs"] = [sorted(run, key=lambda r: r["id"]) for run in runs]
     path = result_path(arm, model)
     path.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
@@ -632,6 +777,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--timeout", type=int, default=120, help="per-verification timeout in seconds")
     p.add_argument("--mumei-bin", default=os.environ.get("MUMEI_BIN") or shutil.which("mumei"),
                    help="mumei binary (default: $MUMEI_BIN, then mumei on PATH)")
+    p.add_argument("--lean-bridge", metavar="DIR",
+                   help="mumei-lean checkout: Lean-check each certified reference fixed port (bridge --dual-check)")
     mode = p.add_mutually_exclusive_group()
     mode.add_argument("--check", action="store_true", help="validate cases and committed results offline")
     mode.add_argument("--render-only", action="store_true", help="re-render RESULTS.md and the README block")
@@ -643,7 +790,7 @@ def main(argv: list[str], provider=None) -> int:
     cases, errors = load_cases()
     if args.check:
         results = load_results()
-        problems = errors + stale_records(cases, results)
+        problems = errors + stale_records(cases, results) + certificate_problems(cases, results)
         ref = next((d for d in results if d["arm"] == "mumei"), None)
         if ref is None:
             problems.append("no reference result (proofs/results/mumei.json); run --arm mumei")
@@ -670,9 +817,20 @@ def main(argv: list[str], provider=None) -> int:
         if arm == "mumei":
             with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
                 run = list(pool.map(lambda c: run_mumei_case(c, args.mumei_bin, args.timeout), cases))
+            lean = None
+            if args.lean_bridge:
+                lean = git_identity(args.lean_bridge)
+                by_id = {c["id"]: c for c in cases}
+                for r in run:
+                    if r["fixed"].get("certificate", {}).get("status") == "recorded":
+                        cert = (REPO_ROOT / by_id[r["id"]]["dir"] / CERT_FILE).read_text()
+                        r["fixed"]["lean_dual_check"] = lean_dual_check(
+                            args.lean_bridge, by_id[r["id"]], cert, args.timeout * 5)
+            elif args.only and result_path(arm, None).is_file():
+                lean = json.loads(result_path(arm, None).read_text()).get("lean_bridge")
             runs = [run]
             merged = merge_runs(arm, None, runs, verifier_identity(args.mumei_bin)) if args.only else runs
-            path = write_result(arm, None, merged, recording_bin(arm, None, args))
+            path = write_result(arm, None, merged, recording_bin(arm, None, args), lean)
         else:
             prov = provider or llm_only.provider_from_env(timeout=600)
             prov.retries = max(getattr(prov, "retries", 0), RATE_LIMIT_RETRIES)

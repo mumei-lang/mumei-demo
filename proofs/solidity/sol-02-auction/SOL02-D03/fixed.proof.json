@@ -1,0 +1,96 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-03T15:21:54Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "finalize",
+      "z3_check_result": "unsat",
+      "content_hash": "23c57782c95a250cfb5a08a155ef8aeeac6a7cefeafa1fd30cbc9d19b801c756",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "2ff28e24479f0ee4bada37fa349f1c440f7150bdeddc148ce6e8cf8e7cb574c3",
+        "traceability_coverage": 0.5,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "3fb8ad7dbda93e9e6211bc150b76ce0547fe755fc69ebb439df743d9f8752a0e",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Finalize": "829b68c10287e9f86d0455ebd4884ad30bbf904d0679a6ea10b88bf78aeb2766"
+      },
+      "effects": [],
+      "requires": "true",
+      "ensures": "finalized == true => result.ok == false",
+      "forall_constraints": [],
+      "body_expr": "{ if finalized { Finalize { ok: false, finalized: finalized } } else { Finalize { ok: true, finalized: true } } }",
+      "body_summary": "{ if finalized { Finalize { ok: false, finalized: finalized } } else { Finalize { ok: true, finalized: true } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "finalized": "finalized",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "finalized",
+            "lean_name": "finalized",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Finalize",
+            "lean_type": "Finalize",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(true) -> (finalized == true => result.ok == false)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "4e114ab67a45a1234520014be2d45eb89ac856c22fcf5ca6be89d7f4c274ed25",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:54Z"
+      }
+    }
+  ],
+  "certificate_hash": "4cf259182b14afe388157b9d861932fa117c031ebc20966853a2d3899733aca9",
+  "all_verified": true
+}

@@ -1,0 +1,114 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-03T15:21:56Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "effectiveTaxRate",
+      "z3_check_result": "unsat",
+      "content_hash": "d07653f45eb6566679b6affa04628a100333a8347687392e31eaa6052cdc9199",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "efbfa5bbbce7776d32672c9067708445457629fbd8bcee6bd223078498d39322",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "9424feaa15c24c845b7934904fc3a9b18f9f1716ebce4485575d5d891b766725",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "tax >= 0 && net >= 0",
+      "ensures": "net == 0 => result == 0",
+      "forall_constraints": [],
+      "body_expr": "{ if net == 0 { 0 } else { tax * 100 / net } }",
+      "body_summary": "{ if net == 0 { 0 } else { tax * 100 / net } }",
+      "z3_result_class": "unsat",
+      "escalation_reason": "nonlinear_arithmetic",
+      "logic_fragment_tag": "nonlinear_arithmetic",
+      "logic_fragment_tags": [
+        "nonlinear_arithmetic"
+      ],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "net": "net",
+        "result": "result",
+        "tax": "tax"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "tax",
+            "lean_name": "tax",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "net",
+            "lean_name": "net",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(tax >= 0 && net >= 0) -> (net == 0 => result == 0)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "integer_overflow_bridge",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [
+          "integer_overflow_bridge: Mumei uses 2's complement wrap semantics, Lean 4 Int is unbounded. Bridge lemma required for overflow behavior."
+        ],
+        "proof_trace_hints": [
+          "assert mumei_i64_in_range hypotheses before applying arithmetic lemmas"
+        ],
+        "requires_bridge_lemmas": [
+          "mumei_i64_overflow_bridge",
+          "mumei_i64_add_overflow_bridge",
+          "mumei_div_by_zero_bridge"
+        ]
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "01f6678eaec854b8f3a9cc6aee825b476ccb9aa9a4326a6218ce516642c9c316",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:56Z"
+      }
+    }
+  ],
+  "certificate_hash": "f61e710c7ebbfdfbe26a9b3481d6a65c015d8ce75d0e1284a9fbbb882d70c133",
+  "all_verified": true
+}
