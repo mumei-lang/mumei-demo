@@ -9,8 +9,11 @@ Each of the 71 specimen defects in a category Mumei targets has a requirement an
 | mumei (reference ports) | — | 1 | 71 / 71 | 71 / 71 | 71 | 0 | 0 | 0 | — |
 | LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | $0.11 |
 | mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 62 (59–62) / 71 | 67 / 71 | 58 (55–58) | 8 (7–10) | 2 (2–3) | 3 (3–4) | $0.14 |
+| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 3 | 62 (62–63) / 71 | 47 (45–48) / 71 | 45 (45–46) | 2 (0–2) | 7 (7–11) | 22 (20–28) | $0.06 |
 
 The reference ports were written by hand with knowledge of the defects, so the first row shows that the contracts can express each requirement and how often the checker tells the two versions apart. It is not a detection result. The LLM rows are the comparison. Both LLM arms see the product source file, the requirement, the modelling notes and the contract header, never the defect list or the reference ports. LLM only answers holds/violated itself; a "holds" is the model's opinion, not a proof. mumei + LLM asks the model only for the `.mm` body under the pinned header, and mumei decides.
+
+mumei + LLM contract removes the hand-written contract instead: the model gets the requirement, the modelling notes, the prelude and the atom signature, but no code and not the reference requires/ensures. Its one contract is put on both reference bodies, so a wrong answer here is a contract-writing error: a buggy body accepted means the contract is too weak to catch the defect, a fixed body rejected means it asks for more than the requirement does. The same vacuity control as for the reference applies.
 
 A buggy function whose LLM port mumei proves is a translation problem: the reference port of the same function under the same contract is refuted, so the LLM port does not keep the defect. mumei's verdict is only as faithful as the port it checks.
 
@@ -20,6 +23,22 @@ Vacuity control (fixed port re-checked with `ensures: false`, must fail): 71 / 7
 
 ## Wrong answers by case (runs out of total)
 
+- mumei + LLM contract (LLM writes the contract, reference ports): `GO02-D01` fixed rejected (1/3), `PY02-D04` fixed rejected (2/3), `PY03-D05` buggy accepted (2/3), `RS01-D05` fixed rejected (2/3), `SOL01-D05` fixed rejected (3/3), `SOL01-D06` fixed rejected (2/3), `SOL01-D08` fixed rejected (2/3), `SOL02-D08` fixed rejected (1/3), `SOL02-D11` fixed rejected (3/3), `SOL03-D02` fixed rejected (1/3), `SOL03-D07` fixed rejected (3/3), `TS01-D01` fixed rejected (1/3), `TS01-D04` fixed rejected (3/3), `TS03-D05` fixed rejected (1/3), `TS03-D09` buggy accepted (2/3)
+  - `GO02-D01` model's ensures: `(n == 0 => result == 0) && (n > 0 => 0 <= result && result < n)`
+  - `PY02-D04` model's ensures: `(n < 4 => !result.ok) && (n >= 4 => (result.ok && result.value == row[3]))`
+  - `PY03-D05` model's ensures: `result.ok => ((offset >= 0 && offset <= n && result.start == offset) || (offset >= 0 && offset > n && result.start == n) || (offset < 0 && n + offset > 0 && res`
+  - `RS01-D05` model's ensures: `(0 <= index && index < accounts => result.ok && result.value == pick(accounts, index)) && (accounts <= index => !result.ok)`
+  - `SOL01-D05` model's ensures: `(is_owner => result == who) && (!is_owner => result == current)`
+  - `SOL01-D06` model's ensures: `(sender_is_owner => result == bps) && (!sender_is_owner => result == current)`
+  - `SOL01-D08` model's ensures: `result.ok => (result.value == pos_shares + shares && pos_shares + shares >= 0 && pos_shares + shares <= cap)`
+  - `SOL02-D08` model's ensures: `!result.ok || (result.value == now + duration && result.value >= now && result.value >= 0 && result.value <= cap)`
+  - `SOL02-D11` model's ensures: `(has_previous && !same_bidder) => (result.bid_of == 0 && result.pending == prev_pending + prev_bid_of) && (has_previous && same_bidder) => (result.bid_of == new`
+  - `SOL03-D02` model's ensures: `result.ok => result.value >= rewards`
+  - `SOL03-D07` model's ensures: `result == !same_token`
+  - `TS01-D01` model's ensures: `(result => ((from == 0 && to == 1) || (from == 1 && to == 2) || (from == 1 && to == 0) || (from == 2 && to == 3) || (from == 2 && to == 1) || (from == 3 && to =`
+  - `TS01-D04` model's ensures: `(active == 0 => result == 0) && (active != 0 => result >= 0 && result <= 100)`
+  - `TS03-D05` model's ensures: `result == (page + 1) * per_page + (0 - 1)`
+  - `TS03-D09` model's ensures: `result.ok && result.value >= 0 && result.value <= amount`
 - LLM only (judges the source): `GO01-D05` fixed rejected (3/3), `GO02-D03` fixed rejected (2/3), `GO03-D06` fixed rejected (1/3), `GO03-D07` fixed rejected (1/3), `PY02-D04` fixed rejected (3/3), `PY03-D05` buggy accepted (1/3), `RS03-D08` fixed rejected (2/3), `TS01-D12` fixed rejected (2/3)
   - `GO01-D05` fixed rejected, witness: total = 2, locations has length 4294967294 (on a 64-bit system)
   - `GO02-D03` fixed rejected, witness: n_paths = 0, top = -1, counts = {}
@@ -37,3 +56,4 @@ Vacuity control (fixed port re-checked with `ensures: false`, must fail): 71 / 7
 | mumei (reference ports) | — | 15 / 15 | 11 / 11 | 14 / 14 | 12 / 12 | 19 / 19 |
 | LLM only (judges the source) | openai/gpt-6-luna | 14 / 15 | 9 / 11 | 13 / 14 | 11 / 12 | 19 / 19 |
 | mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 11 / 15 | 8 / 11 | 11 / 14 | 11 / 12 | 17 / 19 |
+| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 11 / 15 | 9 / 11 | 8 / 14 | 8 / 12 | 11 / 19 |
