@@ -1,0 +1,8 @@
+{
+  "id": "SOL02-D02",
+  "file": "src/EnglishAuction.sol",
+  "function": "withdraw",
+  "requirement": "When the refund call is made, the caller's pending return is already 0.",
+  "notes": "Reentrancy is modelled as the contract state an external call can observe: the result is the caller's recorded balance at the moment of the outgoing call, which must already reflect the payout (checks-effects-interactions).",
+  "atom": "withdraw"
+}
