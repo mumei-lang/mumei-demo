@@ -121,6 +121,47 @@ def test_pin_requires_rejects_bad_inputs(values, message):
         nr.pin_requires(HEADER, values)
 
 
+PORT = "atom take(parts: [i64], n: i64, strict: bool) -> i64\n    requires: n >= 0;\n    ensures: result >= 0;\n    body: n;\n"
+
+
+def test_pinned_port_keeps_the_original_requires():
+    pinned = nr.pinned_port(PORT, "take", {"parts": [], "n": 1, "strict": True})
+    assert "requires: (n >= 0) && len(parts) == 0 && n == 1 && strict;" in pinned
+    assert "ensures: result >= 0;" in pinned
+
+
+@pytest.mark.parametrize("port, message", [
+    (PORT.replace("take", "other"), "not found"),
+    (PORT.replace("    requires: n >= 0;\n", ""), "no single-line requires"),
+])
+def test_pinned_port_rejects_ports_it_cannot_pin(port, message):
+    with pytest.raises(ValueError, match=message):
+        nr.pinned_port(port, "take", {"parts": [], "n": 1, "strict": True})
+
+
+@pytest.mark.parametrize("outcome, message, expected", [
+    ("refuted", "Verification Error: Postcondition (ensures) is not satisfied", "breaks"),
+    ("proven", "", "holds"),
+    ("inconclusive", "Verification Error: Spec contradiction in atom 'take': requires clauses conflict",
+     "outside requires"),
+    ("inconclusive", "Verification Error: Spec contradiction in atom 'take': ensures clauses conflict",
+     "inconclusive"),
+    ("inconclusive", "timeout", "inconclusive"),
+    ("refuted", "Verification Error: Spec contradiction in atom 'take': requires clauses conflict", "breaks"),
+])
+def test_port_verdict_tells_an_input_outside_requires_apart(monkeypatch, outcome, message, expected):
+    seen = []
+
+    def fake(_bin, text, _timeout):
+        seen.append(text)
+        return {"outcome": outcome, "status": "s", "diagnostics": [{"message": message}] if message else []}
+
+    monkeypatch.setattr(nr.rb, "verify_text", fake)
+    got = nr.port_verdict("mumei", PORT, "take", {"parts": [], "n": 1, "strict": True})
+    assert got["verdict"] == expected
+    assert len(seen) == 1 and "requires: (n >= 0) && len(parts) == 0" in seen[0]
+
+
 @pytest.mark.parametrize("value, literal", [(True, "true"), (0, "0"), (5, "5"), (2**255, str(2**255))])
 def test_sol_literal(value, literal):
     assert nr.sol_literal(value) == literal
@@ -178,7 +219,8 @@ def small_doc():
                   {"case": "A", "variant": "fixed", "port": {"llm": verdict("inconclusive")}},
                   {"case": "C", "variant": "buggy", "port": {"llm": verdict("breaks")}},
                   {"case": "Z", "variant": "buggy", "port": {"llm": verdict("breaks")}},
-                  {"case": "A", "variant": "fixed", "port": {}, "status": "no port"}],
+                  {"case": "A", "variant": "fixed", "port": {}, "status": "no port"},
+                  {"case": "A", "variant": "buggy", "port": {"llm": verdict("outside requires")}}],
     }
 
 
@@ -189,7 +231,8 @@ def test_finish_classifies_reference_witnesses_and_ports():
         "reproduced", "not reproduced", "unexpressible", "unexpressible"]
     assert doc["witnesses"][2]["reason"] == "x"
     assert [p["status"] for p in doc["ports"]] == [
-        "matches", "behaviour changed", "inconclusive", "inconclusive", "inconclusive", "no port"]
+        "matches", "behaviour changed", "inconclusive", "inconclusive", "inconclusive", "no port",
+        "outside requires"]
     assert doc["summary"]["reference"] == {"inputs": 3, "agree": 1, "cases": 3}
     assert doc["summary"]["witnesses"]["fixed/reproduced"] == 1
     assert doc["summary"]["ports"]["buggy/behaviour changed"] == 1
@@ -241,6 +284,11 @@ def test_check_reports_a_missing_file(cases):
     (lambda d: d["reference"][0].update(replay_hash="0"), "replay.json changed"),
     (lambda d: d["case_hashes"].update({d["reference"][0]["case"]: "0"}), "case changed"),
     (lambda d: d.update(drivers_hash="0"), "native drivers changed"),
+    (lambda d: d["specimen_hashes"].update({next(iter(d["specimen_hashes"])): "0"}), "native code changed"),
+    (lambda d: d["specimen_hashes"].pop(next(iter(d["specimen_hashes"]))), "native code changed"),
+    (lambda d: d.pop("specimen_hashes"), "native code changed"),
+    (lambda d: d["input_hashes"].update({next(iter(d["input_hashes"])): "0"}), "changed since the replay"),
+    (lambda d: d.pop("input_hashes"), "changed since the replay"),
     (lambda d: d["summary"]["reference"].update(agree=0), "do not follow"),
 ])
 def test_check_catches_tampering(committed, cases, tamper, message):
@@ -267,3 +315,50 @@ def test_main_without_mumei_binary_fails(monkeypatch):
     monkeypatch.setattr(nr.shutil, "which", lambda _name: None)
     with pytest.raises(SystemExit):
         nr.main([])
+
+
+def test_check_notices_edited_llm_results(committed, cases, monkeypatch, tmp_path):
+    for attr in ("LLM_RESULT", "PORT_RESULT"):
+        original = getattr(nr, attr)
+        edited = tmp_path / original.name
+        edited.write_text(original.read_text() + "\n")
+        monkeypatch.setattr(nr, attr, edited)
+        stored = copy.deepcopy(committed)
+        stored["input_hashes"] = {nr.rel(edited) if k == nr.rel(original) else k: v
+                                  for k, v in stored["input_hashes"].items()}
+        assert any(f"{nr.rel(edited)} changed" in p for p in nr.check(stored, cases))
+        monkeypatch.setattr(nr, attr, original)
+
+
+def git_specimen(tmp_path, monkeypatch):
+    import subprocess
+    root = tmp_path / "specimens"
+    spec_dir = root / "python" / "py-x"
+    (spec_dir / "audit").mkdir(parents=True)
+    (spec_dir / "app.py").write_text("x = 1\n")
+    (spec_dir / "fixed.patch").write_text("patch\n")
+    (spec_dir / "audit" / "result.json").write_text("{}\n")
+    (spec_dir / "untracked.py").write_text("y = 1\n")
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "add", "python/py-x/app.py", "python/py-x/fixed.patch", "python/py-x/audit"],
+                   cwd=root, check=True)
+    monkeypatch.setattr(nr.rb, "SPECIMENS_ROOT", root)
+    return spec_dir
+
+
+@pytest.mark.parametrize("edit, changes", [
+    (lambda d: (d / "app.py").write_text("x = 2\n"), True),
+    (lambda d: (d / "fixed.patch").write_text("other\n"), True),
+    (lambda d: (d / "audit" / "result.json").write_text("[]\n"), False),
+    (lambda d: (d / "untracked.py").write_text("y = 2\n"), False),
+])
+def test_specimen_hash_covers_the_code_and_the_fix(tmp_path, monkeypatch, edit, changes):
+    spec_dir = git_specimen(tmp_path, monkeypatch)
+    before = nr.specimen_hash("python", "py-x")
+    edit(spec_dir)
+    assert (nr.specimen_hash("python", "py-x") != before) is changes
+
+
+def test_specimen_hashes_cover_every_specimen_once(cases):
+    hashes = nr.specimen_hashes(cases)
+    assert sorted(hashes) == sorted({f"{c['language']}/{c['specimen']}" for c in cases})

@@ -70,20 +70,32 @@ def pin_requires(header: str, values: dict) -> str:
 
 
 def pinned_port(port_text: str, atom: str, values: dict) -> str:
-    """The port with its target atom's `requires` replaced by the pinned input."""
+    """The port with its target atom's `requires` narrowed to the pinned input.
+
+    The original precondition stays in place, so mumei reports an input outside it as a
+    requires contradiction instead of checking a state the contract excludes.
+    """
     parts = rb.split_port(port_text, atom)
     if parts is None:
         raise ValueError(f"atom {atom!r} not found in port")
     prelude, header, body = parts
-    pinned = re.sub(r"^(\s*requires:\s*).*;\s*$", lambda m: m.group(1) + pin_requires(header, values) + ";",
-                    header, count=1, flags=re.M)
+    pins = pin_requires(header, values)
+    pinned, found = re.subn(r"^(\s*requires:\s*)(.*?)\s*;\s*$",
+                            lambda m: f"{m.group(1)}({m.group(2)}) && {pins};", header, count=1, flags=re.M)
+    if not found:
+        raise ValueError(f"atom {atom!r} has no single-line requires")
     return prelude + pinned + body
 
 
+REQUIRES_CONTRADICTION = re.compile(r"Spec contradiction in atom '[^']*': requires")
+
+
 def port_verdict(mumei_bin: str, port_text: str, atom: str, values: dict, timeout: int = 120) -> dict:
-    """breaks / holds / inconclusive for a port on one concrete input."""
+    """breaks / holds / outside requires / inconclusive for a port on one concrete input."""
     res = rb.verify_text(mumei_bin, pinned_port(port_text, atom, values), timeout)
     verdict = {"refuted": "breaks", "proven": "holds"}.get(res["outcome"], "inconclusive")
+    if verdict == "inconclusive" and any(REQUIRES_CONTRADICTION.search(d["message"]) for d in res["diagnostics"]):
+        verdict = "outside requires"
     return {"verdict": verdict, "status": res["status"],
             "diagnostics": [d["message"][:200] for d in res["diagnostics"]][:2]}
 
@@ -250,6 +262,32 @@ def drivers_hash() -> str:
     for p in driver_files():
         h.update(p.relative_to(rb.REPO_ROOT).as_posix().encode() + b"\0" + p.read_bytes() + b"\0")
     return h.hexdigest()
+
+
+# Results of other arms that live next to a specimen's code but are not part of it.
+NOT_NATIVE_CODE = {"audit", "baselines", "llm_only", "__pycache__", "node_modules", "target", "out"}
+
+
+def specimen_hash(language: str, specimen: str) -> str:
+    """Hash of a specimen's tracked code, fixed.patch included."""
+    root = rb.SPECIMENS_ROOT / language / specimen
+    listed = subprocess.run(["git", "ls-files", "-z", "--", "."], cwd=root, capture_output=True,
+                            check=True).stdout.decode().split("\0")
+    h = hashlib.sha256()
+    for name in sorted(n for n in listed if n and not NOT_NATIVE_CODE & set(Path(n).parts)):
+        h.update(name.encode() + b"\0" + (root / name).read_bytes() + b"\0")
+    return h.hexdigest()
+
+
+def specimen_hashes(cases: list[dict]) -> dict:
+    return {f"{lang}/{spec}": specimen_hash(lang, spec)
+            for lang, spec in sorted({(c["language"], c["specimen"]) for c in cases})}
+
+
+def input_hashes() -> dict:
+    """Hashes of the LLM results whose witnesses and ports are replayed."""
+    return {rel(p): hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
+            for p in (LLM_RESULT, PORT_RESULT)}
 
 
 def replay_inputs(case: dict) -> tuple[list[dict], str]:
@@ -441,6 +479,7 @@ def finish(doc: dict, cases: list[dict]) -> dict:
         got = rec["port"]["llm"]["verdict"]
         rec["native"] = native
         rec["status"] = ("inconclusive" if got == "inconclusive" or native == "unexpressible"
+                         else "outside requires" if got == "outside requires"
                          else "matches" if got == native else "behaviour changed")
     doc["summary"] = summarize(doc)
     doc["case_hashes"] = {c["id"]: c["case_hash"] for c in cases if c["id"] in by_id}
@@ -490,10 +529,11 @@ def render_markdown(doc: dict) -> str:
               "Each port the LLM wrote is pinned to the case's first reference input and compared with the",
               "native verdict on the same input. \"behaviour changed\" means the port no longer does what the",
               "native code does, typically because the bug was fixed while translating.", "",
-              "| version | matches | behaviour changed | inconclusive | no port |", "|---|---:|---:|---:|---:|"]
+              "| version | matches | behaviour changed | outside requires | inconclusive | no port |",
+              "|---|---:|---:|---:|---:|---:|"]
     for v in rb.VARIANTS:
         lines.append(f"| {v} | " + " | ".join(str(s["ports"].get(f"{v}/{c}", 0))
-                                              for c in ("matches", "behaviour changed", "inconclusive", "no port")) + " |")
+                                              for c in ("matches", "behaviour changed", "outside requires", "inconclusive", "no port")) + " |")
     changed = sorted({(p["case"], p["variant"]) for p in doc["ports"] if p["status"] == "behaviour changed"})
     if changed:
         lines += ["", "Behaviour changed in: " + ", ".join(f"{c} ({v})" for c, v in changed) + "."]
@@ -507,6 +547,14 @@ def check(doc: dict | None, cases: list[dict]) -> list[str]:
     problems = []
     if doc.get("drivers_hash") != drivers_hash():
         problems.append("native drivers changed since the replay was recorded")
+    stored_code = doc.get("specimen_hashes", {})
+    for key, digest in specimen_hashes(cases).items():
+        if stored_code.get(key) != digest:
+            problems.append(f"{key}: native code changed since the replay was recorded")
+    stored_inputs = doc.get("input_hashes", {})
+    for name, digest in input_hashes().items():
+        if stored_inputs.get(name) != digest:
+            problems.append(f"{name} changed since the replay was recorded")
     for case in cases:
         inputs, digest = replay_inputs(case)
         recs = [r for r in doc["reference"] if r["case"] == case["id"]]
@@ -563,7 +611,8 @@ def main(argv: list[str]) -> int:
         p.error("no mumei binary: pass --mumei-bin or set MUMEI_BIN")
     doc = collect(cases, args.mumei_bin, args.jobs, args.timeout)
     doc = {"recorded_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-           "drivers_hash": drivers_hash(), **doc}
+           "drivers_hash": drivers_hash(), "specimen_hashes": specimen_hashes(cases),
+           "input_hashes": input_hashes(), **doc}
     RESULT_PATH.write_text(json.dumps(doc, indent=1) + "\n")
     REPLAY_MD.write_text(render_markdown(doc))
     print(json.dumps(doc["summary"], indent=1))

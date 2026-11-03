@@ -46,9 +46,9 @@ Each port the LLM wrote is pinned to the case's first reference input and compar
 native verdict on the same input. "behaviour changed" means the port no longer does what the
 native code does, typically because the bug was fixed while translating.
 
-| version | matches | behaviour changed | inconclusive | no port |
-|---|---:|---:|---:|---:|
-| buggy | 182 | 29 | 2 | 0 |
-| fixed | 207 | 1 | 5 | 0 |
+| version | matches | behaviour changed | outside requires | inconclusive | no port |
+|---|---:|---:|---:|---:|---:|
+| buggy | 182 | 29 | 0 | 2 | 0 |
+| fixed | 207 | 1 | 0 | 5 | 0 |
 
 Behaviour changed in: GO01-D04 (buggy), GO02-D01 (buggy), GO02-D02 (buggy), GO02-D03 (buggy), PY02-D04 (buggy), PY02-D05 (fixed), PY03-D05 (buggy), RS03-D02 (buggy), RS03-D04 (buggy), SOL01-D03 (buggy), SOL01-D08 (buggy), TS01-D03 (buggy), TS01-D07 (buggy), TS03-D09 (buggy).
