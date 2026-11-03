@@ -1,0 +1,140 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+// Native replay checks, copied into a scratch copy of the specimen as test/zz_ReplayChecks.sol.
+// Each check_<case> runs one input and reverts with "violated: ..." when the requirement breaks
+// or "unexpressible: ..." when the input cannot be set up natively.
+
+import "./TestBase.sol";
+import "../src/StakeToken.sol";
+import "../src/StakingRewards.sol";
+
+contract ReplayFlagToken {
+    bool ok;
+    constructor(bool ok_) { ok = ok_; }
+    function balanceOf(address) external pure returns (uint256) { return type(uint128).max; }
+    function transfer(address, uint256) external view returns (bool) { return ok; }
+    function transferFrom(address, address, uint256) external view returns (bool) { return ok; }
+}
+
+contract ReplayStaker is ITokenReceiver {
+    StakingRewards pool;
+    StakeToken token;
+    bool armed;
+    bool public called;
+    uint256 public seen;
+
+    constructor(StakingRewards p, StakeToken t) { pool = p; token = t; }
+    function join(uint256 amount) external {
+        token.mint(amount);
+        token.approve(address(pool), amount);
+        pool.stake(amount);
+        token.setReceiveHook(true);
+    }
+    function exit() external { armed = true; pool.emergencyWithdraw(); armed = false; }
+    function onTokenReceived(address, uint256) external {
+        if (armed && !called) { called = true; seen = pool.balances(address(this)); }
+    }
+}
+
+abstract contract ReplayChecks is SpecTest {
+    address constant OWNER = address(0x0E);
+    address constant ALICE = address(0xA11CE);
+
+    function violated(string memory why) internal pure { revert(string.concat("violated: ", why)); }
+    function unexpressible(string memory why) internal pure { revert(string.concat("unexpressible: ", why)); }
+
+    function deploy() internal returns (StakingRewards pool, StakeToken stake, StakeToken reward) {
+        stake = new StakeToken();
+        reward = new StakeToken();
+        pool = new StakingRewards(address(stake), address(reward), OWNER);
+    }
+
+    function stakeAs(StakingRewards pool, StakeToken stake, address who, uint256 amount) internal {
+        vm.startPrank(who);
+        stake.mint(amount);
+        stake.approve(address(pool), amount);
+        pool.stake(amount);
+        vm.stopPrank();
+    }
+
+    function startEpoch(StakingRewards pool, StakeToken reward, uint256 amount, uint256 duration) internal {
+        reward.mint(amount);
+        reward.transfer(address(pool), amount);
+        vm.prank(OWNER);
+        pool.notifyRewardAmount(amount, duration);
+    }
+
+    function check_SOL03_D01(uint256 rate, uint256 supply, uint256 stored, uint256 dt) internal {
+        stored;
+        if (supply != 0) unexpressible("only an empty pool is covered natively");
+        (StakingRewards pool,, StakeToken reward) = deploy();
+        startEpoch(pool, reward, rate * 1_000, 1_000);
+        vm.warp(block.timestamp + dt);
+        uint256 before = pool.rewardPerTokenStored();
+        try pool.rewardPerToken() returns (uint256 value) {
+            if (value != before) violated("the per-token reward moved with nothing staked");
+        } catch {
+            violated("rewardPerToken reverted with nothing staked");
+        }
+    }
+
+    function check_SOL03_D02(uint256 rpt, uint256 paid, uint256 bal, uint256 rewards) internal {
+        rpt; paid; bal; rewards;
+        // The accumulator only falls below a user's paid mark through a new epoch after a claim.
+        (StakingRewards pool, StakeToken stake, StakeToken reward) = deploy();
+        stakeAs(pool, stake, ALICE, 1);
+        startEpoch(pool, reward, 1_000 ether, 1_000);
+        vm.warp(block.timestamp + 100);
+        vm.prank(ALICE);
+        pool.getReward();
+        startEpoch(pool, reward, 500 ether, 100);
+        vm.warp(block.timestamp + 10);
+        uint256 global = pool.rewardPerToken();
+        uint256 userPaid = pool.userRewardPerTokenPaid(ALICE);
+        uint256 credited = pool.rewards(ALICE);
+        try pool.earned(ALICE) returns (uint256 value) {
+            if (global < userPaid || value < credited) violated("earned wrapped below the credited rewards");
+        } catch {}
+    }
+
+    function check_SOL03_D03(bool isOwner, uint256 duration) internal {
+        (StakingRewards pool,,) = deploy();
+        vm.prank(isOwner ? OWNER : address(0xBAD));
+        try pool.notifyRewardAmount(0, duration) {
+            if (!isOwner) violated("someone other than the owner started a reward epoch");
+        } catch {}
+    }
+
+    function check_SOL03_D05(uint256 balance) internal {
+        (StakingRewards pool, StakeToken stake,) = deploy();
+        ReplayStaker staker = new ReplayStaker(pool, stake);
+        staker.join(balance);
+        try staker.exit() {} catch {}
+        if (staker.called() && staker.seen() != 0) violated("the token transfer saw the stake still recorded");
+    }
+
+    function check_SOL03_D07(bool sameToken, bool ownerZero) internal {
+        StakeToken stake = new StakeToken();
+        address reward = sameToken ? address(stake) : address(new StakeToken());
+        try new StakingRewards(address(stake), reward, ownerZero ? address(0) : OWNER) returns (StakingRewards) {
+            if (sameToken) violated("deployed with the same staking and reward token");
+        } catch {}
+    }
+
+    function check_SOL03_D08(bool transferOk, uint256 amount) internal {
+        StakeToken stake = new StakeToken();
+        ReplayFlagToken reward = new ReplayFlagToken(transferOk);
+        StakingRewards pool = new StakingRewards(address(stake), address(reward), OWNER);
+        if (amount > 0) {
+            stakeAs(pool, stake, ALICE, 1);
+            vm.prank(OWNER);
+            pool.notifyRewardAmount(amount * 1_000, 1_000);
+            vm.warp(block.timestamp + 10);
+        }
+        vm.prank(ALICE);
+        try pool.getReward() {
+            if (!transferOk) violated("the reward claim completed although the transfer failed");
+        } catch {}
+    }
+}
