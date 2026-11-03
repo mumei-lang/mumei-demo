@@ -61,6 +61,8 @@ VARIANTS = ("buggy", "fixed")
 EXPECTED = {"buggy": "refuted", "fixed": "proven"}
 PROMPT_VERSION = 1
 ARMS = ("mumei", "llm", "mumei-llm")
+RATE_LIMIT_RETRIES = 8
+TRANSPORT_ERROR = "LLM request failed"
 
 FUNC_PATTERNS = {
     "go": r"^func\s+(\([^)]*\)\s*)?{n}\s*\(",
@@ -321,7 +323,7 @@ def run_llm_case(case: dict, provider, arm: str, seed: int, mumei_bin: str | Non
 
 def score(records: list[dict]) -> dict:
     s = {"cases": len(records), "buggy_refuted": 0, "fixed_proven": 0, "both": 0,
-         "wrong_accept": 0, "wrong_reject": 0, "inconclusive": 0, "vacuous": 0}
+         "wrong_accept": 0, "wrong_reject": 0, "inconclusive": 0, "errors": 0, "vacuous": 0}
     for r in records:
         b, f = r["buggy"]["outcome"], r["fixed"]["outcome"]
         s["buggy_refuted"] += b == "refuted"
@@ -329,7 +331,9 @@ def score(records: list[dict]) -> dict:
         s["both"] += b == "refuted" and f == "proven"
         s["wrong_accept"] += b == "proven"
         s["wrong_reject"] += f == "refuted"
-        s["inconclusive"] += (b == "inconclusive") + (f == "inconclusive")
+        for v in VARIANTS:
+            if r[v]["outcome"] == "inconclusive":
+                s["errors" if str(r[v].get("status", "")).startswith(TRANSPORT_ERROR) else "inconclusive"] += 1
         s["vacuous"] += r.get("vacuity") == "vacuous"
     return s
 
@@ -431,6 +435,10 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
            "The right answer is: buggy version refuted, fixed version proven. "
            "Values are medians over runs, with the range in brackets.", "",
            render_table(rows), ""]
+    failed = [r for r in rows if r["errors"]]
+    if failed:
+        out += ["Requests that failed (rate limits, timeouts) are not counted as answers: " +
+                ", ".join(f"{r['arm']} {fmt(r, 'errors')}" for r in failed) + ".", ""]
     out += ["The reference ports were written by hand with knowledge of the defects, so the first row shows "
             "that the contracts can express each requirement and that the checker tells the two versions apart. "
             "It is not a detection result. The LLM rows are the comparison: the model sees only the product "
@@ -545,11 +553,14 @@ def main(argv: list[str], provider=None) -> int:
             path = write_result(arm, None, [run])
         else:
             prov = provider or llm_only.provider_from_env(timeout=600)
+            prov.retries = max(getattr(prov, "retries", 0), RATE_LIMIT_RETRIES)
             runs = []
             for seed in range(args.runs):
                 with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
                     runs.append(list(pool.map(lambda c: run_llm_case(c, prov, arm, seed, args.mumei_bin, args.timeout), cases)))
             path = write_result(arm, prov.model, runs)
+        if arm != "mumei" and any(score(run)["errors"] for run in json.loads(path.read_text())["runs"]):
+            print(f"warning: {arm} has requests that failed; rerun before publishing", file=sys.stderr)
         print(f"{arm}: {score(json.loads(path.read_text())['runs'][0])} -> {path.relative_to(REPO_ROOT)}")
     render_all(load_cases()[0], write=True)
     return 0

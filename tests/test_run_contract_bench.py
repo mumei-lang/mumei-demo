@@ -310,7 +310,22 @@ def test_score_counts_every_kind():
     s = cb.score([rec("a", "go", "refuted", "proven"), rec("b", "go", "proven", "refuted"),
                   rec("c", "go", "inconclusive", "proven", vac="vacuous"), rec("d", "go", "refuted", "inconclusive")])
     assert s == {"cases": 4, "buggy_refuted": 2, "fixed_proven": 2, "both": 1, "wrong_accept": 1,
-                 "wrong_reject": 1, "inconclusive": 2, "vacuous": 1}
+                 "wrong_reject": 1, "inconclusive": 2, "errors": 0, "vacuous": 1}
+
+
+def test_score_separates_transport_errors():
+    r = rec("a", "go", "inconclusive", "inconclusive")
+    r["buggy"]["status"] = "LLM request failed: HTTP 429"
+    s = cb.score([r])
+    assert (s["errors"], s["inconclusive"]) == (1, 1)
+
+
+def test_llm_runs_raise_retry_budget(repo, monkeypatch):
+    run_reference(repo, monkeypatch)
+    prov = StubProvider(lambda m, s: '{"verdict": "holds"}')
+    prov.retries = 2
+    assert cb.main(["--arm", "llm", "--jobs", "1"], provider=prov) == 0
+    assert prov.retries == cb.RATE_LIMIT_RETRIES
 
 
 def test_usage_total_counts_unknown_cost():
