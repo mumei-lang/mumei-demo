@@ -1,0 +1,206 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-03T15:21:51Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "slice_to",
+      "z3_check_result": "unsat",
+      "content_hash": "75e49724c32a955c06bfd64eb998cd909d2b62735e43e185d57031848e6bc3e7",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "8ffd1cdf3cb938ffbe489c97506aef4a216e049b6a31c10a2579686881e02ae4",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "f3c8a335961d07080c9cfbb34755b17a644dea592061f1e041b947f673dbbb95",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "0 <= end && end <= n",
+      "ensures": "result == end",
+      "forall_constraints": [],
+      "body_expr": "{ end }",
+      "body_summary": "{ end }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "end": "end_binder",
+        "n": "n",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "n",
+            "lean_name": "n",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "end",
+            "lean_name": "end_binder",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(0 <= end && end <= n) -> (result == end)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "c96dde33989a016b42be4b078b397523c3669d5847bab351632366255c6e9ff6",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:51Z"
+      }
+    },
+    {
+      "name": "reportHandler",
+      "z3_check_result": "unsat",
+      "content_hash": "eb07b90a956890d6b495bb96718f63e051c08119d77774697bdaeae144e3ae89",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "96b625282d79ebe35ae077984561589018f52238b3dd0553442a841741d7fc47",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "e4169220a628c0f0d08d6ec309677d874ce8e3996bc670cba0393a159c3ae346",
+      "dependencies": [
+        "slice_to"
+      ],
+      "dependency_hashes": {
+        "atom:slice_to": "a15263b0042be7683a01b5dfc64f2c7affe2cf7a51b46319b7d3ae11118be514",
+        "struct:Parsed": "ffa9ae0fb4242dd7bb12d4c4b06a4cfa5daa999929a01520f04a091934983712"
+      },
+      "effects": [],
+      "requires": "n >= 0",
+      "ensures": "result.ok =>(result.value >= 0 && result.value <= n)",
+      "forall_constraints": [],
+      "body_expr": "{ if has_limit && limit < 0 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: slice_to(n, if has_limit { if limit < n { limit } else { n } } else { n }) } } }",
+      "body_summary": "{ if has_limit && limit < 0 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: slice_to(n, if has_limit { if limit < n { limit } else { n } } else { n }) } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "has_limit": "has_limit",
+        "limit": "limit",
+        "n": "n",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "n",
+            "lean_name": "n",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "has_limit",
+            "lean_name": "has_limit",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "limit",
+            "lean_name": "limit",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Parsed",
+            "lean_type": "Parsed",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(n >= 0) -> (result.ok =>(result.value >= 0 && result.value <= n))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 11,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "c8bb18e9184408a36d088bb8ba45eda709d8c24181ad3c5d8978e5fc2505760a",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:51Z"
+      }
+    }
+  ],
+  "certificate_hash": "3711f33dee387af8749611545bc758e8b1a15eee8ea314e690b2c4888b6e4bcc",
+  "all_verified": true
+}

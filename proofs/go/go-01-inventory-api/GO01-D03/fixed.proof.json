@@ -1,0 +1,112 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-03T15:21:50Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "releaseHandler",
+      "z3_check_result": "unsat",
+      "content_hash": "6a26fa4f702f2498bf4c80ea0d0a2a75ee409aae88f189c9e7085b043cfb6522",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "5177adf81ecf0978817ce20056e284b2ecf245eb6a5afb4ce49ca0710c681ec2",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "ba4db6e36a5439a0132b1c26f56a9ca5b7ddd97cd37247a2dac0214ab056991d",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Stock": "0d32baf726963dfb5890fb3c56ba463b77b0a7d1633f64ac373f83d9463fbd97"
+      },
+      "effects": [],
+      "requires": "stock >= 0 && reserved >= 0",
+      "ensures": "result.ok => result.reserved >= 0",
+      "forall_constraints": [],
+      "body_expr": "{ if qty <= 0 { Stock { ok: false, stock: stock, reserved: reserved } } else { if reserved < qty { Stock { ok: false, stock: stock, reserved: reserved } } else { Stock { ok: true, stock: stock + qty, reserved: reserved - qty } } } }",
+      "body_summary": "{ if qty <= 0 { Stock { ok: false, stock: stock, reserved: reserved } } else { if reserved < qty { Stock { ok: false, stock: stock, reserved: reserved } } else { Stock { ok: true, stock: stock + qty, reserved: reserved - qty } } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "qty": "qty",
+        "reserved": "reserved",
+        "result": "result",
+        "stock": "stock"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "stock",
+            "lean_name": "stock",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "reserved",
+            "lean_name": "reserved",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "qty",
+            "lean_name": "qty",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Stock",
+            "lean_type": "Stock",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(stock >= 0 && reserved >= 0) -> (result.ok => result.reserved >= 0)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 7,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "ccca9a8d105d16d7546f656b1e90420864a023c291c91a74a6e56d7dd955af71",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:50Z"
+      }
+    }
+  ],
+  "certificate_hash": "ad4b8afecdc6781e0f36bfb8ae6497e95c1de72106552b66a883e27c19fb94a8",
+  "all_verified": true
+}

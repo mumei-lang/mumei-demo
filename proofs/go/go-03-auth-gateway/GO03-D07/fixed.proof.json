@@ -1,0 +1,185 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-03T15:21:51Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "deref",
+      "z3_check_result": "unsat",
+      "content_hash": "6fde762ab2c9d6ca52bd2059d4e190540c1bca37853ecd06ecd0a36cc8606bd7",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "1aef4f222018f6cc53878a4730114da4f65a6b68d0f44f112b27a6fb9ff6507d",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "9eecf854886b5a634bda2aa3d68641c7cd58004cfd9f907eb21a977f9de04b3e",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "present",
+      "ensures": "result",
+      "forall_constraints": [],
+      "body_expr": "{ true }",
+      "body_summary": "{ true }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "present": "present",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "present",
+            "lean_name": "present",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(present) -> (result)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "742bb157683a662413e1b81205a7412d4deb11cc05a5076fafac17a9842388b9",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:51Z"
+      }
+    },
+    {
+      "name": "loginHandler",
+      "z3_check_result": "unsat",
+      "content_hash": "24eb45e2b63a64a841dd7f69a8925780b43d8c489a94402a784aaf859b5c9a4c",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "0476b673d1cce8cc8fc6437b4b608e98d5391e9a27637d9fc982642a66f1e18c",
+        "traceability_coverage": 0.5,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "00d30803fdb5b19a5ec466b9e0df509ace02403bc396f3f542d19537c2af91bb",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "true",
+      "ensures": "known == false => result == false",
+      "forall_constraints": [],
+      "body_expr": "{ if known { password_matches } else { false } }",
+      "body_summary": "{ if known { password_matches } else { false } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "known": "known",
+        "password_matches": "password_matches",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "known",
+            "lean_name": "known",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "password_matches",
+            "lean_name": "password_matches",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(true) -> (known == false => result == false)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "039890a8b3ed341efaeda8439bd623f28eb74862ddcc795b2f9cb54ce7a4c400",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:51Z"
+      }
+    }
+  ],
+  "certificate_hash": "63a5038eaba7ba4b21113fd7ee2c4f38c4568acbc7616acd7599fcfb5e5c0b10",
+  "all_verified": true
+}

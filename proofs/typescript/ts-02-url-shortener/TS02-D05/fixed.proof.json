@@ -1,0 +1,122 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-03T15:21:56Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "clicksPerDay",
+      "z3_check_result": "unsat",
+      "content_hash": "4204a6d176cbb987dfd13bcac92acd1dbc6f56805948cd93147f04d9ef367591",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "51bd14bf56597c9bd274a27338f02224b4d60804bca90304892f4b4e4ab3e0d4",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 2,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 2,
+        "diagnostics": []
+      },
+      "proof_hash": "9663dc6d084298b6d64571d09468c0313bcdedd526945e98d71af8d2a028df68",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "clicks >= 0 && now >= created_at",
+      "ensures": "result >= 0 && result <= clicks",
+      "forall_constraints": [],
+      "body_expr": "{ clicks /(if(now - created_at) / 86400 < 1 { 1 } else {(now - created_at) / 86400 }) }",
+      "body_summary": "{ clicks /(if(now - created_at) / 86400 < 1 { 1 } else {(now - created_at) / 86400 }) }",
+      "z3_result_class": "unsat",
+      "escalation_reason": "nonlinear_arithmetic",
+      "logic_fragment_tag": "nonlinear_arithmetic",
+      "logic_fragment_tags": [
+        "nonlinear_arithmetic"
+      ],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "clicks": "clicks",
+        "created_at": "created_at",
+        "now": "now",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "clicks",
+            "lean_name": "clicks",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "created_at",
+            "lean_name": "created_at",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "now",
+            "lean_name": "now",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(clicks >= 0 && now >= created_at) -> (result >= 0 && result <= clicks)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "integer_overflow_bridge",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [
+          "integer_overflow_bridge: Mumei uses 2's complement wrap semantics, Lean 4 Int is unbounded. Bridge lemma required for overflow behavior."
+        ],
+        "proof_trace_hints": [
+          "assert mumei_i64_in_range hypotheses before applying arithmetic lemmas"
+        ],
+        "requires_bridge_lemmas": [
+          "mumei_i64_overflow_bridge",
+          "mumei_i64_add_overflow_bridge",
+          "mumei_div_by_zero_bridge"
+        ]
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "aad1c7dfa9271d0a3000dbf4bc136d89c68f2cc2066e79075c54451094c53f2e",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:56Z"
+      }
+    }
+  ],
+  "certificate_hash": "93008bfa947f72e35e92d9a768e4d16dc2bb13568876e642f24d5f9b8d6774ad",
+  "all_verified": true
+}

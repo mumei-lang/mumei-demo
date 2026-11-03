@@ -1,0 +1,112 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-03T15:21:55Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "parsePriority",
+      "z3_check_result": "unsat",
+      "content_hash": "88705cebb4d035398408a59d6337eac90c102a3af85dbd82bd3bc3d9963bf6e1",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "586b00bfdf532a2c35d6085e4ba117da489d2328a52d31f109cd88264bedd73e",
+        "traceability_coverage": 0.5,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "8d3c7f7059711c4c2405b5f046282a3d17703b1c115a4a74960ed857a81eeed5",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Parsed": "ffa9ae0fb4242dd7bb12d4c4b06a4cfa5daa999929a01520f04a091934983712"
+      },
+      "effects": [],
+      "requires": "true",
+      "ensures": "result.ok =>(result.value >= 1 && result.value <= 5)",
+      "forall_constraints": [],
+      "body_expr": "{ if missing { Parsed { ok: true, value: 3 } } else { if ! numeric || value < 1 || value > 5 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: value } } } }",
+      "body_summary": "{ if missing { Parsed { ok: true, value: 3 } } else { if ! numeric || value < 1 || value > 5 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: value } } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "missing": "missing",
+        "numeric": "numeric",
+        "result": "result",
+        "value": "value"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "missing",
+            "lean_name": "missing",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "numeric",
+            "lean_name": "numeric",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "value",
+            "lean_name": "value",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Parsed",
+            "lean_type": "Parsed",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(true) -> (result.ok =>(result.value >= 1 && result.value <= 5))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "47ee8aeca3f696bddae2e8a40aa959f9c97de012a610b8cf9c67c5a649600194",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:55Z"
+      }
+    }
+  ],
+  "certificate_hash": "56ad4e25331d03045cd89dd1a808ef355c628879acd9621478afdd306a3eadfe",
+  "all_verified": true
+}
