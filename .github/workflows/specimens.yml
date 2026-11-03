@@ -13,6 +13,9 @@ on:
       - "tests/test_run_baselines.py"
       - "tests/test_run_llm_only.py"
       - "scripts/run_llm_only.py"
+      - "tests/test_compare_arms.py"
+      - "scripts/compare_arms.py"
+      - "README.md"
       - ".github/workflows/specimens.yml"
   workflow_dispatch:
 
@@ -36,3 +39,7 @@ jobs:
         run: python3 -m pytest tests/test_run_baselines.py -q
       - name: Run LLM-only runner tests
         run: python3 -m pytest tests/test_run_llm_only.py -q
+      - name: Run comparison tests
+        run: python3 -m pytest tests/test_compare_arms.py -q
+      - name: Check the committed comparison is up to date
+        run: python3 scripts/compare_arms.py --model openai/gpt-6-luna --check

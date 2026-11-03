@@ -55,6 +55,9 @@ Latest — no LLM: 10/171 detected (6%), 29/171 detected or function-flagged, pr
 Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreboard).
 <!-- scoreboard:end -->
 
+<!-- comparison:start -->
+<!-- comparison:end -->
+
 ## Quick Start
 
 ```bash
