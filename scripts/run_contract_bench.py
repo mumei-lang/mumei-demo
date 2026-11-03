@@ -334,10 +334,19 @@ def signature(case: dict) -> str:
     return case["header"].splitlines()[0].rstrip()
 
 
+BLIND_NOTE_LEAK = re.compile(r"\b(original|fixed version|buggy)\b", re.IGNORECASE)
+
+
+def blind_notes(notes: str) -> str:
+    """The modelling notes without the sentences that describe the original or the fixed implementation."""
+    kept = [s for s in re.split(r"(?<=[.;])\s+", notes.strip()) if s and not BLIND_NOTE_LEAK.search(s)]
+    return " ".join(kept)
+
+
 def contract_prompt(case: dict) -> list[dict]:
     prelude = case["prelude"].strip() or "(none)"
     user = (f"Language of the original code: {case['language']}\nFunction: {case['function']}\n"
-            f"Requirement: {case['requirement']}\nModelling notes: {case['notes'] or '(none)'}\n\n"
+            f"Requirement: {case['requirement']}\nModelling notes: {blind_notes(case['notes']) or '(none)'}\n\n"
             f"Mumei prelude (already defined):\n```\n{prelude}\n```\n\n"
             f"Write requires and ensures for this atom:\n```\n{signature(case)}\n```")
     return [{"role": "system", "content": CONTRACT_SYSTEM}, {"role": "user", "content": user}]
@@ -366,7 +375,8 @@ def run_contract_case(case: dict, provider, seed: int, mumei_bin: str, timeout: 
     try:
         text, usage = provider.complete(contract_prompt(case), seed)
     except RuntimeError as e:
-        out.update({v: {"outcome": "inconclusive", "status": str(e)} for v in VARIANTS})
+        status = str(e) if str(e).startswith(TRANSPORT_ERROR) else f"{TRANSPORT_ERROR}: {e}"
+        out.update({v: {"outcome": "inconclusive", "status": status} for v in VARIANTS})
         out["usage"] = None
         return out
     out["usage"] = usage
@@ -610,12 +620,13 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             contracts, unchecked = {}, set()
             for run in d["runs"]:
                 for r in run:
-                    if r.get("contract") and (r["buggy"]["outcome"] == "proven" or r["fixed"]["outcome"] == "refuted"):
-                        contracts.setdefault(r["id"], " ".join(r["contract"]["ensures"].split())[:160])
+                    wrong_run = r["buggy"]["outcome"] == "proven" or r["fixed"]["outcome"] == "refuted"
+                    if r.get("contract") and wrong_run and r["id"] not in contracts:
+                        contracts[r["id"]] = " ".join(r["contract"]["ensures"].split())[:160]
                         if r.get("vacuity") != "ok":
                             unchecked.add(r["id"])
             wrong += [f"  - `{i}` model's ensures (from a wrong run): `{e}`"
-                      + (" — vacuity control not passed in a wrong run" if i in unchecked else "")
+                      + (" — vacuity control not passed in that run" if i in unchecked else "")
                       for i, e in sorted(contracts.items())]
     if wrong:
         out += ["## Wrong answers by case (runs out of total)", ""] + wrong + [""]
@@ -759,6 +770,10 @@ def main(argv: list[str], provider=None) -> int:
         elif not (ref.get("verifier") or {}).get("commit"):
             problems.append("the reference result does not record the mumei commit it was verified with; "
                             "rerun --arm mumei with a mumei built from a git checkout")
+        else:
+            problems += [f"{result_path(d['arm'], d.get('model')).relative_to(REPO_ROOT)} was verified with another "
+                         f"mumei build than the reference result; rerun it with the reference build"
+                         for d in results if d["arm"] == "llm-contract" and d.get("verifier") != ref["verifier"]]
         problems += [f"{f} is out of date; run --render-only" for f in render_all(cases, write=False)]
         for msg in problems:
             print(f"error: {msg}", file=sys.stderr)

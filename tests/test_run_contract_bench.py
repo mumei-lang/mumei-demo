@@ -673,6 +673,45 @@ def test_contract_prompt_hides_code_and_reference_contract(repo):
         assert hidden not in text
 
 
+@pytest.mark.parametrize("notes, expected", [
+    ("", ""),
+    ("Err is ok == false.", "Err is ok == false."),
+    ("State is passed in. In the original, the limit wraps; the fixed version subtracts queued amounts. "
+     "Closed checks are outside the port.", "State is passed in. Closed checks are outside the port."),
+    ("`distinct_open` stands for the fixed version's check.", ""),
+    ("The buggy path is modelled as x.", ""),
+    ("The ORIGINAL refund is assumed to succeed; Not found is 0.", "Not found is 0."),
+])
+def test_blind_notes_drop_sentences_about_either_implementation(notes, expected):
+    assert cb.blind_notes(notes) == expected
+
+
+def test_contract_prompt_hides_notes_about_the_implementations(repo):
+    (case,) = cb.load_cases()[0]
+    case = {**case, "notes": "Days are whole. In the original, days < 0 divides; the fixed version returns 0."}
+    text = "\n".join(m["content"] for m in cb.contract_prompt(case))
+    assert "Modelling notes: Days are whole.\n" in text
+    assert "original, days" not in text and "fixed version" not in text
+
+
+def test_committed_notes_leak_nothing_to_the_blind_arm():
+    cases, _ = cb.load_cases()
+    leaks = [c["id"] for c in cases if cb.BLIND_NOTE_LEAK.search(cb.blind_notes(c["notes"]))]
+    assert leaks == []
+
+
+@pytest.mark.parametrize("error", ["LLM request failed: HTTP 500", "LLM response has no message content"])
+def test_contract_request_failure_is_one_error(repo, error):
+    class Failing(StubProvider):
+        def complete(self, messages, seed):
+            raise RuntimeError(error)
+    (case,) = cb.load_cases()[0]
+    r = cb.run_contract_case(case, Failing(None), 0, "mumei", 5)
+    assert all(r[v]["status"].startswith(cb.TRANSPORT_ERROR) for v in cb.VARIANTS)
+    s = cb.score([r])
+    assert s["errors"] == 1 and s["inconclusive"] == 0
+
+
 def test_contract_header_replaces_only_the_clauses(repo):
     (case,) = cb.load_cases()[0]
     header = cb.contract_header(case, "a > 0", "result == a")
@@ -794,6 +833,17 @@ def test_main_runs_the_contract_arm_and_check_passes(repo, monkeypatch, capsys):
     assert cb.main(["--check"]) == 0, capsys.readouterr().err
 
 
+def test_check_flags_a_contract_arm_verified_by_another_build(repo, monkeypatch, capsys):
+    run_blind(repo, monkeypatch)
+    path = repo / "proofs" / "results" / "llm-contract-stub__model-1.json"
+    doc = json.loads(path.read_text())
+    doc["verifier"] = {**VERIFIER, "commit": "1" * 40}
+    path.write_text(json.dumps(doc))
+    capsys.readouterr()
+    assert cb.main(["--check"]) == 1
+    assert "llm-contract" in capsys.readouterr().err
+
+
 def test_check_flags_a_contract_arm_with_another_prompt(repo, monkeypatch, capsys):
     run_blind(repo, monkeypatch)
     monkeypatch.setattr(cb, "CONTRACT_SYSTEM", cb.CONTRACT_SYSTEM + " changed")
@@ -838,7 +888,7 @@ def test_wrong_answer_contract_comes_from_a_wrong_run():
             [_contract_rec("A", "refuted", "refuted", "too strong", vac="inconclusive")]]
     md = cb.render_markdown([], [{"arm": "llm-contract", "model": "m", "runs": runs}], [])
     assert "`A` fixed rejected (1/2)" in md
-    assert "`A` model's ensures (from a wrong run): `too strong` — vacuity control not passed in a wrong run" in md
+    assert "`A` model's ensures (from a wrong run): `too strong` — vacuity control not passed in that run" in md
     assert "`right`" not in md
     assert "per run: 1 / 1, 0 / 1 pass" in md
 
