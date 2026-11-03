@@ -1,0 +1,8 @@
+{
+  "id": "SOL01-D01",
+  "file": "src/RewardVault.sol",
+  "function": "withdraw",
+  "requirement": "When the payout call is made, the withdrawn shares have already been removed from the caller's position.",
+  "notes": "Reentrancy is modelled as the contract state an external call can observe: the result is the caller's recorded balance at the moment of the outgoing call, which must already reflect the payout (checks-effects-interactions).",
+  "atom": "withdraw"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "SOL01-D08",
+  "file": "src/RewardVault.sol",
+  "function": "deposit",
+  "requirement": "A deposit either records the full share amount in the position or reverts; it never truncates it to fit the uint128 slot.",
+  "notes": "`cap` stands for type(uint128).max; truncation is modelled as the exact sum leaving the uint128 range; a revert is ok == false.",
+  "atom": "deposit"
+}

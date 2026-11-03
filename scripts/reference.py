@@ -19,6 +19,7 @@ CLI_SCRIPTS = (
     ("scripts/run_baselines.py", "run_baselines"),
     ("scripts/run_llm_only.py", "run_llm_only"),
     ("scripts/compare_arms.py", "compare_arms"),
+    ("scripts/run_contract_bench.py", "run_contract_bench"),
     ("scripts/record_scenario.py", "record_scenario"),
     ("scripts/record_model_evidence.py", "record_model_evidence"),
     ("scripts/check_specimens.py", "check_specimens"),
@@ -60,7 +61,8 @@ ENVIRONMENT_VARIABLES = (
     (
         "LLM_BASE_URL",
         "`https://api.openai.com/v1`",
-        "OpenAI-compatible endpoint for `scripts/run_llm_only.py` (same name as mumei-agent).",
+        "OpenAI-compatible endpoint for `scripts/run_llm_only.py` and the LLM arms of "
+        "`scripts/run_contract_bench.py` (same name as mumei-agent).",
     ),
     (
         "LLM_MODEL",

@@ -1,0 +1,8 @@
+{
+  "id": "RS01-D06",
+  "file": "src/bank.rs",
+  "function": "request_transfer",
+  "requirement": "A rejected transfer leaves the amount spent today unchanged.",
+  "notes": "Account state is passed in; Err is ok == false. In the original, the allowance comes from the wrapping remaining_daily_allowance, so an overspent account never hits the limit check; the fixed version also subtracts already queued amounts. Same-account and closed checks are outside the ported part.",
+  "atom": "request_transfer"
+}

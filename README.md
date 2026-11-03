@@ -55,6 +55,22 @@ Latest — no LLM: 10/171 detected (6%), 29/171 detected or function-flagged, pr
 Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreboard).
 <!-- scoreboard:end -->
 
+## Contract benchmark
+
+The specimen benchmark measures finding bugs in existing code. This one measures what Mumei is for: checking code against a contract. Each of the 71 specimen defects in a category Mumei targets has a written requirement and one contract that the buggy and the fixed function are both checked against; the right answer is "buggy refuted, fixed proven". Run with `python3 scripts/run_contract_bench.py`; CI only runs `--check`, offline.
+
+<!-- contract-bench:start -->
+
+| Arm | Model | Runs | Buggy refuted | Fixed proven | Both right | Buggy accepted | Fixed rejected | Inconclusive | Cost |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| mumei (reference ports) | — | 1 | 71 / 71 | 69 / 71 | 69 | 0 | 2 | 0 | — |
+| LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | $0.11 |
+| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 62 (59–62) / 71 | 67 / 71 | 58 (55–58) | 8 (7–10) | 2 (2–3) | 3 (3–4) | $0.14 |
+
+Details, per-language results and caveats: [proofs/RESULTS.md](proofs/RESULTS.md).
+
+<!-- contract-bench:end -->
+
 <!-- comparison:start -->
 ### mumei only vs mumei + LLM vs LLM only
 

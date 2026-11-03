@@ -66,6 +66,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/run_baselines.py` | 13 | Run off-the-shelf static analyzers over the specimens and score them like the audit. |
 | `scripts/run_llm_only.py` | 8 | Ask an LLM alone (no Mumei) to review the specimens, and score it like the baselines. |
 | `scripts/compare_arms.py` | 2 | Compare three ways of reviewing the specimen corpus side by side. |
+| `scripts/run_contract_bench.py` | 8 | Contract benchmark: can a defect be refuted and its fix be proven against one fixed contract? |
 | `scripts/record_scenario.py` | 2 | Finite record-operation checks and intentionally broken host variants. |
 | `scripts/record_model_evidence.py` | 2 | Collect independent Lean model evidence; never promote a Python operation. |
 | `scripts/check_specimens.py` | 2 | Validate specimen directories. |
@@ -152,6 +153,21 @@ Compare three ways of reviewing the specimen corpus side by side.
 | `--model` | `<MODEL>` | no | — | model whose LLM-only records to compare (default: $LLM_MODEL or the run_llm_only.py default) |
 | `--check` | — | no | `false` | fail if the committed comparison files are out of date instead of writing them |
 
+### `scripts/run_contract_bench.py`
+
+Contract benchmark: can a defect be refuted and its fix be proven against one fixed contract?
+
+| Option | Value | Required | Default | Description |
+|---|---|---|---|---|
+| `--arm` | `{mumei, llm, mumei-llm}` | no | — | arm to run (repeatable) |
+| `--only` | `<ONLY>` | no | — | limit to these defect ids |
+| `--runs` | `<RUNS>` | no | `1` | runs per LLM arm (seed = run number) |
+| `--jobs` | `<JOBS>` | no | `4` | cases run in parallel |
+| `--timeout` | `<TIMEOUT>` | no | `120` | per-verification timeout in seconds |
+| `--mumei-bin` | `<MUMEI_BIN>` | no | — | mumei binary (default: $MUMEI_BIN, then mumei on PATH) |
+| `--check` | — | no | `false` | validate cases and committed results offline |
+| `--render-only` | — | no | `false` | re-render RESULTS.md and the README block |
+
 ### `scripts/record_scenario.py`
 
 Finite record-operation checks and intentionally broken host variants.
@@ -217,6 +233,6 @@ Render a Mumei verification report.
 | `MUMEI_LEAN_REPO` | `../mumei-lean` sibling checkout | Read from repos.env, then the process environment; otherwise resolves the sibling checkout. |
 | `MUMEI_BIN` | release binary, otherwise debug binary under MUMEI_REPO | Read from repos.env, then the process environment; direct audit options can override it. |
 | `MUMEI_AGENT_PYTHON` | agent .venv/bin/python, otherwise python on PATH or the current interpreter | Read from repos.env, then the process environment, before choosing an available Python. |
-| `LLM_BASE_URL` | `https://api.openai.com/v1` | OpenAI-compatible endpoint for `scripts/run_llm_only.py` (same name as mumei-agent). |
+| `LLM_BASE_URL` | `https://api.openai.com/v1` | OpenAI-compatible endpoint for `scripts/run_llm_only.py` and the LLM arms of `scripts/run_contract_bench.py` (same name as mumei-agent). |
 | `LLM_MODEL` | `gpt-4o` | Model reviewed by `scripts/run_llm_only.py`; names the `llm_only/<model>.json` records that `scripts/compare_arms.py` reads. |
 | `NL_REQUIREMENTS_FILE` | `spec_text.md` | Read from repos.env, then the process environment; selects the natural-language requirements input. |
