@@ -189,6 +189,7 @@ def test_parser_option_strings_match_golden_lists() -> None:
             "--scoreboard-dir",
             "--rescore",
         ],
+        "scripts/compare_arms.py": ["--model", "--check"],
         "scripts/record_scenario.py": ["--variant", "--output"],
         "scripts/record_model_evidence.py": ["--repo", "--output"],
         "scripts/check_specimens.py": ["--root", "--run-fixed"],

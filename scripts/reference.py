@@ -18,6 +18,7 @@ CLI_SCRIPTS = (
     ("scripts/run_specimen_audits.py", "run_specimen_audits"),
     ("scripts/run_baselines.py", "run_baselines"),
     ("scripts/run_llm_only.py", "run_llm_only"),
+    ("scripts/compare_arms.py", "compare_arms"),
     ("scripts/record_scenario.py", "record_scenario"),
     ("scripts/record_model_evidence.py", "record_model_evidence"),
     ("scripts/check_specimens.py", "check_specimens"),
@@ -64,7 +65,8 @@ ENVIRONMENT_VARIABLES = (
     (
         "LLM_MODEL",
         "`gpt-4o`",
-        "Model reviewed by `scripts/run_llm_only.py`; names the `llm_only/<model>.json` records.",
+        "Model reviewed by `scripts/run_llm_only.py`; names the `llm_only/<model>.json` records "
+        "that `scripts/compare_arms.py` reads.",
     ),
     (
         "NL_REQUIREMENTS_FILE",

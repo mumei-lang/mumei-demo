@@ -65,6 +65,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/run_specimen_audits.py` | 10 | Run `mumei-agent audit` over every specimen and score it against DEFECTS.json. |
 | `scripts/run_baselines.py` | 13 | Run off-the-shelf static analyzers over the specimens and score them like the audit. |
 | `scripts/run_llm_only.py` | 8 | Ask an LLM alone (no Mumei) to review the specimens, and score it like the baselines. |
+| `scripts/compare_arms.py` | 2 | Compare three ways of reviewing the specimen corpus side by side. |
 | `scripts/record_scenario.py` | 2 | Finite record-operation checks and intentionally broken host variants. |
 | `scripts/record_model_evidence.py` | 2 | Collect independent Lean model evidence; never promote a Python operation. |
 | `scripts/check_specimens.py` | 2 | Validate specimen directories. |
@@ -142,6 +143,15 @@ Ask an LLM alone (no Mumei) to review the specimens, and score it like the basel
 | `--scoreboard-dir` | `<SCOREBOARD_DIR>` | no | `specimens/scoreboard` | — |
 | `--rescore` | — | no | `false` | re-score the committed llm_only/<model>.json findings with the current llm_only_reviews.json, without calling the model |
 
+### `scripts/compare_arms.py`
+
+Compare three ways of reviewing the specimen corpus side by side.
+
+| Option | Value | Required | Default | Description |
+|---|---|---|---|---|
+| `--model` | `<MODEL>` | no | — | model whose LLM-only records to compare (default: $LLM_MODEL or the run_llm_only.py default) |
+| `--check` | — | no | `false` | fail if the committed comparison files are out of date instead of writing them |
+
 ### `scripts/record_scenario.py`
 
 Finite record-operation checks and intentionally broken host variants.
@@ -208,5 +218,5 @@ Render a Mumei verification report.
 | `MUMEI_BIN` | release binary, otherwise debug binary under MUMEI_REPO | Read from repos.env, then the process environment; direct audit options can override it. |
 | `MUMEI_AGENT_PYTHON` | agent .venv/bin/python, otherwise python on PATH or the current interpreter | Read from repos.env, then the process environment, before choosing an available Python. |
 | `LLM_BASE_URL` | `https://api.openai.com/v1` | OpenAI-compatible endpoint for `scripts/run_llm_only.py` (same name as mumei-agent). |
-| `LLM_MODEL` | `gpt-4o` | Model reviewed by `scripts/run_llm_only.py`; names the `llm_only/<model>.json` records. |
+| `LLM_MODEL` | `gpt-4o` | Model reviewed by `scripts/run_llm_only.py`; names the `llm_only/<model>.json` records that `scripts/compare_arms.py` reads. |
 | `NL_REQUIREMENTS_FILE` | `spec_text.md` | Read from repos.env, then the process environment; selects the natural-language requirements input. |
