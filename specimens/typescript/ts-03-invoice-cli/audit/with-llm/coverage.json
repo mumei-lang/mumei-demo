@@ -1,0 +1,401 @@
+{
+  "specimen": "ts-03-invoice-cli",
+  "language": "typescript",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "unverifiable",
+  "files_audited": 2,
+  "files_with_issues": 2,
+  "counts": {
+    "total": 10,
+    "detected": 0,
+    "function_flagged": 4,
+    "missed": 6
+  },
+  "defects": [
+    {
+      "id": "TS03-D01",
+      "file": "pricing.ts",
+      "function": "subtotal",
+      "category": "float-money",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "malformed-extraction: subtotal ensures: garbled comparison operators '==>'"
+      ]
+    },
+    {
+      "id": "TS03-D02",
+      "file": "invoice.ts",
+      "function": "renderInvoice",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "encoding-gap: renderInvoice: spec_lowering_failed: failed to lower requires clause 'len(invoice.items) >= 0': Type Error: len() expects an array or string argument (constraints: [\"len(invoice.items) >= 0\"])"
+      ]
+    },
+    {
+      "id": "TS03-D03",
+      "file": "pricing.ts",
+      "function": "effectiveTaxRate",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D04",
+      "file": "pricing.ts",
+      "function": "parseItem",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "malformed-extraction: parseItem ensures: garbled comparison operators '==>'",
+        "malformed-extraction: parseItem ensures: garbled comparison operators '==>'"
+      ]
+    },
+    {
+      "id": "TS03-D05",
+      "file": "pricing.ts",
+      "function": "pageFooters",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "malformed-extraction: pageFooters ensures: garbled comparison operators '==>'",
+        "malformed-extraction: pageFooters ensures: garbled comparison operators '==>'"
+      ]
+    },
+    {
+      "id": "TS03-D06",
+      "file": "invoice.ts",
+      "function": "invoiceId",
+      "category": "weak-crypto",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D07",
+      "file": "invoice.ts",
+      "function": "writeInvoice",
+      "category": "command-injection",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D08",
+      "file": "pricing.ts",
+      "function": "parseItems",
+      "category": "error-handling",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D09",
+      "file": "pricing.ts",
+      "function": "applyDiscount",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS03-D10",
+      "file": "pricing.ts",
+      "function": "taxAmount",
+      "category": "rounding-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [
+    {
+      "file": "invoice.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): parseArgs.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseArgs; none was stated."
+    },
+    {
+      "file": "invoice.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): parseArgs.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseArgs; none was stated."
+    },
+    {
+      "file": "invoice.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): row.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering row; none was stated."
+    },
+    {
+      "file": "invoice.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): row.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering row; none was stated."
+    },
+    {
+      "file": "invoice.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated."
+    },
+    {
+      "file": "invoice.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
+    }
+  ],
+  "findings": [
+    {
+      "file": "invoice.ts",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: renderInvoice: spec_lowering_failed: failed to lower requires clause 'len(invoice.items) >= 0': Type Error: len() expects an array or string argument (constraints: [\"len(invoice.items) >= 0\"])",
+      "status": "unreviewed"
+    },
+    {
+      "file": "invoice.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): parseArgs.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseArgs; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "invoice.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): parseArgs.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseArgs; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "invoice.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): row.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering row; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "invoice.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): row.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering row; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "invoice.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "invoice.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "pricing.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: parseItem ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "pricing.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: parseItem ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "pricing.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: subtotal ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "pricing.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: pageFooters ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "pricing.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: pageFooters ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    }
+  ],
+  "finding_counts": {
+    "total": 12,
+    "defect_evidence": 0,
+    "real": 0,
+    "false_positive": 0,
+    "unreviewed": 12
+  },
+  "reviews_used": [],
+  "source_hash": "1abd4fc0c48bf3f9a690ebbbd3b389db65e21b56bfd21ff714becd7211dee58b",
+  "meta": {
+    "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
+    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
+    "mumei_version": "mumei 0.6.23",
+    "llm_configured": true,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-11-03T05:18:58Z",
+    "llm_model": "openai/gpt-6-luna",
+    "llm_endpoint": "openrouter.ai"
+  },
+  "fixed": {
+    "defects": 10,
+    "still_reported": [],
+    "still_function_flagged": [
+      "TS03-D02",
+      "TS03-D03",
+      "TS03-D04",
+      "TS03-D05",
+      "TS03-D08",
+      "TS03-D10"
+    ],
+    "false_alarms": 21,
+    "findings": [
+      {
+        "file": "invoice.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): parseArgs.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseArgs; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "invoice.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): parseArgs.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseArgs; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "invoice.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): row.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering row; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "invoice.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): row.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering row; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "invoice.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): renderInvoice.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering renderInvoice; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "invoice.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "invoice.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "spec_health_issues",
+        "text": "malformed-extraction: parseItem ensures: garbled comparison operators '==>'",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "spec_health_issues",
+        "text": "malformed-extraction: parseItem ensures: garbled comparison operators '==>'",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "spec_health_issues",
+        "text": "malformed-extraction: effectiveTaxRate ensures: garbled comparison operators '==>'",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "spec_health_issues",
+        "text": "malformed-extraction: effectiveTaxRate ensures: garbled comparison operators '==>'",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "spec_health_issues",
+        "text": "malformed-extraction: pageFooters ensures: garbled comparison operators '==>'",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "spec_health_issues",
+        "text": "malformed-extraction: pageFooters ensures: garbled comparison operators '==>'",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): parseItems.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseItems; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): parseItems.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseItems; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): toCents.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering toCents; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): toCents.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering toCents; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): taxAmount.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering taxAmount; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): taxAmount.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering taxAmount; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): computeTotals.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering computeTotals; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "pricing.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): computeTotals.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering computeTotals; none was stated.",
+        "status": "unreviewed"
+      }
+    ],
+    "finding_counts": {
+      "total": 21,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 0,
+      "unreviewed": 21
+    },
+    "reviews_used": []
+  }
+}

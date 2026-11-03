@@ -1,0 +1,252 @@
+{
+  "success": false,
+  "source_dir": "specimens/go/go-01-inventory-api",
+  "language": "mixed",
+  "file_results": [
+    {
+      "success": false,
+      "source_file": "specimens/go/go-01-inventory-api/calc.go",
+      "language": "go",
+      "spec_extracted": true,
+      "verification_status": "refuted",
+      "spec_health_issues": [],
+      "verification_violations": [
+        "Go function `reorderPoint` can divide by `int32(len(locations))` without a non-zero contract (Z3 counterexample: int32(len(locations))=0)",
+        "Z3 Counter-example: int32(len(locations))=0"
+      ],
+      "counterexample_values": [
+        {
+          "function_name": "reorderPoint",
+          "counterexample": {
+            "int32(len(locations))": 0
+          }
+        }
+      ],
+      "cross_validation_gaps": [
+        "spec stronger than implementation: reorderPoint"
+      ],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "high",
+          "action": "migrate-suggest で .mm スケルトンを生成",
+          "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
+        },
+        {
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 1069-1170",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/go/go-01-inventory-api/calc.go\nlanguage: go\nspec_extracted: True\nverification_status: refuted\nspec_health_issues: []\nverification_violations: ['Go function `reorderPoint` can divide by `int32(len(locations))` without a non-zero contract (Z3 counterexample: int32(len(locations))=0)', 'Z3 Counter-example: int32(len(locations))=0']\ncounterexample_values: [{'function_name': 'reorderPoint', 'counterexample': {'int32(len(locations))': 0}}]\ncross_validation_gaps: ['spec stronger than implementation: reorderPoint']\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 1069-1170\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": false,
+      "source_file": "specimens/go/go-01-inventory-api/handlers.go",
+      "language": "go",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [
+        "spec ambiguity (missing_requirement): decodeMovement.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering decodeMovement; none was stated.",
+        "spec ambiguity (missing_requirement): decodeMovement.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering decodeMovement; none was stated.",
+        "spec ambiguity (missing_requirement): writeMovement.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering writeMovement; none was stated.",
+        "spec ambiguity (missing_requirement): writeMovement.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering writeMovement; none was stated.",
+        "spec ambiguity (missing_requirement): restockHandler.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering restockHandler; none was stated.",
+        "spec ambiguity (missing_requirement): restockHandler.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering restockHandler; none was stated.",
+        "spec ambiguity (missing_requirement): reportHandler.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering reportHandler; none was stated.",
+        "spec ambiguity (missing_requirement): reportHandler.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering reportHandler; none was stated.",
+        "spec ambiguity (missing_requirement): searchHandler.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering searchHandler; none was stated.",
+        "spec ambiguity (missing_requirement): searchHandler.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering searchHandler; none was stated.",
+        "spec ambiguity (missing_requirement): writeJSON.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering writeJSON; none was stated.",
+        "spec ambiguity (missing_requirement): writeJSON.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering writeJSON; none was stated."
+      ],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+        },
+        {
+          "priority": "high",
+          "action": "欠落要件を追記してから再監査（推測で補完しない）",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: vague_adjective at Position 2436-2447, conditional at Position 2840-2890, conditional at Position 3629-3641, conditional at Position 4666-4707",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/go/go-01-inventory-api/handlers.go\nlanguage: go\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec ambiguity (missing_requirement): decodeMovement.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering decodeMovement; none was stated.', 'spec ambiguity (missing_requirement): decodeMovement.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering decodeMovement; none was stated.', 'spec ambiguity (missing_requirement): writeMovement.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering writeMovement; none was stated.', 'spec ambiguity (missing_requirement): writeMovement.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering writeMovement; none was stated.', 'spec ambiguity (missing_requirement): restockHandler.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering restockHandler; none was stated.', 'spec ambiguity (missing_requirement): restockHandler.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering restockHandler; none was stated.', 'spec ambiguity (missing_requirement): reportHandler.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering reportHandler; none was stated.', 'spec ambiguity (missing_requirement): reportHandler.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering reportHandler; none was stated.', 'spec ambiguity (missing_requirement): searchHandler.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering searchHandler; none was stated.', 'spec ambiguity (missing_requirement): searchHandler.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering searchHandler; none was stated.', 'spec ambiguity (missing_requirement): writeJSON.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering writeJSON; none was stated.', 'spec ambiguity (missing_requirement): writeJSON.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering writeJSON; none was stated.']\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: vague_adjective at Position 2436-2447, conditional at Position 2840-2890, conditional at Position 3629-3641, conditional at Position 4666-4707\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": false,
+      "source_file": "specimens/go/go-01-inventory-api/main.go",
+      "language": "go",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [
+        "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+        "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.",
+        "spec ambiguity (missing_requirement): adminAuthorized.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering adminAuthorized; none was stated."
+      ],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+        },
+        {
+          "priority": "high",
+          "action": "欠落要件を追記してから再監査（推測で補完しない）",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 286-306, conditional at Position 447-531, conditional at Position 1337-1434, conditional at Position 2064-2096",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/go/go-01-inventory-api/main.go\nlanguage: go\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.', 'spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.', 'spec ambiguity (missing_requirement): adminAuthorized.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering adminAuthorized; none was stated.']\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 286-306, conditional at Position 447-531, conditional at Position 1337-1434, conditional at Position 2064-2096\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": false,
+      "source_file": "specimens/go/go-01-inventory-api/store.go",
+      "language": "go",
+      "spec_extracted": true,
+      "verification_status": "verified",
+      "spec_health_issues": [],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [
+        "spec stronger than implementation: Put"
+      ],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 2538-2557",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/go/go-01-inventory-api/store.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec stronger than implementation: Put']\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 2538-2557\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    }
+  ],
+  "summary": "Audit directory: specimens/go/go-01-inventory-api\n  calc.go: 2 violations, 1 gap\n  handlers.go: 0 violations, 12 gaps\n  main.go: 0 violations, 3 gaps\n  store.go: 0 violations, 1 gap\nSummary: 4 files, 4 files with issues\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 1069-1170\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: vague_adjective at Position 2436-2447, conditional at Position 2840-2890, conditional at Position 3629-3641, conditional at Position 4666-4707\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 286-306, conditional at Position 447-531, conditional at Position 1337-1434, conditional at Position 2064-2096\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 2538-2557\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "total_files": 4,
+  "files_with_issues": 4,
+  "verification_status": "refuted",
+  "spec_health_issues": [],
+  "verification_violations": [
+    "calc.go: Go function `reorderPoint` can divide by `int32(len(locations))` without a non-zero contract (Z3 counterexample: int32(len(locations))=0)",
+    "calc.go: Z3 Counter-example: int32(len(locations))=0"
+  ],
+  "cross_validation_gaps": [
+    "calc.go: spec stronger than implementation: reorderPoint",
+    "handlers.go: spec ambiguity (missing_requirement): decodeMovement.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering decodeMovement; none was stated.",
+    "handlers.go: spec ambiguity (missing_requirement): decodeMovement.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering decodeMovement; none was stated.",
+    "handlers.go: spec ambiguity (missing_requirement): writeMovement.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering writeMovement; none was stated.",
+    "handlers.go: spec ambiguity (missing_requirement): writeMovement.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering writeMovement; none was stated.",
+    "handlers.go: spec ambiguity (missing_requirement): restockHandler.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering restockHandler; none was stated.",
+    "handlers.go: spec ambiguity (missing_requirement): restockHandler.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering restockHandler; none was stated.",
+    "handlers.go: spec ambiguity (missing_requirement): reportHandler.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering reportHandler; none was stated.",
+    "handlers.go: spec ambiguity (missing_requirement): reportHandler.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering reportHandler; none was stated.",
+    "handlers.go: spec ambiguity (missing_requirement): searchHandler.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering searchHandler; none was stated.",
+    "handlers.go: spec ambiguity (missing_requirement): searchHandler.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering searchHandler; none was stated.",
+    "handlers.go: spec ambiguity (missing_requirement): writeJSON.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering writeJSON; none was stated.",
+    "handlers.go: spec ambiguity (missing_requirement): writeJSON.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering writeJSON; none was stated.",
+    "main.go: spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+    "main.go: spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.",
+    "main.go: spec ambiguity (missing_requirement): adminAuthorized.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering adminAuthorized; none was stated.",
+    "store.go: spec stronger than implementation: Put"
+  ],
+  "migration_hints": [],
+  "healed_files": [],
+  "heal_errors": [],
+  "trusted_atoms": [],
+  "next_steps": [
+    {
+      "priority": "high",
+      "action": "migrate-suggest で .mm スケルトンを生成",
+      "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
+    },
+    {
+      "priority": "high",
+      "action": "validate-spec-to-code で制約の対応を確認",
+      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 1069-1170",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "high",
+      "action": "欠落要件を追記してから再監査（推測で補完しない）",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: vague_adjective at Position 2436-2447, conditional at Position 2840-2890, conditional at Position 3629-3641, conditional at Position 4666-4707",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 286-306, conditional at Position 447-531, conditional at Position 1337-1434, conditional at Position 2064-2096",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 2538-2557",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    }
+  ],
+  "errors": [],
+  "skipped_rate_limited_files": []
+}

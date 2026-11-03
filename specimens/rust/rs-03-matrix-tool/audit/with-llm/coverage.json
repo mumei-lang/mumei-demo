@@ -1,0 +1,192 @@
+{
+  "specimen": "rs-03-matrix-tool",
+  "language": "rust",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "unverifiable",
+  "files_audited": 1,
+  "files_with_issues": 1,
+  "counts": {
+    "total": 11,
+    "detected": 0,
+    "function_flagged": 1,
+    "missed": 10
+  },
+  "defects": [
+    {
+      "id": "RS03-D01",
+      "file": "src/main.rs",
+      "function": "at",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D02",
+      "file": "src/main.rs",
+      "function": "mean",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D03",
+      "file": "src/main.rs",
+      "function": "invert2x2",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D04",
+      "file": "src/main.rs",
+      "function": "scale",
+      "category": "integer-overflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D05",
+      "file": "src/main.rs",
+      "function": "parse_cells",
+      "category": "error-handling",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D06",
+      "file": "src/main.rs",
+      "function": "load_matrix",
+      "category": "logic-error",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D07",
+      "file": "src/main.rs",
+      "function": "main",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+        "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
+      ]
+    },
+    {
+      "id": "RS03-D08",
+      "file": "src/main.rs",
+      "function": "transpose",
+      "category": "off-by-one",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D09",
+      "file": "src/main.rs",
+      "function": "append_report",
+      "category": "command-injection",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D10",
+      "file": "src/main.rs",
+      "function": "checksum_file",
+      "category": "weak-crypto",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "RS03-D11",
+      "file": "src/main.rs",
+      "function": "write_cache",
+      "category": "toctou",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [],
+  "findings": [
+    {
+      "file": "src/main.rs",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/main.rs",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.",
+      "status": "unreviewed"
+    }
+  ],
+  "finding_counts": {
+    "total": 2,
+    "defect_evidence": 0,
+    "real": 0,
+    "false_positive": 0,
+    "unreviewed": 2
+  },
+  "reviews_used": [],
+  "source_hash": "f7bc196d4962d0408ae4e9b7f9dde8bcd41b12e0e9882d4da9974a2aac63509e",
+  "meta": {
+    "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
+    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
+    "mumei_version": "mumei 0.6.23",
+    "llm_configured": true,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-11-03T05:18:58Z",
+    "llm_model": "openai/gpt-6-luna",
+    "llm_endpoint": "openrouter.ai"
+  },
+  "fixed": {
+    "defects": 11,
+    "still_reported": [],
+    "still_function_flagged": [],
+    "false_alarms": 2,
+    "findings": [
+      {
+        "file": "src/main.rs",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): sha256.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering sha256; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/main.rs",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): sha256.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sha256; none was stated.",
+        "status": "unreviewed"
+      }
+    ],
+    "finding_counts": {
+      "total": 2,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 0,
+      "unreviewed": 2
+    },
+    "reviews_used": []
+  }
+}

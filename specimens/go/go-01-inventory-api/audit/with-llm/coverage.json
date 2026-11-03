@@ -1,0 +1,464 @@
+{
+  "specimen": "go-01-inventory-api",
+  "language": "go",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "refuted",
+  "files_audited": 4,
+  "files_with_issues": 3,
+  "counts": {
+    "total": 11,
+    "detected": 2,
+    "function_flagged": 5,
+    "missed": 4
+  },
+  "defects": [
+    {
+      "id": "GO01-D01",
+      "file": "handlers.go",
+      "function": "reserveHandler",
+      "category": "race-condition",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "malformed-extraction: reserveHandler ensures: garbled comparison operators '==>'",
+        "malformed-extraction: reserveHandler ensures: garbled comparison operators '==>'",
+        "malformed-extraction: reserveHandler ensures: garbled comparison operators '==>'",
+        "malformed-extraction: reserveHandler ensures: garbled comparison operators '==>'",
+        "malformed-extraction: reserveHandler ensures: garbled comparison operators '==>'"
+      ]
+    },
+    {
+      "id": "GO01-D02",
+      "file": "handlers.go",
+      "function": "restockHandler",
+      "category": "integer-overflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "malformed-extraction: restockHandler ensures: garbled comparison operators '==>'",
+        "malformed-extraction: restockHandler ensures: garbled comparison operators '==>'",
+        "malformed-extraction: restockHandler ensures: garbled comparison operators '==>'",
+        "malformed-extraction: restockHandler ensures: garbled comparison operators '==>'",
+        "malformed-extraction: restockHandler ensures: garbled comparison operators '==>'"
+      ]
+    },
+    {
+      "id": "GO01-D03",
+      "file": "handlers.go",
+      "function": "releaseHandler",
+      "category": "invariant-violation",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "malformed-extraction: releaseHandler ensures: garbled comparison operators '==>'",
+        "malformed-extraction: releaseHandler ensures: garbled comparison operators '==>'",
+        "malformed-extraction: releaseHandler ensures: garbled comparison operators '==>'",
+        "malformed-extraction: releaseHandler ensures: garbled comparison operators '==>'",
+        "malformed-extraction: releaseHandler ensures: garbled comparison operators '==>'"
+      ]
+    },
+    {
+      "id": "GO01-D04",
+      "file": "handlers.go",
+      "function": "itemHandler",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "malformed-extraction: itemHandler ensures: garbled comparison operators '==>'"
+      ]
+    },
+    {
+      "id": "GO01-D05",
+      "file": "calc.go",
+      "function": "reorderPoint",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Go function `reorderPoint` can divide by `int32(len(locations))` without a non-zero contract (Z3 counterexample: int32(len(locations))=0)"
+      ]
+    },
+    {
+      "id": "GO01-D06",
+      "file": "handlers.go",
+      "function": "viewItem",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D07",
+      "file": "handlers.go",
+      "function": "reportHandler",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D08",
+      "file": "main.go",
+      "function": "auditRequests",
+      "category": "resource-leak",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "spec ambiguity (missing_requirement): auditRequests.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering auditRequests; none was stated.",
+        "spec ambiguity (missing_requirement): auditRequests.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering auditRequests; none was stated."
+      ]
+    },
+    {
+      "id": "GO01-D09",
+      "file": "handlers.go",
+      "function": "createItem",
+      "category": "error-handling",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D10",
+      "file": "handlers.go",
+      "function": "searchHandler",
+      "category": "xss",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO01-D11",
+      "file": "main.go",
+      "function": "main",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+        "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
+      ]
+    }
+  ],
+  "unmatched_findings": [
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: resetHandler ensures: garbled comparison operators '==>'"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: resetHandler ensures: garbled comparison operators '==>'"
+    }
+  ],
+  "findings": [
+    {
+      "file": "calc.go",
+      "kind": "verification_violations",
+      "text": "Go function `reorderPoint` can divide by `int32(len(locations))` without a non-zero contract (Z3 counterexample: int32(len(locations))=0)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: itemHandler ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: reserveHandler ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: reserveHandler ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: reserveHandler ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: reserveHandler ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: reserveHandler ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: releaseHandler ensures: garbled comparison operators '==>'",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: releaseHandler ensures: garbled comparison operators '==>'",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: releaseHandler ensures: garbled comparison operators '==>'",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: releaseHandler ensures: garbled comparison operators '==>'",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: releaseHandler ensures: garbled comparison operators '==>'",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: restockHandler ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: restockHandler ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: restockHandler ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: restockHandler ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: restockHandler ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: resetHandler ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: resetHandler ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): auditRequests.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering auditRequests; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): auditRequests.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering auditRequests; none was stated.",
+      "status": "unreviewed"
+    }
+  ],
+  "finding_counts": {
+    "total": 23,
+    "defect_evidence": 6,
+    "real": 0,
+    "false_positive": 0,
+    "unreviewed": 17
+  },
+  "reviews_used": [],
+  "source_hash": "5014fb7d871106c11847f9092f9e18758378b37f1e691a333b4b7ab14540faa5",
+  "meta": {
+    "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
+    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
+    "mumei_version": "mumei 0.6.23",
+    "llm_configured": true,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-11-03T05:18:58Z",
+    "llm_model": "openai/gpt-6-luna",
+    "llm_endpoint": "openrouter.ai"
+  },
+  "fixed": {
+    "defects": 11,
+    "still_reported": [
+      "GO01-D05"
+    ],
+    "still_function_flagged": [
+      "GO01-D02",
+      "GO01-D07",
+      "GO01-D10",
+      "GO01-D11"
+    ],
+    "false_alarms": 18,
+    "findings": [
+      {
+        "file": "calc.go",
+        "kind": "verification_violations",
+        "text": "Go function `reorderPoint` can divide by `int32(len(locations))` without a non-zero contract (Z3 counterexample: int32(len(locations))=0)",
+        "status": "false_positive",
+        "reason": "On the fixed code, reorderPoint returns 0 when locations is empty, so the divisor is never zero."
+      },
+      {
+        "file": "calc.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec stronger than implementation: reorderPoint",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): decodeMovement.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering decodeMovement; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): decodeMovement.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering decodeMovement; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): writeMovement.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering writeMovement; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): writeMovement.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering writeMovement; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): restockHandler.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering restockHandler; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): restockHandler.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering restockHandler; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): reportHandler.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering reportHandler; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): reportHandler.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering reportHandler; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): searchHandler.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering searchHandler; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): searchHandler.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering searchHandler; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): writeJSON.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering writeJSON; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): writeJSON.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering writeJSON; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): adminAuthorized.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering adminAuthorized; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "store.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec stronger than implementation: Put",
+        "status": "unreviewed"
+      }
+    ],
+    "finding_counts": {
+      "total": 18,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 1,
+      "unreviewed": 17
+    },
+    "reviews_used": [
+      [
+        "go-01-inventory-api",
+        "calc.go",
+        "Go function `reorderPoint` can divide by `int32(len(locations))`"
+      ]
+    ]
+  }
+}

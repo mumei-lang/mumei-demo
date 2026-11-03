@@ -1,0 +1,125 @@
+{
+  "success": false,
+  "source_dir": "specimens/python/py-04-doc-vault",
+  "language": "mixed",
+  "file_results": [
+    {
+      "success": false,
+      "source_file": "specimens/python/py-04-doc-vault/app.py",
+      "language": "python",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [
+        "spec ambiguity (missing_requirement): respond.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering respond; none was stated.",
+        "spec ambiguity (missing_requirement): respond.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering respond; none was stated.",
+        "spec ambiguity (missing_requirement): dispatch.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering dispatch; none was stated.",
+        "spec ambiguity (missing_requirement): dispatch.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering dispatch; none was stated.",
+        "spec ambiguity (missing_requirement): do_GET.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering do_GET; none was stated.",
+        "spec ambiguity (missing_requirement): do_GET.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering do_GET; none was stated."
+      ],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+        },
+        {
+          "priority": "high",
+          "action": "欠落要件を追記してから再監査（推測で補完しない）",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: log_message.requires, log_message.ensures, respond_html.requires, respond_html.ensures, respond_text.requires, respond_text.ensures, api_key.requires, route.requires, do_POST.requires, do_POST.ensures, share.requires, share.ensures, fetch.requires, fetch.ensures, purge.requires, go.requires, go.ensures, docs_html.requires, docs_html.ensures, main.requires, main.ensures, vague_adjective at Position 3075-3086, conditional at Position 3152-3343",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/python/py-04-doc-vault/app.py\nlanguage: python\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec ambiguity (missing_requirement): respond.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering respond; none was stated.', 'spec ambiguity (missing_requirement): respond.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering respond; none was stated.', 'spec ambiguity (missing_requirement): dispatch.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering dispatch; none was stated.', 'spec ambiguity (missing_requirement): dispatch.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering dispatch; none was stated.', 'spec ambiguity (missing_requirement): do_GET.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering do_GET; none was stated.', 'spec ambiguity (missing_requirement): do_GET.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering do_GET; none was stated.']\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: log_message.requires, log_message.ensures, respond_html.requires, respond_html.ensures, respond_text.requires, respond_text.ensures, api_key.requires, route.requires, do_POST.requires, do_POST.ensures, share.requires, share.ensures, fetch.requires, fetch.ensures, purge.requires, go.requires, go.ensures, docs_html.requires, docs_html.ensures, main.requires, main.ensures, vague_adjective at Position 3075-3086, conditional at Position 3152-3343\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": true,
+      "source_file": "specimens/python/py-04-doc-vault/vault.py",
+      "language": "python",
+      "spec_extracted": true,
+      "verification_status": "verified",
+      "spec_health_issues": [],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "info",
+          "action": "監査完了。追加の .mm 移行は不要",
+          "command": ""
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: token_matches.requires, token_matches.ensures, init.requires, init.ensures, stage.requires, get.requires, conditional at Position 505-599, conditional at Position 1769-1828, conditional at Position 3335-3395",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit passed: specimens/python/py-04-doc-vault/vault.py\nlanguage: python\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: token_matches.requires, token_matches.ensures, init.requires, init.ensures, stage.requires, get.requires, conditional at Position 505-599, conditional at Position 1769-1828, conditional at Position 3335-3395\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    }
+  ],
+  "summary": "Audit directory: specimens/python/py-04-doc-vault\n  app.py: 0 violations, 6 gaps\n  vault.py: 0 violations, 0 gaps\nSummary: 2 files, 1 file with issues\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: log_message.requires, log_message.ensures, respond_html.requires, respond_html.ensures, respond_text.requires, respond_text.ensures, api_key.requires, route.requires, do_POST.requires, do_POST.ensures, share.requires, share.ensures, fetch.requires, fetch.ensures, purge.requires, go.requires, go.ensures, docs_html.requires, docs_html.ensures, main.requires, main.ensures, vague_adjective at Position 3075-3086, conditional at Position 3152-3343\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: token_matches.requires, token_matches.ensures, init.requires, init.ensures, stage.requires, get.requires, conditional at Position 505-599, conditional at Position 1769-1828, conditional at Position 3335-3395\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "total_files": 2,
+  "files_with_issues": 1,
+  "verification_status": "unverifiable",
+  "spec_health_issues": [],
+  "verification_violations": [],
+  "cross_validation_gaps": [
+    "app.py: spec ambiguity (missing_requirement): respond.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering respond; none was stated.",
+    "app.py: spec ambiguity (missing_requirement): respond.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering respond; none was stated.",
+    "app.py: spec ambiguity (missing_requirement): dispatch.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering dispatch; none was stated.",
+    "app.py: spec ambiguity (missing_requirement): dispatch.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering dispatch; none was stated.",
+    "app.py: spec ambiguity (missing_requirement): do_GET.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering do_GET; none was stated.",
+    "app.py: spec ambiguity (missing_requirement): do_GET.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering do_GET; none was stated."
+  ],
+  "migration_hints": [],
+  "healed_files": [],
+  "heal_errors": [],
+  "trusted_atoms": [],
+  "next_steps": [
+    {
+      "priority": "high",
+      "action": "validate-spec-to-code で制約の対応を確認",
+      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+    },
+    {
+      "priority": "high",
+      "action": "欠落要件を追記してから再監査（推測で補完しない）",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: log_message.requires, log_message.ensures, respond_html.requires, respond_html.ensures, respond_text.requires, respond_text.ensures, api_key.requires, route.requires, do_POST.requires, do_POST.ensures, share.requires, share.ensures, fetch.requires, fetch.ensures, purge.requires, go.requires, go.ensures, docs_html.requires, docs_html.ensures, main.requires, main.ensures, vague_adjective at Position 3075-3086, conditional at Position 3152-3343",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: token_matches.requires, token_matches.ensures, init.requires, init.ensures, stage.requires, get.requires, conditional at Position 505-599, conditional at Position 1769-1828, conditional at Position 3335-3395",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    }
+  ],
+  "errors": [],
+  "skipped_rate_limited_files": []
+}

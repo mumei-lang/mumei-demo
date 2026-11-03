@@ -1,0 +1,738 @@
+{
+  "specimen": "sol-03-staking-rewards",
+  "language": "solidity",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "refuted",
+  "files_audited": 4,
+  "files_with_issues": 3,
+  "counts": {
+    "total": 10,
+    "detected": 3,
+    "function_flagged": 6,
+    "missed": 1
+  },
+  "defects": [
+    {
+      "id": "SOL03-D01",
+      "file": "src/StakingRewards.sol",
+      "function": "rewardPerToken",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "spec stronger than implementation: rewardPerToken"
+      ]
+    },
+    {
+      "id": "SOL03-D02",
+      "file": "src/StakingRewards.sol",
+      "function": "earned",
+      "category": "integer-underflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `earned` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL03-D03",
+      "file": "src/StakingRewards.sol",
+      "function": "notifyRewardAmount",
+      "category": "access-control",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Solidity function `notifyRewardAmount` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL03-D04",
+      "file": "src/StakingRewards.sol",
+      "function": "stake",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `stake` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL03-D05",
+      "file": "src/StakingRewards.sol",
+      "function": "emergencyWithdraw",
+      "category": "reentrancy",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Solidity function `emergencyWithdraw` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)",
+        "counterexample for `emergencyWithdraw`: {\"guard\": \"absent\", \"reentrancy_trace\": [\"externalCall: stakingToken.transfer(msg.sender, amount),\", \"stateWrite: balances[msg.sender]\"]}"
+      ]
+    },
+    {
+      "id": "SOL03-D06",
+      "file": "src/StakingRewards.sol",
+      "function": "rewardPerToken",
+      "category": "rounding-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "spec stronger than implementation: rewardPerToken"
+      ]
+    },
+    {
+      "id": "SOL03-D07",
+      "file": "src/StakingRewards.sol",
+      "function": "constructor",
+      "category": "invariant-violation",
+      "class": "design",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL03-D08",
+      "file": "src/StakingRewards.sol",
+      "function": "getReward",
+      "category": "unchecked-call",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `getReward` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL03-D09",
+      "file": "src/StakingRewards.sol",
+      "function": "claimFor",
+      "category": "missing-authorization",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "detected",
+      "findings": [
+        "Solidity function `claimFor` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL03-D10",
+      "file": "src/StakingRewards.sol",
+      "function": "claimBonus",
+      "category": "signature-replay",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `claimBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    }
+  ],
+  "unmatched_findings": [
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `mint` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `setReceiveHook` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec stronger than implementation: transferFrom"
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): move.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering move; none was stated."
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): move.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering move; none was stated."
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): notifyReceiver.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering notifyReceiver; none was stated."
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): notifyReceiver.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering notifyReceiver; none was stated."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `setPayoutAddress` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): balanceOf.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering balanceOf; none was stated."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): balanceOf.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering balanceOf; none was stated."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): lastTimeRewardApplicable.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering lastTimeRewardApplicable; none was stated."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): lastTimeRewardApplicable.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering lastTimeRewardApplicable; none was stated."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): setOperator.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering setOperator; none was stated."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): setOperator.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering setOperator; none was stated."
+    },
+    {
+      "file": "test/TestBase.sol",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: panicCode: spec_lowering_failed: failed to lower ensures clause '((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))': Type Error: len() expects an array or string argument; `data` is neither (constraints: [\"((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))\"])"
+    }
+  ],
+  "findings": [
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `mint` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "The specimen's token is an open test faucet: the contract has no owner role and documents mint as minting to the caller. Judgement call: not counted as an unlisted defect."
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `setReceiveHook` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "ERC20 approve. Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "ERC20 transferFrom is authorized by the allowance, which is checked."
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec stronger than implementation: transferFrom",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): move.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering move; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): move.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering move; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): notifyReceiver.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering notifyReceiver; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/StakeToken.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): notifyReceiver.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering notifyReceiver; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `earned` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "earned is a `view` function, so it is not state-mutating and needs no access control."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `stake` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `emergencyWithdraw` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `emergencyWithdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `getReward` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `setPayoutAddress` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `claimFor` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `claimBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Authorized by the operator signature. The planted defect (SOL03-D10) is replay, not a missing caller check."
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `notifyRewardAmount` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec stronger than implementation: rewardPerToken",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): balanceOf.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering balanceOf; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): balanceOf.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering balanceOf; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): lastTimeRewardApplicable.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering lastTimeRewardApplicable; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): lastTimeRewardApplicable.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering lastTimeRewardApplicable; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): notifyRewardAmount.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering notifyRewardAmount; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): notifyRewardAmount.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering notifyRewardAmount; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): setOperator.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering setOperator; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/StakingRewards.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): setOperator.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering setOperator; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "test/TestBase.sol",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: panicCode: spec_lowering_failed: failed to lower ensures clause '((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))': Type Error: len() expects an array or string argument; `data` is neither (constraints: [\"((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))\"])",
+      "status": "unreviewed"
+    }
+  ],
+  "finding_counts": {
+    "total": 29,
+    "defect_evidence": 3,
+    "real": 0,
+    "false_positive": 11,
+    "unreviewed": 15
+  },
+  "reviews_used": [
+    [
+      "sol-03-staking-rewards",
+      "src/StakeToken.sol",
+      "Solidity function `approve` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakeToken.sol",
+      "Solidity function `mint` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakeToken.sol",
+      "Solidity function `setReceiveHook` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakeToken.sol",
+      "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `claimBonus` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `earned` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `emergencyWithdraw` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `getReward` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `setPayoutAddress` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `stake` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-03-staking-rewards",
+      "src/StakingRewards.sol",
+      "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard"
+    ]
+  ],
+  "source_hash": "43cf94281eb7b1fc324c24c7529726d100f9f62e5b24741bdc3284eee4d494ff",
+  "meta": {
+    "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
+    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
+    "mumei_version": "mumei 0.6.23",
+    "llm_configured": true,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-11-03T05:18:58Z",
+    "llm_model": "openai/gpt-6-luna",
+    "llm_endpoint": "openrouter.ai"
+  },
+  "fixed": {
+    "defects": 10,
+    "still_reported": [],
+    "still_function_flagged": [
+      "SOL03-D01",
+      "SOL03-D02",
+      "SOL03-D03",
+      "SOL03-D04",
+      "SOL03-D05",
+      "SOL03-D06",
+      "SOL03-D08",
+      "SOL03-D10"
+    ],
+    "false_alarms": 27,
+    "findings": [
+      {
+        "file": "src/StakeToken.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `mint` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "The specimen's token is an open test faucet: the contract has no owner role and documents mint as minting to the caller. Judgement call: not counted as an unlisted defect."
+      },
+      {
+        "file": "src/StakeToken.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `setReceiveHook` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+      },
+      {
+        "file": "src/StakeToken.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "ERC20 approve. Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+      },
+      {
+        "file": "src/StakeToken.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "ERC20 transferFrom is authorized by the allowance, which is checked."
+      },
+      {
+        "file": "src/StakeToken.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec stronger than implementation: transferFrom",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakeToken.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): move.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering move; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakeToken.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): move.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering move; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakeToken.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): notifyReceiver.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering notifyReceiver; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakeToken.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): notifyReceiver.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering notifyReceiver; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `stake` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `emergencyWithdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `getReward` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `setPayoutAddress` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `claimBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "Authorized by the operator signature. The planted defect (SOL03-D10) is replay, not a missing caller check."
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec stronger than implementation: lastTimeRewardApplicable",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec stronger than implementation: rewardPerToken",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): balanceOf.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering balanceOf; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): balanceOf.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering balanceOf; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): earned.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering earned; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): getReward.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering getReward; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): getReward.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering getReward; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): notifyRewardAmount.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering notifyRewardAmount; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): notifyRewardAmount.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering notifyRewardAmount; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): setOperator.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering setOperator; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/StakingRewards.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): setOperator.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering setOperator; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "test/TestBase.sol",
+        "kind": "spec_health_issues",
+        "text": "encoding-gap: panicCode: spec_lowering_failed: failed to lower ensures clause '((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))': Type Error: len() expects an array or string argument; `data` is neither (constraints: [\"((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))\"])",
+        "status": "unreviewed"
+      }
+    ],
+    "finding_counts": {
+      "total": 27,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 10,
+      "unreviewed": 17
+    },
+    "reviews_used": [
+      [
+        "sol-03-staking-rewards",
+        "src/StakeToken.sol",
+        "Solidity function `approve` is an externally callable state-mutating function with no access-control guard"
+      ],
+      [
+        "sol-03-staking-rewards",
+        "src/StakeToken.sol",
+        "Solidity function `mint` is an externally callable state-mutating function with no access-control guard"
+      ],
+      [
+        "sol-03-staking-rewards",
+        "src/StakeToken.sol",
+        "Solidity function `setReceiveHook` is an externally callable state-mutating function with no access-control guard"
+      ],
+      [
+        "sol-03-staking-rewards",
+        "src/StakeToken.sol",
+        "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard"
+      ],
+      [
+        "sol-03-staking-rewards",
+        "src/StakingRewards.sol",
+        "Solidity function `claimBonus` is an externally callable state-mutating function with no access-control guard"
+      ],
+      [
+        "sol-03-staking-rewards",
+        "src/StakingRewards.sol",
+        "Solidity function `emergencyWithdraw` is an externally callable state-mutating function with no access-control guard"
+      ],
+      [
+        "sol-03-staking-rewards",
+        "src/StakingRewards.sol",
+        "Solidity function `getReward` is an externally callable state-mutating function with no access-control guard"
+      ],
+      [
+        "sol-03-staking-rewards",
+        "src/StakingRewards.sol",
+        "Solidity function `setPayoutAddress` is an externally callable state-mutating function with no access-control guard"
+      ],
+      [
+        "sol-03-staking-rewards",
+        "src/StakingRewards.sol",
+        "Solidity function `stake` is an externally callable state-mutating function with no access-control guard"
+      ],
+      [
+        "sol-03-staking-rewards",
+        "src/StakingRewards.sol",
+        "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard"
+      ]
+    ]
+  }
+}

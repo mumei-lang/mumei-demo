@@ -1,0 +1,339 @@
+{
+  "specimen": "go-03-auth-gateway",
+  "language": "go",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "unverifiable",
+  "files_audited": 3,
+  "files_with_issues": 3,
+  "counts": {
+    "total": 11,
+    "detected": 0,
+    "function_flagged": 10,
+    "missed": 1
+  },
+  "defects": [
+    {
+      "id": "GO03-D01",
+      "file": "handlers.go",
+      "function": "loginHandler",
+      "category": "insecure-randomness",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "encoding-gap: loginHandler: spec_lowering_failed: failed to lower ensures clause '! allow_attempt => result.status == 429 && result.message == \"try again later\" && ! result.body_processed && ! result.session_recorded': Verification Error: Expected int (constraints: [\"! allow_attempt => result.status == 429 && result.message == \\\"try again later\\\" && ! result.body_processed && ! result.session_recorded\"])"
+      ]
+    },
+    {
+      "id": "GO03-D02",
+      "file": "auth.go",
+      "function": "tokenMatches",
+      "category": "timing-side-channel",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO03-D03",
+      "file": "handlers.go",
+      "function": "proxyHandler",
+      "category": "ssrf",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "encoding-gap: proxyHandler: spec_lowering_failed: failed to lower requires clause 'bearer_user == \"\" || ! upstream_succeeds ||(upstream_status >= 100 && upstream_status <= 599)': Verification Error: Expected int (constraints: [\"bearer_user == \\\"\\\" || ! upstream_succeeds ||(upstream_status >= 100 && upstream_status <= 599)\"])"
+      ]
+    },
+    {
+      "id": "GO03-D04",
+      "file": "handlers.go",
+      "function": "profileHandler",
+      "category": "idor",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "encoding-gap: profileHandler: spec_lowering_failed: failed to lower requires clause 'account_exists || requested_user != \"\" || bearer_user == \"\"': Verification Error: Expected int (constraints: [\"account_exists || requested_user != \\\"\\\" || bearer_user == \\\"\\\"\"])"
+      ]
+    },
+    {
+      "id": "GO03-D05",
+      "file": "handlers.go",
+      "function": "profileHandler",
+      "category": "weak-crypto",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "encoding-gap: profileHandler: spec_lowering_failed: failed to lower requires clause 'account_exists || requested_user != \"\" || bearer_user == \"\"': Verification Error: Expected int (constraints: [\"account_exists || requested_user != \\\"\\\" || bearer_user == \\\"\\\"\"])"
+      ]
+    },
+    {
+      "id": "GO03-D06",
+      "file": "handlers.go",
+      "function": "rotateHandler",
+      "category": "invalid-state-transition",
+      "class": "design",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "encoding-gap: rotateHandler: spec_lowering_failed: failed to lower requires clause 'bearer_user != \"admin\" || epoch < i64 :: MAX': Verification Error: Expected int (constraints: [\"bearer_user != \\\"admin\\\" || epoch < i64 :: MAX\"])"
+      ]
+    },
+    {
+      "id": "GO03-D07",
+      "file": "handlers.go",
+      "function": "loginHandler",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "encoding-gap: loginHandler: spec_lowering_failed: failed to lower ensures clause '! allow_attempt => result.status == 429 && result.message == \"try again later\" && ! result.body_processed && ! result.session_recorded': Verification Error: Expected int (constraints: [\"! allow_attempt => result.status == 429 && result.message == \\\"try again later\\\" && ! result.body_processed && ! result.session_recorded\"])"
+      ]
+    },
+    {
+      "id": "GO03-D08",
+      "file": "auth.go",
+      "function": "allowAttempt",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "encoding-gap: allowAttempt: spec_not_boolean: ensures clause 'let key = if host_parse_succeeded then parsed_host else address' must lower to boolean (constraints: [\"let key = if host_parse_succeeded then parsed_host else address\"])"
+      ]
+    },
+    {
+      "id": "GO03-D09",
+      "file": "main.go",
+      "function": "main",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+        "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
+      ]
+    },
+    {
+      "id": "GO03-D10",
+      "file": "handlers.go",
+      "function": "healthHandler",
+      "category": "information-exposure",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "encoding-gap: healthHandler: spec_lowering_failed: failed to lower ensures clause 'result.health_status == \"ok\"': Verification Error: Expected int (constraints: [\"result.health_status == \\\"ok\\\"\"])"
+      ]
+    },
+    {
+      "id": "GO03-D11",
+      "file": "handlers.go",
+      "function": "loginHandler",
+      "category": "open-redirect",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "encoding-gap: loginHandler: spec_lowering_failed: failed to lower ensures clause '! allow_attempt => result.status == 429 && result.message == \"try again later\" && ! result.body_processed && ! result.session_recorded': Verification Error: Expected int (constraints: [\"! allow_attempt => result.status == 429 && result.message == \\\"try again later\\\" && ! result.body_processed && ! result.session_recorded\"])"
+      ]
+    }
+  ],
+  "unmatched_findings": [
+    {
+      "file": "auth.go",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: bearerUser: spec_not_boolean: ensures clause 'let token = if has_prefix(authorization_header, \"Bearer \") then substring(authorization_header, 7, len(authorization_header)) else authorization_header' must lower to boolean (constraints: [\"let token = if has_prefix(authorization_header, \\\"Bearer \\\") then substring(authorization_header, 7, len(authorization_header)) else authorization_header\"])"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: writeJSON: spec_lowering_failed: failed to lower ensures clause 'result.content_type == \"application/json\"': Verification Error: Expected int (constraints: [\"result.content_type == \\\"application/json\\\"\"])"
+    }
+  ],
+  "findings": [
+    {
+      "file": "auth.go",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: bearerUser: spec_not_boolean: ensures clause 'let token = if has_prefix(authorization_header, \"Bearer \") then substring(authorization_header, 7, len(authorization_header)) else authorization_header' must lower to boolean (constraints: [\"let token = if has_prefix(authorization_header, \\\"Bearer \\\") then substring(authorization_header, 7, len(authorization_header)) else authorization_header\"])",
+      "status": "unreviewed"
+    },
+    {
+      "file": "auth.go",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: allowAttempt: spec_not_boolean: ensures clause 'let key = if host_parse_succeeded then parsed_host else address' must lower to boolean (constraints: [\"let key = if host_parse_succeeded then parsed_host else address\"])",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: loginHandler: spec_lowering_failed: failed to lower ensures clause '! allow_attempt => result.status == 429 && result.message == \"try again later\" && ! result.body_processed && ! result.session_recorded': Verification Error: Expected int (constraints: [\"! allow_attempt => result.status == 429 && result.message == \\\"try again later\\\" && ! result.body_processed && ! result.session_recorded\"])",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: profileHandler: spec_lowering_failed: failed to lower requires clause 'account_exists || requested_user != \"\" || bearer_user == \"\"': Verification Error: Expected int (constraints: [\"account_exists || requested_user != \\\"\\\" || bearer_user == \\\"\\\"\"])",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: proxyHandler: spec_lowering_failed: failed to lower requires clause 'bearer_user == \"\" || ! upstream_succeeds ||(upstream_status >= 100 && upstream_status <= 599)': Verification Error: Expected int (constraints: [\"bearer_user == \\\"\\\" || ! upstream_succeeds ||(upstream_status >= 100 && upstream_status <= 599)\"])",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: rotateHandler: spec_lowering_failed: failed to lower requires clause 'bearer_user != \"admin\" || epoch < i64 :: MAX': Verification Error: Expected int (constraints: [\"bearer_user != \\\"admin\\\" || epoch < i64 :: MAX\"])",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: healthHandler: spec_lowering_failed: failed to lower ensures clause 'result.health_status == \"ok\"': Verification Error: Expected int (constraints: [\"result.health_status == \\\"ok\\\"\"])",
+      "status": "unreviewed"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: writeJSON: spec_lowering_failed: failed to lower ensures clause 'result.content_type == \"application/json\"': Verification Error: Expected int (constraints: [\"result.content_type == \\\"application/json\\\"\"])",
+      "status": "unreviewed"
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.",
+      "status": "unreviewed"
+    }
+  ],
+  "finding_counts": {
+    "total": 10,
+    "defect_evidence": 0,
+    "real": 0,
+    "false_positive": 0,
+    "unreviewed": 10
+  },
+  "reviews_used": [],
+  "source_hash": "a7f22803f92f10a530668fdb2e95355a4ad0869e0f8ea6c9418121ac5cba70a5",
+  "meta": {
+    "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
+    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
+    "mumei_version": "mumei 0.6.23",
+    "llm_configured": true,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-11-03T05:18:58Z",
+    "llm_model": "openai/gpt-6-luna",
+    "llm_endpoint": "openrouter.ai"
+  },
+  "fixed": {
+    "defects": 11,
+    "still_reported": [],
+    "still_function_flagged": [
+      "GO03-D02",
+      "GO03-D06",
+      "GO03-D09"
+    ],
+    "false_alarms": 13,
+    "findings": [
+      {
+        "file": "auth.go",
+        "kind": "spec_health_issues",
+        "text": "malformed-extraction: sessionUser ensures: garbled comparison operators '==>'",
+        "status": "unreviewed"
+      },
+      {
+        "file": "auth.go",
+        "kind": "spec_health_issues",
+        "text": "malformed-extraction: sessionUser ensures: garbled comparison operators '==>'",
+        "status": "unreviewed"
+      },
+      {
+        "file": "auth.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): newUser.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering newUser; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "auth.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): newUser.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering newUser; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "auth.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): passwordMatches.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering passwordMatches; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "auth.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): tokenMatches.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering tokenMatches; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "auth.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): tokenMatches.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering tokenMatches; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): rotateHandler.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering rotateHandler; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): rotateHandler.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering rotateHandler; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): writeJSON.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering writeJSON; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "handlers.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): writeJSON.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering writeJSON; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.",
+        "status": "unreviewed"
+      }
+    ],
+    "finding_counts": {
+      "total": 13,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 0,
+      "unreviewed": 13
+    },
+    "reviews_used": []
+  }
+}

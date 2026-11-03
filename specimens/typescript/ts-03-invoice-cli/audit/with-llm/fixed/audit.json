@@ -1,0 +1,173 @@
+{
+  "success": false,
+  "source_dir": "specimens/typescript/ts-03-invoice-cli",
+  "language": "mixed",
+  "file_results": [
+    {
+      "success": false,
+      "source_file": "specimens/typescript/ts-03-invoice-cli/invoice.ts",
+      "language": "typescript",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [
+        "spec ambiguity (missing_requirement): parseArgs.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseArgs; none was stated.",
+        "spec ambiguity (missing_requirement): parseArgs.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseArgs; none was stated.",
+        "spec ambiguity (missing_requirement): row.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering row; none was stated.",
+        "spec ambiguity (missing_requirement): row.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering row; none was stated.",
+        "spec ambiguity (missing_requirement): renderInvoice.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering renderInvoice; none was stated.",
+        "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+        "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
+      ],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+        },
+        {
+          "priority": "high",
+          "action": "欠落要件を追記してから再監査（推測で補完しない）",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 2263-2288",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/typescript/ts-03-invoice-cli/invoice.ts\nlanguage: typescript\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec ambiguity (missing_requirement): parseArgs.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseArgs; none was stated.', 'spec ambiguity (missing_requirement): parseArgs.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseArgs; none was stated.', 'spec ambiguity (missing_requirement): row.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering row; none was stated.', 'spec ambiguity (missing_requirement): row.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering row; none was stated.', 'spec ambiguity (missing_requirement): renderInvoice.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering renderInvoice; none was stated.', 'spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.', 'spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.']\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 2263-2288\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": false,
+      "source_file": "specimens/typescript/ts-03-invoice-cli/pricing.ts",
+      "language": "typescript",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [
+        "malformed-extraction: parseItem ensures: garbled comparison operators '==>'",
+        "malformed-extraction: parseItem ensures: garbled comparison operators '==>'",
+        "malformed-extraction: effectiveTaxRate ensures: garbled comparison operators '==>'",
+        "malformed-extraction: effectiveTaxRate ensures: garbled comparison operators '==>'",
+        "malformed-extraction: pageFooters ensures: garbled comparison operators '==>'",
+        "malformed-extraction: pageFooters ensures: garbled comparison operators '==>'"
+      ],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [
+        "spec ambiguity (missing_requirement): parseItems.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseItems; none was stated.",
+        "spec ambiguity (missing_requirement): parseItems.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseItems; none was stated.",
+        "spec ambiguity (missing_requirement): toCents.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering toCents; none was stated.",
+        "spec ambiguity (missing_requirement): toCents.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering toCents; none was stated.",
+        "spec ambiguity (missing_requirement): taxAmount.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering taxAmount; none was stated.",
+        "spec ambiguity (missing_requirement): taxAmount.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering taxAmount; none was stated.",
+        "spec ambiguity (missing_requirement): computeTotals.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering computeTotals; none was stated.",
+        "spec ambiguity (missing_requirement): computeTotals.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering computeTotals; none was stated."
+      ],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+        },
+        {
+          "priority": "high",
+          "action": "欠落要件を追記してから再監査（推測で補完しない）",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "validate-spec で仕様の矛盾を修正",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: subtotal.requires, subtotal.ensures, money.requires, money.ensures, conditional at Position 1577-1646, conditional at Position 2322-2361, conditional at Position 3029-3064",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/typescript/ts-03-invoice-cli/pricing.ts\nlanguage: typescript\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: [\"malformed-extraction: parseItem ensures: garbled comparison operators '==>'\", \"malformed-extraction: parseItem ensures: garbled comparison operators '==>'\", \"malformed-extraction: effectiveTaxRate ensures: garbled comparison operators '==>'\", \"malformed-extraction: effectiveTaxRate ensures: garbled comparison operators '==>'\", \"malformed-extraction: pageFooters ensures: garbled comparison operators '==>'\", \"malformed-extraction: pageFooters ensures: garbled comparison operators '==>'\"]\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec ambiguity (missing_requirement): parseItems.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseItems; none was stated.', 'spec ambiguity (missing_requirement): parseItems.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseItems; none was stated.', 'spec ambiguity (missing_requirement): toCents.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering toCents; none was stated.', 'spec ambiguity (missing_requirement): toCents.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering toCents; none was stated.', 'spec ambiguity (missing_requirement): taxAmount.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering taxAmount; none was stated.', 'spec ambiguity (missing_requirement): taxAmount.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering taxAmount; none was stated.', 'spec ambiguity (missing_requirement): computeTotals.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering computeTotals; none was stated.', 'spec ambiguity (missing_requirement): computeTotals.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering computeTotals; none was stated.']\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: subtotal.requires, subtotal.ensures, money.requires, money.ensures, conditional at Position 1577-1646, conditional at Position 2322-2361, conditional at Position 3029-3064\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    }
+  ],
+  "summary": "Audit directory: specimens/typescript/ts-03-invoice-cli\n  invoice.ts: 0 violations, 7 gaps\n  pricing.ts: 0 violations, 8 gaps\nSummary: 2 files, 2 files with issues\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 2263-2288\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: subtotal.requires, subtotal.ensures, money.requires, money.ensures, conditional at Position 1577-1646, conditional at Position 2322-2361, conditional at Position 3029-3064\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "total_files": 2,
+  "files_with_issues": 2,
+  "verification_status": "unverifiable",
+  "spec_health_issues": [
+    "pricing.ts: malformed-extraction: parseItem ensures: garbled comparison operators '==>'",
+    "pricing.ts: malformed-extraction: parseItem ensures: garbled comparison operators '==>'",
+    "pricing.ts: malformed-extraction: effectiveTaxRate ensures: garbled comparison operators '==>'",
+    "pricing.ts: malformed-extraction: effectiveTaxRate ensures: garbled comparison operators '==>'",
+    "pricing.ts: malformed-extraction: pageFooters ensures: garbled comparison operators '==>'",
+    "pricing.ts: malformed-extraction: pageFooters ensures: garbled comparison operators '==>'"
+  ],
+  "verification_violations": [],
+  "cross_validation_gaps": [
+    "invoice.ts: spec ambiguity (missing_requirement): parseArgs.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseArgs; none was stated.",
+    "invoice.ts: spec ambiguity (missing_requirement): parseArgs.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseArgs; none was stated.",
+    "invoice.ts: spec ambiguity (missing_requirement): row.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering row; none was stated.",
+    "invoice.ts: spec ambiguity (missing_requirement): row.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering row; none was stated.",
+    "invoice.ts: spec ambiguity (missing_requirement): renderInvoice.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering renderInvoice; none was stated.",
+    "invoice.ts: spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+    "invoice.ts: spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.",
+    "pricing.ts: spec ambiguity (missing_requirement): parseItems.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseItems; none was stated.",
+    "pricing.ts: spec ambiguity (missing_requirement): parseItems.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseItems; none was stated.",
+    "pricing.ts: spec ambiguity (missing_requirement): toCents.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering toCents; none was stated.",
+    "pricing.ts: spec ambiguity (missing_requirement): toCents.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering toCents; none was stated.",
+    "pricing.ts: spec ambiguity (missing_requirement): taxAmount.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering taxAmount; none was stated.",
+    "pricing.ts: spec ambiguity (missing_requirement): taxAmount.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering taxAmount; none was stated.",
+    "pricing.ts: spec ambiguity (missing_requirement): computeTotals.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering computeTotals; none was stated.",
+    "pricing.ts: spec ambiguity (missing_requirement): computeTotals.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering computeTotals; none was stated."
+  ],
+  "migration_hints": [],
+  "healed_files": [],
+  "heal_errors": [],
+  "trusted_atoms": [],
+  "next_steps": [
+    {
+      "priority": "high",
+      "action": "validate-spec-to-code で制約の対応を確認",
+      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+    },
+    {
+      "priority": "high",
+      "action": "欠落要件を追記してから再監査（推測で補完しない）",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 2263-2288",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "validate-spec で仕様の矛盾を修正",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: subtotal.requires, subtotal.ensures, money.requires, money.ensures, conditional at Position 1577-1646, conditional at Position 2322-2361, conditional at Position 3029-3064",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    }
+  ],
+  "errors": [],
+  "skipped_rate_limited_files": []
+}

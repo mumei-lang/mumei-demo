@@ -1,0 +1,295 @@
+{
+  "specimen": "go-02-logscan-cli",
+  "language": "go",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "unverifiable",
+  "files_audited": 1,
+  "files_with_issues": 1,
+  "counts": {
+    "total": 10,
+    "detected": 0,
+    "function_flagged": 3,
+    "missed": 7
+  },
+  "defects": [
+    {
+      "id": "GO02-D01",
+      "file": "main.go",
+      "function": "percentileAt",
+      "category": "off-by-one",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "spec ambiguity (missing_requirement): percentileAt.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering percentileAt; none was stated.",
+        "spec ambiguity (missing_requirement): percentileAt.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering percentileAt; none was stated."
+      ]
+    },
+    {
+      "id": "GO02-D02",
+      "file": "main.go",
+      "function": "formatSummary",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO02-D03",
+      "file": "main.go",
+      "function": "formatSummary",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO02-D04",
+      "file": "main.go",
+      "function": "parseFile",
+      "category": "error-handling",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "spec ambiguity (missing_requirement): parseFile.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseFile; none was stated.",
+        "spec ambiguity (missing_requirement): parseFile.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseFile; none was stated."
+      ]
+    },
+    {
+      "id": "GO02-D05",
+      "file": "main.go",
+      "function": "run",
+      "category": "command-injection",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO02-D06",
+      "file": "main.go",
+      "function": "readFiles",
+      "category": "race-condition",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO02-D07",
+      "file": "main.go",
+      "function": "readFiles",
+      "category": "resource-leak",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO02-D08",
+      "file": "main.go",
+      "function": "parseFile",
+      "category": "unbounded-resource",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "spec ambiguity (missing_requirement): parseFile.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseFile; none was stated.",
+        "spec ambiguity (missing_requirement): parseFile.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseFile; none was stated."
+      ]
+    },
+    {
+      "id": "GO02-D09",
+      "file": "main.go",
+      "function": "run",
+      "category": "information-exposure",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "GO02-D10",
+      "file": "main.go",
+      "function": "readFiles",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): parsePercentiles.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parsePercentiles; none was stated."
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): parsePercentiles.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parsePercentiles; none was stated."
+    }
+  ],
+  "findings": [
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): parsePercentiles.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parsePercentiles; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): parsePercentiles.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parsePercentiles; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): parseFile.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseFile; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): parseFile.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseFile; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): percentileAt.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering percentileAt; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): percentileAt.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering percentileAt; none was stated.",
+      "status": "unreviewed"
+    }
+  ],
+  "finding_counts": {
+    "total": 6,
+    "defect_evidence": 0,
+    "real": 0,
+    "false_positive": 0,
+    "unreviewed": 6
+  },
+  "reviews_used": [],
+  "source_hash": "a5a69d85c516d2f1ec294bb93e892cb8ddc816ff91da0bc6ddbe244a1df40f0d",
+  "meta": {
+    "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
+    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
+    "mumei_version": "mumei 0.6.23",
+    "llm_configured": true,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-11-03T05:18:58Z",
+    "llm_model": "openai/gpt-6-luna",
+    "llm_endpoint": "openrouter.ai"
+  },
+  "fixed": {
+    "defects": 10,
+    "still_reported": [
+      "GO02-D03"
+    ],
+    "still_function_flagged": [
+      "GO02-D01",
+      "GO02-D02",
+      "GO02-D04",
+      "GO02-D05",
+      "GO02-D06",
+      "GO02-D07",
+      "GO02-D08",
+      "GO02-D09",
+      "GO02-D10"
+    ],
+    "false_alarms": 12,
+    "findings": [
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): run.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering run; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): run.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering run; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): readFiles.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering readFiles; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): readFiles.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering readFiles; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): parseFile.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseFile; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): parseFile.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseFile; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): formatSummary.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering formatSummary; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): formatSummary.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering formatSummary; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): percentileAt.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering percentileAt; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "main.go",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): percentileAt.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering percentileAt; none was stated.",
+        "status": "unreviewed"
+      }
+    ],
+    "finding_counts": {
+      "total": 12,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 0,
+      "unreviewed": 12
+    },
+    "reviews_used": []
+  }
+}
