@@ -316,6 +316,7 @@ def lean_dual_check(lean_dir: str, case: dict, cert_text: str, timeout: int) -> 
     with tempfile.TemporaryDirectory(prefix="contract-bench-lean-") as tmp:
         cert, out = Path(tmp) / CERT_FILE, Path(tmp) / "fixed.lean-cert.json"
         cert.write_text(cert_text)
+        previous = module.read_bytes() if module.is_file() else None
         try:
             proc = subprocess.run([sys.executable, "scripts/bridge.py", "--cert", str(cert), "--dual-check",
                                    "--lean-cert-out", str(out)],
@@ -323,7 +324,10 @@ def lean_dual_check(lean_dir: str, case: dict, cert_text: str, timeout: int) -> 
         except subprocess.TimeoutExpired:
             return {"status": "timeout"}
         finally:
-            module.unlink(missing_ok=True)
+            if previous is None:
+                module.unlink(missing_ok=True)
+            else:
+                module.write_bytes(previous)
         try:
             doc = json.loads(out.read_text())
         except (OSError, json.JSONDecodeError):
@@ -815,6 +819,14 @@ def main(argv: list[str], provider=None) -> int:
         if arm in ("mumei", "mumei-llm") and not args.mumei_bin:
             raise SystemExit("mumei binary not found; pass --mumei-bin or set MUMEI_BIN")
         if arm == "mumei":
+            if args.only and result_path(arm, None).is_file():
+                old = json.loads(result_path(arm, None).read_text())
+                if old.get("verifier") != verifier_identity(args.mumei_bin):
+                    raise SystemExit(f"{result_path(arm, None).relative_to(REPO_ROOT)} was recorded with another "
+                                     "mumei build; rerun every case instead of using --only")
+                if args.lean_bridge and old.get("lean_bridge") != git_identity(args.lean_bridge):
+                    raise SystemExit(f"{result_path(arm, None).relative_to(REPO_ROOT)} was checked with another "
+                                     "mumei-lean commit; rerun every case with --lean-bridge instead of using --only")
             with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
                 run = list(pool.map(lambda c: run_mumei_case(c, args.mumei_bin, args.timeout), cases))
             lean = None

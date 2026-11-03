@@ -910,7 +910,19 @@ def test_lean_dual_check_timeout_cleans_up(repo, tmp_path, monkeypatch):
         raise cb.subprocess.TimeoutExpired("lake", 5)
     monkeypatch.setattr(cb.subprocess, "run", boom)
     assert cb.lean_dual_check(str(lean), c, fake_cert("average"), 5) == {"status": "timeout"}
-    assert not (lean / "generated/Generated/Fixed.lean").exists()
+    assert (lean / "generated/Generated/Fixed.lean").read_text() == "x"
+
+
+@pytest.mark.parametrize("status, stdout, write", [(0, "", True), (1, "", False)])
+def test_lean_dual_check_restores_an_existing_module(repo, tmp_path, monkeypatch, status, stdout, write):
+    c = case(repo)
+    lean = tmp_path / "lean"
+    (lean / "generated/Generated").mkdir(parents=True)
+    module = lean / "generated/Generated/Fixed.lean"
+    module.write_text("theorem kept : True := trivial\n")
+    monkeypatch.setattr(cb.subprocess, "run", fake_bridge(status, stdout, write, []))
+    cb.lean_dual_check(str(lean), c, fake_cert("average"), 5)
+    assert module.read_text() == "theorem kept : True := trivial\n"
 
 
 def test_reference_run_with_lean_bridge(repo, tmp_path, monkeypatch):
@@ -930,6 +942,27 @@ def test_reference_run_with_lean_bridge(repo, tmp_path, monkeypatch):
     # --only without --lean-bridge keeps the recorded bridge identity
     assert cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--only", "PY09-D01"]) == 0
     assert json.loads((repo / "proofs/results/mumei.json").read_text())["lean_bridge"]["commit"] == "abcdef1234"
+
+
+@pytest.mark.parametrize("change", ["verifier", "lean"])
+def test_only_rerun_with_another_build_touches_no_certificate(repo, tmp_path, monkeypatch, change):
+    monkeypatch.setattr(cb, "lean_dual_check", lambda d, c, text, t: {"status": "lean_verified"})
+    monkeypatch.setattr(cb, "git_identity", lambda d: {"commit": "abcdef1234", "dirty": False})
+    monkeypatch.setattr(cb, "verify_text", fake_verify(REFERENCE))
+    monkeypatch.setattr(cb, "verifier_identity", lambda _bin: dict(VERIFIER))
+    assert cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--lean-bridge", str(tmp_path)]) == 0
+    certs = {p: p.read_text() for p in repo.rglob(cb.CERT_FILE)}
+    result = (repo / "proofs/results/mumei.json").read_text()
+    assert certs
+    if change == "verifier":
+        monkeypatch.setattr(cb, "verifier_identity", lambda _bin: {**VERIFIER, "commit": "f" * 40})
+    else:
+        monkeypatch.setattr(cb, "git_identity", lambda d: {"commit": "0123456789", "dirty": False})
+    with pytest.raises(SystemExit, match="instead of using --only"):
+        cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--lean-bridge", str(tmp_path), "--only", "PY09-D01"])
+    assert {p: p.read_text() for p in repo.rglob(cb.CERT_FILE)} == certs
+    assert (repo / "proofs/results/mumei.json").read_text() == result
+    assert cb.main(["--check"]) == 0
 
 
 def test_git_identity(tmp_path, monkeypatch):
