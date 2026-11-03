@@ -16,7 +16,7 @@ A buggy function whose LLM port mumei proves is a translation problem: the refer
 
 A proof covers the model in the port, not native behaviour the model leaves out, such as fixed-width overflow, nil pointers or exceptions from library calls. Some LLM-only rejections of a fixed function point at exactly that kind of behaviour; their witnesses are listed below.
 
-Vacuity control (fixed port re-checked with `ensures: false`, must fail): 70 / 71 pass; not passing: SOL02-D11.
+Vacuity control (fixed port re-checked with `ensures: false`, must fail): 71 / 71 pass.
 
 Reference cases where mumei did not give the right answer:
 

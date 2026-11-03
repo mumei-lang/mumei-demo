@@ -273,7 +273,10 @@ def run_mumei_case(case: dict, mumei_bin: str, timeout: int) -> dict:
     for v in VARIANTS:
         out[v] = verify_text(mumei_bin, case["ports"][v], timeout)
     control = verify_text(mumei_bin, vacuity_text(case), timeout)
-    out["vacuity"] = "ok" if control["outcome"] == "refuted" else ("vacuous" if control["outcome"] == "proven" else "inconclusive")
+    # `ensures: false` may also be rejected up front as contradicting `requires`; either way it does not hold.
+    rejected = control["outcome"] == "refuted" or (control["status"] == "failed" and control["diagnostics"] and all(
+        "Spec contradiction" in d["message"] or REFUTATION.search(d["message"]) for d in control["diagnostics"]))
+    out["vacuity"] = "ok" if rejected else ("vacuous" if control["outcome"] == "proven" else "inconclusive")
     return out
 
 

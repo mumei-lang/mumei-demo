@@ -546,3 +546,17 @@ def test_only_refuses_to_merge_other_run_count(repo, monkeypatch):
     cb.write_result("llm", prov.model, [[r], [r]])
     with pytest.raises(SystemExit, match="rerun without --only"):
         cb.main(["--arm", "llm", "--runs", "1", "--only", "PY09-D01"], provider=prov)
+
+
+@pytest.mark.parametrize("message,vacuity", [
+    ("Verification Error: Spec contradiction in atom 'f': ensures clause 1 is inconsistent with requires", "ok"),
+    ("Verification Error: Unknown function: %", "inconclusive"),
+])
+def test_vacuity_control_accepts_spec_contradiction(repo, message, vacuity, monkeypatch):
+    def verify(_bin, text, _timeout):
+        if "ensures: false" in text:
+            return {"outcome": "inconclusive", "status": "failed", "diagnostics": [{"message": message}]}
+        return {"outcome": "proven", "status": "success", "diagnostics": []}
+    monkeypatch.setattr(cb, "verify_text", verify)
+    (case,) = cb.load_cases()[0]
+    assert cb.run_mumei_case(case, "mumei", 5)["vacuity"] == vacuity
