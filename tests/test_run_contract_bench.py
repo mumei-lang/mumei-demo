@@ -762,7 +762,7 @@ def test_contract_case_transport_error_counts_as_error(repo, monkeypatch):
     def boom(m, s):
         raise RuntimeError("LLM request failed: HTTP 429")
     r = cb.run_contract_case(case, StubProvider(boom), 0, "mumei", 5)
-    assert r["usage"] is None and cb.score([r])["errors"] == 2
+    assert r["usage"] is None and cb.score([r])["errors"] == 1
 
 
 def test_prompt_hash_is_per_arm():
@@ -820,8 +820,43 @@ def test_wrong_contract_answers_are_listed(repo, monkeypatch):
                    provider=StubProvider(lambda m, s: BLIND_REPLY)) == 0
     md = (repo / "proofs" / "RESULTS.md").read_text()
     assert "`PY09-D01` buggy accepted (1/1)" in md
-    assert f"`PY09-D01` model's ensures: `{BLIND_ENSURES}`" in md
+    assert f"`PY09-D01` model's ensures (from a wrong run): `{BLIND_ENSURES}`" in md
+    assert "vacuity control not passed" not in md
+    assert "per run: 1 / 1 pass" in md
     assert "contract-writing error" in md
+
+
+def _contract_rec(i, b, f, ensures, vac="ok"):
+    r = rec(i, "go", b, f, vac=vac)
+    r["contract"] = {"requires": "true", "ensures": ensures}
+    r["usage"] = {"cost_usd": 0.0, "seconds": 1.0}
+    return r
+
+
+def test_wrong_answer_contract_comes_from_a_wrong_run():
+    runs = [[_contract_rec("A", "refuted", "proven", "right")],
+            [_contract_rec("A", "refuted", "refuted", "too strong", vac="inconclusive")]]
+    md = cb.render_markdown([], [{"arm": "llm-contract", "model": "m", "runs": runs}], [])
+    assert "`A` fixed rejected (1/2)" in md
+    assert "`A` model's ensures (from a wrong run): `too strong` — vacuity control not passed in a wrong run" in md
+    assert "`right`" not in md
+    assert "per run: 1 / 1, 0 / 1 pass" in md
+
+
+def test_score_counts_a_failed_contract_request_once():
+    r = rec("a", "go", "inconclusive", "inconclusive")
+    r["usage"] = None
+    for v in cb.VARIANTS:
+        r[v]["status"] = "LLM request failed: HTTP 429"
+    assert (cb.score([r])["errors"], cb.score([r])["inconclusive"]) == (1, 0)
+
+
+def test_score_counts_a_missing_contract_per_variant():
+    r = rec("a", "go", "inconclusive", "inconclusive")
+    r["usage"] = {"cost_usd": 0.0}
+    for v in cb.VARIANTS:
+        r[v]["status"] = "no-contract"
+    assert (cb.score([r])["errors"], cb.score([r])["inconclusive"]) == (0, 2)
 
 
 

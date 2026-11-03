@@ -432,9 +432,12 @@ def score(records: list[dict]) -> dict:
         s["both"] += b == "refuted" and f == "proven"
         s["wrong_accept"] += b == "proven"
         s["wrong_reject"] += f == "refuted"
+        # A record-level request (llm-contract) that failed is one failed request, not one per variant.
+        shared = "usage" in r and r["usage"] is None
         for v in VARIANTS:
             if r[v]["outcome"] == "inconclusive":
-                s["errors" if str(r[v].get("status", "")).startswith(TRANSPORT_ERROR) else "inconclusive"] += 1
+                failed = str(r[v].get("status", "")).startswith(TRANSPORT_ERROR)
+                s["errors" if failed else "inconclusive"] += 0 if failed and shared and v != VARIANTS[0] else 1
         s["vacuous"] += r.get("vacuity") == "vacuous"
     return s
 
@@ -544,8 +547,8 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
                 ", ".join(f"{r['arm']} {fmt(r, 'errors')}" for r in failed) + ".", ""]
     out += ["The reference ports were written by hand with knowledge of the defects, so the first row shows "
             "that the contracts can express each requirement and how often the checker tells the two versions apart. "
-            "It is not a detection result. The LLM rows are the comparison. Both LLM arms see the product "
-            "source file, the requirement, the modelling notes and the contract header, never the defect list "
+            "It is not a detection result. The LLM rows are the comparison. LLM only and mumei + LLM see the "
+            "product source file, the requirement, the modelling notes and the contract header, never the defect list "
             "or the reference ports. LLM only answers holds/violated itself; a \"holds\" is the model's "
             "opinion, not a proof. mumei + LLM asks the model only for the `.mm` body under the pinned header, "
             "and mumei decides.", "",
@@ -574,6 +577,12 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
                 out.append(f"- `{r['id']}` ({r['language']}, `{r['function']}`): buggy {r['buggy']['outcome']}, "
                            f"fixed {r['fixed']['outcome']} — {msg.splitlines()[0][:160]}")
             out.append("")
+    for d in results:
+        if d["arm"] == "llm-contract":
+            passes = [f"{sum(r.get('vacuity') == 'ok' for r in run)} / {len(run)}" for run in d["runs"]]
+            out += [f"Vacuity control for {ARM_LABEL['llm-contract']} ({d['model']}), per run: {', '.join(passes)} pass. "
+                    "A contract that fails it is still scored: whether it is vacuous or only too weak, accepting "
+                    "the buggy body is a contract-writing error.", ""]
     wrong = []
     for d in results:
         if d["arm"] == "mumei":
@@ -596,13 +605,16 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
                 f"`{i}` {'buggy accepted' if v == 'buggy' else 'fixed rejected'} ({n}/{len(d['runs'])})"
                 for (i, v), n in sorted(counts.items())))
             wrong += [f"  - `{i}` fixed rejected, witness: {w}" for i, w in sorted(witnesses.items())]
-            contracts = {}
+            contracts, unchecked = {}, set()
             for run in d["runs"]:
                 for r in run:
-                    if (r["id"], "buggy") in counts or (r["id"], "fixed") in counts:
-                        if r.get("contract"):
-                            contracts.setdefault(r["id"], " ".join(r["contract"]["ensures"].split())[:160])
-            wrong += [f"  - `{i}` model's ensures: `{e}`" for i, e in sorted(contracts.items())]
+                    if r.get("contract") and (r["buggy"]["outcome"] == "proven" or r["fixed"]["outcome"] == "refuted"):
+                        contracts.setdefault(r["id"], " ".join(r["contract"]["ensures"].split())[:160])
+                        if r.get("vacuity") != "ok":
+                            unchecked.add(r["id"])
+            wrong += [f"  - `{i}` model's ensures (from a wrong run): `{e}`"
+                      + (" — vacuity control not passed in a wrong run" if i in unchecked else "")
+                      for i, e in sorted(contracts.items())]
     if wrong:
         out += ["## Wrong answers by case (runs out of total)", ""] + wrong + [""]
     out += ["## By language (cases with both answers right)", "",
