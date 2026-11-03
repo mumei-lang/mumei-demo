@@ -66,7 +66,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/run_baselines.py` | 13 | Run off-the-shelf static analyzers over the specimens and score them like the audit. |
 | `scripts/run_llm_only.py` | 8 | Ask an LLM alone (no Mumei) to review the specimens, and score it like the baselines. |
 | `scripts/compare_arms.py` | 2 | Compare three ways of reviewing the specimen corpus side by side. |
-| `scripts/run_contract_bench.py` | 8 | Contract benchmark: can a defect be refuted and its fix be proven against one fixed contract? |
+| `scripts/run_contract_bench.py` | 9 | Contract benchmark: can a defect be refuted and its fix be proven against one fixed contract? |
 | `scripts/record_scenario.py` | 2 | Finite record-operation checks and intentionally broken host variants. |
 | `scripts/record_model_evidence.py` | 2 | Collect independent Lean model evidence; never promote a Python operation. |
 | `scripts/check_specimens.py` | 2 | Validate specimen directories. |
@@ -165,6 +165,7 @@ Contract benchmark: can a defect be refuted and its fix be proven against one fi
 | `--jobs` | `<JOBS>` | no | `4` | cases run in parallel |
 | `--timeout` | `<TIMEOUT>` | no | `120` | per-verification timeout in seconds |
 | `--mumei-bin` | `<MUMEI_BIN>` | no | — | mumei binary (default: $MUMEI_BIN, then mumei on PATH) |
+| `--lean-bridge` | `<DIR>` | no | — | mumei-lean checkout: Lean-check each certified reference fixed port (bridge --dual-check) |
 | `--check` | — | no | `false` | validate cases and committed results offline |
 | `--render-only` | — | no | `false` | re-render RESULTS.md and the README block |
 
