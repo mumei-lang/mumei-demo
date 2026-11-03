@@ -1,0 +1,602 @@
+{
+  "specimen": "ts-01-task-board",
+  "language": "typescript",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "unverifiable",
+  "files_audited": 2,
+  "files_with_issues": 2,
+  "counts": {
+    "total": 12,
+    "detected": 1,
+    "function_flagged": 4,
+    "missed": 7
+  },
+  "defects": [
+    {
+      "id": "TS01-D01",
+      "file": "board.ts",
+      "function": "canMove",
+      "category": "invalid-state-transition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D02",
+      "file": "board.ts",
+      "function": "applyPatch",
+      "category": "mass-assignment",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D03",
+      "file": "board.ts",
+      "function": "moveTask",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "TypeScript function `moveTask` uses `task` (from `.find(...)`) without an `undefined`/`null` check — `find` returns `undefined` when no element matches"
+      ]
+    },
+    {
+      "id": "TS01-D04",
+      "file": "board.ts",
+      "function": "completionPercent",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D05",
+      "file": "board.ts",
+      "function": "searchTasks",
+      "category": "redos",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D06",
+      "file": "board.ts",
+      "function": "columnOrder",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D07",
+      "file": "board.ts",
+      "function": "parsePriority",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D08",
+      "file": "board.ts",
+      "function": "renderResults",
+      "category": "xss",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS01-D09",
+      "file": "server.ts",
+      "function": "readBody",
+      "category": "unbounded-resource",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "spec ambiguity (missing_requirement): readBody.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering readBody; none was stated.",
+        "spec ambiguity (missing_requirement): readBody.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering readBody; none was stated."
+      ]
+    },
+    {
+      "id": "TS01-D10",
+      "file": "server.ts",
+      "function": "handleMove",
+      "category": "missing-authorization",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "spec ambiguity (missing_requirement): handleMove.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleMove; none was stated.",
+        "spec ambiguity (missing_requirement): handleMove.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleMove; none was stated."
+      ]
+    },
+    {
+      "id": "TS01-D11",
+      "file": "server.ts",
+      "function": "sendError",
+      "category": "information-exposure",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "spec ambiguity (missing_requirement): sendError.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering sendError; none was stated.",
+        "spec ambiguity (missing_requirement): sendError.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sendError; none was stated."
+      ]
+    },
+    {
+      "id": "TS01-D12",
+      "file": "board.ts",
+      "function": "paginate",
+      "category": "off-by-one",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "malformed-extraction: paginate ensures: garbled comparison operators '==>'"
+      ]
+    }
+  ],
+  "unmatched_findings": [
+    {
+      "file": "server.ts",
+      "kind": "verification_violations",
+      "text": "TypeScript function `handlePatch` uses `task` (from `.find(...)`) without an `undefined`/`null` check — `find` returns `undefined` when no element matches"
+    },
+    {
+      "file": "server.ts",
+      "kind": "verification_violations",
+      "text": "TypeScript function `handlePatch` indexes with the result of `.indexOf((…)` inline — a miss yields a sentinel (`-1`) used directly as an index"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): readJson.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering readJson; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): readJson.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering readJson; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sendJson.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering sendJson; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sendJson.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sendJson; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): currentUser.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering currentUser; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): currentUser.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering currentUser; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): withNext.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering withNext; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): withNext.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering withNext; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleCreate.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleCreate; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleCreate.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleCreate; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handlePatch.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handlePatch; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handlePatch.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handlePatch; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleSearch.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleSearch; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleSearch.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleSearch; none was stated."
+    }
+  ],
+  "findings": [
+    {
+      "file": "board.ts",
+      "kind": "verification_violations",
+      "text": "TypeScript function `moveTask` uses `task` (from `.find(...)`) without an `undefined`/`null` check — `find` returns `undefined` when no element matches",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "board.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: moveTask ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "board.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: paginate ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "verification_violations",
+      "text": "TypeScript function `handlePatch` uses `task` (from `.find(...)`) without an `undefined`/`null` check — `find` returns `undefined` when no element matches",
+      "status": "false_positive",
+      "reason": "`if (!task) return sendJson(res, 404, ...)` runs right after the find."
+    },
+    {
+      "file": "server.ts",
+      "kind": "verification_violations",
+      "text": "TypeScript function `handlePatch` indexes with the result of `.indexOf((…)` inline — a miss yields a sentinel (`-1`) used directly as an index",
+      "status": "real",
+      "reason": "handlePatch awaits the request body between find and indexOf, and replaces the task object. A concurrent PATCH of the same task makes indexOf return -1, so `tasks[-1] = updated` silently drops one update. The ground truth does not list this."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): readBody.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering readBody; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): readBody.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering readBody; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): readJson.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering readJson; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): readJson.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering readJson; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sendJson.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering sendJson; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sendJson.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sendJson; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sendError.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering sendError; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sendError.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sendError; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): currentUser.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering currentUser; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): currentUser.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering currentUser; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): withNext.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering withNext; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): withNext.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering withNext; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleCreate.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleCreate; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleCreate.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleCreate; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handlePatch.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handlePatch; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handlePatch.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handlePatch; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleMove.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleMove; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleMove.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleMove; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleSearch.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleSearch; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleSearch.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleSearch; none was stated.",
+      "status": "unreviewed"
+    }
+  ],
+  "finding_counts": {
+    "total": 25,
+    "defect_evidence": 1,
+    "real": 1,
+    "false_positive": 1,
+    "unreviewed": 22
+  },
+  "reviews_used": [
+    [
+      "ts-01-task-board",
+      "server.ts",
+      "TypeScript function `handlePatch` indexes with the result of `.indexOf("
+    ],
+    [
+      "ts-01-task-board",
+      "server.ts",
+      "TypeScript function `handlePatch` uses `task` (from `.find(...)`)"
+    ]
+  ],
+  "source_hash": "6bb7847600bb5841c7963e094222d5adbc986c2824fd3e900cd373e7b64c8f02",
+  "meta": {
+    "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
+    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
+    "mumei_version": "mumei 0.6.23",
+    "llm_configured": true,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-11-03T05:18:58Z",
+    "llm_model": "openai/gpt-6-luna",
+    "llm_endpoint": "openrouter.ai"
+  },
+  "fixed": {
+    "defects": 12,
+    "still_reported": [
+      "TS01-D07"
+    ],
+    "still_function_flagged": [
+      "TS01-D01",
+      "TS01-D09",
+      "TS01-D10",
+      "TS01-D11"
+    ],
+    "false_alarms": 24,
+    "findings": [
+      {
+        "file": "board.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): isStatus.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering isStatus; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "board.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): canMove.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering canMove; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "board.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): parsePriority.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parsePriority; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "board.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): escapeHtml.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering escapeHtml; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "verification_violations",
+        "text": "TypeScript function `handlePatch` uses `task` (from `.find(...)`) without an `undefined`/`null` check — `find` returns `undefined` when no element matches",
+        "status": "false_positive",
+        "reason": "`if (!task) return sendJson(res, 404, ...)` runs right after the find."
+      },
+      {
+        "file": "server.ts",
+        "kind": "verification_violations",
+        "text": "TypeScript function `handlePatch` indexes with the result of `.indexOf((…)` inline — a miss yields a sentinel (`-1`) used directly as an index",
+        "status": "real",
+        "reason": "handlePatch awaits the request body between find and indexOf, and replaces the task object. A concurrent PATCH of the same task makes indexOf return -1, so `tasks[-1] = updated` silently drops one update. The ground truth does not list this."
+      },
+      {
+        "file": "server.ts",
+        "kind": "verification_violations",
+        "text": "TypeScript function `handleMove` uses `owned` (from `.find(...)`) without an `undefined`/`null` check — `find` returns `undefined` when no element matches",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "spec_health_issues",
+        "text": "encoding-gap: handleSearch: spec_not_boolean: ensures clause 'result.is_html' must lower to boolean (constraints: [\"result.is_html\"])",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): readBody.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering readBody; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): readJson.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering readJson; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): readJson.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering readJson; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): sendJson.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering sendJson; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): sendJson.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sendJson; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): sendError.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering sendError; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): sendError.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sendError; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): currentUser.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering currentUser; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): currentUser.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering currentUser; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): withNext.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering withNext; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): withNext.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering withNext; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): handleCreate.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleCreate; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): handleCreate.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleCreate; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): handlePatch.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handlePatch; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): handlePatch.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handlePatch; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): handleMove.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleMove; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): handleMove.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleMove; none was stated.",
+        "status": "unreviewed"
+      }
+    ],
+    "finding_counts": {
+      "total": 25,
+      "defect_evidence": 0,
+      "real": 1,
+      "false_positive": 1,
+      "unreviewed": 23
+    },
+    "reviews_used": [
+      [
+        "ts-01-task-board",
+        "server.ts",
+        "TypeScript function `handlePatch` indexes with the result of `.indexOf("
+      ],
+      [
+        "ts-01-task-board",
+        "server.ts",
+        "TypeScript function `handlePatch` uses `task` (from `.find(...)`)"
+      ]
+    ]
+  }
+}

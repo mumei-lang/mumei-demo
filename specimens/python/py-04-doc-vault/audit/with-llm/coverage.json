@@ -1,0 +1,264 @@
+{
+  "specimen": "py-04-doc-vault",
+  "language": "python",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "unverifiable",
+  "files_audited": 2,
+  "files_with_issues": 1,
+  "counts": {
+    "total": 11,
+    "detected": 0,
+    "function_flagged": 0,
+    "missed": 11
+  },
+  "defects": [
+    {
+      "id": "PY04-D01",
+      "file": "vault.py",
+      "function": "make_share_token",
+      "category": "insecure-randomness",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D02",
+      "file": "vault.py",
+      "function": "token_matches",
+      "category": "timing-side-channel",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D03",
+      "file": "vault.py",
+      "function": "fetch_remote",
+      "category": "ssrf",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D04",
+      "file": "vault.py",
+      "function": "decode_body",
+      "category": "insecure-deserialization",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D05",
+      "file": "app.py",
+      "function": "purge",
+      "category": "missing-authentication",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D06",
+      "file": "vault.py",
+      "function": "save_upload",
+      "category": "toctou",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D07",
+      "file": "app.py",
+      "function": "go",
+      "category": "open-redirect",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D08",
+      "file": "app.py",
+      "function": "docs_html",
+      "category": "xss",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D09",
+      "file": "vault.py",
+      "function": "save_upload",
+      "category": "unbounded-resource",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D10",
+      "file": "vault.py",
+      "function": "share_expiry",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY04-D11",
+      "file": "vault.py",
+      "function": "can_read",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): respond.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering respond; none was stated."
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): respond.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering respond; none was stated."
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): dispatch.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering dispatch; none was stated."
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): dispatch.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering dispatch; none was stated."
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): do_GET.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering do_GET; none was stated."
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): do_GET.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering do_GET; none was stated."
+    }
+  ],
+  "findings": [
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): respond.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering respond; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): respond.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering respond; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): dispatch.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering dispatch; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): dispatch.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering dispatch; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): do_GET.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering do_GET; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): do_GET.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering do_GET; none was stated.",
+      "status": "unreviewed"
+    }
+  ],
+  "finding_counts": {
+    "total": 6,
+    "defect_evidence": 0,
+    "real": 0,
+    "false_positive": 0,
+    "unreviewed": 6
+  },
+  "reviews_used": [],
+  "source_hash": "72e439da48aa288e49aec62eec0bd658c64d3b6eeb98a6cebfc9acaf41568107",
+  "meta": {
+    "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
+    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
+    "mumei_version": "mumei 0.6.23",
+    "llm_configured": true,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-11-03T05:18:58Z",
+    "llm_model": "openai/gpt-6-luna",
+    "llm_endpoint": "openrouter.ai"
+  },
+  "fixed": {
+    "defects": 11,
+    "still_reported": [],
+    "still_function_flagged": [
+      "PY04-D07"
+    ],
+    "false_alarms": 5,
+    "findings": [
+      {
+        "file": "app.py",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): do_GET.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering do_GET; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "app.py",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): do_GET.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering do_GET; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "app.py",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): go.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering go; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "app.py",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): go.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering go; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "vault.py",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): stage.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering stage; none was stated.",
+        "status": "unreviewed"
+      }
+    ],
+    "finding_counts": {
+      "total": 5,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 0,
+      "unreviewed": 5
+    },
+    "reviews_used": []
+  }
+}

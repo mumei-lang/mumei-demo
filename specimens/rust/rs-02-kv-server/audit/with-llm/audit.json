@@ -1,0 +1,84 @@
+{
+  "success": false,
+  "source_dir": "specimens/rust/rs-02-kv-server",
+  "language": "mixed",
+  "file_results": [
+    {
+      "success": false,
+      "source_file": "specimens/rust/rs-02-kv-server/src/main.rs",
+      "language": "rust",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [
+        "spec ambiguity (missing_requirement): find_subslice.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering find_subslice; none was stated.",
+        "spec ambiguity (missing_requirement): find_subslice.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering find_subslice; none was stated.",
+        "spec ambiguity (missing_requirement): respond.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering respond; none was stated.",
+        "spec ambiguity (missing_requirement): respond.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering respond; none was stated."
+      ],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+        },
+        {
+          "priority": "high",
+          "action": "欠落要件を追記してから再監査（推測で補完しない）",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: data_dir.requires, data_dir.ensures, keys_with_prefix.requires, keys_with_prefix.ensures, snapshot.requires, snapshot.ensures, log_line.requires, log_line.ensures, read_request.requires, read_request.ensures, split_target.requires, split_target.ensures, url_decode.requires, url_decode.ensures, handle.requires, handle.ensures, main.requires, main.ensures, vague_adjective at Position 2336-2346, conditional at Position 1433-1508, conditional at Position 1762-1799, conditional at Position 4610-4662",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/rust/rs-02-kv-server/src/main.rs\nlanguage: rust\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec ambiguity (missing_requirement): find_subslice.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering find_subslice; none was stated.', 'spec ambiguity (missing_requirement): find_subslice.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering find_subslice; none was stated.', 'spec ambiguity (missing_requirement): respond.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering respond; none was stated.', 'spec ambiguity (missing_requirement): respond.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering respond; none was stated.']\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: data_dir.requires, data_dir.ensures, keys_with_prefix.requires, keys_with_prefix.ensures, snapshot.requires, snapshot.ensures, log_line.requires, log_line.ensures, read_request.requires, read_request.ensures, split_target.requires, split_target.ensures, url_decode.requires, url_decode.ensures, handle.requires, handle.ensures, main.requires, main.ensures, vague_adjective at Position 2336-2346, conditional at Position 1433-1508, conditional at Position 1762-1799, conditional at Position 4610-4662\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    }
+  ],
+  "summary": "Audit directory: specimens/rust/rs-02-kv-server\n  src/main.rs: 0 violations, 4 gaps\nSummary: 1 file, 1 file with issues\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: data_dir.requires, data_dir.ensures, keys_with_prefix.requires, keys_with_prefix.ensures, snapshot.requires, snapshot.ensures, log_line.requires, log_line.ensures, read_request.requires, read_request.ensures, split_target.requires, split_target.ensures, url_decode.requires, url_decode.ensures, handle.requires, handle.ensures, main.requires, main.ensures, vague_adjective at Position 2336-2346, conditional at Position 1433-1508, conditional at Position 1762-1799, conditional at Position 4610-4662\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "total_files": 1,
+  "files_with_issues": 1,
+  "verification_status": "unverifiable",
+  "spec_health_issues": [],
+  "verification_violations": [],
+  "cross_validation_gaps": [
+    "src/main.rs: spec ambiguity (missing_requirement): find_subslice.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering find_subslice; none was stated.",
+    "src/main.rs: spec ambiguity (missing_requirement): find_subslice.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering find_subslice; none was stated.",
+    "src/main.rs: spec ambiguity (missing_requirement): respond.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering respond; none was stated.",
+    "src/main.rs: spec ambiguity (missing_requirement): respond.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering respond; none was stated."
+  ],
+  "migration_hints": [],
+  "healed_files": [],
+  "heal_errors": [],
+  "trusted_atoms": [],
+  "next_steps": [
+    {
+      "priority": "high",
+      "action": "validate-spec-to-code で制約の対応を確認",
+      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+    },
+    {
+      "priority": "high",
+      "action": "欠落要件を追記してから再監査（推測で補完しない）",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: data_dir.requires, data_dir.ensures, keys_with_prefix.requires, keys_with_prefix.ensures, snapshot.requires, snapshot.ensures, log_line.requires, log_line.ensures, read_request.requires, read_request.ensures, split_target.requires, split_target.ensures, url_decode.requires, url_decode.ensures, handle.requires, handle.ensures, main.requires, main.ensures, vague_adjective at Position 2336-2346, conditional at Position 1433-1508, conditional at Position 1762-1799, conditional at Position 4610-4662",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    }
+  ],
+  "errors": [],
+  "skipped_rate_limited_files": []
+}

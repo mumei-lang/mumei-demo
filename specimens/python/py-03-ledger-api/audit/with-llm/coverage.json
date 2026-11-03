@@ -1,0 +1,274 @@
+{
+  "specimen": "py-03-ledger-api",
+  "language": "python",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "unverifiable",
+  "files_audited": 2,
+  "files_with_issues": 2,
+  "counts": {
+    "total": 10,
+    "detected": 0,
+    "function_flagged": 1,
+    "missed": 9
+  },
+  "defects": [
+    {
+      "id": "PY03-D01",
+      "file": "ledger.py",
+      "function": "transfer",
+      "category": "missing-precondition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY03-D02",
+      "file": "ledger.py",
+      "function": "transfer",
+      "category": "invariant-violation",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY03-D03",
+      "file": "ledger.py",
+      "function": "close_account",
+      "category": "invalid-state-transition",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY03-D04",
+      "file": "ledger.py",
+      "function": "transfer",
+      "category": "race-condition",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY03-D05",
+      "file": "ledger.py",
+      "function": "page",
+      "category": "out-of-bounds",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "spec ambiguity (missing_requirement): page.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering page; none was stated."
+      ]
+    },
+    {
+      "id": "PY03-D06",
+      "file": "ledger.py",
+      "function": "transfer",
+      "category": "invariant-violation",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY03-D07",
+      "file": "app.py",
+      "function": "show_account",
+      "category": "idor",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY03-D08",
+      "file": "app.py",
+      "function": "statement_html",
+      "category": "xss",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY03-D09",
+      "file": "ledger.py",
+      "function": "create_account",
+      "category": "mass-assignment",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "PY03-D10",
+      "file": "app.py",
+      "function": "do_transfer",
+      "category": "missing-authorization",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    }
+  ],
+  "unmatched_findings": [
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): do_GET.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering do_GET; none was stated."
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): do_GET.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering do_GET; none was stated."
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated."
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
+    },
+    {
+      "file": "ledger.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): to_dict.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering to_dict; none was stated."
+    },
+    {
+      "file": "ledger.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): get.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering get; none was stated."
+    }
+  ],
+  "findings": [
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): do_GET.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering do_GET; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): do_GET.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering do_GET; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "app.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "ledger.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): page.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering page; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "ledger.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): to_dict.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering to_dict; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "ledger.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): get.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering get; none was stated.",
+      "status": "unreviewed"
+    }
+  ],
+  "finding_counts": {
+    "total": 7,
+    "defect_evidence": 0,
+    "real": 0,
+    "false_positive": 0,
+    "unreviewed": 7
+  },
+  "reviews_used": [],
+  "source_hash": "99b373335ac90ed3090f35d654ab0faed1a89d019b8f87c714205ffbe5cc5246",
+  "meta": {
+    "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
+    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
+    "mumei_version": "mumei 0.6.23",
+    "llm_configured": true,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-11-03T05:18:58Z",
+    "llm_model": "openai/gpt-6-luna",
+    "llm_endpoint": "openrouter.ai"
+  },
+  "fixed": {
+    "defects": 10,
+    "still_reported": [],
+    "still_function_flagged": [
+      "PY03-D05"
+    ],
+    "false_alarms": 7,
+    "findings": [
+      {
+        "file": "app.py",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): do_GET.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering do_GET; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "app.py",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): do_GET.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering do_GET; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "app.py",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "app.py",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "ledger.py",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): page.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering page; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "ledger.py",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): to_dict.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering to_dict; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "ledger.py",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): get.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering get; none was stated.",
+        "status": "unreviewed"
+      }
+    ],
+    "finding_counts": {
+      "total": 7,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 0,
+      "unreviewed": 7
+    },
+    "reviews_used": []
+  }
+}

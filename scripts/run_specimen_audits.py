@@ -7,7 +7,7 @@ For each specimen directory (specimens/<language>/<id>/) this writes:
   audit/audit.md       the same audit rendered with --format markdown
   audit/coverage.json  each planted defect mapped to the audit findings
 
-and specimens/AUDIT_SUMMARY.md with the aggregate.
+and specimens/AUDIT_SUMMARY.md (AUDIT_SUMMARY_WITH_LLM.md for a with-LLM run) with the aggregate.
 
 Only git-tracked files are audited: they are copied to a scratch directory
 first, so build output (target/, out/, node_modules/) never leaks into the
@@ -40,6 +40,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.parse
+import urllib.request
 from pathlib import Path
 from typing import Any
 
@@ -468,9 +471,15 @@ def specimen_hash(specimen_dir: Path) -> str:
     return h.hexdigest()
 
 
+def audit_dir(specimen_dir: Path, llm: bool) -> Path:
+    """Where a mode's audit output lives: audit/ without an LLM,
+    audit/with-llm/ with one, so both modes stay side by side."""
+    return specimen_dir / "audit" / "with-llm" if llm else specimen_dir / "audit"
+
+
 def write_coverage(specimen_dir: Path, coverage: dict) -> None:
-    out_dir = specimen_dir / "audit"
-    out_dir.mkdir(exist_ok=True)
+    out_dir = audit_dir(specimen_dir, entry_llm(coverage["meta"]))
+    out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "coverage.json").write_text(json.dumps(coverage, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
@@ -501,11 +510,11 @@ def build_coverage(specimen_dir: Path, defects_doc: dict, audit: dict, rc_json: 
 
 
 def rescore_specimen(specimen_dir: Path, adjudications: list[dict] | None,
-                     finding_reviews: list[dict] | None) -> dict:
+                     finding_reviews: list[dict] | None, llm: bool = False) -> dict:
     """Re-score the committed audit/audit.json with the current rulings,
     keeping the audit's exit codes and run metadata from coverage.json.
     Refuses when the specimen changed since the audit. Nothing is written."""
-    out_dir = specimen_dir / "audit"
+    out_dir = audit_dir(specimen_dir, llm)
     try:
         audit = json.loads((out_dir / "audit.json").read_text(encoding="utf-8"))
         previous = json.loads((out_dir / "coverage.json").read_text(encoding="utf-8"))
@@ -527,7 +536,8 @@ def rescore_specimen(specimen_dir: Path, adjudications: list[dict] | None,
         try:
             fixed_audit = json.loads((out_dir / "fixed" / "audit.json").read_text(encoding="utf-8"))
         except FileNotFoundError:
-            raise SystemExit(f"{specimen_dir.name}: {FIXED_PATCH} has no audit/fixed/audit.json; "
+            raise SystemExit(f"{specimen_dir.name}: {FIXED_PATCH} has no "
+                             f"{(out_dir / 'fixed' / 'audit.json').relative_to(specimen_dir)}; "
                              "run a full audit first")
     return build_coverage(specimen_dir, defects_doc, audit,
                           previous.get("audit_exit_code", 0),
@@ -544,12 +554,13 @@ def audit_specimen(specimen_dir: Path, agent_repo: Path, mumei_bin: str, timeout
     if not files:
         raise SystemExit(f"{label}: no git-tracked files; commit the specimen first")
     patch = specimen_dir / FIXED_PATCH
+    out_dir = audit_dir(specimen_dir, entry_llm(meta))
     audit = _audit_copy(specimen_dir, files, label, agent_repo, mumei_bin, timeout,
-                        specimen_dir / "audit", None)
+                        out_dir, None)
     fixed_audit = None
     if patch.is_file():
         fixed_audit = _audit_copy(specimen_dir, files, label, agent_repo, mumei_bin, timeout,
-                                  specimen_dir / "audit" / "fixed", patch)
+                                  out_dir / "fixed", patch)
     coverage = build_coverage(specimen_dir, defects_doc, audit, 0, 0, meta, adjudications,
                               finding_reviews, specimen_hash(specimen_dir), fixed_audit)
     write_coverage(specimen_dir, coverage)
@@ -625,6 +636,46 @@ def llm_configured(agent_repo: Path) -> bool:
     return any(dotenv.get(key) for key in keys)
 
 
+def _agent_setting(agent_repo: Path, name: str) -> str:
+    return os.environ.get(name) or _dotenv_values(agent_repo / ".env").get(name, "")
+
+
+def _agent_api_key(agent_repo: Path) -> str:
+    for key in ("LLM_API_KEY", "OPENAI_API_KEY"):
+        value = _agent_setting(agent_repo, key)
+        if value:
+            return value
+    return ""
+
+
+def llm_settings(agent_repo: Path) -> dict:
+    """Model and endpoint host the audit's LLM calls go to, mirroring
+    mumei-agent's defaults. Only the host is kept: userinfo, path and query
+    of LLM_BASE_URL can carry credentials."""
+    base = _agent_setting(agent_repo, "LLM_BASE_URL")
+    host = urllib.parse.urlsplit(base).hostname if base else None
+    return {"llm_model": _agent_setting(agent_repo, "LLM_MODEL") or "gpt-4o",
+            "llm_endpoint": host or "api.openai.com"}
+
+
+def openrouter_usage(agent_repo: Path, opener=urllib.request.urlopen) -> float | None:
+    """Total USD spent on the configured OpenRouter key, or None when the
+    endpoint is not OpenRouter or the lookup fails. Only the number is read."""
+    base = _agent_setting(agent_repo, "LLM_BASE_URL").rstrip("/")
+    key = _agent_api_key(agent_repo)
+    if not key or urllib.parse.urlsplit(base).hostname != "openrouter.ai":
+        return None
+    req = urllib.request.Request(base + "/key", headers={"Authorization": f"Bearer {key}"})
+    try:
+        with opener(req, timeout=30) as resp:
+            usage = json.loads(resp.read().decode("utf-8"))["data"]["usage"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    if isinstance(usage, bool) or not isinstance(usage, (int, float)):
+        return None
+    return float(usage)
+
+
 def write_summary(coverages: list[dict], meta: dict, path: Path,
                   stale: list[dict] | None = None) -> None:
     lines = [
@@ -636,6 +687,14 @@ def write_summary(coverages: list[dict], meta: dict, path: Path,
         f"- mumei: `{meta['mumei_commit']}` (`{meta['mumei_version']}`)",
         f"- LLM provider configured: `{meta['llm_configured']}`",
         f"- Mode: {'with LLM' if meta['llm_configured'] else 'no LLM'}",
+    ]
+    if meta.get("llm_model"):
+        lines.append(f"- LLM: `{meta['llm_model']}` via `{meta['llm_endpoint']}`")
+    for key, label in (("audit_seconds", "Audit time"), ("llm_cost_usd", "LLM cost")):
+        if meta.get(key) is not None:
+            value = f"{meta[key]:.0f} s" if key == "audit_seconds" else f"${meta[key]:.4f}"
+            lines.append(f"- {label}: {value}")
+    lines += [
         f"- Command: `{meta['command']}`",
         f"- Generated: {meta['generated_at']}",
     ]
@@ -946,6 +1005,9 @@ def latest_by_mode(runs: list[dict]) -> dict[bool, dict | None]:
     return latest
 
 
+RUN_STATS = ("audit_seconds", "llm_cost_usd")
+
+
 def history_entry(coverages: list[dict], meta: dict, corpus: dict,
                   score_hash: str, stale_count: int = 0) -> dict:
     agg = aggregate(coverages)
@@ -985,13 +1047,16 @@ def history_entry(coverages: list[dict], meta: dict, corpus: dict,
         entry["fixed"] = agg["fixed"]
     if meta.get("rescored_at"):
         entry["rescored_at"] = meta["rescored_at"]
+    for key in ("llm_model", "llm_endpoint") + RUN_STATS:
+        if meta.get(key) is not None:
+            entry[key] = meta[key]
     return entry
 
 
 def record_run(history_path: Path, entry: dict) -> dict:
-    """Append a run to history.json, replacing the last entry when the run key
-    (agent commit, mumei commit, corpus hash, scoring hash, llm mode) is
-    unchanged."""
+    """Append a run to history.json, replacing the latest entry of the same
+    LLM mode in place when the run key (agent commit, mumei commit, corpus
+    hash, scoring hash, llm mode) is unchanged."""
     hist = load_history(history_path)
     runs = hist.setdefault("runs", [])
     hist["schema"] = HISTORY_SCHEMA
@@ -1000,14 +1065,20 @@ def record_run(history_path: Path, entry: dict) -> dict:
            (entry.get("corpus") or {}).get("hash"),
            entry.get("scoring_hash", empty_hash),
            entry_llm(entry))
-    if runs:
-        last = runs[-1]
+    same_mode = [i for i, run in enumerate(runs) if entry_llm(run) == entry_llm(entry)]
+    if same_mode:
+        i = same_mode[-1]
+        last = runs[i]
         last_key = (last.get("mumei_agent_commit"), last.get("mumei_commit"),
                     (last.get("corpus") or {}).get("hash"),
                     last.get("scoring_hash", empty_hash),
                     entry_llm(last))
         if last_key == key:
-            runs[-1] = entry
+            if entry.get("rescored_at"):
+                for stat in RUN_STATS:
+                    if stat not in entry and stat in last:
+                        entry[stat] = last[stat]
+            runs[i] = entry
         else:
             runs.append(entry)
     else:
@@ -1275,6 +1346,8 @@ def readme_block_specimens(history: dict) -> str:
         for mode in (False, True):
             run = modes[mode]
             label = "with LLM" if mode else "no LLM"
+            if run is not None and run.get("llm_model"):
+                label += f" (`{run['llm_model']}`)"
             if run is None:
                 lines.append(f"Latest run — {label}: not run yet.")
             else:
@@ -1381,7 +1454,8 @@ def readme_block_specimens(history: dict) -> str:
             )
         lines.append("")
     lines += [
-        "Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md).",
+        "Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md) (no LLM) and",
+        "[AUDIT_SUMMARY_WITH_LLM.md](AUDIT_SUMMARY_WITH_LLM.md) (with LLM).",
         "",
         "Re-run:",
         "",
@@ -1394,7 +1468,8 @@ def readme_block_specimens(history: dict) -> str:
         "The scoreboard tracks two series: audits run without an LLM provider and audits run with",
         "one. To record a with-LLM run, configure an LLM provider for mumei-agent — `LLM_API_KEY`",
         "(or `OPENAI_API_KEY`), plus `LLM_BASE_URL` / `LLM_MODEL` as needed, or a `.env` file in the",
-        "agent repo — and re-run the full audit. Each mode keeps its own history entries and the",
+        "agent repo — and re-run the full audit. A with-LLM run writes to `audit/with-llm/` and records",
+        "the model, audit time and (on OpenRouter) cost. Each mode keeps its own history entries and the",
         "tables above show the latest run of each side by side.",
         "",
         "Precision is (defect evidence + findings reviewed as real) / findings; it is a range while some",
@@ -1440,7 +1515,11 @@ def readme_block_top(history: dict) -> str:
 
         modes = latest_by_mode(runs)
         nollm = f"no LLM: {_frag(modes[False])}" if modes[False] else "no LLM: not run yet"
-        llm = f"with LLM: {_frag(modes[True])}" if modes[True] else "with LLM: not run yet"
+        if modes[True]:
+            model = modes[True].get("llm_model")
+            llm = f"with LLM{f' (`{model}`)' if model else ''}: {_frag(modes[True])}"
+        else:
+            llm = "with LLM: not run yet"
         lines += [f"Latest — {nollm} · {llm}", ""]
     lines += ["Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreboard)."]
     return "\n".join(lines)
@@ -1496,13 +1575,19 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def summary_path(base: Path, llm: bool) -> Path:
+    """AUDIT_SUMMARY.md for the no-LLM audit, AUDIT_SUMMARY_WITH_LLM.md next to
+    it for the with-LLM audit, so one mode never overwrites the other."""
+    return base.with_name(f"{base.stem}_WITH_LLM{base.suffix}") if llm else base
+
+
 def finish_run(coverages: list[dict], meta: dict, finding_reviews: list[dict],
                args: argparse.Namespace) -> None:
     stale = stale_reviews(coverages, finding_reviews)
     for r in stale:
         print(f"warning: stale finding review (matched nothing): {r['specimen']}/{r['file']}: "
               f"{r['finding_contains'][:80]!r}", file=sys.stderr)
-    write_summary(coverages, meta, Path(args.summary), stale)
+    write_summary(coverages, meta, summary_path(Path(args.summary), entry_llm(meta)), stale)
     scoreboard_dir = Path(args.scoreboard_dir)
     record_run(scoreboard_dir / "history.json",
                history_entry(coverages, meta, corpus_info(SPECIMENS_ROOT),
@@ -1538,19 +1623,29 @@ def main(argv: list[str]) -> int:
     if args.rescore:
         if args.specimens:
             parser.error("--rescore re-scores the whole corpus; do not pass specimen dirs")
-        coverages = [rescore_specimen(d, adjudications, finding_reviews)
-                     for d in discover(SPECIMENS_ROOT)]
-        metas = {json.dumps(cov["meta"], sort_keys=True) for cov in coverages}
-        if len(metas) != 1:
-            raise SystemExit("--rescore: audit outputs come from different runs; "
-                             "run a full audit first")
-        for d, cov in zip(discover(SPECIMENS_ROOT), coverages):
-            write_coverage(d, cov)
-        meta = dict(coverages[0]["meta"])
-        meta["rescored_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        for cov in coverages:
-            _print_coverage(cov)
-        finish_run(coverages, meta, finding_reviews, args)
+        dirs = discover(SPECIMENS_ROOT)
+        rescored = []
+        for llm in (False, True):
+            have = [(audit_dir(d, llm) / "coverage.json").is_file() for d in dirs]
+            if llm and not any(have):
+                continue
+            if llm and not all(have):
+                raise SystemExit("--rescore: with-LLM audit output exists for only some specimens; "
+                                 "run a full with-LLM audit first")
+            coverages = [rescore_specimen(d, adjudications, finding_reviews, llm) for d in dirs]
+            metas = {json.dumps(cov["meta"], sort_keys=True) for cov in coverages}
+            if len(metas) != 1:
+                raise SystemExit("--rescore: audit outputs come from different runs; "
+                                 "run a full audit first")
+            rescored.append(coverages)
+        stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        for coverages in rescored:
+            for d, cov in zip(dirs, coverages):
+                write_coverage(d, cov)
+            for cov in coverages:
+                _print_coverage(cov)
+            finish_run(coverages, dict(coverages[0]["meta"], rescored_at=stamp),
+                       finding_reviews, args)
         return 0
 
     agent_repo = Path(args.mumei_agent_repo).resolve()
@@ -1568,7 +1663,11 @@ def main(argv: list[str]) -> int:
         "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
+    if meta["llm_configured"]:
+        meta.update(llm_settings(agent_repo))
     dirs = [Path(d).resolve() for d in args.specimens] or discover(SPECIMENS_ROOT)
+    spent_before = openrouter_usage(agent_repo) if meta["llm_configured"] else None
+    started = time.monotonic()
     coverages = []
     for d in dirs:
         cov = audit_specimen(d, agent_repo, mumei_bin, args.timeout, meta, adjudications,
@@ -1576,7 +1675,11 @@ def main(argv: list[str]) -> int:
         _print_coverage(cov)
         coverages.append(cov)
     if not args.specimens:
-        finish_run(coverages, meta, finding_reviews, args)
+        run_meta = dict(meta, audit_seconds=round(time.monotonic() - started, 1))
+        spent_after = openrouter_usage(agent_repo) if spent_before is not None else None
+        if spent_after is not None:
+            run_meta["llm_cost_usd"] = round(max(spent_after - spent_before, 0.0), 6)
+        finish_run(coverages, run_meta, finding_reviews, args)
     return 0
 
 

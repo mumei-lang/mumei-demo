@@ -1,0 +1,150 @@
+{
+  "success": false,
+  "source_dir": "specimens/typescript/ts-03-invoice-cli",
+  "language": "mixed",
+  "file_results": [
+    {
+      "success": false,
+      "source_file": "specimens/typescript/ts-03-invoice-cli/invoice.ts",
+      "language": "typescript",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [
+        "encoding-gap: renderInvoice: spec_lowering_failed: failed to lower requires clause 'len(invoice.items) >= 0': Type Error: len() expects an array or string argument (constraints: [\"len(invoice.items) >= 0\"])"
+      ],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [
+        "spec ambiguity (missing_requirement): parseArgs.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseArgs; none was stated.",
+        "spec ambiguity (missing_requirement): parseArgs.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseArgs; none was stated.",
+        "spec ambiguity (missing_requirement): row.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering row; none was stated.",
+        "spec ambiguity (missing_requirement): row.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering row; none was stated.",
+        "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+        "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
+      ],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+        },
+        {
+          "priority": "high",
+          "action": "欠落要件を追記してから再監査（推測で補完しない）",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "validate-spec で仕様の矛盾を修正",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 1922-2004",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/typescript/ts-03-invoice-cli/invoice.ts\nlanguage: typescript\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: ['encoding-gap: renderInvoice: spec_lowering_failed: failed to lower requires clause \\'len(invoice.items) >= 0\\': Type Error: len() expects an array or string argument (constraints: [\"len(invoice.items) >= 0\"])']\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec ambiguity (missing_requirement): parseArgs.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseArgs; none was stated.', 'spec ambiguity (missing_requirement): parseArgs.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseArgs; none was stated.', 'spec ambiguity (missing_requirement): row.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering row; none was stated.', 'spec ambiguity (missing_requirement): row.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering row; none was stated.', 'spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.', 'spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.']\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 1922-2004\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": false,
+      "source_file": "specimens/typescript/ts-03-invoice-cli/pricing.ts",
+      "language": "typescript",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [
+        "malformed-extraction: parseItem ensures: garbled comparison operators '==>'",
+        "malformed-extraction: parseItem ensures: garbled comparison operators '==>'",
+        "malformed-extraction: subtotal ensures: garbled comparison operators '==>'",
+        "malformed-extraction: pageFooters ensures: garbled comparison operators '==>'",
+        "malformed-extraction: pageFooters ensures: garbled comparison operators '==>'"
+      ],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "medium",
+          "action": "validate-spec で仕様の矛盾を修正",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 1236-1276, conditional at Position 2020-2131, conditional at Position 2323-2449, conditional at Position 2453-2595, conditional at Position 3149-3167, conditional at Position 3250-3307, conditional at Position 4463-4576",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/typescript/ts-03-invoice-cli/pricing.ts\nlanguage: typescript\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: [\"malformed-extraction: parseItem ensures: garbled comparison operators '==>'\", \"malformed-extraction: parseItem ensures: garbled comparison operators '==>'\", \"malformed-extraction: subtotal ensures: garbled comparison operators '==>'\", \"malformed-extraction: pageFooters ensures: garbled comparison operators '==>'\", \"malformed-extraction: pageFooters ensures: garbled comparison operators '==>'\"]\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 1236-1276, conditional at Position 2020-2131, conditional at Position 2323-2449, conditional at Position 2453-2595, conditional at Position 3149-3167, conditional at Position 3250-3307, conditional at Position 4463-4576\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    }
+  ],
+  "summary": "Audit directory: specimens/typescript/ts-03-invoice-cli\n  invoice.ts: 0 violations, 6 gaps\n  pricing.ts: 0 violations, 0 gaps\nSummary: 2 files, 2 files with issues\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 1922-2004\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 1236-1276, conditional at Position 2020-2131, conditional at Position 2323-2449, conditional at Position 2453-2595, conditional at Position 3149-3167, conditional at Position 3250-3307, conditional at Position 4463-4576\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "total_files": 2,
+  "files_with_issues": 2,
+  "verification_status": "unverifiable",
+  "spec_health_issues": [
+    "invoice.ts: encoding-gap: renderInvoice: spec_lowering_failed: failed to lower requires clause 'len(invoice.items) >= 0': Type Error: len() expects an array or string argument (constraints: [\"len(invoice.items) >= 0\"])",
+    "pricing.ts: malformed-extraction: parseItem ensures: garbled comparison operators '==>'",
+    "pricing.ts: malformed-extraction: parseItem ensures: garbled comparison operators '==>'",
+    "pricing.ts: malformed-extraction: subtotal ensures: garbled comparison operators '==>'",
+    "pricing.ts: malformed-extraction: pageFooters ensures: garbled comparison operators '==>'",
+    "pricing.ts: malformed-extraction: pageFooters ensures: garbled comparison operators '==>'"
+  ],
+  "verification_violations": [],
+  "cross_validation_gaps": [
+    "invoice.ts: spec ambiguity (missing_requirement): parseArgs.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering parseArgs; none was stated.",
+    "invoice.ts: spec ambiguity (missing_requirement): parseArgs.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering parseArgs; none was stated.",
+    "invoice.ts: spec ambiguity (missing_requirement): row.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering row; none was stated.",
+    "invoice.ts: spec ambiguity (missing_requirement): row.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering row; none was stated.",
+    "invoice.ts: spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+    "invoice.ts: spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
+  ],
+  "migration_hints": [],
+  "healed_files": [],
+  "heal_errors": [],
+  "trusted_atoms": [],
+  "next_steps": [
+    {
+      "priority": "high",
+      "action": "validate-spec-to-code で制約の対応を確認",
+      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+    },
+    {
+      "priority": "high",
+      "action": "欠落要件を追記してから再監査（推測で補完しない）",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "validate-spec で仕様の矛盾を修正",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 1922-2004",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 1236-1276, conditional at Position 2020-2131, conditional at Position 2323-2449, conditional at Position 2453-2595, conditional at Position 3149-3167, conditional at Position 3250-3307, conditional at Position 4463-4576",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    }
+  ],
+  "errors": [],
+  "skipped_rate_limited_files": []
+}

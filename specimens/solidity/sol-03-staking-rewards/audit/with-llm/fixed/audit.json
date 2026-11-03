@@ -1,0 +1,1583 @@
+{
+  "success": false,
+  "source_dir": "specimens/solidity/sol-03-staking-rewards",
+  "language": "mixed",
+  "file_results": [
+    {
+      "success": false,
+      "source_file": "specimens/solidity/sol-03-staking-rewards/src/StakeToken.sol",
+      "language": "solidity",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [],
+      "verification_violations": [
+        "Solidity function `mint` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "Solidity function `setReceiveHook` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ],
+      "counterexample_values": [],
+      "cross_validation_gaps": [
+        "spec stronger than implementation: transferFrom",
+        "spec ambiguity (missing_requirement): move.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering move; none was stated.",
+        "spec ambiguity (missing_requirement): move.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering move; none was stated.",
+        "spec ambiguity (missing_requirement): notifyReceiver.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering notifyReceiver; none was stated.",
+        "spec ambiguity (missing_requirement): notifyReceiver.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering notifyReceiver; none was stated."
+      ],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "high",
+          "action": "migrate-suggest で .mm スケルトンを生成",
+          "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
+        },
+        {
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+        },
+        {
+          "priority": "high",
+          "action": "欠落要件を追記してから再監査（推測で補完しない）",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: onTokenReceived.requires, onTokenReceived.ensures, vague_adjective at Position 2156-2166, conditional at Position 204-239, conditional at Position 3148-3187",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": {
+        "version": "1.0",
+        "timestamp": "2026-11-03T06:03:14.530703Z",
+        "mumei_version": "agent",
+        "z3_version": "Z3 version 4.16.0",
+        "file": "specimens/solidity/sol-03-staking-rewards/src/StakeToken.sol",
+        "atoms": [
+          {
+            "name": "mint_access_control",
+            "z3_check_result": "unknown",
+            "content_hash": "0dbff52a6b639d8a12e591a4525b80db86a71c1efd58cd761867ace659e3da9e",
+            "status": "unknown",
+            "proof_hash": "6bfc18a1b1d02017a6875e1a096942bd4f36427fad1dee920c3b3ce1b2bc34f9",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "access-control proof for an unguarded state mutation",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_access_control",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "access_control"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runAccess AccessState.Unchecked [AccessOp.stateWrite] = none",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakeToken.sol",
+                "line": 28,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_access_control_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete access-control trace with SmartContract.runAccess"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_state_write_without_auth"
+              ],
+              "obligation_class": "smart_contract_access_control_obligation",
+              "access_control": {
+                "ops": [
+                  "stateWrite"
+                ],
+                "expected_outcome": "none"
+              },
+              "access_control_ops": [
+                "stateWrite"
+              ],
+              "access_control_expected_outcome": "none"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "setReceiveHook_access_control",
+            "z3_check_result": "unknown",
+            "content_hash": "78181988133e82f23f058469194f6db13408f8f1f7a57ebb073d61f67070346f",
+            "status": "unknown",
+            "proof_hash": "da8dad28f6892ec51e94f8a037db8f4bc24597d6a7ae2d98a90bf5cc2bdc8d49",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "access-control proof for an unguarded state mutation",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_access_control",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "access_control"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runAccess AccessState.Unchecked [AccessOp.stateWrite] = none",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakeToken.sol",
+                "line": 35,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_access_control_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete access-control trace with SmartContract.runAccess"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_state_write_without_auth"
+              ],
+              "obligation_class": "smart_contract_access_control_obligation",
+              "access_control": {
+                "ops": [
+                  "stateWrite"
+                ],
+                "expected_outcome": "none"
+              },
+              "access_control_ops": [
+                "stateWrite"
+              ],
+              "access_control_expected_outcome": "none"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "approve_access_control",
+            "z3_check_result": "unknown",
+            "content_hash": "912dee71ddb905e749cc1d2ad0b5ef1a667c7ae9d0f998d3ef7dc6c1a258edb8",
+            "status": "unknown",
+            "proof_hash": "d2eb4e46eac76faa4ae4108ac9b4c020a77f290cc825e5e6b01b0f57b32070e9",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "access-control proof for an unguarded state mutation",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_access_control",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "access_control"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runAccess AccessState.Unchecked [AccessOp.stateWrite] = none",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakeToken.sol",
+                "line": 45,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_access_control_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete access-control trace with SmartContract.runAccess"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_state_write_without_auth"
+              ],
+              "obligation_class": "smart_contract_access_control_obligation",
+              "access_control": {
+                "ops": [
+                  "stateWrite"
+                ],
+                "expected_outcome": "none"
+              },
+              "access_control_ops": [
+                "stateWrite"
+              ],
+              "access_control_expected_outcome": "none"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "transferFrom_access_control",
+            "z3_check_result": "unknown",
+            "content_hash": "5cdc9c89f19c6bb816dc7d50155a7198befdaac0420915b3064107843919693f",
+            "status": "unknown",
+            "proof_hash": "5b6f1f5cc0f4d48f2dc1be13180b45fb41321485f286a35b2883542438b0fcbb",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "access-control proof for an unguarded state mutation",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_access_control",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "access_control"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runAccess AccessState.Unchecked [AccessOp.stateWrite] = none",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakeToken.sol",
+                "line": 52,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_access_control_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete access-control trace with SmartContract.runAccess"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_state_write_without_auth"
+              ],
+              "obligation_class": "smart_contract_access_control_obligation",
+              "access_control": {
+                "ops": [
+                  "stateWrite"
+                ],
+                "expected_outcome": "none"
+              },
+              "access_control_ops": [
+                "stateWrite"
+              ],
+              "access_control_expected_outcome": "none"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          }
+        ],
+        "package_name": "StakeToken",
+        "package_version": "0",
+        "certificate_hash": "fde8d960b1f921d0d053a032ef88be6865eeb0a076f403e8a6f56f21f2e54bc1",
+        "all_verified": false
+      },
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/solidity/sol-03-staking-rewards/src/StakeToken.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: ['Solidity function `mint` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `setReceiveHook` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless']\ncounterexample_values: []\ncross_validation_gaps: ['spec stronger than implementation: transferFrom', 'spec ambiguity (missing_requirement): move.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering move; none was stated.', 'spec ambiguity (missing_requirement): move.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering move; none was stated.', 'spec ambiguity (missing_requirement): notifyReceiver.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering notifyReceiver; none was stated.', 'spec ambiguity (missing_requirement): notifyReceiver.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering notifyReceiver; none was stated.']\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: onTokenReceived.requires, onTokenReceived.ensures, vague_adjective at Position 2156-2166, conditional at Position 204-239, conditional at Position 3148-3187\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": false,
+      "source_file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+      "language": "solidity",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [],
+      "verification_violations": [
+        "Solidity function `stake` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "Solidity function `emergencyWithdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "Solidity function `getReward` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "Solidity function `setPayoutAddress` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "Solidity function `claimBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ],
+      "counterexample_values": [],
+      "cross_validation_gaps": [
+        "spec stronger than implementation: lastTimeRewardApplicable",
+        "spec stronger than implementation: rewardPerToken",
+        "spec ambiguity (missing_requirement): balanceOf.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering balanceOf; none was stated.",
+        "spec ambiguity (missing_requirement): balanceOf.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering balanceOf; none was stated.",
+        "spec ambiguity (missing_requirement): earned.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering earned; none was stated.",
+        "spec ambiguity (missing_requirement): getReward.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering getReward; none was stated.",
+        "spec ambiguity (missing_requirement): getReward.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering getReward; none was stated.",
+        "spec ambiguity (missing_requirement): notifyRewardAmount.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering notifyRewardAmount; none was stated.",
+        "spec ambiguity (missing_requirement): notifyRewardAmount.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering notifyRewardAmount; none was stated.",
+        "spec ambiguity (missing_requirement): setOperator.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering setOperator; none was stated.",
+        "spec ambiguity (missing_requirement): setOperator.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering setOperator; none was stated."
+      ],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "high",
+          "action": "migrate-suggest で .mm スケルトンを生成",
+          "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
+        },
+        {
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+        },
+        {
+          "priority": "high",
+          "action": "欠落要件を追記してから再監査（推測で補完しない）",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: transfer.requires, transfer.ensures, transferFrom.requires, transferFrom.ensures, withdraw.requires, withdraw.ensures, claimFor.requires, claimFor.ensures, conditional at Position 6086-6129, conditional at Position 6339-6461",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": {
+        "version": "1.0",
+        "timestamp": "2026-11-03T06:04:07.648291Z",
+        "mumei_version": "agent",
+        "z3_version": "Z3 version 4.16.0",
+        "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+        "atoms": [
+          {
+            "name": "withdraw_guard_trace",
+            "z3_check_result": "unknown",
+            "content_hash": "36dee3890160454e88ed714a44c66b4eded905c1b53e423ee8820731e2262b27",
+            "status": "unknown",
+            "proof_hash": "5244af3ffb13cc4dbed7093edab5b2da060cca7e564c1bdfbd02bbf1c82ae5c5",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "guard trace proof for a guarded external call",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_guard_trace",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "guard_trace"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runGuard GuardState.Unlocked [GuardOp.lock, GuardOp.externalCall, GuardOp.unlock] = some GuardState.Unlocked",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 117,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_guard_trace_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete guard trace with SmartContract.runGuard"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_external_call_without_lock"
+              ],
+              "obligation_class": "smart_contract_guard_trace_obligation",
+              "guard_trace": {
+                "ops": [
+                  "lock",
+                  "externalCall",
+                  "unlock"
+                ],
+                "expected_outcome": "safe"
+              },
+              "guard_trace_ops": [
+                "lock",
+                "externalCall",
+                "unlock"
+              ],
+              "guard_trace_expected_outcome": "safe"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "emergencyWithdraw_guard_trace",
+            "z3_check_result": "unknown",
+            "content_hash": "bdb0deda8825aff9a8efce48e19ce073bee683231c81dce63b21c3d415a1b7a8",
+            "status": "unknown",
+            "proof_hash": "aed238a206876c206cc902d6d866c41771e7980f2ab62c170c9204a0164eed6f",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "guard trace proof for a guarded external call",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_guard_trace",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "guard_trace"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runGuard GuardState.Unlocked [GuardOp.lock, GuardOp.externalCall, GuardOp.unlock] = some GuardState.Unlocked",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 130,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_guard_trace_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete guard trace with SmartContract.runGuard"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_external_call_without_lock"
+              ],
+              "obligation_class": "smart_contract_guard_trace_obligation",
+              "guard_trace": {
+                "ops": [
+                  "lock",
+                  "externalCall",
+                  "unlock"
+                ],
+                "expected_outcome": "safe"
+              },
+              "guard_trace_ops": [
+                "lock",
+                "externalCall",
+                "unlock"
+              ],
+              "guard_trace_expected_outcome": "safe"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "getReward_guard_trace",
+            "z3_check_result": "unknown",
+            "content_hash": "2c8b4b07d558f5d4f352e2e5d93bfd0335e95fbad35b99a70412f2b6539015e9",
+            "status": "unknown",
+            "proof_hash": "991fe92509232e34276d47749913886da8353e797c0b908197373ff6284df4ed",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "guard trace proof for a guarded external call",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_guard_trace",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "guard_trace"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runGuard GuardState.Unlocked [GuardOp.lock, GuardOp.externalCall, GuardOp.unlock] = some GuardState.Unlocked",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 144,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_guard_trace_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete guard trace with SmartContract.runGuard"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_external_call_without_lock"
+              ],
+              "obligation_class": "smart_contract_guard_trace_obligation",
+              "guard_trace": {
+                "ops": [
+                  "lock",
+                  "externalCall",
+                  "unlock"
+                ],
+                "expected_outcome": "safe"
+              },
+              "guard_trace_ops": [
+                "lock",
+                "externalCall",
+                "unlock"
+              ],
+              "guard_trace_expected_outcome": "safe"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "claimFor_guard_trace",
+            "z3_check_result": "unknown",
+            "content_hash": "4294f2884088e2a0a6e45d4cdd490abfe67909fce02c1d2d72b3bb64212c32a2",
+            "status": "unknown",
+            "proof_hash": "c412f07e47c01594b9f5fde012ea3c6fa70e36df4fc27e59159ddeada5dd7a4c",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "guard trace proof for a guarded external call",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_guard_trace",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "guard_trace"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runGuard GuardState.Unlocked [GuardOp.lock, GuardOp.externalCall, GuardOp.unlock] = some GuardState.Unlocked",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 159,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_guard_trace_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete guard trace with SmartContract.runGuard"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_external_call_without_lock"
+              ],
+              "obligation_class": "smart_contract_guard_trace_obligation",
+              "guard_trace": {
+                "ops": [
+                  "lock",
+                  "externalCall",
+                  "unlock"
+                ],
+                "expected_outcome": "safe"
+              },
+              "guard_trace_ops": [
+                "lock",
+                "externalCall",
+                "unlock"
+              ],
+              "guard_trace_expected_outcome": "safe"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "claimBonus_guard_trace",
+            "z3_check_result": "unknown",
+            "content_hash": "5e12391084be2c5e0dd6b8e78c9710b7e1ce1e36e300977bb7c0f9b34c905cac",
+            "status": "unknown",
+            "proof_hash": "a9f8ce920b3a806dc11af294a175fc08d8018972f1f5d44991da6bb6f94a63d6",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "guard trace proof for a guarded external call",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_guard_trace",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "guard_trace"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runGuard GuardState.Unlocked [GuardOp.lock, GuardOp.externalCall, GuardOp.unlock] = some GuardState.Unlocked",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 173,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_guard_trace_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete guard trace with SmartContract.runGuard"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_external_call_without_lock"
+              ],
+              "obligation_class": "smart_contract_guard_trace_obligation",
+              "guard_trace": {
+                "ops": [
+                  "lock",
+                  "externalCall",
+                  "unlock"
+                ],
+                "expected_outcome": "safe"
+              },
+              "guard_trace_ops": [
+                "lock",
+                "externalCall",
+                "unlock"
+              ],
+              "guard_trace_expected_outcome": "safe"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "stake_access_control",
+            "z3_check_result": "unknown",
+            "content_hash": "41fdefe553b7a8c8ccdbc8400d28d32eb8689daf9d9953b915052afe7096261d",
+            "status": "unknown",
+            "proof_hash": "640fb28db9c0951e3b7244b6af2a0175335ea2518dd39865fd7358b8085b15e6",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "access-control proof for an unguarded state mutation",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_access_control",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "access_control"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runAccess AccessState.Unchecked [AccessOp.stateWrite] = none",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 103,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_access_control_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete access-control trace with SmartContract.runAccess"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_state_write_without_auth"
+              ],
+              "obligation_class": "smart_contract_access_control_obligation",
+              "access_control": {
+                "ops": [
+                  "stateWrite"
+                ],
+                "expected_outcome": "none"
+              },
+              "access_control_ops": [
+                "stateWrite"
+              ],
+              "access_control_expected_outcome": "none"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "withdraw_access_control",
+            "z3_check_result": "unknown",
+            "content_hash": "088d0e700bd2777022509ba4c27ccad34d059d72518438eae3f2d431dc62c7ad",
+            "status": "unknown",
+            "proof_hash": "55c3070d2cdefe866be34173cfe0636a968cba1973f26b1c8a6a02d85562cff2",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "access-control proof for an unguarded state mutation",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_access_control",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "access_control"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runAccess AccessState.Unchecked [AccessOp.stateWrite] = none",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 117,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_access_control_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete access-control trace with SmartContract.runAccess"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_state_write_without_auth"
+              ],
+              "obligation_class": "smart_contract_access_control_obligation",
+              "access_control": {
+                "ops": [
+                  "stateWrite"
+                ],
+                "expected_outcome": "none"
+              },
+              "access_control_ops": [
+                "stateWrite"
+              ],
+              "access_control_expected_outcome": "none"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "emergencyWithdraw_access_control",
+            "z3_check_result": "unknown",
+            "content_hash": "fc4001d51a440e8b224b12a99f798571fd5fb240400b9d58f64b5f07b3631031",
+            "status": "unknown",
+            "proof_hash": "85bede5ad8d1f10673ad170c7b0e8de6dd4ca0d3ed155890c0c7de574484b86f",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "access-control proof for an unguarded state mutation",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_access_control",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "access_control"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runAccess AccessState.Unchecked [AccessOp.stateWrite] = none",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 130,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_access_control_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete access-control trace with SmartContract.runAccess"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_state_write_without_auth"
+              ],
+              "obligation_class": "smart_contract_access_control_obligation",
+              "access_control": {
+                "ops": [
+                  "stateWrite"
+                ],
+                "expected_outcome": "none"
+              },
+              "access_control_ops": [
+                "stateWrite"
+              ],
+              "access_control_expected_outcome": "none"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "getReward_access_control",
+            "z3_check_result": "unknown",
+            "content_hash": "f096bbd8ba4f9ef4294c1196b4c4b38b2575e84673d3dd29a6b02bca13b1e382",
+            "status": "unknown",
+            "proof_hash": "f195d822825b3457426f172e340b1f8557d980da9a3b638a6f781e5f8145b966",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "access-control proof for an unguarded state mutation",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_access_control",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "access_control"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runAccess AccessState.Unchecked [AccessOp.stateWrite] = none",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 144,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_access_control_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete access-control trace with SmartContract.runAccess"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_state_write_without_auth"
+              ],
+              "obligation_class": "smart_contract_access_control_obligation",
+              "access_control": {
+                "ops": [
+                  "stateWrite"
+                ],
+                "expected_outcome": "none"
+              },
+              "access_control_ops": [
+                "stateWrite"
+              ],
+              "access_control_expected_outcome": "none"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "setPayoutAddress_access_control",
+            "z3_check_result": "unknown",
+            "content_hash": "57361a3551826ddc710f4efb0755d16849e32049ae14f897648b903d72885c13",
+            "status": "unknown",
+            "proof_hash": "1448fe547c39159805a2b1eb837995181dc958a698b966c16694401dde85ffeb",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "access-control proof for an unguarded state mutation",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_access_control",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "access_control"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runAccess AccessState.Unchecked [AccessOp.stateWrite] = none",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 153,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_access_control_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete access-control trace with SmartContract.runAccess"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_state_write_without_auth"
+              ],
+              "obligation_class": "smart_contract_access_control_obligation",
+              "access_control": {
+                "ops": [
+                  "stateWrite"
+                ],
+                "expected_outcome": "none"
+              },
+              "access_control_ops": [
+                "stateWrite"
+              ],
+              "access_control_expected_outcome": "none"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "claimFor_access_control",
+            "z3_check_result": "unknown",
+            "content_hash": "d7be2e808efa0d7cd68473d82ac6c20ca2886445dbe519027a1d518df679cd11",
+            "status": "unknown",
+            "proof_hash": "18f3d6fc82f9dbde5cca6412939d50f6910f593bdb41a7cad26b4d28b8c57378",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "access-control proof for a guarded state mutation",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_access_control",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "access_control"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runAccess AccessState.Unchecked [AccessOp.authCheck, AccessOp.stateWrite] = some AccessState.Checked",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 159,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_access_control_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete access-control trace with SmartContract.runAccess"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_state_write_without_auth"
+              ],
+              "obligation_class": "smart_contract_access_control_obligation",
+              "access_control": {
+                "ops": [
+                  "authCheck",
+                  "stateWrite"
+                ],
+                "expected_outcome": "safe"
+              },
+              "access_control_ops": [
+                "authCheck",
+                "stateWrite"
+              ],
+              "access_control_expected_outcome": "safe"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "claimBonus_access_control",
+            "z3_check_result": "unknown",
+            "content_hash": "598853ec57e925802ca7d02463f3878a0224df476c558d8aac80ebaa0fb0d14a",
+            "status": "unknown",
+            "proof_hash": "cd0472c2b6b096ad821c8579c36cab52bfc64bc289513122e33981252ba12f1c",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "access-control proof for an unguarded state mutation",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_access_control",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "access_control"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runAccess AccessState.Unchecked [AccessOp.stateWrite] = none",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 173,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_access_control_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete access-control trace with SmartContract.runAccess"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_state_write_without_auth"
+              ],
+              "obligation_class": "smart_contract_access_control_obligation",
+              "access_control": {
+                "ops": [
+                  "stateWrite"
+                ],
+                "expected_outcome": "none"
+              },
+              "access_control_ops": [
+                "stateWrite"
+              ],
+              "access_control_expected_outcome": "none"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "notifyRewardAmount_access_control",
+            "z3_check_result": "unknown",
+            "content_hash": "d77989c94b6fce58d661aa821bd6619da2e8795bacf1ed6afe29ff036c15d4e4",
+            "status": "unknown",
+            "proof_hash": "3987529f1902acb7d932e29212bbf9c9bb1b931d628fe92e60ac69fbadb70072",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "access-control proof for a guarded state mutation",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_access_control",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "access_control"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runAccess AccessState.Unchecked [AccessOp.authCheck, AccessOp.stateWrite] = some AccessState.Checked",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 192,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_access_control_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete access-control trace with SmartContract.runAccess"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_state_write_without_auth"
+              ],
+              "obligation_class": "smart_contract_access_control_obligation",
+              "access_control": {
+                "ops": [
+                  "authCheck",
+                  "stateWrite"
+                ],
+                "expected_outcome": "safe"
+              },
+              "access_control_ops": [
+                "authCheck",
+                "stateWrite"
+              ],
+              "access_control_expected_outcome": "safe"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "setOperator_access_control",
+            "z3_check_result": "unknown",
+            "content_hash": "0f38223e4811aa7d246bf8c79c8d8efb78cb1ed29ae24fabdfe47464f4f26f32",
+            "status": "unknown",
+            "proof_hash": "ef232383688cc81c80e841ae1c690b692972ef27c85a48aa6b537caf9bb5265d",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "access-control proof for a guarded state mutation",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_access_control",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "access_control"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runAccess AccessState.Unchecked [AccessOp.authCheck, AccessOp.stateWrite] = some AccessState.Checked",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 213,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_access_control_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete access-control trace with SmartContract.runAccess"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.no_state_write_without_auth"
+              ],
+              "obligation_class": "smart_contract_access_control_obligation",
+              "access_control": {
+                "ops": [
+                  "authCheck",
+                  "stateWrite"
+                ],
+                "expected_outcome": "safe"
+              },
+              "access_control_ops": [
+                "authCheck",
+                "stateWrite"
+              ],
+              "access_control_expected_outcome": "safe"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "withdraw_cei",
+            "z3_check_result": "unknown",
+            "content_hash": "822ff9a111c1715b68e522ff49f691321aa576d2e1b84ce2a29bef8fc794264f",
+            "status": "unknown",
+            "proof_hash": "2b9e765533f053a43584df139baacf82d6b0321f03ae204aff7fab3fd467d788",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "CEI ordering proof for effects-before-interactions",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_cei",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "cei"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runCei CeiState.Effects [CeiOp.effect, CeiOp.effect, CeiOp.interaction] = some CeiState.Interacted",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 117,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_cei_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete CEI ordering trace with SmartContract.runCei"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.effect_after_interaction_is_none"
+              ],
+              "obligation_class": "smart_contract_cei_obligation",
+              "cei": {
+                "ops": [
+                  "effect",
+                  "effect",
+                  "interaction"
+                ],
+                "expected_outcome": "interacted"
+              },
+              "cei_ops": [
+                "effect",
+                "effect",
+                "interaction"
+              ],
+              "cei_expected_outcome": "interacted"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "emergencyWithdraw_cei",
+            "z3_check_result": "unknown",
+            "content_hash": "5f844b3f88a290d704b7d0afe9ae816ce037ffd58af791b30ff1d60cdbdb5cc1",
+            "status": "unknown",
+            "proof_hash": "a118e871545b751f01a833134bb4aefa5172b8389a5c218fb40b5554a93e0e93",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "CEI ordering proof for effects-before-interactions",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_cei",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "cei"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runCei CeiState.Effects [CeiOp.effect, CeiOp.effect, CeiOp.effect, CeiOp.interaction] = some CeiState.Interacted",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 130,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_cei_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete CEI ordering trace with SmartContract.runCei"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.effect_after_interaction_is_none"
+              ],
+              "obligation_class": "smart_contract_cei_obligation",
+              "cei": {
+                "ops": [
+                  "effect",
+                  "effect",
+                  "effect",
+                  "interaction"
+                ],
+                "expected_outcome": "interacted"
+              },
+              "cei_ops": [
+                "effect",
+                "effect",
+                "effect",
+                "interaction"
+              ],
+              "cei_expected_outcome": "interacted"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "getReward_cei",
+            "z3_check_result": "unknown",
+            "content_hash": "c5c2c3f66759199847fa9242290c5f777c5bb137773d2eaf4a11cf6f91eb6893",
+            "status": "unknown",
+            "proof_hash": "7537528c4220594dc660f5b9eac4d049c24af526b3b2d1e17730816628afec0c",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "CEI ordering proof for effects-before-interactions",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_cei",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "cei"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runCei CeiState.Effects [CeiOp.effect, CeiOp.effect, CeiOp.interaction] = some CeiState.Interacted",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 144,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_cei_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete CEI ordering trace with SmartContract.runCei"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.effect_after_interaction_is_none"
+              ],
+              "obligation_class": "smart_contract_cei_obligation",
+              "cei": {
+                "ops": [
+                  "effect",
+                  "effect",
+                  "interaction"
+                ],
+                "expected_outcome": "interacted"
+              },
+              "cei_ops": [
+                "effect",
+                "effect",
+                "interaction"
+              ],
+              "cei_expected_outcome": "interacted"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "claimFor_cei",
+            "z3_check_result": "unknown",
+            "content_hash": "126cdde451ab78f04a925f6667fd2a44bb2e7a5760bb8bb1d7b71d3c8ec13c58",
+            "status": "unknown",
+            "proof_hash": "19e8d6243e4c27ef482ce8f67a27af6963350467a441e2d996f8327c6db698f7",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "CEI ordering proof for effects-before-interactions",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_cei",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "cei"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runCei CeiState.Effects [CeiOp.effect, CeiOp.effect, CeiOp.interaction] = some CeiState.Interacted",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 159,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_cei_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete CEI ordering trace with SmartContract.runCei"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.effect_after_interaction_is_none"
+              ],
+              "obligation_class": "smart_contract_cei_obligation",
+              "cei": {
+                "ops": [
+                  "effect",
+                  "effect",
+                  "interaction"
+                ],
+                "expected_outcome": "interacted"
+              },
+              "cei_ops": [
+                "effect",
+                "effect",
+                "interaction"
+              ],
+              "cei_expected_outcome": "interacted"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          },
+          {
+            "name": "claimBonus_cei",
+            "z3_check_result": "unknown",
+            "content_hash": "464fb736c9697436a1a2a0cd7b80a38892d67440be48aa8117c8caef22fdccb7",
+            "status": "unknown",
+            "proof_hash": "a6701abfa088e906b80b8b0cb057c9d2ac729ed5fe3bc31da549c35541a0dca7",
+            "requires": "true",
+            "ensures": "true",
+            "body_expr": "",
+            "body_summary": "CEI ordering proof for effects-before-interactions",
+            "z3_result_class": "unknown",
+            "escalation_reason": "sc",
+            "logic_fragment_tag": "smart_contract_cei",
+            "logic_fragment_tags": [
+              "smart_contract",
+              "cei"
+            ],
+            "translator_version": "mumei-lean-translator-ir-v2",
+            "binder_mapping": {},
+            "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+            "translator_ir": {
+              "sort": "contract_obligation",
+              "binders": [],
+              "theorem_goal": "runCei CeiState.Effects [CeiOp.effect, CeiOp.interaction] = some CeiState.Interacted",
+              "provenance_span": {
+                "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
+                "line": 173,
+                "col": 1,
+                "len": 0
+              },
+              "lowering_rules": [
+                "smart_contract_cei_lowering"
+              ],
+              "proof_trace_hints": [
+                "use the concrete CEI ordering trace with SmartContract.runCei"
+              ],
+              "requires_bridge_lemmas": [
+                "MumeiLean.SmartContract.effect_after_interaction_is_none"
+              ],
+              "obligation_class": "smart_contract_cei_obligation",
+              "cei": {
+                "ops": [
+                  "effect",
+                  "interaction"
+                ],
+                "expected_outcome": "interacted"
+              },
+              "cei_ops": [
+                "effect",
+                "interaction"
+              ],
+              "cei_expected_outcome": "interacted"
+            },
+            "unknown_obligation_domain": "smart_contract"
+          }
+        ],
+        "package_name": "StakingRewards",
+        "package_version": "0",
+        "certificate_hash": "a0ab7f9560c74875ac84969d1eb25099324c73dfe6ed63cec00e152300d5d0ab",
+        "all_verified": false
+      },
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: ['Solidity function `stake` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `emergencyWithdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `getReward` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `setPayoutAddress` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `claimBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless']\ncounterexample_values: []\ncross_validation_gaps: ['spec stronger than implementation: lastTimeRewardApplicable', 'spec stronger than implementation: rewardPerToken', 'spec ambiguity (missing_requirement): balanceOf.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering balanceOf; none was stated.', 'spec ambiguity (missing_requirement): balanceOf.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering balanceOf; none was stated.', 'spec ambiguity (missing_requirement): earned.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering earned; none was stated.', 'spec ambiguity (missing_requirement): getReward.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering getReward; none was stated.', 'spec ambiguity (missing_requirement): getReward.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering getReward; none was stated.', 'spec ambiguity (missing_requirement): notifyRewardAmount.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering notifyRewardAmount; none was stated.', 'spec ambiguity (missing_requirement): notifyRewardAmount.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering notifyRewardAmount; none was stated.', 'spec ambiguity (missing_requirement): setOperator.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering setOperator; none was stated.', 'spec ambiguity (missing_requirement): setOperator.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering setOperator; none was stated.']\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: transfer.requires, transfer.ensures, transferFrom.requires, transferFrom.ensures, withdraw.requires, withdraw.ensures, claimFor.requires, claimFor.ensures, conditional at Position 6086-6129, conditional at Position 6339-6461\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": false,
+      "source_file": "specimens/solidity/sol-03-staking-rewards/test/TestBase.sol",
+      "language": "solidity",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [
+        "encoding-gap: panicCode: spec_lowering_failed: failed to lower ensures clause '((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))': Type Error: len() expects an array or string argument; `data` is neither (constraints: [\"((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))\"])"
+      ],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "medium",
+          "action": "validate-spec で仕様の矛盾を修正",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 74-139",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": {
+        "version": "1.0",
+        "timestamp": "2026-11-03T06:04:07.800726Z",
+        "mumei_version": "agent",
+        "z3_version": "Z3 version 4.16.0",
+        "file": "specimens/solidity/sol-03-staking-rewards/test/TestBase.sol",
+        "atoms": [],
+        "package_name": "TestBase",
+        "package_version": "0",
+        "certificate_hash": "382825fa20fd9ca82c819bab46079a2f24dfd8f2f37ce82ef6279b55b0f91706",
+        "all_verified": false
+      },
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/solidity/sol-03-staking-rewards/test/TestBase.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: ['encoding-gap: panicCode: spec_lowering_failed: failed to lower ensures clause \\'((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))\\': Type Error: len() expects an array or string argument; `data` is neither (constraints: [\"((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))\"])']\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 74-139\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": true,
+      "source_file": "specimens/solidity/sol-03-staking-rewards/test/Vm.sol",
+      "language": "solidity",
+      "spec_extracted": true,
+      "verification_status": "verified",
+      "spec_health_issues": [],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "info",
+          "action": "監査完了。追加の .mm 移行は不要",
+          "command": ""
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, load.requires, expectRevert.requires, expectRevert.ensures, conditional at Position 436-529",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": {
+        "version": "1.0",
+        "timestamp": "2026-11-03T06:04:07.843006Z",
+        "mumei_version": "agent",
+        "z3_version": "Z3 version 4.16.0",
+        "file": "specimens/solidity/sol-03-staking-rewards/test/Vm.sol",
+        "atoms": [],
+        "package_name": "Vm",
+        "package_version": "0",
+        "certificate_hash": "0ffc0c6e794d84cb2aa7f493da1b7190152ed0dfc8089ba21cf303467c265bf8",
+        "all_verified": false
+      },
+      "lean_bridge": null,
+      "report": "Audit passed: specimens/solidity/sol-03-staking-rewards/test/Vm.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, load.requires, expectRevert.requires, expectRevert.ensures, conditional at Position 436-529\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    }
+  ],
+  "summary": "Audit directory: specimens/solidity/sol-03-staking-rewards\n  src/StakeToken.sol: 4 violations, 5 gaps\n  src/StakingRewards.sol: 6 violations, 11 gaps\n  test/TestBase.sol: 0 violations, 0 gaps\n  test/Vm.sol: 0 violations, 0 gaps\nSummary: 4 files, 3 files with issues\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: onTokenReceived.requires, onTokenReceived.ensures, vague_adjective at Position 2156-2166, conditional at Position 204-239, conditional at Position 3148-3187\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: transfer.requires, transfer.ensures, transferFrom.requires, transferFrom.ensures, withdraw.requires, withdraw.ensures, claimFor.requires, claimFor.ensures, conditional at Position 6086-6129, conditional at Position 6339-6461\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 74-139\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, load.requires, expectRevert.requires, expectRevert.ensures, conditional at Position 436-529\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "total_files": 4,
+  "files_with_issues": 3,
+  "verification_status": "unverifiable",
+  "spec_health_issues": [
+    "test/TestBase.sol: encoding-gap: panicCode: spec_lowering_failed: failed to lower ensures clause '((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))': Type Error: len() expects an array or string argument; `data` is neither (constraints: [\"((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))\"])"
+  ],
+  "verification_violations": [
+    "src/StakeToken.sol: Solidity function `mint` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+    "src/StakeToken.sol: Solidity function `setReceiveHook` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+    "src/StakeToken.sol: Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+    "src/StakeToken.sol: Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+    "src/StakingRewards.sol: Solidity function `stake` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+    "src/StakingRewards.sol: Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+    "src/StakingRewards.sol: Solidity function `emergencyWithdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+    "src/StakingRewards.sol: Solidity function `getReward` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+    "src/StakingRewards.sol: Solidity function `setPayoutAddress` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+    "src/StakingRewards.sol: Solidity function `claimBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+  ],
+  "cross_validation_gaps": [
+    "src/StakeToken.sol: spec stronger than implementation: transferFrom",
+    "src/StakeToken.sol: spec ambiguity (missing_requirement): move.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering move; none was stated.",
+    "src/StakeToken.sol: spec ambiguity (missing_requirement): move.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering move; none was stated.",
+    "src/StakeToken.sol: spec ambiguity (missing_requirement): notifyReceiver.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering notifyReceiver; none was stated.",
+    "src/StakeToken.sol: spec ambiguity (missing_requirement): notifyReceiver.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering notifyReceiver; none was stated.",
+    "src/StakingRewards.sol: spec stronger than implementation: lastTimeRewardApplicable",
+    "src/StakingRewards.sol: spec stronger than implementation: rewardPerToken",
+    "src/StakingRewards.sol: spec ambiguity (missing_requirement): balanceOf.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering balanceOf; none was stated.",
+    "src/StakingRewards.sol: spec ambiguity (missing_requirement): balanceOf.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering balanceOf; none was stated.",
+    "src/StakingRewards.sol: spec ambiguity (missing_requirement): earned.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering earned; none was stated.",
+    "src/StakingRewards.sol: spec ambiguity (missing_requirement): getReward.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering getReward; none was stated.",
+    "src/StakingRewards.sol: spec ambiguity (missing_requirement): getReward.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering getReward; none was stated.",
+    "src/StakingRewards.sol: spec ambiguity (missing_requirement): notifyRewardAmount.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering notifyRewardAmount; none was stated.",
+    "src/StakingRewards.sol: spec ambiguity (missing_requirement): notifyRewardAmount.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering notifyRewardAmount; none was stated.",
+    "src/StakingRewards.sol: spec ambiguity (missing_requirement): setOperator.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering setOperator; none was stated.",
+    "src/StakingRewards.sol: spec ambiguity (missing_requirement): setOperator.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering setOperator; none was stated."
+  ],
+  "migration_hints": [],
+  "healed_files": [],
+  "heal_errors": [],
+  "trusted_atoms": [],
+  "next_steps": [
+    {
+      "priority": "high",
+      "action": "migrate-suggest で .mm スケルトンを生成",
+      "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
+    },
+    {
+      "priority": "high",
+      "action": "validate-spec-to-code で制約の対応を確認",
+      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+    },
+    {
+      "priority": "high",
+      "action": "欠落要件を追記してから再監査（推測で補完しない）",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: onTokenReceived.requires, onTokenReceived.ensures, vague_adjective at Position 2156-2166, conditional at Position 204-239, conditional at Position 3148-3187",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: transfer.requires, transfer.ensures, transferFrom.requires, transferFrom.ensures, withdraw.requires, withdraw.ensures, claimFor.requires, claimFor.ensures, conditional at Position 6086-6129, conditional at Position 6339-6461",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "validate-spec で仕様の矛盾を修正",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 74-139",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, load.requires, expectRevert.requires, expectRevert.ensures, conditional at Position 436-529",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    }
+  ],
+  "errors": [],
+  "skipped_rate_limited_files": []
+}

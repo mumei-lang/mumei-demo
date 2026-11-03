@@ -1,0 +1,170 @@
+{
+  "success": false,
+  "source_dir": "specimens/rust/rs-01-bank-core",
+  "language": "mixed",
+  "file_results": [
+    {
+      "success": false,
+      "source_file": "specimens/rust/rs-01-bank-core/src/bank.rs",
+      "language": "rust",
+      "spec_extracted": true,
+      "verification_status": "refuted",
+      "spec_health_issues": [],
+      "verification_violations": [
+        "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64` without a range contract (amount_cents outside 0..=18446744073709551615 wraps)",
+        "Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)",
+        "Z3 Counter-example: amount_cents=-9223372036854775808"
+      ],
+      "counterexample_values": [
+        {
+          "function_name": "request_transfer",
+          "counterexample": {
+            "amount_cents": -9223372036854775808
+          }
+        }
+      ],
+      "cross_validation_gaps": [],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "high",
+          "action": "migrate-suggest で .mm スケルトンを生成",
+          "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: accrue_interest.requires, remaining_daily_allowance.requires, find_index.requires, get_mut.requires, open_account.requires, deposit.requires, request_transfer.requires, settle.requires, close_account.requires, charge_fee.requires, apply_interest.requires, adjust.requires, record_audit.requires, recent_audit.requires",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/rust/rs-01-bank-core/src/bank.rs\nlanguage: rust\nspec_extracted: True\nverification_status: refuted\nspec_health_issues: []\nverification_violations: ['Rust function `request_transfer` can truncate `amount_cents` in cast to `u64` without a range contract (amount_cents outside 0..=18446744073709551615 wraps)', 'Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)', 'Z3 Counter-example: amount_cents=-9223372036854775808']\ncounterexample_values: [{'function_name': 'request_transfer', 'counterexample': {'amount_cents': -9223372036854775808}}]\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: accrue_interest.requires, remaining_daily_allowance.requires, find_index.requires, get_mut.requires, open_account.requires, deposit.requires, request_transfer.requires, settle.requires, close_account.requires, charge_fee.requires, apply_interest.requires, adjust.requires, record_audit.requires, recent_audit.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": true,
+      "source_file": "specimens/rust/rs-01-bank-core/src/main.rs",
+      "language": "rust",
+      "spec_extracted": true,
+      "verification_status": "verified",
+      "spec_health_issues": [],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "info",
+          "action": "監査完了。追加の .mm 移行は不要",
+          "command": ""
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: parse_cents.requires, parse_cents.ensures, usage.requires, usage.ensures, main.requires, main.ensures, conditional at Position 2069-2084, conditional at Position 2416-2565",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit passed: specimens/rust/rs-01-bank-core/src/main.rs\nlanguage: rust\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_cents.requires, parse_cents.ensures, usage.requires, usage.ensures, main.requires, main.ensures, conditional at Position 2069-2084, conditional at Position 2416-2565\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": false,
+      "source_file": "specimens/rust/rs-01-bank-core/src/store.rs",
+      "language": "rust",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [
+        "malformed-extraction: load ensures: garbled comparison operators '==>'",
+        "malformed-extraction: load ensures: garbled comparison operators '==>'",
+        "malformed-extraction: load ensures: garbled comparison operators '==>'",
+        "malformed-extraction: save ensures: garbled comparison operators '==>'",
+        "malformed-extraction: save ensures: garbled comparison operators '==>'"
+      ],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "medium",
+          "action": "validate-spec で仕様の矛盾を修正",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 582-611",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/rust/rs-01-bank-core/src/store.rs\nlanguage: rust\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: [\"malformed-extraction: load ensures: garbled comparison operators '==>'\", \"malformed-extraction: load ensures: garbled comparison operators '==>'\", \"malformed-extraction: load ensures: garbled comparison operators '==>'\", \"malformed-extraction: save ensures: garbled comparison operators '==>'\", \"malformed-extraction: save ensures: garbled comparison operators '==>'\"]\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 582-611\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    }
+  ],
+  "summary": "Audit directory: specimens/rust/rs-01-bank-core\n  src/bank.rs: 3 violations, 0 gaps\n  src/main.rs: 0 violations, 0 gaps\n  src/store.rs: 0 violations, 0 gaps\nSummary: 3 files, 2 files with issues\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: accrue_interest.requires, remaining_daily_allowance.requires, find_index.requires, get_mut.requires, open_account.requires, deposit.requires, request_transfer.requires, settle.requires, close_account.requires, charge_fee.requires, apply_interest.requires, adjust.requires, record_audit.requires, recent_audit.requires\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_cents.requires, parse_cents.ensures, usage.requires, usage.ensures, main.requires, main.ensures, conditional at Position 2069-2084, conditional at Position 2416-2565\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: conditional at Position 582-611\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "total_files": 3,
+  "files_with_issues": 2,
+  "verification_status": "refuted",
+  "spec_health_issues": [
+    "src/store.rs: malformed-extraction: load ensures: garbled comparison operators '==>'",
+    "src/store.rs: malformed-extraction: load ensures: garbled comparison operators '==>'",
+    "src/store.rs: malformed-extraction: load ensures: garbled comparison operators '==>'",
+    "src/store.rs: malformed-extraction: save ensures: garbled comparison operators '==>'",
+    "src/store.rs: malformed-extraction: save ensures: garbled comparison operators '==>'"
+  ],
+  "verification_violations": [
+    "src/bank.rs: Rust function `request_transfer` can truncate `amount_cents` in cast to `u64` without a range contract (amount_cents outside 0..=18446744073709551615 wraps)",
+    "src/bank.rs: Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)",
+    "src/bank.rs: Z3 Counter-example: amount_cents=-9223372036854775808"
+  ],
+  "cross_validation_gaps": [],
+  "migration_hints": [],
+  "healed_files": [],
+  "heal_errors": [],
+  "trusted_atoms": [],
+  "next_steps": [
+    {
+      "priority": "high",
+      "action": "migrate-suggest で .mm スケルトンを生成",
+      "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: accrue_interest.requires, remaining_daily_allowance.requires, find_index.requires, get_mut.requires, open_account.requires, deposit.requires, request_transfer.requires, settle.requires, close_account.requires, charge_fee.requires, apply_interest.requires, adjust.requires, record_audit.requires, recent_audit.requires",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: parse_cents.requires, parse_cents.ensures, usage.requires, usage.ensures, main.requires, main.ensures, conditional at Position 2069-2084, conditional at Position 2416-2565",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "validate-spec で仕様の矛盾を修正",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: conditional at Position 582-611",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    }
+  ],
+  "errors": [],
+  "skipped_rate_limited_files": []
+}

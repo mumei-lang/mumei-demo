@@ -179,7 +179,9 @@ directory and writes `audit/audit.json` and `audit/audit.md`, plus
 `audit/coverage.json`, which maps each planted defect to the audit findings
 that name the same function. For a specimen with a `fixed.patch` it also
 audits a patched copy into `audit/fixed/` and records false alarms on the
-fixed code under `fixed` in `coverage.json`. `specimens/AUDIT_SUMMARY.md`
+fixed code under `fixed` in `coverage.json`. When mumei-agent has an LLM
+provider configured, the same files go to `audit/with-llm/` instead, so the
+no-LLM and with-LLM audits sit side by side. `specimens/AUDIT_SUMMARY.md`
 aggregates detected and missed defects across all specimens.
 
 ## Validate
@@ -204,27 +206,30 @@ with `--run-fixed` it is applied to a scratch copy, where `run.sh` must pass and
 
 ![Detection over runs](scoreboard/history.svg)
 
-Latest run — no LLM: mumei-agent `dffe7e8` · mumei `36eb534` (mumei 0.6.23) · 2026-11-01T18:33:07Z
+Latest run — no LLM: mumei-agent `e8be527` · mumei `36eb534` (mumei 0.6.23) · 2026-11-03T05:07:38Z
 Findings — no LLM: 40 (defect evidence 10, real 3, false positive 27, unreviewed 0) · precision 32%
 Fixed variants — no LLM: 16 specimens (171 defects fixed) · 29 false alarms in 30 findings on fixed code · 3 defects still reported
 
-Latest run — with LLM: not run yet.
+Latest run — with LLM (`openai/gpt-6-luna`): mumei-agent `e8be527` · mumei `36eb534` (mumei 0.6.23) · 2026-11-03T05:18:58Z
+Findings — with LLM (`openai/gpt-6-luna`): 200 (defect evidence 17, real 3, false positive 26, unreviewed 154) · precision 10%–87%
+Fixed variants — with LLM (`openai/gpt-6-luna`): 16 specimens (171 defects fixed) · 211 false alarms in 212 findings on fixed code · 5 defects still reported
+
 
 | Language | Defects | No LLM detected | No LLM detected or flagged | With LLM detected | With LLM detected or flagged |
 |---|---:|---:|---:|---:|---:|
-| go | 32 | 1/32 (3%) | 1/32 (3%) | — | — |
-| python | 41 | 1/41 (2%) | 2/41 (5%) | — | — |
-| rust | 34 | 1/34 (3%) | 3/34 (9%) | — | — |
-| solidity | 31 | 6/31 (19%) | 22/31 (71%) | — | — |
-| typescript | 33 | 1/33 (3%) | 1/33 (3%) | — | — |
-| **Total** | **171** | **10/171 (6%)** | **29/171 (17%)** | **—** | **—** |
-
-_With LLM: not run yet._
+| go | 32 | 1/32 (3%) | 1/32 (3%) | 2/32 (6%) | 20/32 (62%) |
+| python | 41 | 1/41 (2%) | 2/41 (5%) | 1/41 (2%) | 4/41 (10%) |
+| rust | 34 | 1/34 (3%) | 3/34 (9%) | 1/34 (3%) | 4/34 (12%) |
+| solidity | 31 | 6/31 (19%) | 22/31 (71%) | 6/31 (19%) | 27/31 (87%) |
+| typescript | 33 | 1/33 (3%) | 1/33 (3%) | 2/33 (6%) | 13/33 (39%) |
+| **Total** | **171** | **10/171 (6%)** | **29/171 (17%)** | **12/171 (7%)** | **68/171 (40%)** |
 
 Recent runs:
 
 | Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code |
 |---|---|---|---|---|---:|---:|---:|---:|---:|
+| 2026-11-03 | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–87% | 211 / 16 specimens |
+| 2026-11-03 | no | `e8be527` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens |
 | 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens |
 | 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens |
 | 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 4 / 7 specimens |
@@ -233,10 +238,9 @@ Recent runs:
 | 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens |
 | 2026-11-01 | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 4 / 7 specimens |
 | 2026-10-31 (rescored 2026-11-01) | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% | 32% | — |
-| 2026-10-31 | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% | — | — |
-| 2026-10-29 | no | `336d604` | `fc10933` | 171 | 6% | 13% | 17% | — | — |
 
-Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md).
+Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md) (no LLM) and
+[AUDIT_SUMMARY_WITH_LLM.md](AUDIT_SUMMARY_WITH_LLM.md) (with LLM).
 
 Re-run:
 
@@ -249,7 +253,8 @@ python3 scripts/run_specimen_audits.py --render-only   # re-render charts/README
 The scoreboard tracks two series: audits run without an LLM provider and audits run with
 one. To record a with-LLM run, configure an LLM provider for mumei-agent — `LLM_API_KEY`
 (or `OPENAI_API_KEY`), plus `LLM_BASE_URL` / `LLM_MODEL` as needed, or a `.env` file in the
-agent repo — and re-run the full audit. Each mode keeps its own history entries and the
+agent repo — and re-run the full audit. A with-LLM run writes to `audit/with-llm/` and records
+the model, audit time and (on OpenRouter) cost. Each mode keeps its own history entries and the
 tables above show the latest run of each side by side.
 
 Precision is (defect evidence + findings reviewed as real) / findings; it is a range while some

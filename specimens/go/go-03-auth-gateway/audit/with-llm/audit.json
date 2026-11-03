@@ -1,0 +1,168 @@
+{
+  "success": false,
+  "source_dir": "specimens/go/go-03-auth-gateway",
+  "language": "mixed",
+  "file_results": [
+    {
+      "success": false,
+      "source_file": "specimens/go/go-03-auth-gateway/auth.go",
+      "language": "go",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [
+        "encoding-gap: bearerUser: spec_not_boolean: ensures clause 'let token = if has_prefix(authorization_header, \"Bearer \") then substring(authorization_header, 7, len(authorization_header)) else authorization_header' must lower to boolean (constraints: [\"let token = if has_prefix(authorization_header, \\\"Bearer \\\") then substring(authorization_header, 7, len(authorization_header)) else authorization_header\"])",
+        "encoding-gap: allowAttempt: spec_not_boolean: ensures clause 'let key = if host_parse_succeeded then parsed_host else address' must lower to boolean (constraints: [\"let key = if host_parse_succeeded then parsed_host else address\"])"
+      ],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "medium",
+          "action": "validate-spec で仕様の矛盾を修正",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: tokenMatches.requires, conditional at Position 1715-1763, conditional at Position 2450-2477",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/go/go-03-auth-gateway/auth.go\nlanguage: go\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: ['encoding-gap: bearerUser: spec_not_boolean: ensures clause \\'let token = if has_prefix(authorization_header, \"Bearer \") then substring(authorization_header, 7, len(authorization_header)) else authorization_header\\' must lower to boolean (constraints: [\"let token = if has_prefix(authorization_header, \\\\\"Bearer \\\\\") then substring(authorization_header, 7, len(authorization_header)) else authorization_header\"])', 'encoding-gap: allowAttempt: spec_not_boolean: ensures clause \\'let key = if host_parse_succeeded then parsed_host else address\\' must lower to boolean (constraints: [\"let key = if host_parse_succeeded then parsed_host else address\"])']\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: tokenMatches.requires, conditional at Position 1715-1763, conditional at Position 2450-2477\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": false,
+      "source_file": "specimens/go/go-03-auth-gateway/handlers.go",
+      "language": "go",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [
+        "encoding-gap: loginHandler: spec_lowering_failed: failed to lower ensures clause '! allow_attempt => result.status == 429 && result.message == \"try again later\" && ! result.body_processed && ! result.session_recorded': Verification Error: Expected int (constraints: [\"! allow_attempt => result.status == 429 && result.message == \\\"try again later\\\" && ! result.body_processed && ! result.session_recorded\"])",
+        "encoding-gap: profileHandler: spec_lowering_failed: failed to lower requires clause 'account_exists || requested_user != \"\" || bearer_user == \"\"': Verification Error: Expected int (constraints: [\"account_exists || requested_user != \\\"\\\" || bearer_user == \\\"\\\"\"])",
+        "encoding-gap: proxyHandler: spec_lowering_failed: failed to lower requires clause 'bearer_user == \"\" || ! upstream_succeeds ||(upstream_status >= 100 && upstream_status <= 599)': Verification Error: Expected int (constraints: [\"bearer_user == \\\"\\\" || ! upstream_succeeds ||(upstream_status >= 100 && upstream_status <= 599)\"])",
+        "encoding-gap: rotateHandler: spec_lowering_failed: failed to lower requires clause 'bearer_user != \"admin\" || epoch < i64 :: MAX': Verification Error: Expected int (constraints: [\"bearer_user != \\\"admin\\\" || epoch < i64 :: MAX\"])",
+        "encoding-gap: healthHandler: spec_lowering_failed: failed to lower ensures clause 'result.health_status == \"ok\"': Verification Error: Expected int (constraints: [\"result.health_status == \\\"ok\\\"\"])",
+        "encoding-gap: writeJSON: spec_lowering_failed: failed to lower ensures clause 'result.content_type == \"application/json\"': Verification Error: Expected int (constraints: [\"result.content_type == \\\"application/json\\\"\"])"
+      ],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "medium",
+          "action": "validate-spec で仕様の矛盾を修正",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: vague_adjective at Position 2479-2489, conditional at Position 434-466",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/go/go-03-auth-gateway/handlers.go\nlanguage: go\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: ['encoding-gap: loginHandler: spec_lowering_failed: failed to lower ensures clause \\'! allow_attempt => result.status == 429 && result.message == \"try again later\" && ! result.body_processed && ! result.session_recorded\\': Verification Error: Expected int (constraints: [\"! allow_attempt => result.status == 429 && result.message == \\\\\"try again later\\\\\" && ! result.body_processed && ! result.session_recorded\"])', 'encoding-gap: profileHandler: spec_lowering_failed: failed to lower requires clause \\'account_exists || requested_user != \"\" || bearer_user == \"\"\\': Verification Error: Expected int (constraints: [\"account_exists || requested_user != \\\\\"\\\\\" || bearer_user == \\\\\"\\\\\"\"])', 'encoding-gap: proxyHandler: spec_lowering_failed: failed to lower requires clause \\'bearer_user == \"\" || ! upstream_succeeds ||(upstream_status >= 100 && upstream_status <= 599)\\': Verification Error: Expected int (constraints: [\"bearer_user == \\\\\"\\\\\" || ! upstream_succeeds ||(upstream_status >= 100 && upstream_status <= 599)\"])', 'encoding-gap: rotateHandler: spec_lowering_failed: failed to lower requires clause \\'bearer_user != \"admin\" || epoch < i64 :: MAX\\': Verification Error: Expected int (constraints: [\"bearer_user != \\\\\"admin\\\\\" || epoch < i64 :: MAX\"])', 'encoding-gap: healthHandler: spec_lowering_failed: failed to lower ensures clause \\'result.health_status == \"ok\"\\': Verification Error: Expected int (constraints: [\"result.health_status == \\\\\"ok\\\\\"\"])', 'encoding-gap: writeJSON: spec_lowering_failed: failed to lower ensures clause \\'result.content_type == \"application/json\"\\': Verification Error: Expected int (constraints: [\"result.content_type == \\\\\"application/json\\\\\"\"])']\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: vague_adjective at Position 2479-2489, conditional at Position 434-466\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": false,
+      "source_file": "specimens/go/go-03-auth-gateway/main.go",
+      "language": "go",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [
+        "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+        "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
+      ],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+        },
+        {
+          "priority": "high",
+          "action": "欠落要件を追記してから再監査（推測で補完しない）",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit found issues: specimens/go/go-03-auth-gateway/main.go\nlanguage: go\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.', 'spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated.']\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    }
+  ],
+  "summary": "Audit directory: specimens/go/go-03-auth-gateway\n  auth.go: 0 violations, 0 gaps\n  handlers.go: 0 violations, 0 gaps\n  main.go: 0 violations, 2 gaps\nSummary: 3 files, 3 files with issues\nnext_steps:\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: tokenMatches.requires, conditional at Position 1715-1763, conditional at Position 2450-2477\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: vague_adjective at Position 2479-2489, conditional at Position 434-466\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: high\n    action: 欠落要件を追記してから再監査（推測で補完しない）\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "total_files": 3,
+  "files_with_issues": 3,
+  "verification_status": "unverifiable",
+  "spec_health_issues": [
+    "auth.go: encoding-gap: bearerUser: spec_not_boolean: ensures clause 'let token = if has_prefix(authorization_header, \"Bearer \") then substring(authorization_header, 7, len(authorization_header)) else authorization_header' must lower to boolean (constraints: [\"let token = if has_prefix(authorization_header, \\\"Bearer \\\") then substring(authorization_header, 7, len(authorization_header)) else authorization_header\"])",
+    "auth.go: encoding-gap: allowAttempt: spec_not_boolean: ensures clause 'let key = if host_parse_succeeded then parsed_host else address' must lower to boolean (constraints: [\"let key = if host_parse_succeeded then parsed_host else address\"])",
+    "handlers.go: encoding-gap: loginHandler: spec_lowering_failed: failed to lower ensures clause '! allow_attempt => result.status == 429 && result.message == \"try again later\" && ! result.body_processed && ! result.session_recorded': Verification Error: Expected int (constraints: [\"! allow_attempt => result.status == 429 && result.message == \\\"try again later\\\" && ! result.body_processed && ! result.session_recorded\"])",
+    "handlers.go: encoding-gap: profileHandler: spec_lowering_failed: failed to lower requires clause 'account_exists || requested_user != \"\" || bearer_user == \"\"': Verification Error: Expected int (constraints: [\"account_exists || requested_user != \\\"\\\" || bearer_user == \\\"\\\"\"])",
+    "handlers.go: encoding-gap: proxyHandler: spec_lowering_failed: failed to lower requires clause 'bearer_user == \"\" || ! upstream_succeeds ||(upstream_status >= 100 && upstream_status <= 599)': Verification Error: Expected int (constraints: [\"bearer_user == \\\"\\\" || ! upstream_succeeds ||(upstream_status >= 100 && upstream_status <= 599)\"])",
+    "handlers.go: encoding-gap: rotateHandler: spec_lowering_failed: failed to lower requires clause 'bearer_user != \"admin\" || epoch < i64 :: MAX': Verification Error: Expected int (constraints: [\"bearer_user != \\\"admin\\\" || epoch < i64 :: MAX\"])",
+    "handlers.go: encoding-gap: healthHandler: spec_lowering_failed: failed to lower ensures clause 'result.health_status == \"ok\"': Verification Error: Expected int (constraints: [\"result.health_status == \\\"ok\\\"\"])",
+    "handlers.go: encoding-gap: writeJSON: spec_lowering_failed: failed to lower ensures clause 'result.content_type == \"application/json\"': Verification Error: Expected int (constraints: [\"result.content_type == \\\"application/json\\\"\"])"
+  ],
+  "verification_violations": [],
+  "cross_validation_gaps": [
+    "main.go: spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
+    "main.go: spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
+  ],
+  "migration_hints": [],
+  "healed_files": [],
+  "heal_errors": [],
+  "trusted_atoms": [],
+  "next_steps": [
+    {
+      "priority": "medium",
+      "action": "validate-spec で仕様の矛盾を修正",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: tokenMatches.requires, conditional at Position 1715-1763, conditional at Position 2450-2477",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "medium",
+      "action": "underspecified な意図を明文化（推測で補完しない）: vague_adjective at Position 2479-2489, conditional at Position 434-466",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "high",
+      "action": "validate-spec-to-code で制約の対応を確認",
+      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+    },
+    {
+      "priority": "high",
+      "action": "欠落要件を追記してから再監査（推測で補完しない）",
+      "command": "mumei-agent validate-spec --input <spec> --format human"
+    }
+  ],
+  "errors": [],
+  "skipped_rate_limited_files": []
+}

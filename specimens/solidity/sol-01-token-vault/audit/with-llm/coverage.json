@@ -1,0 +1,527 @@
+{
+  "specimen": "sol-01-token-vault",
+  "language": "solidity",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "refuted",
+  "files_audited": 4,
+  "files_with_issues": 3,
+  "counts": {
+    "total": 10,
+    "detected": 1,
+    "function_flagged": 6,
+    "missed": 3
+  },
+  "defects": [
+    {
+      "id": "SOL01-D01",
+      "file": "src/RewardVault.sol",
+      "function": "withdraw",
+      "category": "reentrancy",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `withdraw` can truncate `shares` in cast to `uint128` without a range contract (shares outside 0..=340282366920938463463374607431768211455 wraps)",
+        "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "spec stronger than implementation: withdraw",
+        "counterexample for `withdraw`: {\"shares\": 340282366920938463463374607431768211456}"
+      ]
+    },
+    {
+      "id": "SOL01-D02",
+      "file": "src/VaultToken.sol",
+      "function": "transferFrom",
+      "category": "integer-underflow",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL01-D03",
+      "file": "src/RewardVault.sol",
+      "function": "sharePrice",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D04",
+      "file": "src/RewardVault.sol",
+      "function": "_sharesFor",
+      "category": "rounding-error",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D05",
+      "file": "src/RewardVault.sol",
+      "function": "setFeeRecipient",
+      "category": "access-control",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Solidity function `setFeeRecipient` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL01-D06",
+      "file": "src/RewardVault.sol",
+      "function": "setWithdrawFeeBps",
+      "category": "tx-origin-auth",
+      "class": "vulnerability",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+      ]
+    },
+    {
+      "id": "SOL01-D07",
+      "file": "src/RewardVault.sol",
+      "function": "_payFee",
+      "category": "unchecked-call",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "SOL01-D08",
+      "file": "src/RewardVault.sol",
+      "function": "deposit",
+      "category": "integer-overflow",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "function_flagged",
+      "findings": [
+        "Solidity function `deposit` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "spec stronger than implementation: deposit"
+      ]
+    },
+    {
+      "id": "SOL01-D09",
+      "file": "src/RewardVault.sol",
+      "function": "distributeRewards",
+      "category": "denial-of-service",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "spec stronger than implementation: distributeRewards"
+      ]
+    },
+    {
+      "id": "SOL01-D10",
+      "file": "src/RewardVault.sol",
+      "function": "distributeRewards",
+      "category": "rounding-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "spec stronger than implementation: distributeRewards"
+      ]
+    }
+  ],
+  "unmatched_findings": [
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `claimRewards` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sharesOf.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sharesOf; none was stated."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sharesFor.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering sharesFor; none was stated."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sharesFor.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sharesFor; none was stated."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): payFee.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering payFee; none was stated."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): payFee.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering payFee; none was stated."
+    },
+    {
+      "file": "src/VaultToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+    },
+    {
+      "file": "test/TestBase.sol",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: panicCode: spec_lowering_failed: failed to lower ensures clause '((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))': Type Error: len() expects an array or string argument; `data` is neither (constraints: [\"((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))\"])"
+    }
+  ],
+  "findings": [
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `withdraw` can truncate `shares` in cast to `uint128` without a range contract (shares outside 0..=340282366920938463463374607431768211455 wraps)",
+      "status": "false_positive",
+      "reason": "`require(pos.shares >= shares)` bounds shares by a uint128 value before the cast, so it cannot truncate."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `deposit` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Public deposit entry point. Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `claimRewards` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `setFeeRecipient` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "real",
+      "reason": "The setter does have a guard, but it authorizes on tx.origin (planted SOL01-D06). The wording is wrong, yet the finding points a reviewer at the real authorization flaw."
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec stronger than implementation: deposit",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec stronger than implementation: withdraw",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec stronger than implementation: distributeRewards",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sharesOf.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sharesOf; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sharesFor.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering sharesFor; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sharesFor.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sharesFor; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): payFee.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering payFee; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/RewardVault.sol",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): payFee.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering payFee; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "src/VaultToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "ERC20 approve. Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+    },
+    {
+      "file": "src/VaultToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+      "status": "false_positive",
+      "reason": "ERC20 transferFrom is authorized by the allowance, not by an owner check. The planted defect here (SOL01-D02, unchecked allowance underflow) is not what the finding describes."
+    },
+    {
+      "file": "test/TestBase.sol",
+      "kind": "spec_health_issues",
+      "text": "encoding-gap: panicCode: spec_lowering_failed: failed to lower ensures clause '((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))': Type Error: len() expects an array or string argument; `data` is neither (constraints: [\"((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))\"])",
+      "status": "unreviewed"
+    }
+  ],
+  "finding_counts": {
+    "total": 17,
+    "defect_evidence": 1,
+    "real": 1,
+    "false_positive": 6,
+    "unreviewed": 9
+  },
+  "reviews_used": [
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "Solidity function `claimRewards` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "Solidity function `deposit` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "Solidity function `withdraw` can truncate `shares` in cast to `uint128`"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/VaultToken.sol",
+      "Solidity function `approve` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/VaultToken.sol",
+      "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard"
+    ]
+  ],
+  "source_hash": "06ece590119e0b2330e82017f2ba92081b5a0dc4ccb6ab4d984a80c39283ec89",
+  "meta": {
+    "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
+    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
+    "mumei_version": "mumei 0.6.23",
+    "llm_configured": true,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-11-03T05:18:58Z",
+    "llm_model": "openai/gpt-6-luna",
+    "llm_endpoint": "openrouter.ai"
+  },
+  "fixed": {
+    "defects": 10,
+    "still_reported": [],
+    "still_function_flagged": [
+      "SOL01-D01",
+      "SOL01-D02",
+      "SOL01-D06",
+      "SOL01-D08"
+    ],
+    "false_alarms": 21,
+    "findings": [
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `withdraw` can truncate `shares` in cast to `uint128` without a range contract (shares outside 0..=340282366920938463463374607431768211455 wraps)",
+        "status": "false_positive",
+        "reason": "`require(pos.shares >= shares)` bounds shares by a uint128 value before the cast, so it cannot truncate."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `deposit` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "Public deposit entry point. Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `claimRewards` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): totalAssets.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering totalAssets; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): totalAssets.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering totalAssets; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): sharesOf.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sharesOf; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): setWithdrawFeeBps.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering setWithdrawFeeBps; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): setWithdrawFeeBps.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering setWithdrawFeeBps; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): sharesFor.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering sharesFor; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): sharesFor.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sharesFor; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): pending.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering pending; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): payFee.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering payFee; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/RewardVault.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): payFee.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering payFee; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/VaultToken.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "ERC20 approve. Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+      },
+      {
+        "file": "src/VaultToken.sol",
+        "kind": "verification_violations",
+        "text": "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "status": "false_positive",
+        "reason": "ERC20 transferFrom is authorized by the allowance, not by an owner check. The planted defect here (SOL01-D02, unchecked allowance underflow) is not what the finding describes."
+      },
+      {
+        "file": "src/VaultToken.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec stronger than implementation: mint",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/VaultToken.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec stronger than implementation: transferFrom",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/VaultToken.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): move.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering move; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "src/VaultToken.sol",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): move.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering move; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "test/TestBase.sol",
+        "kind": "spec_health_issues",
+        "text": "encoding-gap: panicCode: spec_lowering_failed: failed to lower ensures clause '((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))': Type Error: len() expects an array or string argument; `data` is neither (constraints: [\"((len(data) < 36 || data[0] != 78 || data[1] != 72 || data[2] != 123 || data[3] != 113) && result == u256 :: MAX) ||(len(data) >= 36 && data[0] == 78 && data[1] == 72 && data[2] == 123 && data[3] == 113 && result == decode_u256_be(data, 4, 32))\"])",
+        "status": "unreviewed"
+      }
+    ],
+    "finding_counts": {
+      "total": 21,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 6,
+      "unreviewed": 15
+    },
+    "reviews_used": [
+      [
+        "sol-01-token-vault",
+        "src/RewardVault.sol",
+        "Solidity function `claimRewards` is an externally callable state-mutating function with no access-control guard"
+      ],
+      [
+        "sol-01-token-vault",
+        "src/RewardVault.sol",
+        "Solidity function `deposit` is an externally callable state-mutating function with no access-control guard"
+      ],
+      [
+        "sol-01-token-vault",
+        "src/RewardVault.sol",
+        "Solidity function `withdraw` can truncate `shares` in cast to `uint128`"
+      ],
+      [
+        "sol-01-token-vault",
+        "src/RewardVault.sol",
+        "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard"
+      ],
+      [
+        "sol-01-token-vault",
+        "src/VaultToken.sol",
+        "Solidity function `approve` is an externally callable state-mutating function with no access-control guard"
+      ],
+      [
+        "sol-01-token-vault",
+        "src/VaultToken.sol",
+        "Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard"
+      ]
+    ]
+  }
+}

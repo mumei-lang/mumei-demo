@@ -1,0 +1,507 @@
+{
+  "specimen": "ts-02-url-shortener",
+  "language": "typescript",
+  "audit_exit_code": 0,
+  "audit_markdown_exit_code": 0,
+  "verification_status": "unverifiable",
+  "files_audited": 2,
+  "files_with_issues": 2,
+  "counts": {
+    "total": 11,
+    "detected": 1,
+    "function_flagged": 3,
+    "missed": 7
+  },
+  "defects": [
+    {
+      "id": "TS02-D01",
+      "file": "links.ts",
+      "function": "generateCode",
+      "category": "insecure-randomness",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D02",
+      "file": "links.ts",
+      "function": "createLink",
+      "category": "logic-error",
+      "class": "design",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D03",
+      "file": "links.ts",
+      "function": "validateTarget",
+      "category": "open-redirect",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D04",
+      "file": "server.ts",
+      "function": "recordClick",
+      "category": "race-condition",
+      "class": "design",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "spec ambiguity (missing_requirement): recordClick.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering recordClick; none was stated.",
+        "spec ambiguity (missing_requirement): recordClick.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering recordClick; none was stated."
+      ]
+    },
+    {
+      "id": "TS02-D05",
+      "file": "links.ts",
+      "function": "clicksPerDay",
+      "category": "division-by-zero",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D06",
+      "file": "server.ts",
+      "function": "handleAdminDelete",
+      "category": "hardcoded-secret",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "malformed-extraction: handleAdminDelete requires: garbled comparison operators '==>'",
+        "malformed-extraction: handleAdminDelete requires: garbled comparison operators '==>'",
+        "malformed-extraction: handleAdminDelete ensures: garbled comparison operators '==>'",
+        "malformed-extraction: handleAdminDelete ensures: garbled comparison operators '==>'",
+        "malformed-extraction: handleAdminDelete ensures: garbled comparison operators '==>'"
+      ]
+    },
+    {
+      "id": "TS02-D07",
+      "file": "links.ts",
+      "function": "normalizeAlias",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D08",
+      "file": "links.ts",
+      "function": "normalizeAlias",
+      "category": "off-by-one",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D09",
+      "file": "links.ts",
+      "function": "isExpired",
+      "category": "logic-error",
+      "class": "bug",
+      "in_target_category": false,
+      "status": "missed",
+      "findings": []
+    },
+    {
+      "id": "TS02-D10",
+      "file": "server.ts",
+      "function": "fetchPreview",
+      "category": "ssrf",
+      "class": "vulnerability",
+      "in_target_category": false,
+      "status": "function_flagged",
+      "findings": [
+        "malformed-extraction: fetchPreview ensures: garbled comparison operators '==>'",
+        "malformed-extraction: fetchPreview ensures: garbled comparison operators '==>'",
+        "malformed-extraction: fetchPreview ensures: garbled comparison operators '==>'"
+      ]
+    },
+    {
+      "id": "TS02-D11",
+      "file": "links.ts",
+      "function": "linkStats",
+      "category": "null-dereference",
+      "class": "bug",
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "spec ambiguity (missing_requirement): linkStats.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering linkStats; none was stated.",
+        "spec ambiguity (missing_requirement): linkStats.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering linkStats; none was stated."
+      ]
+    }
+  ],
+  "unmatched_findings": [
+    {
+      "file": "links.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: resolveLink ensures: garbled comparison operators '==>'"
+    },
+    {
+      "file": "links.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: resolveLink ensures: garbled comparison operators '==>'"
+    },
+    {
+      "file": "links.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): nowSeconds.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering nowSeconds; none was stated."
+    },
+    {
+      "file": "links.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): nowSeconds.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering nowSeconds; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): readJson.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering readJson; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sendJson.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering sendJson; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sendJson.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sendJson; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleShorten.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleShorten; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleShorten.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleShorten; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleRedirect.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleRedirect; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleRedirect.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleRedirect; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleStats.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleStats; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleStats.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleStats; none was stated."
+    }
+  ],
+  "findings": [
+    {
+      "file": "links.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: resolveLink ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "links.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: resolveLink ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "links.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): nowSeconds.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering nowSeconds; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "links.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): nowSeconds.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering nowSeconds; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "links.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): linkStats.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering linkStats; none was stated.",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "links.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): linkStats.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering linkStats; none was stated.",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "server.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: fetchPreview ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: fetchPreview ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: fetchPreview ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: handleAdminDelete requires: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: handleAdminDelete requires: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: handleAdminDelete ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: handleAdminDelete ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: handleAdminDelete ensures: garbled comparison operators '==>'",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): readJson.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering readJson; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sendJson.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering sendJson; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): sendJson.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sendJson; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): recordClick.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering recordClick; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): recordClick.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering recordClick; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleShorten.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleShorten; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleShorten.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleShorten; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleRedirect.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleRedirect; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleRedirect.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleRedirect; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleStats.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering handleStats; none was stated.",
+      "status": "unreviewed"
+    },
+    {
+      "file": "server.ts",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): handleStats.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering handleStats; none was stated.",
+      "status": "unreviewed"
+    }
+  ],
+  "finding_counts": {
+    "total": 25,
+    "defect_evidence": 2,
+    "real": 0,
+    "false_positive": 0,
+    "unreviewed": 23
+  },
+  "reviews_used": [],
+  "source_hash": "4a10b7d56496e692ef9a66afd2ce733616df6366a4d0e9a6ffd317d7e5a2d5aa",
+  "meta": {
+    "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
+    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
+    "mumei_version": "mumei 0.6.23",
+    "llm_configured": true,
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+    "generated_at": "2026-11-03T05:18:58Z",
+    "llm_model": "openai/gpt-6-luna",
+    "llm_endpoint": "openrouter.ai"
+  },
+  "fixed": {
+    "defects": 11,
+    "still_reported": [],
+    "still_function_flagged": [
+      "TS02-D01",
+      "TS02-D02",
+      "TS02-D04",
+      "TS02-D07",
+      "TS02-D08",
+      "TS02-D09",
+      "TS02-D10"
+    ],
+    "false_alarms": 17,
+    "findings": [
+      {
+        "file": "links.ts",
+        "kind": "spec_health_issues",
+        "text": "encoding-gap: nowSeconds: spec_not_boolean: requires clause 'system_clock_available' must lower to boolean (constraints: [\"system_clock_available\"])",
+        "status": "unreviewed"
+      },
+      {
+        "file": "links.ts",
+        "kind": "spec_health_issues",
+        "text": "encoding-gap: generateCode: spec_not_boolean: requires clause 'cryptographic_rng_available' must lower to boolean (constraints: [\"cryptographic_rng_available\"])",
+        "status": "unreviewed"
+      },
+      {
+        "file": "links.ts",
+        "kind": "spec_health_issues",
+        "text": "encoding-gap: normalizeAlias: spec_not_boolean: ensures clause 'result contains only lowercase ASCII letters, digits, ' - ' or ' _ '' must lower to boolean (constraints: [\"result contains only lowercase ASCII letters, digits, ' - ' or ' _ '\"])",
+        "status": "unreviewed"
+      },
+      {
+        "file": "links.ts",
+        "kind": "spec_health_issues",
+        "text": "encoding-gap: createLink: spec_not_boolean: ensures clause '(expires_at is None && result == false) ||(expires_at is Some(expiration) && result ==(expiration < now))' must lower to boolean (constraints: [\"(expires_at is None && result == false) ||(expires_at is Some(expiration) && result ==(expiration < now))\"])",
+        "status": "unreviewed"
+      },
+      {
+        "file": "links.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): isExpired.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering isExpired; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "links.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): isExpired.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering isExpired; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "spec_health_issues",
+        "text": "encoding-gap: handleShorten: spec_lowering_failed: failed to lower ensures clause 'preview_requested => result.preview == preview_result': Verification Error: Expected bool for => (constraints: [\"preview_requested => result.preview == preview_result\"])",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "spec_health_issues",
+        "text": "encoding-gap: handleRedirect: spec_not_boolean: ensures clause 'result.click_log_appended' must lower to boolean (constraints: [\"result.click_log_appended\"])",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "spec_health_issues",
+        "text": "encoding-gap: handleStats: spec_lowering_failed: failed to lower ensures clause 'link_found => result.status == 200 && result.stats == stats': Verification Error: Expected bool for => (constraints: [\"link_found => result.status == 200 && result.stats == stats\"])",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): sendJson.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering sendJson; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): sendJson.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering sendJson; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): assertPublicHost.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering assertPublicHost; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): assertPublicHost.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering assertPublicHost; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): fetchPreview.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering fetchPreview; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): fetchPreview.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering fetchPreview; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): recordClick.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering recordClick; none was stated.",
+        "status": "unreviewed"
+      },
+      {
+        "file": "server.ts",
+        "kind": "cross_validation_gaps",
+        "text": "spec ambiguity (missing_requirement): recordClick.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering recordClick; none was stated.",
+        "status": "unreviewed"
+      }
+    ],
+    "finding_counts": {
+      "total": 17,
+      "defect_evidence": 0,
+      "real": 0,
+      "false_positive": 0,
+      "unreviewed": 17
+    },
+    "reviews_used": []
+  }
+}
