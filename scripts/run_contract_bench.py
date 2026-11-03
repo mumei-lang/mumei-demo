@@ -517,9 +517,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--arm", action="append", choices=ARMS, help="arm to run (repeatable)")
     p.add_argument("--only", action="append", help="limit to these defect ids")
     p.add_argument("--runs", type=int, default=1, help="runs per LLM arm (seed = run number)")
-    p.add_argument("--jobs", type=int, default=4)
+    p.add_argument("--jobs", type=int, default=4, help="cases run in parallel")
     p.add_argument("--timeout", type=int, default=120, help="per-verification timeout in seconds")
-    p.add_argument("--mumei-bin", default=os.environ.get("MUMEI_BIN") or shutil.which("mumei"))
+    p.add_argument("--mumei-bin", default=os.environ.get("MUMEI_BIN") or shutil.which("mumei"),
+                   help="mumei binary (default: $MUMEI_BIN, then mumei on PATH)")
     mode = p.add_mutually_exclusive_group()
     mode.add_argument("--check", action="store_true", help="validate cases and committed results offline")
     mode.add_argument("--render-only", action="store_true", help="re-render RESULTS.md and the README block")
