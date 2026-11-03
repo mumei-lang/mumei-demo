@@ -3,10 +3,10 @@
   "language": "python",
   "tool": "llm-only",
   "model": "openai/gpt-6-luna",
-  "prompt_version": 1,
-  "prompt_hash": "50865386f4c2f5d6",
+  "prompt_version": 2,
+  "prompt_hash": "2fd1a1213dca8cce",
   "temperature": 0,
-  "generated_at": "2026-11-03T04:59:40Z",
+  "generated_at": "2026-11-03T06:16:58Z",
   "source_hash": "72e439da48aa288e49aec62eec0bd658c64d3b6eeb98a6cebfc9acaf41568107",
   "runs": [
     {
@@ -15,8 +15,8 @@
         {
           "file": "app.py",
           "line": 30,
-          "rule": "unbounded-request-body",
-          "message": "The server reads the entire client-supplied Content-Length into memory without a limit, allowing oversized requests to exhaust memory.",
+          "rule": "unbounded-input",
+          "message": "The handler reads the full client-supplied `Content-Length` before applying any size limit, allowing oversized requests to exhaust server memory.",
           "cwe": [
             400
           ],
@@ -24,17 +24,27 @@
         },
         {
           "file": "app.py",
-          "line": 109,
-          "rule": "binary-body-corruption",
-          "message": "The endpoint decodes arbitrary document bytes as UTF-8 with replacement, so non-UTF-8 uploads cannot be read back unchanged.",
+          "line": 100,
+          "rule": "missing-authentication",
+          "message": "The API accepts an absent `X-Api-Key` as the empty string and saves uploads under that shared identity, allowing unauthenticated callers to create and read documents owned by it.",
+          "cwe": [
+            306
+          ],
+          "function": "upload"
+        },
+        {
+          "file": "app.py",
+          "line": 106,
+          "rule": "incorrect-error-response",
+          "message": "A nonexistent document makes `STORE.get` return `None`, after which `can_read` raises `TypeError` and the handler returns 500 instead of the expected not-found response.",
           "cwe": [],
           "function": "get_doc"
         },
         {
           "file": "app.py",
           "line": 123,
-          "rule": "missing-admin-authentication",
-          "message": "Purge checks only whether X-Admin-Key is present and never validates its value, so any caller can delete all documents by supplying any value.",
+          "rule": "authorization-bypass",
+          "message": "Purge authorization checks only whether the `X-Admin-Key` header exists, so any caller can send an arbitrary value and delete all documents.",
           "cwe": [
             862
           ],
@@ -44,7 +54,7 @@
           "file": "app.py",
           "line": 131,
           "rule": "open-redirect",
-          "message": "The caller-controlled next parameter is used directly as the Location header, allowing the endpoint to redirect users to arbitrary external sites.",
+          "message": "The `next` query parameter is copied directly into the `Location` header, so an attacker can use `/go` to redirect visitors to an arbitrary site.",
           "cwe": [
             601
           ],
@@ -52,37 +62,29 @@
         },
         {
           "file": "app.py",
-          "line": 131,
-          "rule": "response-header-injection",
-          "message": "Percent-encoded CRLF in next is decoded before being written to Location, allowing an attacker to inject additional HTTP response headers.",
+          "line": 137,
+          "rule": "information-disclosure",
+          "message": "The unauthenticated `/docs.html` page lists every document's title and ID, exposing metadata for documents belonging to other users.",
           "cwe": [
-            113
+            200
           ],
-          "function": "go"
+          "function": "docs_html"
         },
         {
           "file": "app.py",
           "line": 137,
           "rule": "stored-cross-site-scripting",
-          "message": "Document titles are interpolated into HTML without escaping, so an uploaded title containing markup executes script for visitors to /docs.html.",
+          "message": "User-controlled document titles are inserted into HTML without escaping, so a title containing markup or script executes in visitors' browsers on `/docs.html`.",
           "cwe": [
             79
           ],
           "function": "docs_html"
         },
         {
-          "file": "repro.sh",
-          "line": 215,
-          "rule": "missing-script-dependency",
-          "message": "The script opens DEFECTS.json to determine its expected count, but that file is absent from the project, so repro.sh fails at this line.",
-          "cwe": [],
-          "function": null
-        },
-        {
           "file": "vault.py",
           "line": 25,
           "rule": "predictable-share-token",
-          "message": "Share tokens use the non-cryptographic PRNG seeded from startup time, allowing an attacker who observes a token to infer the seed and predict subsequent tokens.",
+          "message": "Share tokens come from `random.random()`, which production startup seeds with the current integer time, making tokens predictable to an attacker who can estimate startup time and token-generation order.",
           "cwe": [
             330
           ],
@@ -90,47 +92,17 @@
         },
         {
           "file": "vault.py",
-          "line": 31,
-          "rule": "timing-leaky-token-comparison",
-          "message": "The comparison exits at the first differing character, so repeated token guesses can reveal matching prefixes through response timing.",
-          "cwe": [
-            208
-          ],
-          "function": "token_matches"
-        },
-        {
-          "file": "vault.py",
-          "line": 39,
-          "rule": "negative-share-ttl",
-          "message": "Negative TTL values are accepted and produce already-expired share tokens instead of rejecting invalid durations.",
-          "cwe": [
-            20
-          ],
-          "function": "share_expiry"
-        },
-        {
-          "file": "vault.py",
-          "line": 48,
-          "rule": "missing-document-null-dereference",
-          "message": "A nonexistent document makes get() return None, and this subscript raises an exception that the API reports as HTTP 500 instead of 404.",
-          "cwe": [
-            476
-          ],
-          "function": "can_read"
-        },
-        {
-          "file": "vault.py",
           "line": 65,
-          "rule": "restart-data-loss",
-          "message": "Documents and usage are initialized as empty in-memory maps without loading persisted files, so a server restart makes saved documents inaccessible and resets quota accounting.",
+          "rule": "lost-data-on-restart",
+          "message": "Documents and usage are kept only in memory and never reloaded from the files written to disk, so restarting the service makes existing documents inaccessible and resets quota accounting.",
           "cwe": [],
           "function": "__init__"
         },
         {
           "file": "vault.py",
-          "line": 80,
-          "rule": "quota-check-race",
-          "message": "Concurrent uploads can all read the same prior usage before staging, allowing them to exceed the per-key quota.",
+          "line": 79,
+          "rule": "race-condition",
+          "message": "Concurrent uploads for the same API key can all pass the quota check using the same stale usage value and collectively exceed the quota.",
           "cwe": [
             362
           ],
@@ -138,19 +110,9 @@
         },
         {
           "file": "vault.py",
-          "line": 86,
-          "rule": "staging-file-leak",
-          "message": "The staged file is copied but never removed, so repeated uploads accumulate files under tmp/ and can exhaust disk space.",
-          "cwe": [
-            400
-          ],
-          "function": "save_upload"
-        },
-        {
-          "file": "vault.py",
           "line": 95,
-          "rule": "unsafe-pickle-deserialization",
-          "message": "An uploaded object payload is passed to pickle.loads(), allowing a caller to execute arbitrary code in the server process.",
+          "rule": "unsafe-deserialization",
+          "message": "An upload can set `meta.format` to `object` and supply a malicious pickle, causing arbitrary code execution when `pickle.loads` runs.",
           "cwe": [
             502
           ],
@@ -159,20 +121,10 @@
         {
           "file": "vault.py",
           "line": 99,
-          "rule": "server-side-request-forgery",
-          "message": "The fetch accepts arbitrary URL schemes and hosts, so a caller can read local files or access internal services and store their contents as a document.",
+          "rule": "ssrf",
+          "message": "A caller can make the server fetch attacker-chosen URLs, including internal services or `file://` paths, and the fetched contents are saved under that caller's key.",
           "cwe": [
             918
-          ],
-          "function": "fetch_remote"
-        },
-        {
-          "file": "vault.py",
-          "line": 100,
-          "rule": "unbounded-remote-response",
-          "message": "The remote response is read fully into memory without a size limit before quota enforcement, so a large response can exhaust server memory.",
-          "cwe": [
-            400
           ],
           "function": "fetch_remote"
         }
@@ -180,10 +132,10 @@
       "invalid_findings": [],
       "tool_errors": 0,
       "usage": {
-        "prompt_tokens": 8902,
-        "completion_tokens": 5030,
-        "cost_usd": 0.00260429,
-        "seconds": 78.52,
+        "prompt_tokens": 3722,
+        "completion_tokens": 3418,
+        "cost_usd": 0.00174649,
+        "seconds": 40.93,
         "attempts": 1
       },
       "defects": [
@@ -196,7 +148,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "predictable-share-token in `make_share_token` (line 25, CWE-330): Share tokens use the non-cryptographic PRNG seeded from startup time, allowing an attacker who observes a token to infer the seed and predict subsequent tokens."
+            "predictable-share-token in `make_share_token` (line 25, CWE-330): Share tokens come from `random.random()`, which production startup seeds with the current integer time, making tokens predictable to an attacker who can estimate startup time and token-generation order."
           ]
         },
         {
@@ -206,10 +158,8 @@
           "category": "timing-side-channel",
           "class": "vulnerability",
           "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "timing-leaky-token-comparison in `token_matches` (line 31, CWE-208): The comparison exits at the first differing character, so repeated token guesses can reveal matching prefixes through response timing."
-          ]
+          "status": "missed",
+          "findings": []
         },
         {
           "id": "PY04-D03",
@@ -220,7 +170,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "server-side-request-forgery in `fetch_remote` (line 99, CWE-918): The fetch accepts arbitrary URL schemes and hosts, so a caller can read local files or access internal services and store their contents as a document."
+            "ssrf in `fetch_remote` (line 99, CWE-918): A caller can make the server fetch attacker-chosen URLs, including internal services or `file://` paths, and the fetched contents are saved under that caller's key."
           ]
         },
         {
@@ -232,7 +182,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "unsafe-pickle-deserialization in `decode_body` (line 95, CWE-502): An uploaded object payload is passed to pickle.loads(), allowing a caller to execute arbitrary code in the server process."
+            "unsafe-deserialization in `decode_body` (line 95, CWE-502): An upload can set `meta.format` to `object` and supply a malicious pickle, causing arbitrary code execution when `pickle.loads` runs."
           ]
         },
         {
@@ -242,9 +192,9 @@
           "category": "missing-authentication",
           "class": "vulnerability",
           "in_target_category": false,
-          "status": "detected",
+          "status": "function_flagged",
           "findings": [
-            "missing-admin-authentication in `purge` (line 123, CWE-862): Purge checks only whether X-Admin-Key is present and never validates its value, so any caller can delete all documents by supplying any value."
+            "authorization-bypass in `purge` (line 123, CWE-862): Purge authorization checks only whether the `X-Admin-Key` header exists, so any caller can send an arbitrary value and delete all documents."
           ]
         },
         {
@@ -256,8 +206,7 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "quota-check-race in `save_upload` (line 80, CWE-362): Concurrent uploads can all read the same prior usage before staging, allowing them to exceed the per-key quota.",
-            "staging-file-leak in `save_upload` (line 86, CWE-400): The staged file is copied but never removed, so repeated uploads accumulate files under tmp/ and can exhaust disk space."
+            "race-condition in `save_upload` (line 79, CWE-362): Concurrent uploads for the same API key can all pass the quota check using the same stale usage value and collectively exceed the quota."
           ]
         },
         {
@@ -269,7 +218,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "open-redirect in `go` (line 131, CWE-601): The caller-controlled next parameter is used directly as the Location header, allowing the endpoint to redirect users to arbitrary external sites."
+            "open-redirect in `go` (line 131, CWE-601): The `next` query parameter is copied directly into the `Location` header, so an attacker can use `/go` to redirect visitors to an arbitrary site."
           ]
         },
         {
@@ -281,7 +230,8 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "stored-cross-site-scripting in `docs_html` (line 137, CWE-79): Document titles are interpolated into HTML without escaping, so an uploaded title containing markup executes script for visitors to /docs.html."
+            "information-disclosure in `docs_html` (line 137, CWE-200): The unauthenticated `/docs.html` page lists every document's title and ID, exposing metadata for documents belonging to other users.",
+            "stored-cross-site-scripting in `docs_html` (line 137, CWE-79): User-controlled document titles are inserted into HTML without escaping, so a title containing markup or script executes in visitors' browsers on `/docs.html`."
           ]
         },
         {
@@ -291,9 +241,9 @@
           "category": "unbounded-resource",
           "class": "design",
           "in_target_category": false,
-          "status": "detected",
+          "status": "function_flagged",
           "findings": [
-            "staging-file-leak in `save_upload` (line 86, CWE-400): The staged file is copied but never removed, so repeated uploads accumulate files under tmp/ and can exhaust disk space."
+            "race-condition in `save_upload` (line 79, CWE-362): Concurrent uploads for the same API key can all pass the quota check using the same stale usage value and collectively exceed the quota."
           ]
         },
         {
@@ -303,10 +253,8 @@
           "category": "missing-precondition",
           "class": "bug",
           "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "negative-share-ttl in `share_expiry` (line 39, CWE-20): Negative TTL values are accepted and produce already-expired share tokens instead of rejecting invalid durations."
-          ]
+          "status": "missed",
+          "findings": []
         },
         {
           "id": "PY04-D11",
@@ -315,144 +263,104 @@
           "category": "null-dereference",
           "class": "bug",
           "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "missing-document-null-dereference in `can_read` (line 48, CWE-476): A nonexistent document makes get() return None, and this subscript raises an exception that the API reports as HTTP 500 instead of 404."
-          ]
+          "status": "missed",
+          "findings": []
         }
       ],
       "counts": {
         "total": 11,
-        "detected": 10,
-        "function_flagged": 1,
-        "missed": 0
+        "detected": 5,
+        "function_flagged": 3,
+        "missed": 3
       },
       "findings": [
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "unbounded-request-body in `_read_json` (line 30, CWE-400): The server reads the entire client-supplied Content-Length into memory without a limit, allowing oversized requests to exhaust memory.",
+          "text": "unbounded-input in `_read_json` (line 30, CWE-400): The handler reads the full client-supplied `Content-Length` before applying any size limit, allowing oversized requests to exhaust server memory.",
           "status": "unreviewed"
         },
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "binary-body-corruption in `get_doc` (line 109): The endpoint decodes arbitrary document bytes as UTF-8 with replacement, so non-UTF-8 uploads cannot be read back unchanged.",
+          "text": "missing-authentication in `upload` (line 100, CWE-306): The API accepts an absent `X-Api-Key` as the empty string and saves uploads under that shared identity, allowing unauthenticated callers to create and read documents owned by it.",
           "status": "unreviewed"
         },
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "missing-admin-authentication in `purge` (line 123, CWE-862): Purge checks only whether X-Admin-Key is present and never validates its value, so any caller can delete all documents by supplying any value.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "open-redirect in `go` (line 131, CWE-601): The caller-controlled next parameter is used directly as the Location header, allowing the endpoint to redirect users to arbitrary external sites.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "response-header-injection in `go` (line 131, CWE-113): Percent-encoded CRLF in next is decoded before being written to Location, allowing an attacker to inject additional HTTP response headers.",
+          "text": "incorrect-error-response in `get_doc` (line 106): A nonexistent document makes `STORE.get` return `None`, after which `can_read` raises `TypeError` and the handler returns 500 instead of the expected not-found response.",
           "status": "unreviewed"
         },
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "stored-cross-site-scripting in `docs_html` (line 137, CWE-79): Document titles are interpolated into HTML without escaping, so an uploaded title containing markup executes script for visitors to /docs.html.",
+          "text": "authorization-bypass in `purge` (line 123, CWE-862): Purge authorization checks only whether the `X-Admin-Key` header exists, so any caller can send an arbitrary value and delete all documents.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "open-redirect in `go` (line 131, CWE-601): The `next` query parameter is copied directly into the `Location` header, so an attacker can use `/go` to redirect visitors to an arbitrary site.",
           "status": "defect_evidence"
         },
         {
-          "file": "repro.sh",
+          "file": "app.py",
           "kind": "baseline",
-          "text": "missing-script-dependency (line 215): The script opens DEFECTS.json to determine its expected count, but that file is absent from the project, so repro.sh fails at this line.",
+          "text": "information-disclosure in `docs_html` (line 137, CWE-200): The unauthenticated `/docs.html` page lists every document's title and ID, exposing metadata for documents belonging to other users.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "stored-cross-site-scripting in `docs_html` (line 137, CWE-79): User-controlled document titles are inserted into HTML without escaping, so a title containing markup or script executes in visitors' browsers on `/docs.html`.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "vault.py",
+          "kind": "baseline",
+          "text": "predictable-share-token in `make_share_token` (line 25, CWE-330): Share tokens come from `random.random()`, which production startup seeds with the current integer time, making tokens predictable to an attacker who can estimate startup time and token-generation order.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "vault.py",
+          "kind": "baseline",
+          "text": "lost-data-on-restart in `__init__` (line 65): Documents and usage are kept only in memory and never reloaded from the files written to disk, so restarting the service makes existing documents inaccessible and resets quota accounting.",
           "status": "unreviewed"
         },
         {
           "file": "vault.py",
           "kind": "baseline",
-          "text": "predictable-share-token in `make_share_token` (line 25, CWE-330): Share tokens use the non-cryptographic PRNG seeded from startup time, allowing an attacker who observes a token to infer the seed and predict subsequent tokens.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "timing-leaky-token-comparison in `token_matches` (line 31, CWE-208): The comparison exits at the first differing character, so repeated token guesses can reveal matching prefixes through response timing.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "negative-share-ttl in `share_expiry` (line 39, CWE-20): Negative TTL values are accepted and produce already-expired share tokens instead of rejecting invalid durations.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "missing-document-null-dereference in `can_read` (line 48, CWE-476): A nonexistent document makes get() return None, and this subscript raises an exception that the API reports as HTTP 500 instead of 404.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "restart-data-loss in `__init__` (line 65): Documents and usage are initialized as empty in-memory maps without loading persisted files, so a server restart makes saved documents inaccessible and resets quota accounting.",
+          "text": "race-condition in `save_upload` (line 79, CWE-362): Concurrent uploads for the same API key can all pass the quota check using the same stale usage value and collectively exceed the quota.",
           "status": "unreviewed"
         },
         {
           "file": "vault.py",
           "kind": "baseline",
-          "text": "quota-check-race in `save_upload` (line 80, CWE-362): Concurrent uploads can all read the same prior usage before staging, allowing them to exceed the per-key quota.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "staging-file-leak in `save_upload` (line 86, CWE-400): The staged file is copied but never removed, so repeated uploads accumulate files under tmp/ and can exhaust disk space.",
+          "text": "unsafe-deserialization in `decode_body` (line 95, CWE-502): An upload can set `meta.format` to `object` and supply a malicious pickle, causing arbitrary code execution when `pickle.loads` runs.",
           "status": "defect_evidence"
         },
         {
           "file": "vault.py",
           "kind": "baseline",
-          "text": "unsafe-pickle-deserialization in `decode_body` (line 95, CWE-502): An uploaded object payload is passed to pickle.loads(), allowing a caller to execute arbitrary code in the server process.",
+          "text": "ssrf in `fetch_remote` (line 99, CWE-918): A caller can make the server fetch attacker-chosen URLs, including internal services or `file://` paths, and the fetched contents are saved under that caller's key.",
           "status": "defect_evidence"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "server-side-request-forgery in `fetch_remote` (line 99, CWE-918): The fetch accepts arbitrary URL schemes and hosts, so a caller can read local files or access internal services and store their contents as a document.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "unbounded-remote-response in `fetch_remote` (line 100, CWE-400): The remote response is read fully into memory without a size limit before quota enforcement, so a large response can exhaust server memory.",
-          "status": "unreviewed"
         }
       ],
       "finding_counts": {
-        "total": 17,
-        "defect_evidence": 10,
+        "total": 12,
+        "defect_evidence": 6,
         "real": 0,
         "false_positive": 0,
-        "unreviewed": 7
+        "unreviewed": 6
       },
       "reviews_used": [],
       "fixed_raw_findings": [
         {
-          "file": "README.md",
-          "line": 29,
-          "rule": "documented-format-unavailable",
-          "message": "The API documentation promises that format=object payloads are deserialized, but decode_body rejects that format, so documented object uploads always fail.",
-          "cwe": [],
-          "function": null
-        },
-        {
           "file": "app.py",
-          "line": 29,
+          "line": 30,
           "rule": "unbounded-request-body",
-          "message": "The handler reads the entire client-supplied Content-Length without a size limit, so an unauthenticated client can send a huge upload and exhaust server memory before quota checks run.",
+          "message": "The handler reads the entire client-supplied Content-Length before enforcing the document quota, so a caller can send a huge body and exhaust server memory.",
           "cwe": [
             400
           ],
@@ -461,8 +369,8 @@
         {
           "file": "app.py",
           "line": 102,
-          "rule": "anonymous-upload",
-          "message": "Uploads are accepted without an X-Api-Key header, allowing unauthenticated callers to consume the shared empty-key quota and create documents and share tokens.",
+          "rule": "missing-api-key-validation",
+          "message": "The API key is accepted as a self-selected owner identity without validation, so unauthenticated callers can upload and share documents and evade per-key quotas by changing or omitting the header.",
           "cwe": [
             306
           ],
@@ -470,43 +378,37 @@
         },
         {
           "file": "app.py",
-          "line": 113,
-          "rule": "binary-data-corruption",
-          "message": "The upload path accepts binary payloads, but this response decodes them as UTF-8 with replacement, so GET /doc cannot round-trip arbitrary binary data.",
-          "cwe": [],
-          "function": "get_doc"
+          "line": 139,
+          "rule": "http-header-injection",
+          "message": "The `next` value can contain decoded CR/LF characters and is written directly into the Location header, allowing an attacker to inject additional response headers.",
+          "cwe": [
+            113
+          ],
+          "function": "go"
         },
         {
           "file": "app.py",
           "line": 145,
-          "rule": "unauthenticated-metadata-disclosure",
-          "message": "The unauthenticated listing exposes every document title and ID, leaking private document metadata to anyone who requests /docs.html.",
+          "rule": "unauthorized-metadata-disclosure",
+          "message": "The unauthenticated documents page lists every document title and ID, exposing potentially sensitive metadata to any visitor.",
           "cwe": [
             200
           ],
           "function": "docs_html"
         },
         {
-          "file": "repro.sh",
-          "line": 215,
-          "rule": "missing-runtime-input",
-          "message": "The script unconditionally opens DEFECTS.json, which is not present among the project files, so repro.sh fails at its final count instead of exiting successfully.",
-          "cwe": [],
-          "function": null
-        },
-        {
           "file": "vault.py",
           "line": 75,
-          "rule": "documents-not-restored",
-          "message": "The store starts with an empty in-memory index and never reloads existing document files, so after a restart saved documents become inaccessible and new uploads can overwrite their files when IDs restart at 1.",
+          "rule": "document-state-not-restored",
+          "message": "The store starts with empty in-memory document and usage maps and never reloads the files on disk, so a restart makes saved documents inaccessible and resets quota accounting.",
           "cwe": [],
           "function": "__init__"
         },
         {
           "file": "vault.py",
           "line": 120,
-          "rule": "ssrf-dns-rebinding",
-          "message": "The code checks resolved addresses here but later lets urllib resolve the hostname again, so a hostname that changes from a public address to a private one between checks can make /fetch reach an internal service.",
+          "rule": "dns-rebinding-ssrf",
+          "message": "The code validates DNS results and then lets urllib resolve the hostname again when connecting, so a rebinding hostname can pass the public-address check and resolve to a private address for the fetch.",
           "cwe": [
             918
           ],
@@ -515,8 +417,8 @@
         {
           "file": "vault.py",
           "line": 127,
-          "rule": "unbounded-fetch-response",
-          "message": "The fetched response is read fully into memory before quota enforcement, so a caller can make /fetch download a huge response and exhaust server memory.",
+          "rule": "unbounded-remote-response",
+          "message": "The remote response is read completely before quota enforcement, so a public URL returning a very large body can exhaust server memory.",
           "cwe": [
             400
           ],
@@ -526,7 +428,7 @@
           "file": "vault.py",
           "line": 151,
           "rule": "purge-upload-race",
-          "message": "Purge does not synchronize with uploads, so an upload already in progress can finish after the purge and recreate a document while usage accounting has been cleared.",
+          "message": "Purge clears usage and documents without synchronizing with uploads, so a concurrent upload can finish after the clear and leave a stored document whose bytes are not charged against quota.",
           "cwe": [
             362
           ],
@@ -536,86 +438,72 @@
       "fixed_invalid_findings": [],
       "fixed_tool_errors": 0,
       "fixed_usage": {
-        "prompt_tokens": 9342,
-        "completion_tokens": 4304,
-        "cost_usd": 0.00224569,
-        "seconds": 70.55,
+        "prompt_tokens": 4162,
+        "completion_tokens": 3066,
+        "cost_usd": 0.002053175,
+        "seconds": 38.09,
         "attempts": 1
       },
       "fixed": {
         "defects": 11,
-        "still_reported": [
-          "PY04-D08"
-        ],
-        "false_alarms": 10,
+        "still_reported": [],
+        "false_alarms": 8,
         "findings": [
           {
-            "file": "README.md",
+            "file": "app.py",
             "kind": "baseline",
-            "text": "documented-format-unavailable (line 29): The API documentation promises that format=object payloads are deserialized, but decode_body rejects that format, so documented object uploads always fail.",
+            "text": "unbounded-request-body in `_read_json` (line 30, CWE-400): The handler reads the entire client-supplied Content-Length before enforcing the document quota, so a caller can send a huge body and exhaust server memory.",
             "status": "unreviewed"
           },
           {
             "file": "app.py",
             "kind": "baseline",
-            "text": "unbounded-request-body in `_read_json` (line 29, CWE-400): The handler reads the entire client-supplied Content-Length without a size limit, so an unauthenticated client can send a huge upload and exhaust server memory before quota checks run.",
+            "text": "missing-api-key-validation in `upload` (line 102, CWE-306): The API key is accepted as a self-selected owner identity without validation, so unauthenticated callers can upload and share documents and evade per-key quotas by changing or omitting the header.",
             "status": "unreviewed"
           },
           {
             "file": "app.py",
             "kind": "baseline",
-            "text": "anonymous-upload in `upload` (line 102, CWE-306): Uploads are accepted without an X-Api-Key header, allowing unauthenticated callers to consume the shared empty-key quota and create documents and share tokens.",
+            "text": "http-header-injection in `go` (line 139, CWE-113): The `next` value can contain decoded CR/LF characters and is written directly into the Location header, allowing an attacker to inject additional response headers.",
             "status": "unreviewed"
           },
           {
             "file": "app.py",
             "kind": "baseline",
-            "text": "binary-data-corruption in `get_doc` (line 113): The upload path accepts binary payloads, but this response decodes them as UTF-8 with replacement, so GET /doc cannot round-trip arbitrary binary data.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "app.py",
-            "kind": "baseline",
-            "text": "unauthenticated-metadata-disclosure in `docs_html` (line 145, CWE-200): The unauthenticated listing exposes every document title and ID, leaking private document metadata to anyone who requests /docs.html.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "repro.sh",
-            "kind": "baseline",
-            "text": "missing-runtime-input (line 215): The script unconditionally opens DEFECTS.json, which is not present among the project files, so repro.sh fails at its final count instead of exiting successfully.",
+            "text": "unauthorized-metadata-disclosure in `docs_html` (line 145, CWE-200): The unauthenticated documents page lists every document title and ID, exposing potentially sensitive metadata to any visitor.",
             "status": "unreviewed"
           },
           {
             "file": "vault.py",
             "kind": "baseline",
-            "text": "documents-not-restored in `__init__` (line 75): The store starts with an empty in-memory index and never reloads existing document files, so after a restart saved documents become inaccessible and new uploads can overwrite their files when IDs restart at 1.",
+            "text": "document-state-not-restored in `__init__` (line 75): The store starts with empty in-memory document and usage maps and never reloads the files on disk, so a restart makes saved documents inaccessible and resets quota accounting.",
             "status": "unreviewed"
           },
           {
             "file": "vault.py",
             "kind": "baseline",
-            "text": "ssrf-dns-rebinding in `_check_remote` (line 120, CWE-918): The code checks resolved addresses here but later lets urllib resolve the hostname again, so a hostname that changes from a public address to a private one between checks can make /fetch reach an internal service.",
+            "text": "dns-rebinding-ssrf in `_check_remote` (line 120, CWE-918): The code validates DNS results and then lets urllib resolve the hostname again when connecting, so a rebinding hostname can pass the public-address check and resolve to a private address for the fetch.",
             "status": "unreviewed"
           },
           {
             "file": "vault.py",
             "kind": "baseline",
-            "text": "unbounded-fetch-response in `fetch_remote` (line 127, CWE-400): The fetched response is read fully into memory before quota enforcement, so a caller can make /fetch download a huge response and exhaust server memory.",
+            "text": "unbounded-remote-response in `fetch_remote` (line 127, CWE-400): The remote response is read completely before quota enforcement, so a public URL returning a very large body can exhaust server memory.",
             "status": "unreviewed"
           },
           {
             "file": "vault.py",
             "kind": "baseline",
-            "text": "purge-upload-race in `purge` (line 151, CWE-362): Purge does not synchronize with uploads, so an upload already in progress can finish after the purge and recreate a document while usage accounting has been cleared.",
+            "text": "purge-upload-race in `purge` (line 151, CWE-362): Purge clears usage and documents without synchronizing with uploads, so a concurrent upload can finish after the clear and leave a stored document whose bytes are not charged against quota.",
             "status": "unreviewed"
           }
         ],
         "finding_counts": {
-          "total": 10,
+          "total": 8,
           "defect_evidence": 0,
           "real": 0,
           "false_positive": 0,
-          "unreviewed": 10
+          "unreviewed": 8
         },
         "reviews_used": []
       }
@@ -625,603 +513,29 @@
       "raw_findings": [
         {
           "file": "app.py",
-          "line": 30,
-          "rule": "unbounded-request-body",
-          "message": "The handler reads the entire caller-controlled Content-Length into memory without a limit, so a large request can exhaust server memory.",
-          "cwe": [
-            789
-          ],
-          "function": "_read_json"
-        },
-        {
-          "file": "app.py",
-          "line": 58,
-          "rule": "missing-api-key-authentication",
-          "message": "A missing X-Api-Key becomes the empty string, so callers can upload documents owned by that value and later read them without supplying any credential.",
-          "cwe": [
-            306
-          ],
-          "function": "_api_key"
-        },
-        {
-          "file": "app.py",
-          "line": 106,
-          "rule": "missing-document-error-handling",
-          "message": "A nonexistent ID makes STORE.get return None, which is dereferenced by can_read and produces HTTP 500 instead of a not-found response.",
-          "cwe": [
-            476
-          ],
-          "function": "get_doc"
-        },
-        {
-          "file": "app.py",
-          "line": 123,
-          "rule": "missing-admin-authorization",
-          "message": "The purge endpoint checks only whether X-Admin-Key is present, so any caller can supply an arbitrary value and delete every document.",
-          "cwe": [
-            862
-          ],
-          "function": "purge"
-        },
-        {
-          "file": "app.py",
-          "line": 129,
-          "rule": "open-redirect",
-          "message": "The redirect target is accepted without validation, so an attacker can send users to an arbitrary external site through /go?next=... .",
-          "cwe": [
-            601
-          ],
-          "function": "go"
-        },
-        {
-          "file": "app.py",
-          "line": 137,
-          "rule": "stored-cross-site-scripting",
-          "message": "Document titles are interpolated into HTML without escaping, so an uploaded title containing markup executes script for visitors to /docs.html.",
-          "cwe": [
-            79
-          ],
-          "function": "docs_html"
-        },
-        {
-          "file": "app.py",
-          "line": 154,
-          "rule": "predictable-share-token",
-          "message": "Seeding Python's non-cryptographic PRNG with the current time makes share tokens predictable to an attacker who can infer the startup second and observe token issuance.",
-          "cwe": [
-            338
-          ],
-          "function": "main"
-        },
-        {
-          "file": "vault.py",
-          "line": 25,
-          "rule": "low-entropy-share-token",
-          "message": "Share tokens contain only 48 random bits, allowing an attacker to brute-force a valid token, especially because the endpoint has no attempt limit.",
-          "cwe": [
-            330
-          ],
-          "function": "make_share_token"
-        },
-        {
-          "file": "vault.py",
-          "line": 31,
-          "rule": "timing-side-channel",
-          "message": "Token comparison returns at the first differing character, so repeated measurements can reveal the token prefix.",
-          "cwe": [
-            208
-          ],
-          "function": "token_matches"
-        },
-        {
-          "file": "vault.py",
-          "line": 65,
-          "rule": "documents-not-restored",
-          "message": "The in-memory document map starts empty and is never populated from the existing files, so restarting the server makes previously uploaded documents inaccessible and can overwrite their files when IDs are reused.",
-          "cwe": [],
-          "function": "__init__"
-        },
-        {
-          "file": "vault.py",
-          "line": 80,
-          "rule": "quota-check-race",
-          "message": "Concurrent uploads can read the same usage value and all pass this check before any updates it, allowing a caller to exceed the per-key quota.",
-          "cwe": [
-            362
-          ],
-          "function": "save_upload"
-        },
-        {
-          "file": "vault.py",
-          "line": 86,
-          "rule": "staged-file-leak",
-          "message": "The staged file is copied but never removed, so every successful upload leaves another payload-sized file in tmp and repeated uploads can exhaust disk space.",
-          "cwe": [
-            459
-          ],
-          "function": "save_upload"
-        },
-        {
-          "file": "vault.py",
-          "line": 95,
-          "rule": "unsafe-deserialization",
-          "message": "An uploader can select object format and provide a pickle payload whose deserialization executes attacker-controlled code.",
-          "cwe": [
-            502
-          ],
-          "function": "decode_body"
-        },
-        {
-          "file": "vault.py",
-          "line": 99,
-          "rule": "server-side-request-forgery",
-          "message": "The supplied URL is opened without scheme or destination restrictions, allowing requests to internal services and reads from local file URLs.",
-          "cwe": [
-            918
-          ],
-          "function": "fetch_remote"
-        },
-        {
-          "file": "vault.py",
-          "line": 100,
-          "rule": "unbounded-remote-response",
-          "message": "The entire remote response is read into memory before quota enforcement, so a URL serving a very large response can exhaust server memory.",
-          "cwe": [
-            789
-          ],
-          "function": "fetch_remote"
-        },
-        {
-          "file": "vault.py",
-          "line": 113,
-          "rule": "negative-share-lifetime",
-          "message": "The caller-controlled TTL is not validated, so a negative value creates a share that is expired immediately.",
-          "cwe": [
-            20
-          ],
-          "function": "create_share"
-        }
-      ],
-      "invalid_findings": [],
-      "tool_errors": 0,
-      "usage": {
-        "prompt_tokens": 8902,
-        "completion_tokens": 4069,
-        "cost_usd": 0.003147175,
-        "seconds": 62.3,
-        "attempts": 1
-      },
-      "defects": [
-        {
-          "id": "PY04-D01",
-          "file": "vault.py",
-          "function": "make_share_token",
-          "category": "insecure-randomness",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "low-entropy-share-token in `make_share_token` (line 25, CWE-330): Share tokens contain only 48 random bits, allowing an attacker to brute-force a valid token, especially because the endpoint has no attempt limit."
-          ]
-        },
-        {
-          "id": "PY04-D02",
-          "file": "vault.py",
-          "function": "token_matches",
-          "category": "timing-side-channel",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "timing-side-channel in `token_matches` (line 31, CWE-208): Token comparison returns at the first differing character, so repeated measurements can reveal the token prefix."
-          ]
-        },
-        {
-          "id": "PY04-D03",
-          "file": "vault.py",
-          "function": "fetch_remote",
-          "category": "ssrf",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "server-side-request-forgery in `fetch_remote` (line 99, CWE-918): The supplied URL is opened without scheme or destination restrictions, allowing requests to internal services and reads from local file URLs."
-          ]
-        },
-        {
-          "id": "PY04-D04",
-          "file": "vault.py",
-          "function": "decode_body",
-          "category": "insecure-deserialization",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "unsafe-deserialization in `decode_body` (line 95, CWE-502): An uploader can select object format and provide a pickle payload whose deserialization executes attacker-controlled code."
-          ]
-        },
-        {
-          "id": "PY04-D05",
-          "file": "app.py",
-          "function": "purge",
-          "category": "missing-authentication",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "missing-admin-authorization in `purge` (line 123, CWE-862): The purge endpoint checks only whether X-Admin-Key is present, so any caller can supply an arbitrary value and delete every document."
-          ]
-        },
-        {
-          "id": "PY04-D06",
-          "file": "vault.py",
-          "function": "save_upload",
-          "category": "toctou",
-          "class": "design",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "quota-check-race in `save_upload` (line 80, CWE-362): Concurrent uploads can read the same usage value and all pass this check before any updates it, allowing a caller to exceed the per-key quota.",
-            "staged-file-leak in `save_upload` (line 86, CWE-459): The staged file is copied but never removed, so every successful upload leaves another payload-sized file in tmp and repeated uploads can exhaust disk space."
-          ]
-        },
-        {
-          "id": "PY04-D07",
-          "file": "app.py",
-          "function": "go",
-          "category": "open-redirect",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "open-redirect in `go` (line 129, CWE-601): The redirect target is accepted without validation, so an attacker can send users to an arbitrary external site through /go?next=... ."
-          ]
-        },
-        {
-          "id": "PY04-D08",
-          "file": "app.py",
-          "function": "docs_html",
-          "category": "xss",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "stored-cross-site-scripting in `docs_html` (line 137, CWE-79): Document titles are interpolated into HTML without escaping, so an uploaded title containing markup executes script for visitors to /docs.html."
-          ]
-        },
-        {
-          "id": "PY04-D09",
-          "file": "vault.py",
-          "function": "save_upload",
-          "category": "unbounded-resource",
-          "class": "design",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "quota-check-race in `save_upload` (line 80, CWE-362): Concurrent uploads can read the same usage value and all pass this check before any updates it, allowing a caller to exceed the per-key quota.",
-            "staged-file-leak in `save_upload` (line 86, CWE-459): The staged file is copied but never removed, so every successful upload leaves another payload-sized file in tmp and repeated uploads can exhaust disk space."
-          ]
-        },
-        {
-          "id": "PY04-D10",
-          "file": "vault.py",
-          "function": "share_expiry",
-          "category": "missing-precondition",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "missed",
-          "findings": []
-        },
-        {
-          "id": "PY04-D11",
-          "file": "vault.py",
-          "function": "can_read",
-          "category": "null-dereference",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "missed",
-          "findings": []
-        }
-      ],
-      "counts": {
-        "total": 11,
-        "detected": 6,
-        "function_flagged": 3,
-        "missed": 2
-      },
-      "findings": [
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "unbounded-request-body in `_read_json` (line 30, CWE-789): The handler reads the entire caller-controlled Content-Length into memory without a limit, so a large request can exhaust server memory.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "missing-api-key-authentication in `_api_key` (line 58, CWE-306): A missing X-Api-Key becomes the empty string, so callers can upload documents owned by that value and later read them without supplying any credential.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "missing-document-error-handling in `get_doc` (line 106, CWE-476): A nonexistent ID makes STORE.get return None, which is dereferenced by can_read and produces HTTP 500 instead of a not-found response.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "missing-admin-authorization in `purge` (line 123, CWE-862): The purge endpoint checks only whether X-Admin-Key is present, so any caller can supply an arbitrary value and delete every document.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "open-redirect in `go` (line 129, CWE-601): The redirect target is accepted without validation, so an attacker can send users to an arbitrary external site through /go?next=... .",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "stored-cross-site-scripting in `docs_html` (line 137, CWE-79): Document titles are interpolated into HTML without escaping, so an uploaded title containing markup executes script for visitors to /docs.html.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "predictable-share-token in `main` (line 154, CWE-338): Seeding Python's non-cryptographic PRNG with the current time makes share tokens predictable to an attacker who can infer the startup second and observe token issuance.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "low-entropy-share-token in `make_share_token` (line 25, CWE-330): Share tokens contain only 48 random bits, allowing an attacker to brute-force a valid token, especially because the endpoint has no attempt limit.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "timing-side-channel in `token_matches` (line 31, CWE-208): Token comparison returns at the first differing character, so repeated measurements can reveal the token prefix.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "documents-not-restored in `__init__` (line 65): The in-memory document map starts empty and is never populated from the existing files, so restarting the server makes previously uploaded documents inaccessible and can overwrite their files when IDs are reused.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "quota-check-race in `save_upload` (line 80, CWE-362): Concurrent uploads can read the same usage value and all pass this check before any updates it, allowing a caller to exceed the per-key quota.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "staged-file-leak in `save_upload` (line 86, CWE-459): The staged file is copied but never removed, so every successful upload leaves another payload-sized file in tmp and repeated uploads can exhaust disk space.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "unsafe-deserialization in `decode_body` (line 95, CWE-502): An uploader can select object format and provide a pickle payload whose deserialization executes attacker-controlled code.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "server-side-request-forgery in `fetch_remote` (line 99, CWE-918): The supplied URL is opened without scheme or destination restrictions, allowing requests to internal services and reads from local file URLs.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "unbounded-remote-response in `fetch_remote` (line 100, CWE-789): The entire remote response is read into memory before quota enforcement, so a URL serving a very large response can exhaust server memory.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "vault.py",
-          "kind": "baseline",
-          "text": "negative-share-lifetime in `create_share` (line 113, CWE-20): The caller-controlled TTL is not validated, so a negative value creates a share that is expired immediately.",
-          "status": "unreviewed"
-        }
-      ],
-      "finding_counts": {
-        "total": 16,
-        "defect_evidence": 6,
-        "real": 0,
-        "false_positive": 0,
-        "unreviewed": 10
-      },
-      "reviews_used": [],
-      "fixed_raw_findings": [
-        {
-          "file": "app.py",
           "line": 29,
           "rule": "unbounded-request-body",
-          "message": "The handler trusts any Content-Length and reads it all into memory, so an oversized body can exhaust memory and a negative length can block a worker reading until the client closes the connection.",
+          "message": "The upload handler trusts the caller-provided `Content-Length` and reads that many bytes without a limit, allowing large requests to exhaust server memory or tie up request threads.",
           "cwe": [
-            400
+            789
           ],
           "function": "_read_json"
         },
         {
           "file": "app.py",
-          "line": 102,
-          "rule": "spoofable-api-key",
-          "message": "The caller-supplied X-Api-Key is accepted as the document owner without checking it against any credential store, allowing an attacker who knows a victim's key to impersonate them and allowing quota bypass by rotating keys.",
+          "line": 100,
+          "rule": "missing-authentication",
+          "message": "Uploads accept any caller-supplied API key, including an omitted key treated as the empty string, so callers can claim known owners' identities and unauthenticated users can share access to documents uploaded without a key.",
           "cwe": [
-            287
+            306
           ],
           "function": "upload"
         },
         {
           "file": "app.py",
-          "line": 139,
-          "rule": "response-header-injection",
-          "message": "A decoded next parameter containing CRLF can pass the path checks and be written directly into the Location header, allowing injected response headers.",
-          "cwe": [
-            113
-          ],
-          "function": "go"
-        },
-        {
-          "file": "app.py",
-          "line": 145,
-          "rule": "concurrent-dictionary-iteration",
-          "message": "The listing iterates the shared document dictionary while upload or purge can mutate it, so concurrent requests can raise RuntimeError and return HTTP 500.",
-          "cwe": [
-            362
-          ],
-          "function": "docs_html"
-        },
-        {
-          "file": "app.py",
-          "line": 145,
-          "rule": "private-title-disclosure",
-          "message": "This unauthenticated listing exposes every document title, including titles belonging to users whose documents are otherwise token-gated.",
-          "cwe": [
-            200
-          ],
-          "function": "docs_html"
-        },
-        {
-          "file": "vault.py",
-          "line": 75,
-          "rule": "documents-lost-on-restart",
-          "message": "The store always initializes an empty in-memory document map and never reloads the files in docs_dir, so restarting makes saved documents inaccessible and resets their usage accounting.",
-          "cwe": [],
-          "function": "__init__"
-        },
-        {
-          "file": "vault.py",
-          "line": 120,
-          "rule": "dns-rebinding-ssrf",
-          "message": "The code validates DNS results and then urllib resolves the hostname again for the request, so an attacker-controlled hostname can change from a public address to a private address between checks.",
-          "cwe": [
-            918
-          ],
-          "function": "_check_remote"
-        },
-        {
-          "file": "vault.py",
-          "line": 127,
-          "rule": "unbounded-remote-response",
-          "message": "The remote response is read entirely without a size limit, so fetching a URL controlled by an attacker can exhaust server memory.",
-          "cwe": [
-            400
-          ],
-          "function": "fetch_remote"
-        },
-        {
-          "file": "vault.py",
-          "line": 151,
-          "rule": "purge-upload-race",
-          "message": "Purge clears usage and deletes files without coordinating with uploads, so a concurrent upload can be left unaccounted for or have its staged/final file removed, bypassing quota accounting or producing inconsistent documents.",
-          "cwe": [
-            362
-          ],
-          "function": "purge"
-        }
-      ],
-      "fixed_invalid_findings": [],
-      "fixed_tool_errors": 0,
-      "fixed_usage": {
-        "prompt_tokens": 9342,
-        "completion_tokens": 3804,
-        "cost_usd": 0.003069675,
-        "seconds": 59.91,
-        "attempts": 1
-      },
-      "fixed": {
-        "defects": 11,
-        "still_reported": [],
-        "false_alarms": 9,
-        "findings": [
-          {
-            "file": "app.py",
-            "kind": "baseline",
-            "text": "unbounded-request-body in `_read_json` (line 29, CWE-400): The handler trusts any Content-Length and reads it all into memory, so an oversized body can exhaust memory and a negative length can block a worker reading until the client closes the connection.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "app.py",
-            "kind": "baseline",
-            "text": "spoofable-api-key in `upload` (line 102, CWE-287): The caller-supplied X-Api-Key is accepted as the document owner without checking it against any credential store, allowing an attacker who knows a victim's key to impersonate them and allowing quota bypass by rotating keys.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "app.py",
-            "kind": "baseline",
-            "text": "response-header-injection in `go` (line 139, CWE-113): A decoded next parameter containing CRLF can pass the path checks and be written directly into the Location header, allowing injected response headers.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "app.py",
-            "kind": "baseline",
-            "text": "concurrent-dictionary-iteration in `docs_html` (line 145, CWE-362): The listing iterates the shared document dictionary while upload or purge can mutate it, so concurrent requests can raise RuntimeError and return HTTP 500.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "app.py",
-            "kind": "baseline",
-            "text": "private-title-disclosure in `docs_html` (line 145, CWE-200): This unauthenticated listing exposes every document title, including titles belonging to users whose documents are otherwise token-gated.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "vault.py",
-            "kind": "baseline",
-            "text": "documents-lost-on-restart in `__init__` (line 75): The store always initializes an empty in-memory document map and never reloads the files in docs_dir, so restarting makes saved documents inaccessible and resets their usage accounting.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "vault.py",
-            "kind": "baseline",
-            "text": "dns-rebinding-ssrf in `_check_remote` (line 120, CWE-918): The code validates DNS results and then urllib resolves the hostname again for the request, so an attacker-controlled hostname can change from a public address to a private address between checks.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "vault.py",
-            "kind": "baseline",
-            "text": "unbounded-remote-response in `fetch_remote` (line 127, CWE-400): The remote response is read entirely without a size limit, so fetching a URL controlled by an attacker can exhaust server memory.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "vault.py",
-            "kind": "baseline",
-            "text": "purge-upload-race in `purge` (line 151, CWE-362): Purge clears usage and deletes files without coordinating with uploads, so a concurrent upload can be left unaccounted for or have its staged/final file removed, bypassing quota accounting or producing inconsistent documents.",
-            "status": "unreviewed"
-          }
-        ],
-        "finding_counts": {
-          "total": 9,
-          "defect_evidence": 0,
-          "real": 0,
-          "false_positive": 0,
-          "unreviewed": 9
-        },
-        "reviews_used": []
-      }
-    },
-    {
-      "run": 3,
-      "raw_findings": [
-        {
-          "file": "app.py",
-          "line": 29,
-          "rule": "unbounded-request-body",
-          "message": "The server reads the client-supplied Content-Length without a limit, allowing an attacker to make a request consume excessive memory or tie up a handler while sending a large body.",
-          "cwe": [
-            400
-          ],
-          "function": "_read_json"
-        },
-        {
-          "file": "app.py",
-          "line": 107,
-          "rule": "missing-document-null-dereference",
-          "message": "A missing document makes STORE.get return None, and can_read then dereferences it, causing a 500 response instead of a not-found response.",
+          "line": 106,
+          "rule": "null-dereference",
+          "message": "An unknown document ID makes `STORE.get` return `None`, which `can_read` then subscripts and turns into a 500 response instead of the handled 404.",
           "cwe": [
             476
           ],
@@ -1230,8 +544,8 @@
         {
           "file": "app.py",
           "line": 123,
-          "rule": "missing-admin-authorization",
-          "message": "The purge route checks only whether X-Admin-Key is present and never validates its value, so any caller can delete every document.",
+          "rule": "missing-authorization",
+          "message": "Purge is authorized by the presence of `X-Admin-Key` rather than a validated secret, so any caller can add that header and delete every document.",
           "cwe": [
             862
           ],
@@ -1241,7 +555,7 @@
           "file": "app.py",
           "line": 131,
           "rule": "open-redirect",
-          "message": "The redirect location is taken directly from the next query parameter, allowing attackers to redirect users to arbitrary external sites.",
+          "message": "The `/go` endpoint places the unvalidated `next` parameter in the `Location` header, allowing an attacker to redirect visitors to an arbitrary site.",
           "cwe": [
             601
           ],
@@ -1249,19 +563,9 @@
         },
         {
           "file": "app.py",
-          "line": 136,
-          "rule": "public-metadata-disclosure",
-          "message": "The unauthenticated listing exposes every document title and ID, leaking private metadata and making documents easier to enumerate.",
-          "cwe": [
-            200
-          ],
-          "function": "docs_html"
-        },
-        {
-          "file": "app.py",
           "line": 137,
           "rule": "stored-cross-site-scripting",
-          "message": "Document titles are inserted into HTML without escaping, so an uploaded title containing markup can execute script in visitors' browsers.",
+          "message": "Document titles are inserted into the HTML response without escaping, so uploading a title containing HTML or JavaScript causes script execution for visitors to `/docs.html`.",
           "cwe": [
             79
           ],
@@ -1270,8 +574,8 @@
         {
           "file": "vault.py",
           "line": 25,
-          "rule": "predictable-share-token",
-          "message": "Share tokens come from a PRNG seeded with the startup time, so an attacker who estimates the start time and observes one token can predict subsequent tokens.",
+          "rule": "predictable-token-generation",
+          "message": "Share tokens use a 48-bit value from the non-cryptographic PRNG, which the application seeds with the current timestamp, allowing attackers to predict or brute-force tokens.",
           "cwe": [
             330
           ],
@@ -1279,9 +583,9 @@
         },
         {
           "file": "vault.py",
-          "line": 31,
+          "line": 28,
           "rule": "timing-side-channel",
-          "message": "Token comparison exits at the first differing character, allowing repeated measurements to reveal token characters through response timing.",
+          "message": "Token comparison exits at the first mismatching character, exposing the matching prefix length through response timing and enabling repeated guesses to recover a share token.",
           "cwe": [
             208
           ],
@@ -1289,9 +593,17 @@
         },
         {
           "file": "vault.py",
+          "line": 65,
+          "rule": "lost-persistent-state",
+          "message": "The store initializes its document and usage maps empty and never reloads the saved files, so restarting the service makes existing documents inaccessible and resets quota accounting.",
+          "cwe": [],
+          "function": "__init__"
+        },
+        {
+          "file": "vault.py",
           "line": 79,
-          "rule": "quota-check-race",
-          "message": "Concurrent uploads can all read the same stale usage before staging and then commit against it, allowing a user to exceed the 64 KiB quota.",
+          "rule": "quota-race-condition",
+          "message": "Concurrent uploads for the same API key can both check the same stale usage value and then overwrite each other's accounting, allowing the quota to be exceeded.",
           "cwe": [
             362
           ],
@@ -1299,19 +611,9 @@
         },
         {
           "file": "vault.py",
-          "line": 86,
-          "rule": "temporary-file-leak",
-          "message": "Each successful upload copies its staged file but never removes it, so repeated uploads accumulate files indefinitely in the staging directory.",
-          "cwe": [
-            459
-          ],
-          "function": "save_upload"
-        },
-        {
-          "file": "vault.py",
           "line": 95,
           "rule": "unsafe-deserialization",
-          "message": "An uploaded object payload is passed to pickle.loads, so a crafted pickle can execute attacker-controlled code during upload.",
+          "message": "The `object` format unpickles attacker-controlled upload bytes, allowing a caller to execute arbitrary code when submitting a crafted payload.",
           "cwe": [
             502
           ],
@@ -1321,7 +623,7 @@
           "file": "vault.py",
           "line": 99,
           "rule": "server-side-request-forgery",
-          "message": "The fetch endpoint opens caller-supplied URLs without restricting schemes or destinations, allowing attackers to read local files or access internal services and store the response.",
+          "message": "The fetch endpoint passes an unrestricted caller-supplied URL to `urlopen`, allowing requests to internal services and local resources such as `file://` paths.",
           "cwe": [
             918
           ],
@@ -1329,22 +631,22 @@
         },
         {
           "file": "vault.py",
-          "line": 115,
-          "rule": "negative-share-expiry",
-          "message": "Negative TTL values are accepted and produce already-expired shares, so the endpoint can successfully return unusable share tokens.",
+          "line": 99,
+          "rule": "unbounded-remote-response",
+          "message": "The fetch handler reads the entire remote response without a size limit or timeout, so a slow or very large response can exhaust memory or occupy a server thread indefinitely.",
           "cwe": [
-            20
+            789
           ],
-          "function": "create_share"
+          "function": "fetch_remote"
         }
       ],
       "invalid_findings": [],
       "tool_errors": 0,
       "usage": {
-        "prompt_tokens": 8902,
-        "completion_tokens": 2909,
-        "cost_usd": 0.00154379,
-        "seconds": 43.9,
+        "prompt_tokens": 3722,
+        "completion_tokens": 3369,
+        "cost_usd": 0.00172199,
+        "seconds": 42.22,
         "attempts": 1
       },
       "defects": [
@@ -1357,7 +659,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "predictable-share-token in `make_share_token` (line 25, CWE-330): Share tokens come from a PRNG seeded with the startup time, so an attacker who estimates the start time and observes one token can predict subsequent tokens."
+            "predictable-token-generation in `make_share_token` (line 25, CWE-330): Share tokens use a 48-bit value from the non-cryptographic PRNG, which the application seeds with the current timestamp, allowing attackers to predict or brute-force tokens."
           ]
         },
         {
@@ -1369,7 +671,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "timing-side-channel in `token_matches` (line 31, CWE-208): Token comparison exits at the first differing character, allowing repeated measurements to reveal token characters through response timing."
+            "timing-side-channel in `token_matches` (line 28, CWE-208): Token comparison exits at the first mismatching character, exposing the matching prefix length through response timing and enabling repeated guesses to recover a share token."
           ]
         },
         {
@@ -1381,7 +683,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "server-side-request-forgery in `fetch_remote` (line 99, CWE-918): The fetch endpoint opens caller-supplied URLs without restricting schemes or destinations, allowing attackers to read local files or access internal services and store the response."
+            "server-side-request-forgery in `fetch_remote` (line 99, CWE-918): The fetch endpoint passes an unrestricted caller-supplied URL to `urlopen`, allowing requests to internal services and local resources such as `file://` paths."
           ]
         },
         {
@@ -1393,7 +695,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "unsafe-deserialization in `decode_body` (line 95, CWE-502): An uploaded object payload is passed to pickle.loads, so a crafted pickle can execute attacker-controlled code during upload."
+            "unsafe-deserialization in `decode_body` (line 95, CWE-502): The `object` format unpickles attacker-controlled upload bytes, allowing a caller to execute arbitrary code when submitting a crafted payload."
           ]
         },
         {
@@ -1405,7 +707,7 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "missing-admin-authorization in `purge` (line 123, CWE-862): The purge route checks only whether X-Admin-Key is present and never validates its value, so any caller can delete every document."
+            "missing-authorization in `purge` (line 123, CWE-862): Purge is authorized by the presence of `X-Admin-Key` rather than a validated secret, so any caller can add that header and delete every document."
           ]
         },
         {
@@ -1417,8 +719,7 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "quota-check-race in `save_upload` (line 79, CWE-362): Concurrent uploads can all read the same stale usage before staging and then commit against it, allowing a user to exceed the 64 KiB quota.",
-            "temporary-file-leak in `save_upload` (line 86, CWE-459): Each successful upload copies its staged file but never removes it, so repeated uploads accumulate files indefinitely in the staging directory."
+            "quota-race-condition in `save_upload` (line 79, CWE-362): Concurrent uploads for the same API key can both check the same stale usage value and then overwrite each other's accounting, allowing the quota to be exceeded."
           ]
         },
         {
@@ -1430,7 +731,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "open-redirect in `go` (line 131, CWE-601): The redirect location is taken directly from the next query parameter, allowing attackers to redirect users to arbitrary external sites."
+            "open-redirect in `go` (line 131, CWE-601): The `/go` endpoint places the unvalidated `next` parameter in the `Location` header, allowing an attacker to redirect visitors to an arbitrary site."
           ]
         },
         {
@@ -1442,7 +743,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "stored-cross-site-scripting in `docs_html` (line 137, CWE-79): Document titles are inserted into HTML without escaping, so an uploaded title containing markup can execute script in visitors' browsers."
+            "stored-cross-site-scripting in `docs_html` (line 137, CWE-79): Document titles are inserted into the HTML response without escaping, so uploading a title containing HTML or JavaScript causes script execution for visitors to `/docs.html`."
           ]
         },
         {
@@ -1454,8 +755,7 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "quota-check-race in `save_upload` (line 79, CWE-362): Concurrent uploads can all read the same stale usage before staging and then commit against it, allowing a user to exceed the 64 KiB quota.",
-            "temporary-file-leak in `save_upload` (line 86, CWE-459): Each successful upload copies its staged file but never removes it, so repeated uploads accumulate files indefinitely in the staging directory."
+            "quota-race-condition in `save_upload` (line 79, CWE-362): Concurrent uploads for the same API key can both check the same stale usage value and then overwrite each other's accounting, allowing the quota to be exceeded."
           ]
         },
         {
@@ -1489,79 +789,79 @@
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "unbounded-request-body in `_read_json` (line 29, CWE-400): The server reads the client-supplied Content-Length without a limit, allowing an attacker to make a request consume excessive memory or tie up a handler while sending a large body.",
+          "text": "unbounded-request-body in `_read_json` (line 29, CWE-789): The upload handler trusts the caller-provided `Content-Length` and reads that many bytes without a limit, allowing large requests to exhaust server memory or tie up request threads.",
           "status": "unreviewed"
         },
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "missing-document-null-dereference in `get_doc` (line 107, CWE-476): A missing document makes STORE.get return None, and can_read then dereferences it, causing a 500 response instead of a not-found response.",
+          "text": "missing-authentication in `upload` (line 100, CWE-306): Uploads accept any caller-supplied API key, including an omitted key treated as the empty string, so callers can claim known owners' identities and unauthenticated users can share access to documents uploaded without a key.",
           "status": "unreviewed"
         },
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "missing-admin-authorization in `purge` (line 123, CWE-862): The purge route checks only whether X-Admin-Key is present and never validates its value, so any caller can delete every document.",
+          "text": "null-dereference in `get_doc` (line 106, CWE-476): An unknown document ID makes `STORE.get` return `None`, which `can_read` then subscripts and turns into a 500 response instead of the handled 404.",
           "status": "unreviewed"
         },
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "open-redirect in `go` (line 131, CWE-601): The redirect location is taken directly from the next query parameter, allowing attackers to redirect users to arbitrary external sites.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "public-metadata-disclosure in `docs_html` (line 136, CWE-200): The unauthenticated listing exposes every document title and ID, leaking private metadata and making documents easier to enumerate.",
+          "text": "missing-authorization in `purge` (line 123, CWE-862): Purge is authorized by the presence of `X-Admin-Key` rather than a validated secret, so any caller can add that header and delete every document.",
           "status": "unreviewed"
         },
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "stored-cross-site-scripting in `docs_html` (line 137, CWE-79): Document titles are inserted into HTML without escaping, so an uploaded title containing markup can execute script in visitors' browsers.",
+          "text": "open-redirect in `go` (line 131, CWE-601): The `/go` endpoint places the unvalidated `next` parameter in the `Location` header, allowing an attacker to redirect visitors to an arbitrary site.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "stored-cross-site-scripting in `docs_html` (line 137, CWE-79): Document titles are inserted into the HTML response without escaping, so uploading a title containing HTML or JavaScript causes script execution for visitors to `/docs.html`.",
           "status": "defect_evidence"
         },
         {
           "file": "vault.py",
           "kind": "baseline",
-          "text": "predictable-share-token in `make_share_token` (line 25, CWE-330): Share tokens come from a PRNG seeded with the startup time, so an attacker who estimates the start time and observes one token can predict subsequent tokens.",
+          "text": "predictable-token-generation in `make_share_token` (line 25, CWE-330): Share tokens use a 48-bit value from the non-cryptographic PRNG, which the application seeds with the current timestamp, allowing attackers to predict or brute-force tokens.",
           "status": "defect_evidence"
         },
         {
           "file": "vault.py",
           "kind": "baseline",
-          "text": "timing-side-channel in `token_matches` (line 31, CWE-208): Token comparison exits at the first differing character, allowing repeated measurements to reveal token characters through response timing.",
+          "text": "timing-side-channel in `token_matches` (line 28, CWE-208): Token comparison exits at the first mismatching character, exposing the matching prefix length through response timing and enabling repeated guesses to recover a share token.",
           "status": "defect_evidence"
         },
         {
           "file": "vault.py",
           "kind": "baseline",
-          "text": "quota-check-race in `save_upload` (line 79, CWE-362): Concurrent uploads can all read the same stale usage before staging and then commit against it, allowing a user to exceed the 64 KiB quota.",
+          "text": "lost-persistent-state in `__init__` (line 65): The store initializes its document and usage maps empty and never reloads the saved files, so restarting the service makes existing documents inaccessible and resets quota accounting.",
           "status": "unreviewed"
         },
         {
           "file": "vault.py",
           "kind": "baseline",
-          "text": "temporary-file-leak in `save_upload` (line 86, CWE-459): Each successful upload copies its staged file but never removes it, so repeated uploads accumulate files indefinitely in the staging directory.",
+          "text": "quota-race-condition in `save_upload` (line 79, CWE-362): Concurrent uploads for the same API key can both check the same stale usage value and then overwrite each other's accounting, allowing the quota to be exceeded.",
           "status": "unreviewed"
         },
         {
           "file": "vault.py",
           "kind": "baseline",
-          "text": "unsafe-deserialization in `decode_body` (line 95, CWE-502): An uploaded object payload is passed to pickle.loads, so a crafted pickle can execute attacker-controlled code during upload.",
+          "text": "unsafe-deserialization in `decode_body` (line 95, CWE-502): The `object` format unpickles attacker-controlled upload bytes, allowing a caller to execute arbitrary code when submitting a crafted payload.",
           "status": "defect_evidence"
         },
         {
           "file": "vault.py",
           "kind": "baseline",
-          "text": "server-side-request-forgery in `fetch_remote` (line 99, CWE-918): The fetch endpoint opens caller-supplied URLs without restricting schemes or destinations, allowing attackers to read local files or access internal services and store the response.",
+          "text": "server-side-request-forgery in `fetch_remote` (line 99, CWE-918): The fetch endpoint passes an unrestricted caller-supplied URL to `urlopen`, allowing requests to internal services and local resources such as `file://` paths.",
           "status": "defect_evidence"
         },
         {
           "file": "vault.py",
           "kind": "baseline",
-          "text": "negative-share-expiry in `create_share` (line 115, CWE-20): Negative TTL values are accepted and produce already-expired shares, so the endpoint can successfully return unusable share tokens.",
+          "text": "unbounded-remote-response in `fetch_remote` (line 99, CWE-789): The fetch handler reads the entire remote response without a size limit or timeout, so a slow or very large response can exhaust memory or occupy a server thread indefinitely.",
           "status": "unreviewed"
         }
       ],
@@ -1576,9 +876,9 @@
       "fixed_raw_findings": [
         {
           "file": "app.py",
-          "line": 30,
-          "rule": "unbounded-upload-body",
-          "message": "The handler reads the entire client-supplied Content-Length before enforcing the storage quota, allowing an unauthenticated client to exhaust server memory with a large upload.",
+          "line": 29,
+          "rule": "unbounded-request-body",
+          "message": "The handler reads the full client-supplied Content-Length without a size limit, so a client can send an enormous body or a negative length to consume memory or tie up a server thread.",
           "cwe": [
             400
           ],
@@ -1587,18 +887,28 @@
         {
           "file": "app.py",
           "line": 102,
-          "rule": "caller-controlled-quota-identity",
-          "message": "Uploads treat any supplied X-Api-Key value as a trusted user identity, so a caller can change the header for each upload and bypass the per-key 64 KiB quota.",
+          "rule": "missing-api-key-authentication",
+          "message": "Any caller can upload with an omitted or arbitrary X-Api-Key because the value is used as an identity without being validated, allowing unauthenticated uploads and quota evasion by rotating keys.",
           "cwe": [
-            639
+            306
           ],
           "function": "upload"
         },
         {
+          "file": "app.py",
+          "line": 139,
+          "rule": "http-header-injection",
+          "message": "A percent-encoded CRLF in the `next` query parameter survives the checks and is written into the Location header, allowing an attacker to inject response headers.",
+          "cwe": [
+            113
+          ],
+          "function": "go"
+        },
+        {
           "file": "vault.py",
           "line": 75,
-          "rule": "documents-lost-on-restart",
-          "message": "Document metadata and bodies are kept only in memory and are never reconstructed from the persisted files, so restarting the process makes every existing document unavailable and can overwrite old files when IDs restart at 1.",
+          "rule": "data-loss-on-restart",
+          "message": "Documents and usage are kept only in memory and are never reloaded from the files written to disk, so restarting the service makes every stored document inaccessible and resets quota accounting.",
           "cwe": [],
           "function": "__init__"
         },
@@ -1606,7 +916,7 @@
           "file": "vault.py",
           "line": 120,
           "rule": "dns-rebinding-ssrf",
-          "message": "The hostname is checked against public addresses here but resolved again by the HTTP client at line 126, so DNS rebinding can make the fetch connect to a private or internal address.",
+          "message": "The host is checked using one DNS lookup but fetched with a separate resolution, so an attacker can rebind a hostname to a private address between the check and the request.",
           "cwe": [
             918
           ],
@@ -1615,8 +925,8 @@
         {
           "file": "vault.py",
           "line": 127,
-          "rule": "unbounded-fetch-response",
-          "message": "The fetch reads the complete remote response into memory before the upload quota is checked, so a large response from a reachable server can exhaust server memory.",
+          "rule": "unbounded-remote-response",
+          "message": "The remote response is read without a size limit before quota is checked, so an attacker-controlled server can make a fetch consume excessive memory and bandwidth.",
           "cwe": [
             400
           ],
@@ -1625,8 +935,8 @@
         {
           "file": "vault.py",
           "line": 149,
-          "rule": "purge-upload-race",
-          "message": "Purge does not synchronize with uploads, so an in-flight upload can be added after the purge or can fail after usage is cleared and leave state inconsistent.",
+          "rule": "quota-accounting-race",
+          "message": "Purge clears usage and deletes files without synchronizing with uploads, so a concurrent upload can finish after the reset and create an unaccounted document that bypasses quota accounting.",
           "cwe": [
             362
           ],
@@ -1636,10 +946,487 @@
       "fixed_invalid_findings": [],
       "fixed_tool_errors": 0,
       "fixed_usage": {
-        "prompt_tokens": 9342,
-        "completion_tokens": 4417,
-        "cost_usd": 0.00230219,
-        "seconds": 75.68,
+        "prompt_tokens": 4162,
+        "completion_tokens": 2984,
+        "cost_usd": 0.00153389,
+        "seconds": 41.04,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 11,
+        "still_reported": [],
+        "false_alarms": 7,
+        "findings": [
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "unbounded-request-body in `_read_json` (line 29, CWE-400): The handler reads the full client-supplied Content-Length without a size limit, so a client can send an enormous body or a negative length to consume memory or tie up a server thread.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "missing-api-key-authentication in `upload` (line 102, CWE-306): Any caller can upload with an omitted or arbitrary X-Api-Key because the value is used as an identity without being validated, allowing unauthenticated uploads and quota evasion by rotating keys.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "http-header-injection in `go` (line 139, CWE-113): A percent-encoded CRLF in the `next` query parameter survives the checks and is written into the Location header, allowing an attacker to inject response headers.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "vault.py",
+            "kind": "baseline",
+            "text": "data-loss-on-restart in `__init__` (line 75): Documents and usage are kept only in memory and are never reloaded from the files written to disk, so restarting the service makes every stored document inaccessible and resets quota accounting.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "vault.py",
+            "kind": "baseline",
+            "text": "dns-rebinding-ssrf in `_check_remote` (line 120, CWE-918): The host is checked using one DNS lookup but fetched with a separate resolution, so an attacker can rebind a hostname to a private address between the check and the request.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "vault.py",
+            "kind": "baseline",
+            "text": "unbounded-remote-response in `fetch_remote` (line 127, CWE-400): The remote response is read without a size limit before quota is checked, so an attacker-controlled server can make a fetch consume excessive memory and bandwidth.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "vault.py",
+            "kind": "baseline",
+            "text": "quota-accounting-race in `purge` (line 149, CWE-362): Purge clears usage and deletes files without synchronizing with uploads, so a concurrent upload can finish after the reset and create an unaccounted document that bypasses quota accounting.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 7,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 7
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 3,
+      "raw_findings": [
+        {
+          "file": "app.py",
+          "line": 29,
+          "rule": "unbounded-request-body",
+          "message": "The handler trusts arbitrary `Content-Length` values and reads the entire body into memory, allowing a caller to exhaust server memory with a sufficiently large request.",
+          "cwe": [
+            400
+          ],
+          "function": "_read_json"
+        },
+        {
+          "file": "app.py",
+          "line": 58,
+          "rule": "missing-api-key-validation",
+          "message": "The handler accepts any supplied API-key string, including an empty one, as an identity, so callers can create or impersonate that identity and access its documents.",
+          "cwe": [
+            306
+          ],
+          "function": "_api_key"
+        },
+        {
+          "file": "app.py",
+          "line": 123,
+          "rule": "missing-admin-authentication",
+          "message": "The purge operation checks only whether `X-Admin-Key` is present and never validates its value, so any caller can send an arbitrary header value and delete all documents.",
+          "cwe": [
+            306
+          ],
+          "function": "purge"
+        },
+        {
+          "file": "app.py",
+          "line": 131,
+          "rule": "open-redirect",
+          "message": "The `/go` endpoint puts the unvalidated `next` parameter in the `Location` header, allowing an attacker to redirect users to a malicious site.",
+          "cwe": [
+            601
+          ],
+          "function": "go"
+        },
+        {
+          "file": "app.py",
+          "line": 137,
+          "rule": "stored-cross-site-scripting",
+          "message": "An uploaded title is interpolated into the public HTML without escaping, so a malicious title executes script when someone visits `/docs.html`.",
+          "cwe": [
+            79
+          ],
+          "function": "docs_html"
+        },
+        {
+          "file": "vault.py",
+          "line": 25,
+          "rule": "weak-share-token-generation",
+          "message": "Share tokens come from the non-cryptographic `random` generator, which the server seeds with the startup time, making bearer tokens predictable to an attacker who can estimate that time.",
+          "cwe": [
+            330
+          ],
+          "function": "make_share_token"
+        },
+        {
+          "file": "vault.py",
+          "line": 65,
+          "rule": "data-loss-on-restart",
+          "message": "The store initializes its document and usage maps empty and never reloads the files it writes, so a process restart makes existing documents and quota state unavailable.",
+          "cwe": [],
+          "function": "__init__"
+        },
+        {
+          "file": "vault.py",
+          "line": 79,
+          "rule": "quota-race-condition",
+          "message": "Concurrent uploads for one API key can both read the same usage before either updates it, allowing their combined payloads to exceed the quota.",
+          "cwe": [
+            362
+          ],
+          "function": "save_upload"
+        },
+        {
+          "file": "vault.py",
+          "line": 86,
+          "rule": "temporary-file-leak",
+          "message": "Each successful upload leaves its staged `.part` file in `tmp_dir` after copying it to the final path, allowing repeated uploads to consume unbounded disk space.",
+          "cwe": [
+            400
+          ],
+          "function": "save_upload"
+        },
+        {
+          "file": "vault.py",
+          "line": 95,
+          "rule": "unsafe-deserialization",
+          "message": "An uploader can set `meta.format` to `object` and submit a malicious pickle, causing arbitrary code execution in the server when `pickle.loads` runs.",
+          "cwe": [
+            502
+          ],
+          "function": "decode_body"
+        },
+        {
+          "file": "vault.py",
+          "line": 99,
+          "rule": "server-side-request-forgery",
+          "message": "`fetch_remote` passes the caller-controlled URL directly to `urlopen`, allowing requests to internal services and, where supported, `file://` URLs that expose local files through the saved document.",
+          "cwe": [
+            918
+          ],
+          "function": "fetch_remote"
+        },
+        {
+          "file": "vault.py",
+          "line": 100,
+          "rule": "unbounded-remote-response",
+          "message": "The fetch endpoint reads the entire remote response into memory before applying the quota check, so a caller can cause memory exhaustion by fetching a large response.",
+          "cwe": [
+            400
+          ],
+          "function": "fetch_remote"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 3722,
+        "completion_tokens": 3920,
+        "cost_usd": 0.002425175,
+        "seconds": 50.06,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "PY04-D01",
+          "file": "vault.py",
+          "function": "make_share_token",
+          "category": "insecure-randomness",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "weak-share-token-generation in `make_share_token` (line 25, CWE-330): Share tokens come from the non-cryptographic `random` generator, which the server seeds with the startup time, making bearer tokens predictable to an attacker who can estimate that time."
+          ]
+        },
+        {
+          "id": "PY04-D02",
+          "file": "vault.py",
+          "function": "token_matches",
+          "category": "timing-side-channel",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "PY04-D03",
+          "file": "vault.py",
+          "function": "fetch_remote",
+          "category": "ssrf",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "server-side-request-forgery in `fetch_remote` (line 99, CWE-918): `fetch_remote` passes the caller-controlled URL directly to `urlopen`, allowing requests to internal services and, where supported, `file://` URLs that expose local files through the saved document."
+          ]
+        },
+        {
+          "id": "PY04-D04",
+          "file": "vault.py",
+          "function": "decode_body",
+          "category": "insecure-deserialization",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "unsafe-deserialization in `decode_body` (line 95, CWE-502): An uploader can set `meta.format` to `object` and submit a malicious pickle, causing arbitrary code execution in the server when `pickle.loads` runs."
+          ]
+        },
+        {
+          "id": "PY04-D05",
+          "file": "app.py",
+          "function": "purge",
+          "category": "missing-authentication",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "missing-admin-authentication in `purge` (line 123, CWE-306): The purge operation checks only whether `X-Admin-Key` is present and never validates its value, so any caller can send an arbitrary header value and delete all documents."
+          ]
+        },
+        {
+          "id": "PY04-D06",
+          "file": "vault.py",
+          "function": "save_upload",
+          "category": "toctou",
+          "class": "design",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "quota-race-condition in `save_upload` (line 79, CWE-362): Concurrent uploads for one API key can both read the same usage before either updates it, allowing their combined payloads to exceed the quota.",
+            "temporary-file-leak in `save_upload` (line 86, CWE-400): Each successful upload leaves its staged `.part` file in `tmp_dir` after copying it to the final path, allowing repeated uploads to consume unbounded disk space."
+          ]
+        },
+        {
+          "id": "PY04-D07",
+          "file": "app.py",
+          "function": "go",
+          "category": "open-redirect",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "open-redirect in `go` (line 131, CWE-601): The `/go` endpoint puts the unvalidated `next` parameter in the `Location` header, allowing an attacker to redirect users to a malicious site."
+          ]
+        },
+        {
+          "id": "PY04-D08",
+          "file": "app.py",
+          "function": "docs_html",
+          "category": "xss",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "stored-cross-site-scripting in `docs_html` (line 137, CWE-79): An uploaded title is interpolated into the public HTML without escaping, so a malicious title executes script when someone visits `/docs.html`."
+          ]
+        },
+        {
+          "id": "PY04-D09",
+          "file": "vault.py",
+          "function": "save_upload",
+          "category": "unbounded-resource",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "temporary-file-leak in `save_upload` (line 86, CWE-400): Each successful upload leaves its staged `.part` file in `tmp_dir` after copying it to the final path, allowing repeated uploads to consume unbounded disk space."
+          ]
+        },
+        {
+          "id": "PY04-D10",
+          "file": "vault.py",
+          "function": "share_expiry",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "PY04-D11",
+          "file": "vault.py",
+          "function": "can_read",
+          "category": "null-dereference",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        }
+      ],
+      "counts": {
+        "total": 11,
+        "detected": 7,
+        "function_flagged": 1,
+        "missed": 3
+      },
+      "findings": [
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "unbounded-request-body in `_read_json` (line 29, CWE-400): The handler trusts arbitrary `Content-Length` values and reads the entire body into memory, allowing a caller to exhaust server memory with a sufficiently large request.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "missing-api-key-validation in `_api_key` (line 58, CWE-306): The handler accepts any supplied API-key string, including an empty one, as an identity, so callers can create or impersonate that identity and access its documents.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "missing-admin-authentication in `purge` (line 123, CWE-306): The purge operation checks only whether `X-Admin-Key` is present and never validates its value, so any caller can send an arbitrary header value and delete all documents.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "open-redirect in `go` (line 131, CWE-601): The `/go` endpoint puts the unvalidated `next` parameter in the `Location` header, allowing an attacker to redirect users to a malicious site.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "stored-cross-site-scripting in `docs_html` (line 137, CWE-79): An uploaded title is interpolated into the public HTML without escaping, so a malicious title executes script when someone visits `/docs.html`.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "vault.py",
+          "kind": "baseline",
+          "text": "weak-share-token-generation in `make_share_token` (line 25, CWE-330): Share tokens come from the non-cryptographic `random` generator, which the server seeds with the startup time, making bearer tokens predictable to an attacker who can estimate that time.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "vault.py",
+          "kind": "baseline",
+          "text": "data-loss-on-restart in `__init__` (line 65): The store initializes its document and usage maps empty and never reloads the files it writes, so a process restart makes existing documents and quota state unavailable.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "vault.py",
+          "kind": "baseline",
+          "text": "quota-race-condition in `save_upload` (line 79, CWE-362): Concurrent uploads for one API key can both read the same usage before either updates it, allowing their combined payloads to exceed the quota.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "vault.py",
+          "kind": "baseline",
+          "text": "temporary-file-leak in `save_upload` (line 86, CWE-400): Each successful upload leaves its staged `.part` file in `tmp_dir` after copying it to the final path, allowing repeated uploads to consume unbounded disk space.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "vault.py",
+          "kind": "baseline",
+          "text": "unsafe-deserialization in `decode_body` (line 95, CWE-502): An uploader can set `meta.format` to `object` and submit a malicious pickle, causing arbitrary code execution in the server when `pickle.loads` runs.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "vault.py",
+          "kind": "baseline",
+          "text": "server-side-request-forgery in `fetch_remote` (line 99, CWE-918): `fetch_remote` passes the caller-controlled URL directly to `urlopen`, allowing requests to internal services and, where supported, `file://` URLs that expose local files through the saved document.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "vault.py",
+          "kind": "baseline",
+          "text": "unbounded-remote-response in `fetch_remote` (line 100, CWE-400): The fetch endpoint reads the entire remote response into memory before applying the quota check, so a caller can cause memory exhaustion by fetching a large response.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 12,
+        "defect_evidence": 7,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 5
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "app.py",
+          "line": 30,
+          "rule": "unbounded-request-body",
+          "message": "The handler reads the full client-supplied Content-Length before applying any size limit, so an unauthenticated client can exhaust memory or tie up a request thread with a very large or incomplete body.",
+          "cwe": [
+            400
+          ],
+          "function": "_read_json"
+        },
+        {
+          "file": "app.py",
+          "line": 102,
+          "rule": "missing-authentication",
+          "message": "An upload with no X-Api-Key is accepted and stored under the empty key, allowing unauthenticated callers to upload documents and create share links for them.",
+          "cwe": [
+            306
+          ],
+          "function": "upload"
+        },
+        {
+          "file": "app.py",
+          "line": 145,
+          "rule": "private-metadata-disclosure",
+          "message": "The public docs page lists every document's title and ID without checking access, exposing metadata for private documents to any visitor.",
+          "cwe": [
+            200
+          ],
+          "function": "docs_html"
+        },
+        {
+          "file": "vault.py",
+          "line": 120,
+          "rule": "ssrf-dns-rebinding",
+          "message": "The hostname is checked using one DNS lookup, but the later request resolves it again, allowing a rebinding hostname to pass the public-address check and then direct the fetch to a private address.",
+          "cwe": [
+            918
+          ],
+          "function": "_check_remote"
+        },
+        {
+          "file": "vault.py",
+          "line": 127,
+          "rule": "unbounded-remote-response",
+          "message": "The remote response is read entirely into memory before quota enforcement, so a URL returning a very large body can exhaust server memory.",
+          "cwe": [
+            400
+          ],
+          "function": "fetch_remote"
+        },
+        {
+          "file": "vault.py",
+          "line": 151,
+          "rule": "quota-accounting-race",
+          "message": "Purge clears usage without coordinating with upload reservations, so a concurrent upload can have its quota reservation erased and subsequent uploads can exceed that user's quota.",
+          "cwe": [
+            362
+          ],
+          "function": "purge"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 4162,
+        "completion_tokens": 2809,
+        "cost_usd": 0.00144639,
+        "seconds": 40.17,
         "attempts": 1
       },
       "fixed": {
@@ -1650,37 +1437,37 @@
           {
             "file": "app.py",
             "kind": "baseline",
-            "text": "unbounded-upload-body in `_read_json` (line 30, CWE-400): The handler reads the entire client-supplied Content-Length before enforcing the storage quota, allowing an unauthenticated client to exhaust server memory with a large upload.",
+            "text": "unbounded-request-body in `_read_json` (line 30, CWE-400): The handler reads the full client-supplied Content-Length before applying any size limit, so an unauthenticated client can exhaust memory or tie up a request thread with a very large or incomplete body.",
             "status": "unreviewed"
           },
           {
             "file": "app.py",
             "kind": "baseline",
-            "text": "caller-controlled-quota-identity in `upload` (line 102, CWE-639): Uploads treat any supplied X-Api-Key value as a trusted user identity, so a caller can change the header for each upload and bypass the per-key 64 KiB quota.",
+            "text": "missing-authentication in `upload` (line 102, CWE-306): An upload with no X-Api-Key is accepted and stored under the empty key, allowing unauthenticated callers to upload documents and create share links for them.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "private-metadata-disclosure in `docs_html` (line 145, CWE-200): The public docs page lists every document's title and ID without checking access, exposing metadata for private documents to any visitor.",
             "status": "unreviewed"
           },
           {
             "file": "vault.py",
             "kind": "baseline",
-            "text": "documents-lost-on-restart in `__init__` (line 75): Document metadata and bodies are kept only in memory and are never reconstructed from the persisted files, so restarting the process makes every existing document unavailable and can overwrite old files when IDs restart at 1.",
+            "text": "ssrf-dns-rebinding in `_check_remote` (line 120, CWE-918): The hostname is checked using one DNS lookup, but the later request resolves it again, allowing a rebinding hostname to pass the public-address check and then direct the fetch to a private address.",
             "status": "unreviewed"
           },
           {
             "file": "vault.py",
             "kind": "baseline",
-            "text": "dns-rebinding-ssrf in `_check_remote` (line 120, CWE-918): The hostname is checked against public addresses here but resolved again by the HTTP client at line 126, so DNS rebinding can make the fetch connect to a private or internal address.",
+            "text": "unbounded-remote-response in `fetch_remote` (line 127, CWE-400): The remote response is read entirely into memory before quota enforcement, so a URL returning a very large body can exhaust server memory.",
             "status": "unreviewed"
           },
           {
             "file": "vault.py",
             "kind": "baseline",
-            "text": "unbounded-fetch-response in `fetch_remote` (line 127, CWE-400): The fetch reads the complete remote response into memory before the upload quota is checked, so a large response from a reachable server can exhaust server memory.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "vault.py",
-            "kind": "baseline",
-            "text": "purge-upload-race in `purge` (line 149, CWE-362): Purge does not synchronize with uploads, so an in-flight upload can be added after the purge or can fail after usage is cleared and leave state inconsistent.",
+            "text": "quota-accounting-race in `purge` (line 151, CWE-362): Purge clears usage without coordinating with upload reservations, so a concurrent upload can have its quota reservation erased and subsequent uploads can exceed that user's quota.",
             "status": "unreviewed"
           }
         ],

@@ -3,10 +3,10 @@
   "language": "solidity",
   "tool": "llm-only",
   "model": "openai/gpt-6-luna",
-  "prompt_version": 1,
-  "prompt_hash": "50865386f4c2f5d6",
+  "prompt_version": 2,
+  "prompt_hash": "2fd1a1213dca8cce",
   "temperature": 0,
-  "generated_at": "2026-11-03T04:59:40Z",
+  "generated_at": "2026-11-03T06:16:58Z",
   "source_hash": "4649be3a3bdce49e82b5def4dfe169569c315e6c5d99cb98a9ed599d54e37a9e",
   "runs": [
     {
@@ -16,7 +16,7 @@
           "file": "src/EnglishAuction.sol",
           "line": 44,
           "rule": "missing-access-control",
-          "message": "Because `init` is permissionless, any account can front-run the intended setup and permanently choose the seller, reserve, duration, and increment.",
+          "message": "Because `init` is callable by anyone, an attacker can initialize the auction first with their own seller address and chosen parameters, locking out the intended seller.",
           "cwe": [
             862
           ],
@@ -25,18 +25,18 @@
         {
           "file": "src/EnglishAuction.sol",
           "line": 51,
-          "rule": "integer-truncation",
-          "message": "The unchecked timestamp addition and conversion to `uint64` can wrap or truncate a large duration, producing an incorrect end time while the corresponding `endBlock` may be practically unreachable.",
+          "rule": "numeric-truncation",
+          "message": "If `duration_` makes the timestamp exceed `uint64`, the unchecked cast truncates `endTime` while `endBlock` uses the full duration, leaving the auction's time and block deadlines inconsistent.",
           "cwe": [
-            190
+            197
           ],
           "function": "init"
         },
         {
           "file": "src/EnglishAuction.sol",
           "line": 62,
-          "rule": "incorrect-increment-calculation",
-          "message": "Dividing `highestBid` before multiplying rounds the increment down prematurely, so a 500-bps increment can be zero for bids below 10,000 wei and equal bids can outbid the leader.",
+          "rule": "incorrect-calculation",
+          "message": "Dividing `highestBid` by `BPS` before multiplying rounds down the increment; for bids below 10,000 the required increment is always zero, so bids can avoid the configured minimum increase.",
           "cwe": [
             682
           ],
@@ -44,9 +44,19 @@
         },
         {
           "file": "src/EnglishAuction.sol",
+          "line": 69,
+          "rule": "inconsistent-auction-deadline",
+          "message": "The bid check permits bids during the 15-minute grace period even when both conditions in `hasEnded` are true, allowing bids after cancellation, finalization, or the bonus draw is already enabled.",
+          "cwe": [
+            841
+          ],
+          "function": "bid"
+        },
+        {
+          "file": "src/EnglishAuction.sol",
           "line": 75,
-          "rule": "refund-denial-of-service",
-          "message": "A top bidder whose receive hook reverts makes this refund fail, reverting every later bid and preventing the auction from being outbid.",
+          "rule": "denial-of-service",
+          "message": "A highest bidder contract that rejects ETH refunds makes this call revert, preventing every later bidder from outbidding it.",
           "cwe": [
             755
           ],
@@ -54,9 +64,9 @@
         },
         {
           "file": "src/EnglishAuction.sol",
-          "line": 80,
-          "rule": "stale-bid-accounting",
-          "message": "When a bidder is outbid, their `bidOf` entry is not cleared, so they can later cancel and withdraw the already-refunded amount a second time.",
+          "line": 75,
+          "rule": "stale-accounting",
+          "message": "After refunding an outbid bidder, the contract leaves their `bidOf` entry intact, so they can cancel it and claim a second refund from funds backing other liabilities.",
           "cwe": [
             682
           ],
@@ -65,28 +75,18 @@
         {
           "file": "src/EnglishAuction.sol",
           "line": 82,
-          "rule": "duplicate-raffle-entries",
-          "message": "Every early bid appends another entry for the same address, allowing a bidder who raises their bid repeatedly to gain multiple raffle chances.",
+          "rule": "raffle-weight-manipulation",
+          "message": "Every qualifying bid adds another entry even for an address already recorded, so a bidder can repeatedly bid to increase their chance of winning the bonus.",
           "cwe": [
-            841
+            682
           ],
           "function": "bid"
         },
         {
           "file": "src/EnglishAuction.sol",
-          "line": 93,
-          "rule": "cancelled-bid-remains-active",
-          "message": "Cancelling the current highest bid leaves `highestBidder` and `highestBid` unchanged, so the bidder can withdraw the escrow and the auction still treats that bid as payable at finalization.",
-          "cwe": [
-            682
-          ],
-          "function": "cancelBid"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
           "line": 101,
-          "rule": "withdrawal-reentrancy",
-          "message": "The external payment occurs before `pendingReturns` is cleared, allowing a recipient that re-enters `withdraw` to receive the same pending balance repeatedly.",
+          "rule": "reentrancy",
+          "message": "The recipient can re-enter `withdraw` before `pendingReturns` is cleared and withdraw the same balance repeatedly while the contract has enough funds.",
           "cwe": [
             841
           ],
@@ -94,19 +94,19 @@
         },
         {
           "file": "src/EnglishAuction.sol",
-          "line": 116,
+          "line": 113,
           "rule": "repeatable-finalization",
-          "message": "`finalize` never records that payment occurred or clears the winning amount, so it can be called repeatedly to pay the same bid again from bonus funds or other auction balances.",
+          "message": "There is no finalized flag, so anyone can call `finalize` repeatedly and transfer the same `highestBid` again, draining bonus funds or other users' deposits.",
           "cwe": [
-            682
+            841
           ],
           "function": "finalize"
         },
         {
           "file": "src/EnglishAuction.sol",
-          "line": 138,
-          "rule": "predictable-randomness",
-          "message": "The raffle winner is derived from public block timestamp and `prevrandao`, which a block producer or transaction submitter can predict or influence when timing a draw to win the pool.",
+          "line": 137,
+          "rule": "manipulable-randomness",
+          "message": "The bonus winner is chosen from timestamp and `prevrandao`, which a block producer can influence or selectively withhold to bias the draw.",
           "cwe": [
             330
           ],
@@ -116,10 +116,10 @@
       "invalid_findings": [],
       "tool_errors": 0,
       "usage": {
-        "prompt_tokens": 8234,
-        "completion_tokens": 5664,
-        "cost_usd": 0.00291461,
-        "seconds": 86.21,
+        "prompt_tokens": 2703,
+        "completion_tokens": 4980,
+        "cost_usd": 0.0025173,
+        "seconds": 72.81,
         "attempts": 1
       },
       "defects": [
@@ -132,7 +132,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "refund-denial-of-service in `bid` (line 75, CWE-755): A top bidder whose receive hook reverts makes this refund fail, reverting every later bid and preventing the auction from being outbid."
+            "denial-of-service in `bid` (line 75, CWE-755): A highest bidder contract that rejects ETH refunds makes this call revert, preventing every later bidder from outbidding it."
           ]
         },
         {
@@ -144,7 +144,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "withdrawal-reentrancy in `withdraw` (line 101, CWE-841): The external payment occurs before `pendingReturns` is cleared, allowing a recipient that re-enters `withdraw` to receive the same pending balance repeatedly."
+            "reentrancy in `withdraw` (line 101, CWE-841): The recipient can re-enter `withdraw` before `pendingReturns` is cleared and withdraw the same balance repeatedly while the contract has enough funds."
           ]
         },
         {
@@ -156,7 +156,7 @@
           "in_target_category": true,
           "status": "function_flagged",
           "findings": [
-            "repeatable-finalization in `finalize` (line 116, CWE-682): `finalize` never records that payment occurred or clears the winning amount, so it can be called repeatedly to pay the same bid again from bonus funds or other auction balances."
+            "repeatable-finalization in `finalize` (line 113, CWE-841): There is no finalized flag, so anyone can call `finalize` repeatedly and transfer the same `highestBid` again, draining bonus funds or other users' deposits."
           ]
         },
         {
@@ -168,9 +168,10 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "refund-denial-of-service in `bid` (line 75, CWE-755): A top bidder whose receive hook reverts makes this refund fail, reverting every later bid and preventing the auction from being outbid.",
-            "stale-bid-accounting in `bid` (line 80, CWE-682): When a bidder is outbid, their `bidOf` entry is not cleared, so they can later cancel and withdraw the already-refunded amount a second time.",
-            "duplicate-raffle-entries in `bid` (line 82, CWE-841): Every early bid appends another entry for the same address, allowing a bidder who raises their bid repeatedly to gain multiple raffle chances."
+            "inconsistent-auction-deadline in `bid` (line 69, CWE-841): The bid check permits bids during the 15-minute grace period even when both conditions in `hasEnded` are true, allowing bids after cancellation, finalization, or the bonus draw is already enabled.",
+            "denial-of-service in `bid` (line 75, CWE-755): A highest bidder contract that rejects ETH refunds makes this call revert, preventing every later bidder from outbidding it.",
+            "stale-accounting in `bid` (line 75, CWE-682): After refunding an outbid bidder, the contract leaves their `bidOf` entry intact, so they can cancel it and claim a second refund from funds backing other liabilities.",
+            "raffle-weight-manipulation in `bid` (line 82, CWE-682): Every qualifying bid adds another entry even for an address already recorded, so a bidder can repeatedly bid to increase their chance of winning the bonus."
           ]
         },
         {
@@ -182,7 +183,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "incorrect-increment-calculation in `minNextBid` (line 62, CWE-682): Dividing `highestBid` before multiplying rounds the increment down prematurely, so a 500-bps increment can be zero for bids below 10,000 wei and equal bids can outbid the leader."
+            "incorrect-calculation in `minNextBid` (line 62, CWE-682): Dividing `highestBid` by `BPS` before multiplying rounds down the increment; for bids below 10,000 the required increment is always zero, so bids can avoid the configured minimum increase."
           ]
         },
         {
@@ -192,10 +193,8 @@
           "category": "invariant-violation",
           "class": "bug",
           "in_target_category": true,
-          "status": "function_flagged",
-          "findings": [
-            "cancelled-bid-remains-active in `cancelBid` (line 93, CWE-682): Cancelling the current highest bid leaves `highestBidder` and `highestBid` unchanged, so the bidder can withdraw the escrow and the auction still treats that bid as payable at finalization."
-          ]
+          "status": "missed",
+          "findings": []
         },
         {
           "id": "SOL02-D07",
@@ -206,7 +205,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "missing-access-control in `init` (line 44, CWE-862): Because `init` is permissionless, any account can front-run the intended setup and permanently choose the seller, reserve, duration, and increment."
+            "missing-access-control in `init` (line 44, CWE-862): Because `init` is callable by anyone, an attacker can initialize the auction first with their own seller address and chosen parameters, locking out the intended seller."
           ]
         },
         {
@@ -216,9 +215,10 @@
           "category": "integer-overflow",
           "class": "bug",
           "in_target_category": true,
-          "status": "detected",
+          "status": "function_flagged",
           "findings": [
-            "integer-truncation in `init` (line 51, CWE-190): The unchecked timestamp addition and conversion to `uint64` can wrap or truncate a large duration, producing an incorrect end time while the corresponding `endBlock` may be practically unreachable."
+            "missing-access-control in `init` (line 44, CWE-862): Because `init` is callable by anyone, an attacker can initialize the auction first with their own seller address and chosen parameters, locking out the intended seller.",
+            "numeric-truncation in `init` (line 51, CWE-197): If `duration_` makes the timestamp exceed `uint64`, the unchecked cast truncates `endTime` while `endBlock` uses the full duration, leaving the auction's time and block deadlines inconsistent."
           ]
         },
         {
@@ -230,8 +230,8 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "missing-access-control in `init` (line 44, CWE-862): Because `init` is permissionless, any account can front-run the intended setup and permanently choose the seller, reserve, duration, and increment.",
-            "integer-truncation in `init` (line 51, CWE-190): The unchecked timestamp addition and conversion to `uint64` can wrap or truncate a large duration, producing an incorrect end time while the corresponding `endBlock` may be practically unreachable."
+            "missing-access-control in `init` (line 44, CWE-862): Because `init` is callable by anyone, an attacker can initialize the auction first with their own seller address and chosen parameters, locking out the intended seller.",
+            "numeric-truncation in `init` (line 51, CWE-197): If `duration_` makes the timestamp exceed `uint64`, the unchecked cast truncates `endTime` while `endBlock` uses the full duration, leaving the auction's time and block deadlines inconsistent."
           ]
         },
         {
@@ -243,7 +243,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "predictable-randomness in `drawEarlyBirdBonus` (line 138, CWE-330): The raffle winner is derived from public block timestamp and `prevrandao`, which a block producer or transaction submitter can predict or influence when timing a draw to win the pool."
+            "manipulable-randomness in `drawEarlyBirdBonus` (line 137, CWE-330): The bonus winner is chosen from timestamp and `prevrandao`, which a block producer can influence or selectively withhold to bias the draw."
           ]
         },
         {
@@ -255,122 +255,92 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "duplicate-raffle-entries in `bid` (line 82, CWE-841): Every early bid appends another entry for the same address, allowing a bidder who raises their bid repeatedly to gain multiple raffle chances."
+            "inconsistent-auction-deadline in `bid` (line 69, CWE-841): The bid check permits bids during the 15-minute grace period even when both conditions in `hasEnded` are true, allowing bids after cancellation, finalization, or the bonus draw is already enabled."
           ]
         }
       ],
       "counts": {
         "total": 11,
-        "detected": 7,
+        "detected": 6,
         "function_flagged": 4,
-        "missed": 0
+        "missed": 1
       },
       "findings": [
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "missing-access-control in `init` (line 44, CWE-862): Because `init` is permissionless, any account can front-run the intended setup and permanently choose the seller, reserve, duration, and increment.",
+          "text": "missing-access-control in `init` (line 44, CWE-862): Because `init` is callable by anyone, an attacker can initialize the auction first with their own seller address and chosen parameters, locking out the intended seller.",
           "status": "defect_evidence"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "integer-truncation in `init` (line 51, CWE-190): The unchecked timestamp addition and conversion to `uint64` can wrap or truncate a large duration, producing an incorrect end time while the corresponding `endBlock` may be practically unreachable.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "kind": "baseline",
-          "text": "incorrect-increment-calculation in `minNextBid` (line 62, CWE-682): Dividing `highestBid` before multiplying rounds the increment down prematurely, so a 500-bps increment can be zero for bids below 10,000 wei and equal bids can outbid the leader.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "kind": "baseline",
-          "text": "refund-denial-of-service in `bid` (line 75, CWE-755): A top bidder whose receive hook reverts makes this refund fail, reverting every later bid and preventing the auction from being outbid.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "kind": "baseline",
-          "text": "stale-bid-accounting in `bid` (line 80, CWE-682): When a bidder is outbid, their `bidOf` entry is not cleared, so they can later cancel and withdraw the already-refunded amount a second time.",
+          "text": "numeric-truncation in `init` (line 51, CWE-197): If `duration_` makes the timestamp exceed `uint64`, the unchecked cast truncates `endTime` while `endBlock` uses the full duration, leaving the auction's time and block deadlines inconsistent.",
           "status": "unreviewed"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "duplicate-raffle-entries in `bid` (line 82, CWE-841): Every early bid appends another entry for the same address, allowing a bidder who raises their bid repeatedly to gain multiple raffle chances.",
+          "text": "incorrect-calculation in `minNextBid` (line 62, CWE-682): Dividing `highestBid` by `BPS` before multiplying rounds down the increment; for bids below 10,000 the required increment is always zero, so bids can avoid the configured minimum increase.",
           "status": "defect_evidence"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "cancelled-bid-remains-active in `cancelBid` (line 93, CWE-682): Cancelling the current highest bid leaves `highestBidder` and `highestBid` unchanged, so the bidder can withdraw the escrow and the auction still treats that bid as payable at finalization.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "kind": "baseline",
-          "text": "withdrawal-reentrancy in `withdraw` (line 101, CWE-841): The external payment occurs before `pendingReturns` is cleared, allowing a recipient that re-enters `withdraw` to receive the same pending balance repeatedly.",
+          "text": "inconsistent-auction-deadline in `bid` (line 69, CWE-841): The bid check permits bids during the 15-minute grace period even when both conditions in `hasEnded` are true, allowing bids after cancellation, finalization, or the bonus draw is already enabled.",
           "status": "defect_evidence"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "repeatable-finalization in `finalize` (line 116, CWE-682): `finalize` never records that payment occurred or clears the winning amount, so it can be called repeatedly to pay the same bid again from bonus funds or other auction balances.",
+          "text": "denial-of-service in `bid` (line 75, CWE-755): A highest bidder contract that rejects ETH refunds makes this call revert, preventing every later bidder from outbidding it.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/EnglishAuction.sol",
+          "kind": "baseline",
+          "text": "stale-accounting in `bid` (line 75, CWE-682): After refunding an outbid bidder, the contract leaves their `bidOf` entry intact, so they can cancel it and claim a second refund from funds backing other liabilities.",
           "status": "unreviewed"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "predictable-randomness in `drawEarlyBirdBonus` (line 138, CWE-330): The raffle winner is derived from public block timestamp and `prevrandao`, which a block producer or transaction submitter can predict or influence when timing a draw to win the pool.",
+          "text": "raffle-weight-manipulation in `bid` (line 82, CWE-682): Every qualifying bid adds another entry even for an address already recorded, so a bidder can repeatedly bid to increase their chance of winning the bonus.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/EnglishAuction.sol",
+          "kind": "baseline",
+          "text": "reentrancy in `withdraw` (line 101, CWE-841): The recipient can re-enter `withdraw` before `pendingReturns` is cleared and withdraw the same balance repeatedly while the contract has enough funds.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/EnglishAuction.sol",
+          "kind": "baseline",
+          "text": "repeatable-finalization in `finalize` (line 113, CWE-841): There is no finalized flag, so anyone can call `finalize` repeatedly and transfer the same `highestBid` again, draining bonus funds or other users' deposits.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/EnglishAuction.sol",
+          "kind": "baseline",
+          "text": "manipulable-randomness in `drawEarlyBirdBonus` (line 137, CWE-330): The bonus winner is chosen from timestamp and `prevrandao`, which a block producer can influence or selectively withhold to bias the draw.",
           "status": "defect_evidence"
         }
       ],
       "finding_counts": {
         "total": 10,
-        "defect_evidence": 7,
+        "defect_evidence": 6,
         "real": 0,
         "false_positive": 0,
-        "unreviewed": 3
+        "unreviewed": 4
       },
       "reviews_used": [],
       "fixed_raw_findings": [
         {
           "file": "src/EnglishAuction.sol",
-          "line": 78,
-          "rule": "missing-late-bid-grace-period",
-          "message": "Bids are rejected as soon as `endTime` passes, so the documented 15-minute late-bid grace period is never available.",
-          "cwe": [
-            840
-          ],
-          "function": "bid"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "line": 97,
-          "rule": "unusable-bid-cancellation",
-          "message": "The only account with a nonzero `bidOf` is the highest bidder, but this check forbids that bidder from cancelling, making `cancelBid()` unusable.",
-          "cwe": [
-            841
-          ],
-          "function": "cancelBid"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "line": 116,
-          "rule": "ignored-end-block-fallback",
-          "message": "`hasEnded()` checks only the timestamp and ignores `endBlock`, so the documented block-based fallback cannot end the auction when timestamp-based timing is unreliable.",
-          "cwe": [
-            841
-          ],
-          "function": "hasEnded"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
           "line": 127,
-          "rule": "seller-payout-can-block-finalization",
-          "message": "If the configured seller rejects ETH, this push payment fails and reverts finalization, leaving no alternative way to release the winning bid.",
+          "rule": "seller-payout-denial-of-service",
+          "message": "If the configured seller is a contract that rejects ETH, this call always fails and prevents finalization, leaving the winning bid locked in the auction.",
           "cwe": [
             755
           ],
@@ -378,19 +348,17 @@
         },
         {
           "file": "src/EnglishAuction.sol",
-          "line": 149,
-          "rule": "deterministic-bonus-winner",
-          "message": "The bonus is always paid to `earlyBidders[0]`, so the documented raffle among early bidders is not performed and the winner is predictable.",
-          "cwe": [
-            840
-          ],
-          "function": "drawEarlyBirdBonus"
+          "line": 138,
+          "rule": "unrecoverable-bonus-funds",
+          "message": "This accepts bonus funds even when no bidder exists or after the bonus has been paid, leaving those funds permanently locked because no future draw or recovery path is available.",
+          "cwe": [],
+          "function": "fundBonus"
         },
         {
           "file": "src/EnglishAuction.sol",
           "line": 154,
-          "rule": "bonus-payout-can-be-permanently-blocked",
-          "message": "If the deterministically selected first bidder rejects ETH, the bonus transfer reverts and the pool cannot be paid to another winner.",
+          "rule": "bonus-payout-denial-of-service",
+          "message": "If the earliest bidder is a contract that rejects ETH, this call always fails and prevents the bonus draw, leaving the funded bonus pool locked.",
           "cwe": [
             755
           ],
@@ -400,63 +368,42 @@
       "fixed_invalid_findings": [],
       "fixed_tool_errors": 0,
       "fixed_usage": {
-        "prompt_tokens": 8443,
-        "completion_tokens": 3246,
-        "cost_usd": 0.0026783,
-        "seconds": 51.98,
+        "prompt_tokens": 2833,
+        "completion_tokens": 3531,
+        "cost_usd": 0.00211955,
+        "seconds": 52.03,
         "attempts": 1
       },
       "fixed": {
         "defects": 11,
-        "still_reported": [
-          "SOL02-D06",
-          "SOL02-D10"
-        ],
-        "false_alarms": 6,
+        "still_reported": [],
+        "false_alarms": 3,
         "findings": [
           {
             "file": "src/EnglishAuction.sol",
             "kind": "baseline",
-            "text": "missing-late-bid-grace-period in `bid` (line 78, CWE-840): Bids are rejected as soon as `endTime` passes, so the documented 15-minute late-bid grace period is never available.",
+            "text": "seller-payout-denial-of-service in `finalize` (line 127, CWE-755): If the configured seller is a contract that rejects ETH, this call always fails and prevents finalization, leaving the winning bid locked in the auction.",
             "status": "unreviewed"
           },
           {
             "file": "src/EnglishAuction.sol",
             "kind": "baseline",
-            "text": "unusable-bid-cancellation in `cancelBid` (line 97, CWE-841): The only account with a nonzero `bidOf` is the highest bidder, but this check forbids that bidder from cancelling, making `cancelBid()` unusable.",
+            "text": "unrecoverable-bonus-funds in `fundBonus` (line 138): This accepts bonus funds even when no bidder exists or after the bonus has been paid, leaving those funds permanently locked because no future draw or recovery path is available.",
             "status": "unreviewed"
           },
           {
             "file": "src/EnglishAuction.sol",
             "kind": "baseline",
-            "text": "ignored-end-block-fallback in `hasEnded` (line 116, CWE-841): `hasEnded()` checks only the timestamp and ignores `endBlock`, so the documented block-based fallback cannot end the auction when timestamp-based timing is unreliable.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "src/EnglishAuction.sol",
-            "kind": "baseline",
-            "text": "seller-payout-can-block-finalization in `finalize` (line 127, CWE-755): If the configured seller rejects ETH, this push payment fails and reverts finalization, leaving no alternative way to release the winning bid.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "src/EnglishAuction.sol",
-            "kind": "baseline",
-            "text": "deterministic-bonus-winner in `drawEarlyBirdBonus` (line 149, CWE-840): The bonus is always paid to `earlyBidders[0]`, so the documented raffle among early bidders is not performed and the winner is predictable.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "src/EnglishAuction.sol",
-            "kind": "baseline",
-            "text": "bonus-payout-can-be-permanently-blocked in `drawEarlyBirdBonus` (line 154, CWE-755): If the deterministically selected first bidder rejects ETH, the bonus transfer reverts and the pool cannot be paid to another winner.",
+            "text": "bonus-payout-denial-of-service in `drawEarlyBirdBonus` (line 154, CWE-755): If the earliest bidder is a contract that rejects ETH, this call always fails and prevents the bonus draw, leaving the funded bonus pool locked.",
             "status": "unreviewed"
           }
         ],
         "finding_counts": {
-          "total": 6,
+          "total": 3,
           "defect_evidence": 0,
           "real": 0,
           "false_positive": 0,
-          "unreviewed": 6
+          "unreviewed": 3
         },
         "reviews_used": []
       }
@@ -467,8 +414,8 @@
         {
           "file": "src/EnglishAuction.sol",
           "line": 43,
-          "rule": "unauthorized-initialization",
-          "message": "Anyone can call `init` first and permanently choose the seller and auction parameters, so an attacker can front-run deployment setup and take control of the auction.",
+          "rule": "missing-access-control",
+          "message": "Anyone can call `init` first and permanently choose the seller, reserve, duration, and increment, allowing an attacker to take over an auction before its intended setup.",
           "cwe": [
             862
           ],
@@ -477,18 +424,18 @@
         {
           "file": "src/EnglishAuction.sol",
           "line": 51,
-          "rule": "timestamp-truncation",
-          "message": "The unchecked cast truncates `block.timestamp + duration_` to 64 bits, so a sufficiently large duration wraps `endTime` while `endBlock` remains extremely far away and the auction cannot reach `hasEnded()`.",
+          "rule": "integer-truncation",
+          "message": "Casting the unchecked timestamp-plus-duration value to `uint64` truncates large durations, which can make the auction end time incorrect and keep the auction open until an impractically large block number.",
           "cwe": [
-            197
+            681
           ],
           "function": "init"
         },
         {
           "file": "src/EnglishAuction.sol",
           "line": 62,
-          "rule": "incorrect-increment-calculation",
-          "message": "Dividing `highestBid` before multiplying by `minIncrementBps` rounds the increment down prematurely, allowing bids below the intended minimum and even equal bids when `highestBid < 10_000` wei.",
+          "rule": "incorrect-minimum-calculation",
+          "message": "Dividing `highestBid` before multiplying by the basis points loses precision and can make the required increment substantially smaller than the configured percentage, especially for small bids or large increment settings.",
           "cwe": [
             682
           ],
@@ -496,29 +443,9 @@
         },
         {
           "file": "src/EnglishAuction.sol",
-          "line": 69,
-          "rule": "inconsistent-auction-deadline",
-          "message": "This accepts bids through `endTime + LATE_BID_GRACE` even after `hasEnded()` becomes true at `endTime`, so a bid can be accepted after finalization and alter the recorded winner without being included in the seller payout.",
-          "cwe": [
-            682
-          ],
-          "function": "bid"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "line": 75,
-          "rule": "reentrant-bid-state",
-          "message": "The refund calls the previous bidder before updating the highest-bid state, allowing a callback to reenter `bid` against stale auction state and produce inconsistent bid accounting.",
-          "cwe": [
-            841
-          ],
-          "function": "bid"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
           "line": 75,
           "rule": "refund-denial-of-service",
-          "message": "A top bidder whose receive function reverts makes every subsequent bid revert here, allowing a bidder to block the auction from advancing.",
+          "message": "A highest bidder contract that rejects ETH refunds causes every later bid to revert, letting that bidder block the auction from receiving higher bids.",
           "cwe": [
             755
           ],
@@ -526,29 +453,29 @@
         },
         {
           "file": "src/EnglishAuction.sol",
-          "line": 80,
+          "line": 75,
           "rule": "stale-bid-accounting",
-          "message": "Outbidding a bidder leaves their `bidOf` amount recorded even though it was refunded, so that bidder can later cancel and withdraw the same amount again from other auction funds.",
+          "message": "The outbid bidder's `bidOf` entry is not cleared after this refund, so that bidder can later cancel the already-refunded amount and withdraw it again from funds belonging to the auction.",
           "cwe": [
-            682
+            841
           ],
           "function": "bid"
         },
         {
           "file": "src/EnglishAuction.sol",
-          "line": 93,
-          "rule": "cancelled-highest-bid",
-          "message": "Cancelling a current top bid leaves `highestBidder` and `highestBid` unchanged, so the bidder can withdraw the bid while finalization still pays that amount to the seller.",
+          "line": 89,
+          "rule": "cancelled-highest-bid-remains-active",
+          "message": "The highest bidder can cancel and withdraw their bid while `highestBid` and `highestBidder` remain unchanged, allowing the same amount to be paid again on an outbid or finalization.",
           "cwe": [
-            682
+            841
           ],
           "function": "cancelBid"
         },
         {
           "file": "src/EnglishAuction.sol",
           "line": 101,
-          "rule": "withdrawal-reentrancy",
-          "message": "The pending balance is cleared only after the external payment, so a receiver can reenter `withdraw` and receive the same pending amount repeatedly while funds remain.",
+          "rule": "reentrancy",
+          "message": "`pendingReturns` is cleared only after the external call, so a recipient that reenters `withdraw` can withdraw the same balance repeatedly while the contract has sufficient funds.",
           "cwe": [
             841
           ],
@@ -558,7 +485,7 @@
           "file": "src/EnglishAuction.sol",
           "line": 116,
           "rule": "repeatable-finalization",
-          "message": "Finalization never records that it has already occurred or clears `highestBid`, so anyone can call it repeatedly and pay the seller again from bonus funds or other balances held by the contract.",
+          "message": "`finalize` never marks the auction as finalized or clears the winning amount, so it can be called repeatedly to pay the same bid from bonus funds or other users' deposits.",
           "cwe": [
             841
           ],
@@ -566,31 +493,11 @@
         },
         {
           "file": "src/EnglishAuction.sol",
-          "line": 116,
-          "rule": "seller-payout-denial-of-service",
-          "message": "If the configured seller is a contract that rejects Ether, `finalize` always reverts and there is no pull-payment alternative to settle the auction.",
-          "cwe": [
-            755
-          ],
-          "function": "finalize"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
           "line": 137,
-          "rule": "predictable-raffle-randomness",
-          "message": "The winner is derived from public block fields, so bidders can predict the index and selectively trigger the draw in a block where one of their entries wins.",
+          "rule": "predictable-randomness",
+          "message": "The bonus winner is selected from block timestamp and `prevrandao`, which block producers can influence and callers can choose when to sample, allowing the draw outcome to be manipulated.",
           "cwe": [
             330
-          ],
-          "function": "drawEarlyBirdBonus"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "line": 147,
-          "rule": "bonus-payout-denial-of-service",
-          "message": "If the selected early bidder is a contract that rejects Ether, the draw reverts and the pool cannot be paid or redrawn to another winner.",
-          "cwe": [
-            755
           ],
           "function": "drawEarlyBirdBonus"
         }
@@ -598,10 +505,10 @@
       "invalid_findings": [],
       "tool_errors": 0,
       "usage": {
-        "prompt_tokens": 8234,
-        "completion_tokens": 4555,
-        "cost_usd": 0.003306675,
-        "seconds": 68.99,
+        "prompt_tokens": 2703,
+        "completion_tokens": 4235,
+        "cost_usd": 0.0024553,
+        "seconds": 57.08,
         "attempts": 1
       },
       "defects": [
@@ -614,7 +521,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "refund-denial-of-service in `bid` (line 75, CWE-755): A top bidder whose receive function reverts makes every subsequent bid revert here, allowing a bidder to block the auction from advancing."
+            "refund-denial-of-service in `bid` (line 75, CWE-755): A highest bidder contract that rejects ETH refunds causes every later bid to revert, letting that bidder block the auction from receiving higher bids."
           ]
         },
         {
@@ -626,7 +533,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "withdrawal-reentrancy in `withdraw` (line 101, CWE-841): The pending balance is cleared only after the external payment, so a receiver can reenter `withdraw` and receive the same pending amount repeatedly while funds remain."
+            "reentrancy in `withdraw` (line 101, CWE-841): `pendingReturns` is cleared only after the external call, so a recipient that reenters `withdraw` can withdraw the same balance repeatedly while the contract has sufficient funds."
           ]
         },
         {
@@ -638,8 +545,7 @@
           "in_target_category": true,
           "status": "function_flagged",
           "findings": [
-            "repeatable-finalization in `finalize` (line 116, CWE-841): Finalization never records that it has already occurred or clears `highestBid`, so anyone can call it repeatedly and pay the seller again from bonus funds or other balances held by the contract.",
-            "seller-payout-denial-of-service in `finalize` (line 116, CWE-755): If the configured seller is a contract that rejects Ether, `finalize` always reverts and there is no pull-payment alternative to settle the auction."
+            "repeatable-finalization in `finalize` (line 116, CWE-841): `finalize` never marks the auction as finalized or clears the winning amount, so it can be called repeatedly to pay the same bid from bonus funds or other users' deposits."
           ]
         },
         {
@@ -651,10 +557,8 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "inconsistent-auction-deadline in `bid` (line 69, CWE-682): This accepts bids through `endTime + LATE_BID_GRACE` even after `hasEnded()` becomes true at `endTime`, so a bid can be accepted after finalization and alter the recorded winner without being included in the seller payout.",
-            "reentrant-bid-state in `bid` (line 75, CWE-841): The refund calls the previous bidder before updating the highest-bid state, allowing a callback to reenter `bid` against stale auction state and produce inconsistent bid accounting.",
-            "refund-denial-of-service in `bid` (line 75, CWE-755): A top bidder whose receive function reverts makes every subsequent bid revert here, allowing a bidder to block the auction from advancing.",
-            "stale-bid-accounting in `bid` (line 80, CWE-682): Outbidding a bidder leaves their `bidOf` amount recorded even though it was refunded, so that bidder can later cancel and withdraw the same amount again from other auction funds."
+            "refund-denial-of-service in `bid` (line 75, CWE-755): A highest bidder contract that rejects ETH refunds causes every later bid to revert, letting that bidder block the auction from receiving higher bids.",
+            "stale-bid-accounting in `bid` (line 75, CWE-841): The outbid bidder's `bidOf` entry is not cleared after this refund, so that bidder can later cancel the already-refunded amount and withdraw it again from funds belonging to the auction."
           ]
         },
         {
@@ -666,7 +570,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "incorrect-increment-calculation in `minNextBid` (line 62, CWE-682): Dividing `highestBid` before multiplying by `minIncrementBps` rounds the increment down prematurely, allowing bids below the intended minimum and even equal bids when `highestBid < 10_000` wei."
+            "incorrect-minimum-calculation in `minNextBid` (line 62, CWE-682): Dividing `highestBid` before multiplying by the basis points loses precision and can make the required increment substantially smaller than the configured percentage, especially for small bids or large increment settings."
           ]
         },
         {
@@ -676,9 +580,9 @@
           "category": "invariant-violation",
           "class": "bug",
           "in_target_category": true,
-          "status": "function_flagged",
+          "status": "detected",
           "findings": [
-            "cancelled-highest-bid in `cancelBid` (line 93, CWE-682): Cancelling a current top bid leaves `highestBidder` and `highestBid` unchanged, so the bidder can withdraw the bid while finalization still pays that amount to the seller."
+            "cancelled-highest-bid-remains-active in `cancelBid` (line 89, CWE-841): The highest bidder can cancel and withdraw their bid while `highestBid` and `highestBidder` remain unchanged, allowing the same amount to be paid again on an outbid or finalization."
           ]
         },
         {
@@ -690,7 +594,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "unauthorized-initialization in `init` (line 43, CWE-862): Anyone can call `init` first and permanently choose the seller and auction parameters, so an attacker can front-run deployment setup and take control of the auction."
+            "missing-access-control in `init` (line 43, CWE-862): Anyone can call `init` first and permanently choose the seller, reserve, duration, and increment, allowing an attacker to take over an auction before its intended setup."
           ]
         },
         {
@@ -700,9 +604,10 @@
           "category": "integer-overflow",
           "class": "bug",
           "in_target_category": true,
-          "status": "detected",
+          "status": "function_flagged",
           "findings": [
-            "timestamp-truncation in `init` (line 51, CWE-197): The unchecked cast truncates `block.timestamp + duration_` to 64 bits, so a sufficiently large duration wraps `endTime` while `endBlock` remains extremely far away and the auction cannot reach `hasEnded()`."
+            "missing-access-control in `init` (line 43, CWE-862): Anyone can call `init` first and permanently choose the seller, reserve, duration, and increment, allowing an attacker to take over an auction before its intended setup.",
+            "integer-truncation in `init` (line 51, CWE-681): Casting the unchecked timestamp-plus-duration value to `uint64` truncates large durations, which can make the auction end time incorrect and keep the auction open until an impractically large block number."
           ]
         },
         {
@@ -714,8 +619,8 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "unauthorized-initialization in `init` (line 43, CWE-862): Anyone can call `init` first and permanently choose the seller and auction parameters, so an attacker can front-run deployment setup and take control of the auction.",
-            "timestamp-truncation in `init` (line 51, CWE-197): The unchecked cast truncates `block.timestamp + duration_` to 64 bits, so a sufficiently large duration wraps `endTime` while `endBlock` remains extremely far away and the auction cannot reach `hasEnded()`."
+            "missing-access-control in `init` (line 43, CWE-862): Anyone can call `init` first and permanently choose the seller, reserve, duration, and increment, allowing an attacker to take over an auction before its intended setup.",
+            "integer-truncation in `init` (line 51, CWE-681): Casting the unchecked timestamp-plus-duration value to `uint64` truncates large durations, which can make the auction end time incorrect and keep the auction open until an impractically large block number."
           ]
         },
         {
@@ -727,7 +632,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "predictable-raffle-randomness in `drawEarlyBirdBonus` (line 137, CWE-330): The winner is derived from public block fields, so bidders can predict the index and selectively trigger the draw in a block where one of their entries wins."
+            "predictable-randomness in `drawEarlyBirdBonus` (line 137, CWE-330): The bonus winner is selected from block timestamp and `prevrandao`, which block producers can influence and callers can choose when to sample, allowing the draw outcome to be manipulated."
           ]
         },
         {
@@ -739,7 +644,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "reentrant-bid-state in `bid` (line 75, CWE-841): The refund calls the previous bidder before updating the highest-bid state, allowing a callback to reenter `bid` against stale auction state and produce inconsistent bid accounting."
+            "stale-bid-accounting in `bid` (line 75, CWE-841): The outbid bidder's `bidOf` entry is not cleared after this refund, so that bidder can later cancel the already-refunded amount and withdraw it again from funds belonging to the auction."
           ]
         }
       ],
@@ -753,120 +658,92 @@
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "unauthorized-initialization in `init` (line 43, CWE-862): Anyone can call `init` first and permanently choose the seller and auction parameters, so an attacker can front-run deployment setup and take control of the auction.",
+          "text": "missing-access-control in `init` (line 43, CWE-862): Anyone can call `init` first and permanently choose the seller, reserve, duration, and increment, allowing an attacker to take over an auction before its intended setup.",
           "status": "defect_evidence"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "timestamp-truncation in `init` (line 51, CWE-197): The unchecked cast truncates `block.timestamp + duration_` to 64 bits, so a sufficiently large duration wraps `endTime` while `endBlock` remains extremely far away and the auction cannot reach `hasEnded()`.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "kind": "baseline",
-          "text": "incorrect-increment-calculation in `minNextBid` (line 62, CWE-682): Dividing `highestBid` before multiplying by `minIncrementBps` rounds the increment down prematurely, allowing bids below the intended minimum and even equal bids when `highestBid < 10_000` wei.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "kind": "baseline",
-          "text": "inconsistent-auction-deadline in `bid` (line 69, CWE-682): This accepts bids through `endTime + LATE_BID_GRACE` even after `hasEnded()` becomes true at `endTime`, so a bid can be accepted after finalization and alter the recorded winner without being included in the seller payout.",
+          "text": "integer-truncation in `init` (line 51, CWE-681): Casting the unchecked timestamp-plus-duration value to `uint64` truncates large durations, which can make the auction end time incorrect and keep the auction open until an impractically large block number.",
           "status": "unreviewed"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "reentrant-bid-state in `bid` (line 75, CWE-841): The refund calls the previous bidder before updating the highest-bid state, allowing a callback to reenter `bid` against stale auction state and produce inconsistent bid accounting.",
+          "text": "incorrect-minimum-calculation in `minNextBid` (line 62, CWE-682): Dividing `highestBid` before multiplying by the basis points loses precision and can make the required increment substantially smaller than the configured percentage, especially for small bids or large increment settings.",
           "status": "defect_evidence"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "refund-denial-of-service in `bid` (line 75, CWE-755): A top bidder whose receive function reverts makes every subsequent bid revert here, allowing a bidder to block the auction from advancing.",
+          "text": "refund-denial-of-service in `bid` (line 75, CWE-755): A highest bidder contract that rejects ETH refunds causes every later bid to revert, letting that bidder block the auction from receiving higher bids.",
           "status": "defect_evidence"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "stale-bid-accounting in `bid` (line 80, CWE-682): Outbidding a bidder leaves their `bidOf` amount recorded even though it was refunded, so that bidder can later cancel and withdraw the same amount again from other auction funds.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "kind": "baseline",
-          "text": "cancelled-highest-bid in `cancelBid` (line 93, CWE-682): Cancelling a current top bid leaves `highestBidder` and `highestBid` unchanged, so the bidder can withdraw the bid while finalization still pays that amount to the seller.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "kind": "baseline",
-          "text": "withdrawal-reentrancy in `withdraw` (line 101, CWE-841): The pending balance is cleared only after the external payment, so a receiver can reenter `withdraw` and receive the same pending amount repeatedly while funds remain.",
+          "text": "stale-bid-accounting in `bid` (line 75, CWE-841): The outbid bidder's `bidOf` entry is not cleared after this refund, so that bidder can later cancel the already-refunded amount and withdraw it again from funds belonging to the auction.",
           "status": "defect_evidence"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "repeatable-finalization in `finalize` (line 116, CWE-841): Finalization never records that it has already occurred or clears `highestBid`, so anyone can call it repeatedly and pay the seller again from bonus funds or other balances held by the contract.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "kind": "baseline",
-          "text": "seller-payout-denial-of-service in `finalize` (line 116, CWE-755): If the configured seller is a contract that rejects Ether, `finalize` always reverts and there is no pull-payment alternative to settle the auction.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "kind": "baseline",
-          "text": "predictable-raffle-randomness in `drawEarlyBirdBonus` (line 137, CWE-330): The winner is derived from public block fields, so bidders can predict the index and selectively trigger the draw in a block where one of their entries wins.",
+          "text": "cancelled-highest-bid-remains-active in `cancelBid` (line 89, CWE-841): The highest bidder can cancel and withdraw their bid while `highestBid` and `highestBidder` remain unchanged, allowing the same amount to be paid again on an outbid or finalization.",
           "status": "defect_evidence"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "bonus-payout-denial-of-service in `drawEarlyBirdBonus` (line 147, CWE-755): If the selected early bidder is a contract that rejects Ether, the draw reverts and the pool cannot be paid or redrawn to another winner.",
+          "text": "reentrancy in `withdraw` (line 101, CWE-841): `pendingReturns` is cleared only after the external call, so a recipient that reenters `withdraw` can withdraw the same balance repeatedly while the contract has sufficient funds.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/EnglishAuction.sol",
+          "kind": "baseline",
+          "text": "repeatable-finalization in `finalize` (line 116, CWE-841): `finalize` never marks the auction as finalized or clears the winning amount, so it can be called repeatedly to pay the same bid from bonus funds or other users' deposits.",
           "status": "unreviewed"
+        },
+        {
+          "file": "src/EnglishAuction.sol",
+          "kind": "baseline",
+          "text": "predictable-randomness in `drawEarlyBirdBonus` (line 137, CWE-330): The bonus winner is selected from block timestamp and `prevrandao`, which block producers can influence and callers can choose when to sample, allowing the draw outcome to be manipulated.",
+          "status": "defect_evidence"
         }
       ],
       "finding_counts": {
-        "total": 13,
+        "total": 9,
         "defect_evidence": 7,
         "real": 0,
         "false_positive": 0,
-        "unreviewed": 6
+        "unreviewed": 2
       },
       "reviews_used": [],
       "fixed_raw_findings": [
         {
           "file": "src/EnglishAuction.sol",
-          "line": 78,
-          "rule": "missing-late-bid-grace",
-          "message": "Bids are rejected immediately after `endTime`, so a bidder arriving during the documented 15-minute grace window cannot place a bid.",
-          "cwe": [],
+          "line": 76,
+          "rule": "seller-shill-bidding",
+          "message": "The seller can bid like any other address, allowing them to inflate the apparent price and force genuine bidders to pay more without risking their own funds because displaced bids are refundable and the winning bid is paid back to the seller.",
+          "cwe": [
+            840
+          ],
           "function": "bid"
         },
         {
           "file": "src/EnglishAuction.sol",
-          "line": 96,
-          "rule": "unusable-bid-cancellation",
-          "message": "Every bidder with a nonzero `bidOf` is the highest bidder and is rejected by the next check, while outbid bidders have `bidOf` cleared, so `cancelBid()` cannot succeed.",
-          "cwe": [],
-          "function": "cancelBid"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "line": 117,
-          "rule": "ignored-end-block",
-          "message": "`hasEnded()` ignores the stored `endBlock` and ends the auction solely by timestamp, so finalization can proceed before the documented block-clock fallback has passed.",
-          "cwe": [],
-          "function": "hasEnded"
+          "line": 79,
+          "rule": "zero-value-bids",
+          "message": "When the reserve is zero, zero-value bids are accepted and leave `highestBid` at zero, so bidders can claim the early-bird bonus without committing funds and subsequent bids need not increase the price.",
+          "cwe": [
+            840
+          ],
+          "function": "bid"
         },
         {
           "file": "src/EnglishAuction.sol",
           "line": 127,
-          "rule": "finalization-denial-of-service",
-          "message": "If the configured seller rejects ETH, `finalize()` reverts and the winning bid cannot be paid out or finalized.",
+          "rule": "payout-denial-of-service",
+          "message": "If the configured seller rejects ETH, `finalize` always reverts and the winning bid cannot be paid out or the auction finalized.",
           "cwe": [
             755
           ],
@@ -876,15 +753,17 @@
           "file": "src/EnglishAuction.sol",
           "line": 138,
           "rule": "bonus-funds-locked",
-          "message": "`fundBonus()` accepts funds after `bonusPaid` becomes true, but the draw can never run again, permanently locking any bonus funds added afterward.",
-          "cwe": [],
+          "message": "`fundBonus` remains callable after `bonusPaid` becomes true, so any later contribution is added to a pool that can never be drawn and is permanently locked.",
+          "cwe": [
+            667
+          ],
           "function": "fundBonus"
         },
         {
           "file": "src/EnglishAuction.sol",
           "line": 154,
-          "rule": "bonus-draw-denial-of-service",
-          "message": "If the first recorded bidder rejects ETH, the fixed-winner payout reverts and no other caller can complete the bonus draw.",
+          "rule": "bonus-payout-denial-of-service",
+          "message": "If the earliest bidder is a contract that rejects ETH, every bonus draw reverts and the bonus pool remains permanently undistributable.",
           "cwe": [
             755
           ],
@@ -894,60 +773,54 @@
       "fixed_invalid_findings": [],
       "fixed_tool_errors": 0,
       "fixed_usage": {
-        "prompt_tokens": 8443,
-        "completion_tokens": 3253,
-        "cost_usd": 0.0017112,
-        "seconds": 52.94,
+        "prompt_tokens": 2833,
+        "completion_tokens": 3287,
+        "cost_usd": 0.0016721,
+        "seconds": 45.96,
         "attempts": 1
       },
       "fixed": {
         "defects": 11,
         "still_reported": [],
-        "false_alarms": 6,
+        "false_alarms": 5,
         "findings": [
           {
             "file": "src/EnglishAuction.sol",
             "kind": "baseline",
-            "text": "missing-late-bid-grace in `bid` (line 78): Bids are rejected immediately after `endTime`, so a bidder arriving during the documented 15-minute grace window cannot place a bid.",
+            "text": "seller-shill-bidding in `bid` (line 76, CWE-840): The seller can bid like any other address, allowing them to inflate the apparent price and force genuine bidders to pay more without risking their own funds because displaced bids are refundable and the winning bid is paid back to the seller.",
             "status": "unreviewed"
           },
           {
             "file": "src/EnglishAuction.sol",
             "kind": "baseline",
-            "text": "unusable-bid-cancellation in `cancelBid` (line 96): Every bidder with a nonzero `bidOf` is the highest bidder and is rejected by the next check, while outbid bidders have `bidOf` cleared, so `cancelBid()` cannot succeed.",
+            "text": "zero-value-bids in `bid` (line 79, CWE-840): When the reserve is zero, zero-value bids are accepted and leave `highestBid` at zero, so bidders can claim the early-bird bonus without committing funds and subsequent bids need not increase the price.",
             "status": "unreviewed"
           },
           {
             "file": "src/EnglishAuction.sol",
             "kind": "baseline",
-            "text": "ignored-end-block in `hasEnded` (line 117): `hasEnded()` ignores the stored `endBlock` and ends the auction solely by timestamp, so finalization can proceed before the documented block-clock fallback has passed.",
+            "text": "payout-denial-of-service in `finalize` (line 127, CWE-755): If the configured seller rejects ETH, `finalize` always reverts and the winning bid cannot be paid out or the auction finalized.",
             "status": "unreviewed"
           },
           {
             "file": "src/EnglishAuction.sol",
             "kind": "baseline",
-            "text": "finalization-denial-of-service in `finalize` (line 127, CWE-755): If the configured seller rejects ETH, `finalize()` reverts and the winning bid cannot be paid out or finalized.",
+            "text": "bonus-funds-locked in `fundBonus` (line 138, CWE-667): `fundBonus` remains callable after `bonusPaid` becomes true, so any later contribution is added to a pool that can never be drawn and is permanently locked.",
             "status": "unreviewed"
           },
           {
             "file": "src/EnglishAuction.sol",
             "kind": "baseline",
-            "text": "bonus-funds-locked in `fundBonus` (line 138): `fundBonus()` accepts funds after `bonusPaid` becomes true, but the draw can never run again, permanently locking any bonus funds added afterward.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "src/EnglishAuction.sol",
-            "kind": "baseline",
-            "text": "bonus-draw-denial-of-service in `drawEarlyBirdBonus` (line 154, CWE-755): If the first recorded bidder rejects ETH, the fixed-winner payout reverts and no other caller can complete the bonus draw.",
+            "text": "bonus-payout-denial-of-service in `drawEarlyBirdBonus` (line 154, CWE-755): If the earliest bidder is a contract that rejects ETH, every bonus draw reverts and the bonus pool remains permanently undistributable.",
             "status": "unreviewed"
           }
         ],
         "finding_counts": {
-          "total": 6,
+          "total": 5,
           "defect_evidence": 0,
           "real": 0,
           "false_positive": 0,
-          "unreviewed": 6
+          "unreviewed": 5
         },
         "reviews_used": []
       }
@@ -957,11 +830,11 @@
       "raw_findings": [
         {
           "file": "src/EnglishAuction.sol",
-          "line": 43,
-          "rule": "unprotected-initialization",
-          "message": "Because `init` is permissionless, an attacker can call it first with themselves as seller and permanently set the auction parameters before the intended initializer.",
+          "line": 44,
+          "rule": "missing-access-control",
+          "message": "Anyone can initialize the auction and choose the seller and parameters, so an attacker who calls `init` first can direct the proceeds to themselves.",
           "cwe": [
-            862
+            284
           ],
           "function": "init"
         },
@@ -969,7 +842,7 @@
           "file": "src/EnglishAuction.sol",
           "line": 51,
           "rule": "integer-truncation",
-          "message": "The unchecked addition followed by a `uint64` cast can truncate a large duration into an end time in the past, causing an auction initialized with that duration to end immediately.",
+          "message": "The unchecked cast truncates large durations to `uint64`, which can make `endTime` wrap into the past while `endBlock` remains far in the future and leave the auction open for an extremely long time.",
           "cwe": [
             197
           ],
@@ -978,8 +851,8 @@
         {
           "file": "src/EnglishAuction.sol",
           "line": 62,
-          "rule": "minimum-bid-rounding",
-          "message": "Dividing `highestBid` before multiplying by the increment rounds the increment down in 10,000-wei chunks, so bids below 10,000 wei can be outbid with an equal amount even when a positive increment is configured.",
+          "rule": "incorrect-bid-calculation",
+          "message": "Dividing `highestBid` before multiplying makes the increment too small and zero for bids below 10,000, allowing bids that do not meet the configured percentage increase.",
           "cwe": [
             682
           ],
@@ -988,48 +861,28 @@
         {
           "file": "src/EnglishAuction.sol",
           "line": 75,
-          "rule": "reentrancy",
-          "message": "The refund calls the previous bidder before updating auction state, allowing a bidder contract to reenter `bid` while the old highest bid is still recorded and trigger nested refunds or corrupt bid accounting.",
+          "rule": "stale-bid-accounting",
+          "message": "When an outbid bidder is refunded, their `bidOf` entry is not cleared, so they can later cancel and withdraw that already-refunded amount from funds backing other claims.",
+          "cwe": [
+            682
+          ],
+          "function": "bid"
+        },
+        {
+          "file": "src/EnglishAuction.sol",
+          "line": 92,
+          "rule": "invalid-bid-cancellation",
+          "message": "The current highest bidder can cancel and withdraw their bid while `highestBid` and `highestBidder` remain unchanged, leaving the auction able to pay the seller for a bid that was already returned.",
           "cwe": [
             841
-          ],
-          "function": "bid"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "line": 75,
-          "rule": "refund-denial-of-service",
-          "message": "A top bidder whose fallback rejects ETH makes this refund revert, so no competing bidder can replace them and the auction can be blocked.",
-          "cwe": [
-            755
-          ],
-          "function": "bid"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "line": 80,
-          "rule": "stale-bid-accounting",
-          "message": "When a bidder is outbid, their old `bidOf` amount is not cleared, so they can later cancel and withdraw that amount after already receiving the immediate refund.",
-          "cwe": [
-            682
-          ],
-          "function": "bid"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "line": 93,
-          "rule": "cancelled-highest-bid",
-          "message": "Cancelling the current highest bid credits it for withdrawal without clearing `highestBidder` or `highestBid`, allowing finalization to pay the seller using funds the bidder has already withdrawn.",
-          "cwe": [
-            682
           ],
           "function": "cancelBid"
         },
         {
           "file": "src/EnglishAuction.sol",
           "line": 101,
-          "rule": "withdrawal-reentrancy",
-          "message": "Because `pendingReturns` is cleared only after the external payment, a recipient can reenter `withdraw` and collect the same pending balance repeatedly while funds remain.",
+          "rule": "reentrancy",
+          "message": "The external call occurs before `pendingReturns` is cleared, so a recipient can reenter `withdraw` and withdraw repeatedly against funds backing other bidders or the bonus pool.",
           "cwe": [
             841
           ],
@@ -1038,16 +891,18 @@
         {
           "file": "src/EnglishAuction.sol",
           "line": 109,
-          "rule": "auction-end-window-mismatch",
-          "message": "`hasEnded` becomes true just after the original end time even though `bid` still accepts bids for the 15-minute grace period, so the auction can be finalized and then accept further bids during that grace period.",
-          "cwe": [],
+          "rule": "inconsistent-auction-deadline",
+          "message": "`hasEnded` ignores the 15-minute grace period accepted by `bid`, so bids can still be placed after the auction is considered ended and even after it is finalized.",
+          "cwe": [
+            841
+          ],
           "function": "hasEnded"
         },
         {
           "file": "src/EnglishAuction.sol",
           "line": 116,
           "rule": "repeatable-finalization",
-          "message": "`finalize` never records that payment occurred, so anyone can call it repeatedly after the auction ends and pay the same highest bid to the seller multiple times from other contract funds.",
+          "message": "`finalize` never records that it has paid out or clears the winning bid, so anyone can call it repeatedly and drain funds reserved for pending returns or the bonus pool.",
           "cwe": [
             841
           ],
@@ -1055,9 +910,9 @@
         },
         {
           "file": "src/EnglishAuction.sol",
-          "line": 137,
-          "rule": "predictable-raffle-randomness",
-          "message": "The winner is derived from public block values that a block producer can influence and callers can observe before drawing, allowing the bonus winner to be predicted or manipulated.",
+          "line": 140,
+          "rule": "predictable-randomness",
+          "message": "The bonus winner is selected using block timestamp and `prevrandao`, which block producers can influence and callers can exploit to bias the prize draw.",
           "cwe": [
             330
           ],
@@ -1067,10 +922,10 @@
       "invalid_findings": [],
       "tool_errors": 0,
       "usage": {
-        "prompt_tokens": 8234,
-        "completion_tokens": 3187,
-        "cost_usd": 0.00167611,
-        "seconds": 49.5,
+        "prompt_tokens": 2703,
+        "completion_tokens": 4317,
+        "cost_usd": 0.0021858,
+        "seconds": 59.0,
         "attempts": 1
       },
       "defects": [
@@ -1081,9 +936,9 @@
           "category": "denial-of-service",
           "class": "design",
           "in_target_category": false,
-          "status": "detected",
+          "status": "function_flagged",
           "findings": [
-            "refund-denial-of-service in `bid` (line 75, CWE-755): A top bidder whose fallback rejects ETH makes this refund revert, so no competing bidder can replace them and the auction can be blocked."
+            "stale-bid-accounting in `bid` (line 75, CWE-682): When an outbid bidder is refunded, their `bidOf` entry is not cleared, so they can later cancel and withdraw that already-refunded amount from funds backing other claims."
           ]
         },
         {
@@ -1095,7 +950,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "withdrawal-reentrancy in `withdraw` (line 101, CWE-841): Because `pendingReturns` is cleared only after the external payment, a recipient can reenter `withdraw` and collect the same pending balance repeatedly while funds remain."
+            "reentrancy in `withdraw` (line 101, CWE-841): The external call occurs before `pendingReturns` is cleared, so a recipient can reenter `withdraw` and withdraw repeatedly against funds backing other bidders or the bonus pool."
           ]
         },
         {
@@ -1107,7 +962,7 @@
           "in_target_category": true,
           "status": "function_flagged",
           "findings": [
-            "repeatable-finalization in `finalize` (line 116, CWE-841): `finalize` never records that payment occurred, so anyone can call it repeatedly after the auction ends and pay the same highest bid to the seller multiple times from other contract funds."
+            "repeatable-finalization in `finalize` (line 116, CWE-841): `finalize` never records that it has paid out or clears the winning bid, so anyone can call it repeatedly and drain funds reserved for pending returns or the bonus pool."
           ]
         },
         {
@@ -1119,9 +974,7 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "reentrancy in `bid` (line 75, CWE-841): The refund calls the previous bidder before updating auction state, allowing a bidder contract to reenter `bid` while the old highest bid is still recorded and trigger nested refunds or corrupt bid accounting.",
-            "refund-denial-of-service in `bid` (line 75, CWE-755): A top bidder whose fallback rejects ETH makes this refund revert, so no competing bidder can replace them and the auction can be blocked.",
-            "stale-bid-accounting in `bid` (line 80, CWE-682): When a bidder is outbid, their old `bidOf` amount is not cleared, so they can later cancel and withdraw that amount after already receiving the immediate refund."
+            "stale-bid-accounting in `bid` (line 75, CWE-682): When an outbid bidder is refunded, their `bidOf` entry is not cleared, so they can later cancel and withdraw that already-refunded amount from funds backing other claims."
           ]
         },
         {
@@ -1133,7 +986,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "minimum-bid-rounding in `minNextBid` (line 62, CWE-682): Dividing `highestBid` before multiplying by the increment rounds the increment down in 10,000-wei chunks, so bids below 10,000 wei can be outbid with an equal amount even when a positive increment is configured."
+            "incorrect-bid-calculation in `minNextBid` (line 62, CWE-682): Dividing `highestBid` before multiplying makes the increment too small and zero for bids below 10,000, allowing bids that do not meet the configured percentage increase."
           ]
         },
         {
@@ -1143,9 +996,9 @@
           "category": "invariant-violation",
           "class": "bug",
           "in_target_category": true,
-          "status": "function_flagged",
+          "status": "detected",
           "findings": [
-            "cancelled-highest-bid in `cancelBid` (line 93, CWE-682): Cancelling the current highest bid credits it for withdrawal without clearing `highestBidder` or `highestBid`, allowing finalization to pay the seller using funds the bidder has already withdrawn."
+            "invalid-bid-cancellation in `cancelBid` (line 92, CWE-841): The current highest bidder can cancel and withdraw their bid while `highestBid` and `highestBidder` remain unchanged, leaving the auction able to pay the seller for a bid that was already returned."
           ]
         },
         {
@@ -1155,10 +1008,9 @@
           "category": "access-control",
           "class": "vulnerability",
           "in_target_category": true,
-          "status": "function_flagged",
+          "status": "detected",
           "findings": [
-            "unprotected-initialization in `init` (line 43, CWE-862): Because `init` is permissionless, an attacker can call it first with themselves as seller and permanently set the auction parameters before the intended initializer.",
-            "integer-truncation in `init` (line 51, CWE-197): The unchecked addition followed by a `uint64` cast can truncate a large duration into an end time in the past, causing an auction initialized with that duration to end immediately."
+            "missing-access-control in `init` (line 44, CWE-284): Anyone can initialize the auction and choose the seller and parameters, so an attacker who calls `init` first can direct the proceeds to themselves."
           ]
         },
         {
@@ -1168,10 +1020,9 @@
           "category": "integer-overflow",
           "class": "bug",
           "in_target_category": true,
-          "status": "function_flagged",
+          "status": "detected",
           "findings": [
-            "unprotected-initialization in `init` (line 43, CWE-862): Because `init` is permissionless, an attacker can call it first with themselves as seller and permanently set the auction parameters before the intended initializer.",
-            "integer-truncation in `init` (line 51, CWE-197): The unchecked addition followed by a `uint64` cast can truncate a large duration into an end time in the past, causing an auction initialized with that duration to end immediately."
+            "integer-truncation in `init` (line 51, CWE-197): The unchecked cast truncates large durations to `uint64`, which can make `endTime` wrap into the past while `endBlock` remains far in the future and leave the auction open for an extremely long time."
           ]
         },
         {
@@ -1183,8 +1034,8 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "unprotected-initialization in `init` (line 43, CWE-862): Because `init` is permissionless, an attacker can call it first with themselves as seller and permanently set the auction parameters before the intended initializer.",
-            "integer-truncation in `init` (line 51, CWE-197): The unchecked addition followed by a `uint64` cast can truncate a large duration into an end time in the past, causing an auction initialized with that duration to end immediately."
+            "missing-access-control in `init` (line 44, CWE-284): Anyone can initialize the auction and choose the seller and parameters, so an attacker who calls `init` first can direct the proceeds to themselves.",
+            "integer-truncation in `init` (line 51, CWE-197): The unchecked cast truncates large durations to `uint64`, which can make `endTime` wrap into the past while `endBlock` remains far in the future and leave the auction open for an extremely long time."
           ]
         },
         {
@@ -1196,7 +1047,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "predictable-raffle-randomness in `drawEarlyBirdBonus` (line 137, CWE-330): The winner is derived from public block values that a block producer can influence and callers can observe before drawing, allowing the bonus winner to be predicted or manipulated."
+            "predictable-randomness in `drawEarlyBirdBonus` (line 140, CWE-330): The bonus winner is selected using block timestamp and `prevrandao`, which block producers can influence and callers can exploit to bias the prize draw."
           ]
         },
         {
@@ -1206,126 +1057,110 @@
           "category": "invariant-violation",
           "class": "bug",
           "in_target_category": true,
-          "status": "detected",
+          "status": "function_flagged",
           "findings": [
-            "reentrancy in `bid` (line 75, CWE-841): The refund calls the previous bidder before updating auction state, allowing a bidder contract to reenter `bid` while the old highest bid is still recorded and trigger nested refunds or corrupt bid accounting."
+            "stale-bid-accounting in `bid` (line 75, CWE-682): When an outbid bidder is refunded, their `bidOf` entry is not cleared, so they can later cancel and withdraw that already-refunded amount from funds backing other claims."
           ]
         }
       ],
       "counts": {
         "total": 11,
-        "detected": 5,
-        "function_flagged": 6,
+        "detected": 6,
+        "function_flagged": 5,
         "missed": 0
       },
       "findings": [
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "unprotected-initialization in `init` (line 43, CWE-862): Because `init` is permissionless, an attacker can call it first with themselves as seller and permanently set the auction parameters before the intended initializer.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "kind": "baseline",
-          "text": "integer-truncation in `init` (line 51, CWE-197): The unchecked addition followed by a `uint64` cast can truncate a large duration into an end time in the past, causing an auction initialized with that duration to end immediately.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "kind": "baseline",
-          "text": "minimum-bid-rounding in `minNextBid` (line 62, CWE-682): Dividing `highestBid` before multiplying by the increment rounds the increment down in 10,000-wei chunks, so bids below 10,000 wei can be outbid with an equal amount even when a positive increment is configured.",
+          "text": "missing-access-control in `init` (line 44, CWE-284): Anyone can initialize the auction and choose the seller and parameters, so an attacker who calls `init` first can direct the proceeds to themselves.",
           "status": "defect_evidence"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "reentrancy in `bid` (line 75, CWE-841): The refund calls the previous bidder before updating auction state, allowing a bidder contract to reenter `bid` while the old highest bid is still recorded and trigger nested refunds or corrupt bid accounting.",
+          "text": "integer-truncation in `init` (line 51, CWE-197): The unchecked cast truncates large durations to `uint64`, which can make `endTime` wrap into the past while `endBlock` remains far in the future and leave the auction open for an extremely long time.",
           "status": "defect_evidence"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "refund-denial-of-service in `bid` (line 75, CWE-755): A top bidder whose fallback rejects ETH makes this refund revert, so no competing bidder can replace them and the auction can be blocked.",
+          "text": "incorrect-bid-calculation in `minNextBid` (line 62, CWE-682): Dividing `highestBid` before multiplying makes the increment too small and zero for bids below 10,000, allowing bids that do not meet the configured percentage increase.",
           "status": "defect_evidence"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "stale-bid-accounting in `bid` (line 80, CWE-682): When a bidder is outbid, their old `bidOf` amount is not cleared, so they can later cancel and withdraw that amount after already receiving the immediate refund.",
+          "text": "stale-bid-accounting in `bid` (line 75, CWE-682): When an outbid bidder is refunded, their `bidOf` entry is not cleared, so they can later cancel and withdraw that already-refunded amount from funds backing other claims.",
           "status": "unreviewed"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "cancelled-highest-bid in `cancelBid` (line 93, CWE-682): Cancelling the current highest bid credits it for withdrawal without clearing `highestBidder` or `highestBid`, allowing finalization to pay the seller using funds the bidder has already withdrawn.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "kind": "baseline",
-          "text": "withdrawal-reentrancy in `withdraw` (line 101, CWE-841): Because `pendingReturns` is cleared only after the external payment, a recipient can reenter `withdraw` and collect the same pending balance repeatedly while funds remain.",
+          "text": "invalid-bid-cancellation in `cancelBid` (line 92, CWE-841): The current highest bidder can cancel and withdraw their bid while `highestBid` and `highestBidder` remain unchanged, leaving the auction able to pay the seller for a bid that was already returned.",
           "status": "defect_evidence"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "auction-end-window-mismatch in `hasEnded` (line 109): `hasEnded` becomes true just after the original end time even though `bid` still accepts bids for the 15-minute grace period, so the auction can be finalized and then accept further bids during that grace period.",
+          "text": "reentrancy in `withdraw` (line 101, CWE-841): The external call occurs before `pendingReturns` is cleared, so a recipient can reenter `withdraw` and withdraw repeatedly against funds backing other bidders or the bonus pool.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/EnglishAuction.sol",
+          "kind": "baseline",
+          "text": "inconsistent-auction-deadline in `hasEnded` (line 109, CWE-841): `hasEnded` ignores the 15-minute grace period accepted by `bid`, so bids can still be placed after the auction is considered ended and even after it is finalized.",
           "status": "unreviewed"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "repeatable-finalization in `finalize` (line 116, CWE-841): `finalize` never records that payment occurred, so anyone can call it repeatedly after the auction ends and pay the same highest bid to the seller multiple times from other contract funds.",
+          "text": "repeatable-finalization in `finalize` (line 116, CWE-841): `finalize` never records that it has paid out or clears the winning bid, so anyone can call it repeatedly and drain funds reserved for pending returns or the bonus pool.",
           "status": "unreviewed"
         },
         {
           "file": "src/EnglishAuction.sol",
           "kind": "baseline",
-          "text": "predictable-raffle-randomness in `drawEarlyBirdBonus` (line 137, CWE-330): The winner is derived from public block values that a block producer can influence and callers can observe before drawing, allowing the bonus winner to be predicted or manipulated.",
+          "text": "predictable-randomness in `drawEarlyBirdBonus` (line 140, CWE-330): The bonus winner is selected using block timestamp and `prevrandao`, which block producers can influence and callers can exploit to bias the prize draw.",
           "status": "defect_evidence"
         }
       ],
       "finding_counts": {
-        "total": 11,
-        "defect_evidence": 5,
+        "total": 9,
+        "defect_evidence": 6,
         "real": 0,
         "false_positive": 0,
-        "unreviewed": 6
+        "unreviewed": 3
       },
       "reviews_used": [],
       "fixed_raw_findings": [
         {
           "file": "src/EnglishAuction.sol",
-          "line": 78,
-          "rule": "missing-late-bid-grace-period",
-          "message": "Bids are rejected immediately after `endTime`, so callers cannot use the advertised 15-minute late-bid grace window.",
-          "cwe": [],
-          "function": "bid"
-        },
-        {
-          "file": "src/EnglishAuction.sol",
-          "line": 116,
-          "rule": "ignored-end-block-fallback",
-          "message": "`hasEnded()` never checks `endBlock`, so if timestamps stall while blocks advance past the configured fallback, the auction cannot be ended or finalized.",
-          "cwe": [],
-          "function": "hasEnded"
+          "line": 127,
+          "rule": "payout-failure-locks-auction",
+          "message": "If the configured seller is a contract that rejects or cannot receive ETH, this call reverts and `finalize` can never complete, leaving the winning bid locked in the auction.",
+          "cwe": [
+            755
+          ],
+          "function": "finalize"
         },
         {
           "file": "src/EnglishAuction.sol",
           "line": 138,
-          "rule": "funds-locked-after-bonus-draw",
-          "message": "`fundBonus()` accepts ETH even after `bonusPaid` is true, but subsequent draws are prohibited, permanently locking any funds sent afterward.",
-          "cwe": [],
+          "rule": "post-draw-funds-locked",
+          "message": "`fundBonus` accepts deposits after `bonusPaid` becomes true, but no later draw is possible, so any such deposit is permanently locked.",
+          "cwe": [
+            755
+          ],
           "function": "fundBonus"
         },
         {
           "file": "src/EnglishAuction.sol",
           "line": 154,
-          "rule": "bonus-payout-denial-of-service",
-          "message": "The bonus is pushed to the fixed winner, so an earliest bidder contract that rejects ETH makes every draw revert and permanently locks the bonus pool.",
+          "rule": "bonus-recipient-can-block-draw",
+          "message": "If the earliest bidder is a contract that rejects ETH, this call reverts and prevents the bonus from ever being drawn to any recipient.",
           "cwe": [
-            703
+            755
           ],
           "function": "drawEarlyBirdBonus"
         }
@@ -1333,48 +1168,42 @@
       "fixed_invalid_findings": [],
       "fixed_tool_errors": 0,
       "fixed_usage": {
-        "prompt_tokens": 8443,
-        "completion_tokens": 3783,
-        "cost_usd": 0.0019762,
-        "seconds": 59.12,
+        "prompt_tokens": 2833,
+        "completion_tokens": 2795,
+        "cost_usd": 0.0014261,
+        "seconds": 40.3,
         "attempts": 1
       },
       "fixed": {
         "defects": 11,
         "still_reported": [],
-        "false_alarms": 4,
+        "false_alarms": 3,
         "findings": [
           {
             "file": "src/EnglishAuction.sol",
             "kind": "baseline",
-            "text": "missing-late-bid-grace-period in `bid` (line 78): Bids are rejected immediately after `endTime`, so callers cannot use the advertised 15-minute late-bid grace window.",
+            "text": "payout-failure-locks-auction in `finalize` (line 127, CWE-755): If the configured seller is a contract that rejects or cannot receive ETH, this call reverts and `finalize` can never complete, leaving the winning bid locked in the auction.",
             "status": "unreviewed"
           },
           {
             "file": "src/EnglishAuction.sol",
             "kind": "baseline",
-            "text": "ignored-end-block-fallback in `hasEnded` (line 116): `hasEnded()` never checks `endBlock`, so if timestamps stall while blocks advance past the configured fallback, the auction cannot be ended or finalized.",
+            "text": "post-draw-funds-locked in `fundBonus` (line 138, CWE-755): `fundBonus` accepts deposits after `bonusPaid` becomes true, but no later draw is possible, so any such deposit is permanently locked.",
             "status": "unreviewed"
           },
           {
             "file": "src/EnglishAuction.sol",
             "kind": "baseline",
-            "text": "funds-locked-after-bonus-draw in `fundBonus` (line 138): `fundBonus()` accepts ETH even after `bonusPaid` is true, but subsequent draws are prohibited, permanently locking any funds sent afterward.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "src/EnglishAuction.sol",
-            "kind": "baseline",
-            "text": "bonus-payout-denial-of-service in `drawEarlyBirdBonus` (line 154, CWE-703): The bonus is pushed to the fixed winner, so an earliest bidder contract that rejects ETH makes every draw revert and permanently locks the bonus pool.",
+            "text": "bonus-recipient-can-block-draw in `drawEarlyBirdBonus` (line 154, CWE-755): If the earliest bidder is a contract that rejects ETH, this call reverts and prevents the bonus from ever being drawn to any recipient.",
             "status": "unreviewed"
           }
         ],
         "finding_counts": {
-          "total": 4,
+          "total": 3,
           "defect_evidence": 0,
           "real": 0,
           "false_positive": 0,
-          "unreviewed": 4
+          "unreviewed": 3
         },
         "reviews_used": []
       }

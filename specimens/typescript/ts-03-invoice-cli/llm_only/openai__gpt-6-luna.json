@@ -3,10 +3,10 @@
   "language": "typescript",
   "tool": "llm-only",
   "model": "openai/gpt-6-luna",
-  "prompt_version": 1,
-  "prompt_hash": "50865386f4c2f5d6",
+  "prompt_version": 2,
+  "prompt_hash": "2fd1a1213dca8cce",
   "temperature": 0,
-  "generated_at": "2026-11-03T04:59:40Z",
+  "generated_at": "2026-11-03T06:16:58Z",
   "source_hash": "1abd4fc0c48bf3f9a690ebbbd3b389db65e21b56bfd21ff714becd7211dee58b",
   "runs": [
     {
@@ -14,515 +14,9 @@
       "raw_findings": [
         {
           "file": "invoice.ts",
-          "line": 61,
-          "rule": "duplicate-invoice-id",
-          "message": "The ID depends only on customer and date, so every invoice for the same customer on the same date receives the same identifier, making distinct invoices indistinguishable.",
-          "cwe": [],
-          "function": "invoiceId"
-        },
-        {
-          "file": "invoice.ts",
-          "line": 72,
-          "rule": "invoice-output-injection",
-          "message": "SKU and description text is inserted into the rendered invoice without escaping newlines, so crafted item data can inject forged invoice lines or totals.",
-          "cwe": [
-            74
-          ],
-          "function": "renderInvoice"
-        },
-        {
-          "file": "invoice.ts",
           "line": 79,
           "rule": "incorrect-tax-display",
-          "message": "The displayed tax is calculated on the subtotal even though the invoice total uses tax on the discounted net amount, so invoices with a discount show inconsistent figures.",
-          "cwe": [
-            682
-          ],
-          "function": "renderInvoice"
-        },
-        {
-          "file": "invoice.ts",
-          "line": 89,
-          "rule": "command-injection",
-          "message": "The output path is concatenated into a shell command, so a path containing shell metacharacters can execute attacker-chosen commands when `--out` is used.",
-          "cwe": [
-            78
-          ],
-          "function": "writeInvoice"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 24,
-          "rule": "non-finite-unit-price",
-          "message": "The check accepts positive infinity because it only rejects negative prices, so a JSON value such as `1e400` can produce invalid infinite invoice amounts.",
-          "cwe": [
-            20
-          ],
-          "function": "parseItem"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 27,
-          "rule": "negative-quantity",
-          "message": "Any negative integer quantity is accepted, allowing input items to subtract from the subtotal and produce incorrect invoice totals.",
-          "cwe": [
-            20
-          ],
-          "function": "parseItem"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 41,
-          "rule": "silently-dropped-items",
-          "message": "Invalid entries are silently discarded, so a malformed line item can be omitted from an otherwise successful invoice without warning.",
-          "cwe": [],
-          "function": "parseItems"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 55,
-          "rule": "floating-point-money-arithmetic",
-          "message": "Subtotal accumulation uses binary floating-point arithmetic without cent rounding, so values such as three one-cent-unit entries priced at 0.10 can produce an inaccurate subtotal.",
-          "cwe": [
-            682
-          ],
-          "function": "subtotal"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 62,
-          "rule": "unbounded-discount",
-          "message": "Discount percentages are not constrained to the range 0–100, so a discount above 100 can make the invoice total negative.",
-          "cwe": [
-            20
-          ],
-          "function": "applyDiscount"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 67,
-          "rule": "truncated-tax",
-          "message": "Tax is floored rather than rounded to cents, so 10% tax on 19.99 is charged as 1.99 instead of 2.00.",
-          "cwe": [
-            682
-          ],
-          "function": "taxAmount"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 79,
-          "rule": "division-by-zero",
-          "message": "The effective tax rate divides by the net amount without handling zero, so a full discount or zero-value invoice prints `NaN` or infinity.",
-          "cwe": [
-            369
-          ],
-          "function": "effectiveTaxRate"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 89,
-          "rule": "page-footer-out-of-bounds",
-          "message": "The final page's last-item index is not capped at the item count, so invoices with more than ten items and a partial final page access `undefined` and crash while rendering.",
-          "cwe": [
-            193
-          ],
-          "function": "pageFooters"
-        },
-        {
-          "file": "repro.sh",
-          "line": 129,
-          "rule": "missing-required-file",
-          "message": "The script unconditionally opens `DEFECTS.json`, which is absent from the project, so it raises an error after running the cases instead of completing as documented.",
-          "cwe": [],
-          "function": null
-        }
-      ],
-      "invalid_findings": [],
-      "tool_errors": 0,
-      "usage": {
-        "prompt_tokens": 6546,
-        "completion_tokens": 3255,
-        "cost_usd": 0.002445675,
-        "seconds": 47.63,
-        "attempts": 1
-      },
-      "defects": [
-        {
-          "id": "TS03-D01",
-          "file": "pricing.ts",
-          "function": "subtotal",
-          "category": "float-money",
-          "class": "design",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "floating-point-money-arithmetic in `subtotal` (line 55, CWE-682): Subtotal accumulation uses binary floating-point arithmetic without cent rounding, so values such as three one-cent-unit entries priced at 0.10 can produce an inaccurate subtotal."
-          ]
-        },
-        {
-          "id": "TS03-D02",
-          "file": "invoice.ts",
-          "function": "renderInvoice",
-          "category": "logic-error",
-          "class": "bug",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "invoice-output-injection in `renderInvoice` (line 72, CWE-74): SKU and description text is inserted into the rendered invoice without escaping newlines, so crafted item data can inject forged invoice lines or totals.",
-            "incorrect-tax-display in `renderInvoice` (line 79, CWE-682): The displayed tax is calculated on the subtotal even though the invoice total uses tax on the discounted net amount, so invoices with a discount show inconsistent figures."
-          ]
-        },
-        {
-          "id": "TS03-D03",
-          "file": "pricing.ts",
-          "function": "effectiveTaxRate",
-          "category": "division-by-zero",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "division-by-zero in `effectiveTaxRate` (line 79, CWE-369): The effective tax rate divides by the net amount without handling zero, so a full discount or zero-value invoice prints `NaN` or infinity."
-          ]
-        },
-        {
-          "id": "TS03-D04",
-          "file": "pricing.ts",
-          "function": "parseItem",
-          "category": "missing-precondition",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "non-finite-unit-price in `parseItem` (line 24, CWE-20): The check accepts positive infinity because it only rejects negative prices, so a JSON value such as `1e400` can produce invalid infinite invoice amounts.",
-            "negative-quantity in `parseItem` (line 27, CWE-20): Any negative integer quantity is accepted, allowing input items to subtract from the subtotal and produce incorrect invoice totals."
-          ]
-        },
-        {
-          "id": "TS03-D05",
-          "file": "pricing.ts",
-          "function": "pageFooters",
-          "category": "out-of-bounds",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "page-footer-out-of-bounds in `pageFooters` (line 89, CWE-193): The final page's last-item index is not capped at the item count, so invoices with more than ten items and a partial final page access `undefined` and crash while rendering."
-          ]
-        },
-        {
-          "id": "TS03-D06",
-          "file": "invoice.ts",
-          "function": "invoiceId",
-          "category": "weak-crypto",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "duplicate-invoice-id in `invoiceId` (line 61): The ID depends only on customer and date, so every invoice for the same customer on the same date receives the same identifier, making distinct invoices indistinguishable."
-          ]
-        },
-        {
-          "id": "TS03-D07",
-          "file": "invoice.ts",
-          "function": "writeInvoice",
-          "category": "command-injection",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "command-injection in `writeInvoice` (line 89, CWE-78): The output path is concatenated into a shell command, so a path containing shell metacharacters can execute attacker-chosen commands when `--out` is used."
-          ]
-        },
-        {
-          "id": "TS03-D08",
-          "file": "pricing.ts",
-          "function": "parseItems",
-          "category": "error-handling",
-          "class": "design",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "silently-dropped-items in `parseItems` (line 41): Invalid entries are silently discarded, so a malformed line item can be omitted from an otherwise successful invoice without warning."
-          ]
-        },
-        {
-          "id": "TS03-D09",
-          "file": "pricing.ts",
-          "function": "applyDiscount",
-          "category": "missing-precondition",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "unbounded-discount in `applyDiscount` (line 62, CWE-20): Discount percentages are not constrained to the range 0–100, so a discount above 100 can make the invoice total negative."
-          ]
-        },
-        {
-          "id": "TS03-D10",
-          "file": "pricing.ts",
-          "function": "taxAmount",
-          "category": "rounding-error",
-          "class": "bug",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "truncated-tax in `taxAmount` (line 67, CWE-682): Tax is floored rather than rounded to cents, so 10% tax on 19.99 is charged as 1.99 instead of 2.00."
-          ]
-        }
-      ],
-      "counts": {
-        "total": 10,
-        "detected": 7,
-        "function_flagged": 3,
-        "missed": 0
-      },
-      "findings": [
-        {
-          "file": "invoice.ts",
-          "kind": "baseline",
-          "text": "duplicate-invoice-id in `invoiceId` (line 61): The ID depends only on customer and date, so every invoice for the same customer on the same date receives the same identifier, making distinct invoices indistinguishable.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "invoice.ts",
-          "kind": "baseline",
-          "text": "invoice-output-injection in `renderInvoice` (line 72, CWE-74): SKU and description text is inserted into the rendered invoice without escaping newlines, so crafted item data can inject forged invoice lines or totals.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "invoice.ts",
-          "kind": "baseline",
-          "text": "incorrect-tax-display in `renderInvoice` (line 79, CWE-682): The displayed tax is calculated on the subtotal even though the invoice total uses tax on the discounted net amount, so invoices with a discount show inconsistent figures.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "invoice.ts",
-          "kind": "baseline",
-          "text": "command-injection in `writeInvoice` (line 89, CWE-78): The output path is concatenated into a shell command, so a path containing shell metacharacters can execute attacker-chosen commands when `--out` is used.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "non-finite-unit-price in `parseItem` (line 24, CWE-20): The check accepts positive infinity because it only rejects negative prices, so a JSON value such as `1e400` can produce invalid infinite invoice amounts.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "negative-quantity in `parseItem` (line 27, CWE-20): Any negative integer quantity is accepted, allowing input items to subtract from the subtotal and produce incorrect invoice totals.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "silently-dropped-items in `parseItems` (line 41): Invalid entries are silently discarded, so a malformed line item can be omitted from an otherwise successful invoice without warning.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "floating-point-money-arithmetic in `subtotal` (line 55, CWE-682): Subtotal accumulation uses binary floating-point arithmetic without cent rounding, so values such as three one-cent-unit entries priced at 0.10 can produce an inaccurate subtotal.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "unbounded-discount in `applyDiscount` (line 62, CWE-20): Discount percentages are not constrained to the range 0–100, so a discount above 100 can make the invoice total negative.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "truncated-tax in `taxAmount` (line 67, CWE-682): Tax is floored rather than rounded to cents, so 10% tax on 19.99 is charged as 1.99 instead of 2.00.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "division-by-zero in `effectiveTaxRate` (line 79, CWE-369): The effective tax rate divides by the net amount without handling zero, so a full discount or zero-value invoice prints `NaN` or infinity.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "page-footer-out-of-bounds in `pageFooters` (line 89, CWE-193): The final page's last-item index is not capped at the item count, so invoices with more than ten items and a partial final page access `undefined` and crash while rendering.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "repro.sh",
-          "kind": "baseline",
-          "text": "missing-required-file (line 129): The script unconditionally opens `DEFECTS.json`, which is absent from the project, so it raises an error after running the cases instead of completing as documented.",
-          "status": "unreviewed"
-        }
-      ],
-      "finding_counts": {
-        "total": 13,
-        "defect_evidence": 8,
-        "real": 0,
-        "false_positive": 0,
-        "unreviewed": 5
-      },
-      "reviews_used": [],
-      "fixed_raw_findings": [
-        {
-          "file": "invoice.ts",
-          "line": 53,
-          "rule": "unbounded-tax-rate",
-          "message": "Any finite non-negative tax rate is accepted, so a sufficiently large rate can overflow tax calculations and produce non-finite invoice totals.",
-          "cwe": [
-            682
-          ],
-          "function": "value"
-        },
-        {
-          "file": "invoice.ts",
-          "line": 57,
-          "rule": "invalid-date-accepted",
-          "message": "The supplied date is never checked against the documented `YYYY-MM-DD` format, so inputs such as `not-a-date` are printed and used to create invoice IDs.",
-          "cwe": [],
-          "function": "value"
-        },
-        {
-          "file": "invoice.ts",
-          "line": 72,
-          "rule": "terminal-control-sequence-injection",
-          "message": "Untrusted customer and item text is rendered without escaping control characters, so embedded newlines or ANSI sequences can forge invoice output or manipulate a terminal.",
-          "cwe": [
-            150
-          ],
-          "function": "renderInvoice"
-        },
-        {
-          "file": "invoice.ts",
-          "line": 84,
-          "rule": "page-footers-not-placed-per-page",
-          "message": "For more than ten items, page footer labels are appended after the entire invoice rather than placed at page boundaries, so the printed pages do not each receive their footer.",
-          "cwe": [],
-          "function": "renderInvoice"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 24,
-          "rule": "non-finite-price-accepted",
-          "message": "The price check accepts non-finite values, so a JSON value such as `1e400` becomes `Infinity` and produces invalid monetary totals.",
-          "cwe": [
-            682
-          ],
-          "function": "parseItem"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 27,
-          "rule": "unsafe-quantity-accepted",
-          "message": "`Number.isInteger` also accepts integers outside JavaScript’s safe-integer range, so a large quantity can make line totals and subtotals imprecise.",
-          "cwe": [
-            190
-          ],
-          "function": "parseItem"
-        },
-        {
-          "file": "repro.sh",
-          "line": 129,
-          "rule": "missing-required-defects-file",
-          "message": "The script unconditionally opens `DEFECTS.json`, which is absent from the project, so `repro.sh` fails with a file-not-found error after running its cases.",
-          "cwe": [],
-          "function": null
-        }
-      ],
-      "fixed_invalid_findings": [],
-      "fixed_tool_errors": 0,
-      "fixed_usage": {
-        "prompt_tokens": 6752,
-        "completion_tokens": 3533,
-        "cost_usd": 0.00183429,
-        "seconds": 52.2,
-        "attempts": 1
-      },
-      "fixed": {
-        "defects": 10,
-        "still_reported": [],
-        "false_alarms": 7,
-        "findings": [
-          {
-            "file": "invoice.ts",
-            "kind": "baseline",
-            "text": "unbounded-tax-rate in `value` (line 53, CWE-682): Any finite non-negative tax rate is accepted, so a sufficiently large rate can overflow tax calculations and produce non-finite invoice totals.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "invoice.ts",
-            "kind": "baseline",
-            "text": "invalid-date-accepted in `value` (line 57): The supplied date is never checked against the documented `YYYY-MM-DD` format, so inputs such as `not-a-date` are printed and used to create invoice IDs.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "invoice.ts",
-            "kind": "baseline",
-            "text": "terminal-control-sequence-injection in `renderInvoice` (line 72, CWE-150): Untrusted customer and item text is rendered without escaping control characters, so embedded newlines or ANSI sequences can forge invoice output or manipulate a terminal.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "invoice.ts",
-            "kind": "baseline",
-            "text": "page-footers-not-placed-per-page in `renderInvoice` (line 84): For more than ten items, page footer labels are appended after the entire invoice rather than placed at page boundaries, so the printed pages do not each receive their footer.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "pricing.ts",
-            "kind": "baseline",
-            "text": "non-finite-price-accepted in `parseItem` (line 24, CWE-682): The price check accepts non-finite values, so a JSON value such as `1e400` becomes `Infinity` and produces invalid monetary totals.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "pricing.ts",
-            "kind": "baseline",
-            "text": "unsafe-quantity-accepted in `parseItem` (line 27, CWE-190): `Number.isInteger` also accepts integers outside JavaScript’s safe-integer range, so a large quantity can make line totals and subtotals imprecise.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "repro.sh",
-            "kind": "baseline",
-            "text": "missing-required-defects-file (line 129): The script unconditionally opens `DEFECTS.json`, which is absent from the project, so `repro.sh` fails with a file-not-found error after running its cases.",
-            "status": "unreviewed"
-          }
-        ],
-        "finding_counts": {
-          "total": 7,
-          "defect_evidence": 0,
-          "real": 0,
-          "false_positive": 0,
-          "unreviewed": 7
-        },
-        "reviews_used": []
-      }
-    },
-    {
-      "run": 2,
-      "raw_findings": [
-        {
-          "file": "invoice.ts",
-          "line": 61,
-          "rule": "colliding-invoice-identifiers",
-          "message": "The identifier depends only on customer and date, so separate invoices for the same customer on the same date receive the same invoice number.",
-          "cwe": [],
-          "function": "invoiceId"
-        },
-        {
-          "file": "invoice.ts",
-          "line": 72,
-          "rule": "unescaped-text-output",
-          "message": "A SKU or description containing newlines is inserted verbatim into the text invoice, allowing input to add forged invoice rows or totals.",
-          "cwe": [
-            116
-          ],
-          "function": "renderInvoice"
-        },
-        {
-          "file": "invoice.ts",
-          "line": 79,
-          "rule": "incorrect-tax-display",
-          "message": "The rendered tax line is calculated from the subtotal rather than the discounted net amount, so it disagrees with the tax and total actually computed when a discount is applied.",
+          "message": "The displayed tax is calculated on the subtotal instead of the discounted net, so invoices with a discount show tax that disagrees with the computed total.",
           "cwe": [
             682
           ],
@@ -532,7 +26,7 @@
           "file": "invoice.ts",
           "line": 89,
           "rule": "os-command-injection",
-          "message": "The output path is concatenated into a shell command, so a path containing shell metacharacters can execute attacker-chosen commands when `--out` is used.",
+          "message": "The user-controlled `--out` path is concatenated into a shell command, so shell metacharacters in the path can execute arbitrary commands.",
           "cwe": [
             78
           ],
@@ -541,66 +35,28 @@
         {
           "file": "pricing.ts",
           "line": 24,
-          "rule": "non-finite-unit-price",
-          "message": "The check accepts positive infinity, which can be produced by a JSON number such as `1e999` and then yields invalid totals or `null` values in JSON output.",
+          "rule": "non-finite-price-accepted",
+          "message": "The price check accepts positive infinity, which `JSON.parse` can produce from an overflowing numeric literal, leading to infinite totals or `null` values in JSON output.",
           "cwe": [
             20
-          ],
-          "function": "parseItem"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 27,
-          "rule": "negative-quantity",
-          "message": "Any integer quantity is accepted, including negative quantities, allowing input to reduce the subtotal with fictitious returns.",
-          "cwe": [
-            1284
           ],
           "function": "parseItem"
         },
         {
           "file": "pricing.ts",
           "line": 41,
-          "rule": "silently-dropped-items",
-          "message": "Invalid item entries are swallowed and omitted from the invoice, so malformed input can produce a successful invoice that silently excludes requested items.",
-          "cwe": [],
-          "function": "parseItems"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 55,
-          "rule": "floating-point-money-calculation",
-          "message": "Subtotal accumulation uses binary floating-point arithmetic, so valid amounts such as three items priced at 0.10 can produce an inaccurate JSON subtotal of 0.30000000000000004.",
-          "cwe": [
-            682
-          ],
-          "function": "subtotal"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 62,
-          "rule": "unbounded-discount",
-          "message": "Discounts are not restricted to the 0–100 percent range, so values over 100 produce negative net amounts and totals, while negative values act as surcharges.",
+          "rule": "silent-input-truncation",
+          "message": "Malformed item entries are silently skipped, so a partially invalid input file produces an invoice that omits items rather than rejecting the input.",
           "cwe": [
             20
           ],
-          "function": "applyDiscount"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 67,
-          "rule": "truncated-tax",
-          "message": "Tax is floored rather than rounded to the nearest cent, so 10% tax on 19.99 is reported as 1.99 instead of 2.00.",
-          "cwe": [
-            682
-          ],
-          "function": "taxAmount"
+          "function": "parseItems"
         },
         {
           "file": "pricing.ts",
           "line": 79,
           "rule": "division-by-zero",
-          "message": "When the net amount is zero, this divides zero tax by zero and displays `NaN` as the effective tax rate.",
+          "message": "When the net amount is zero, this division returns `NaN` or infinity, causing the printed effective tax rate to be invalid.",
           "cwe": [
             369
           ],
@@ -609,29 +65,21 @@
         {
           "file": "pricing.ts",
           "line": 89,
-          "rule": "out-of-bounds-page-footer",
-          "message": "For a final page with fewer than `perPage` items, `last` is undefined and accessing `last.sku` crashes invoice rendering.",
+          "rule": "invalid-page-footer-index",
+          "message": "On a partial final page, this index is beyond the item array, so invoices with more than one page and a non-multiple-of-`perPage` item count throw when accessing `last.sku`.",
           "cwe": [
             476
           ],
           "function": "pageFooters"
-        },
-        {
-          "file": "repro.sh",
-          "line": 129,
-          "rule": "missing-repro-dependency",
-          "message": "Running the documented reproduction script fails when it tries to open `DEFECTS.json`, which is not present among the project files.",
-          "cwe": [],
-          "function": null
         }
       ],
       "invalid_findings": [],
       "tool_errors": 0,
       "usage": {
-        "prompt_tokens": 6546,
-        "completion_tokens": 4000,
-        "cost_usd": 0.00206573,
-        "seconds": 58.59,
+        "prompt_tokens": 3177,
+        "completion_tokens": 2669,
+        "cost_usd": 0.00173155,
+        "seconds": 38.75,
         "attempts": 1
       },
       "defects": [
@@ -642,10 +90,8 @@
           "category": "float-money",
           "class": "design",
           "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "floating-point-money-calculation in `subtotal` (line 55, CWE-682): Subtotal accumulation uses binary floating-point arithmetic, so valid amounts such as three items priced at 0.10 can produce an inaccurate JSON subtotal of 0.30000000000000004."
-          ]
+          "status": "missed",
+          "findings": []
         },
         {
           "id": "TS03-D02",
@@ -656,8 +102,7 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "unescaped-text-output in `renderInvoice` (line 72, CWE-116): A SKU or description containing newlines is inserted verbatim into the text invoice, allowing input to add forged invoice rows or totals.",
-            "incorrect-tax-display in `renderInvoice` (line 79, CWE-682): The rendered tax line is calculated from the subtotal rather than the discounted net amount, so it disagrees with the tax and total actually computed when a discount is applied."
+            "incorrect-tax-display in `renderInvoice` (line 79, CWE-682): The displayed tax is calculated on the subtotal instead of the discounted net, so invoices with a discount show tax that disagrees with the computed total."
           ]
         },
         {
@@ -669,7 +114,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "division-by-zero in `effectiveTaxRate` (line 79, CWE-369): When the net amount is zero, this divides zero tax by zero and displays `NaN` as the effective tax rate."
+            "division-by-zero in `effectiveTaxRate` (line 79, CWE-369): When the net amount is zero, this division returns `NaN` or infinity, causing the printed effective tax rate to be invalid."
           ]
         },
         {
@@ -681,8 +126,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "non-finite-unit-price in `parseItem` (line 24, CWE-20): The check accepts positive infinity, which can be produced by a JSON number such as `1e999` and then yields invalid totals or `null` values in JSON output.",
-            "negative-quantity in `parseItem` (line 27, CWE-1284): Any integer quantity is accepted, including negative quantities, allowing input to reduce the subtotal with fictitious returns."
+            "non-finite-price-accepted in `parseItem` (line 24, CWE-20): The price check accepts positive infinity, which `JSON.parse` can produce from an overflowing numeric literal, leading to infinite totals or `null` values in JSON output."
           ]
         },
         {
@@ -694,7 +138,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "out-of-bounds-page-footer in `pageFooters` (line 89, CWE-476): For a final page with fewer than `perPage` items, `last` is undefined and accessing `last.sku` crashes invoice rendering."
+            "invalid-page-footer-index in `pageFooters` (line 89, CWE-476): On a partial final page, this index is beyond the item array, so invoices with more than one page and a non-multiple-of-`perPage` item count throw when accessing `last.sku`."
           ]
         },
         {
@@ -704,10 +148,8 @@
           "category": "weak-crypto",
           "class": "vulnerability",
           "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "colliding-invoice-identifiers in `invoiceId` (line 61): The identifier depends only on customer and date, so separate invoices for the same customer on the same date receive the same invoice number."
-          ]
+          "status": "missed",
+          "findings": []
         },
         {
           "id": "TS03-D07",
@@ -718,7 +160,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "os-command-injection in `writeInvoice` (line 89, CWE-78): The output path is concatenated into a shell command, so a path containing shell metacharacters can execute attacker-chosen commands when `--out` is used."
+            "os-command-injection in `writeInvoice` (line 89, CWE-78): The user-controlled `--out` path is concatenated into a shell command, so shell metacharacters in the path can execute arbitrary commands."
           ]
         },
         {
@@ -730,470 +172,7 @@
           "in_target_category": false,
           "status": "function_flagged",
           "findings": [
-            "silently-dropped-items in `parseItems` (line 41): Invalid item entries are swallowed and omitted from the invoice, so malformed input can produce a successful invoice that silently excludes requested items."
-          ]
-        },
-        {
-          "id": "TS03-D09",
-          "file": "pricing.ts",
-          "function": "applyDiscount",
-          "category": "missing-precondition",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "unbounded-discount in `applyDiscount` (line 62, CWE-20): Discounts are not restricted to the 0–100 percent range, so values over 100 produce negative net amounts and totals, while negative values act as surcharges."
-          ]
-        },
-        {
-          "id": "TS03-D10",
-          "file": "pricing.ts",
-          "function": "taxAmount",
-          "category": "rounding-error",
-          "class": "bug",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "truncated-tax in `taxAmount` (line 67, CWE-682): Tax is floored rather than rounded to the nearest cent, so 10% tax on 19.99 is reported as 1.99 instead of 2.00."
-          ]
-        }
-      ],
-      "counts": {
-        "total": 10,
-        "detected": 7,
-        "function_flagged": 3,
-        "missed": 0
-      },
-      "findings": [
-        {
-          "file": "invoice.ts",
-          "kind": "baseline",
-          "text": "colliding-invoice-identifiers in `invoiceId` (line 61): The identifier depends only on customer and date, so separate invoices for the same customer on the same date receive the same invoice number.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "invoice.ts",
-          "kind": "baseline",
-          "text": "unescaped-text-output in `renderInvoice` (line 72, CWE-116): A SKU or description containing newlines is inserted verbatim into the text invoice, allowing input to add forged invoice rows or totals.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "invoice.ts",
-          "kind": "baseline",
-          "text": "incorrect-tax-display in `renderInvoice` (line 79, CWE-682): The rendered tax line is calculated from the subtotal rather than the discounted net amount, so it disagrees with the tax and total actually computed when a discount is applied.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "invoice.ts",
-          "kind": "baseline",
-          "text": "os-command-injection in `writeInvoice` (line 89, CWE-78): The output path is concatenated into a shell command, so a path containing shell metacharacters can execute attacker-chosen commands when `--out` is used.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "non-finite-unit-price in `parseItem` (line 24, CWE-20): The check accepts positive infinity, which can be produced by a JSON number such as `1e999` and then yields invalid totals or `null` values in JSON output.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "negative-quantity in `parseItem` (line 27, CWE-1284): Any integer quantity is accepted, including negative quantities, allowing input to reduce the subtotal with fictitious returns.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "silently-dropped-items in `parseItems` (line 41): Invalid item entries are swallowed and omitted from the invoice, so malformed input can produce a successful invoice that silently excludes requested items.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "floating-point-money-calculation in `subtotal` (line 55, CWE-682): Subtotal accumulation uses binary floating-point arithmetic, so valid amounts such as three items priced at 0.10 can produce an inaccurate JSON subtotal of 0.30000000000000004.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "unbounded-discount in `applyDiscount` (line 62, CWE-20): Discounts are not restricted to the 0–100 percent range, so values over 100 produce negative net amounts and totals, while negative values act as surcharges.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "truncated-tax in `taxAmount` (line 67, CWE-682): Tax is floored rather than rounded to the nearest cent, so 10% tax on 19.99 is reported as 1.99 instead of 2.00.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "division-by-zero in `effectiveTaxRate` (line 79, CWE-369): When the net amount is zero, this divides zero tax by zero and displays `NaN` as the effective tax rate.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "out-of-bounds-page-footer in `pageFooters` (line 89, CWE-476): For a final page with fewer than `perPage` items, `last` is undefined and accessing `last.sku` crashes invoice rendering.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "repro.sh",
-          "kind": "baseline",
-          "text": "missing-repro-dependency (line 129): Running the documented reproduction script fails when it tries to open `DEFECTS.json`, which is not present among the project files.",
-          "status": "unreviewed"
-        }
-      ],
-      "finding_counts": {
-        "total": 13,
-        "defect_evidence": 8,
-        "real": 0,
-        "false_positive": 0,
-        "unreviewed": 5
-      },
-      "reviews_used": [],
-      "fixed_raw_findings": [
-        {
-          "file": "invoice.ts",
-          "line": 74,
-          "rule": "unneutralized-output",
-          "message": "SKU and description (and the customer field on line 72) are interpolated into invoice text without escaping, so input containing newlines or terminal control sequences can forge invoice lines or manipulate terminal output.",
-          "cwe": [
-            116
-          ],
-          "function": "renderInvoice"
-        },
-        {
-          "file": "invoice.ts",
-          "line": 85,
-          "rule": "misplaced-page-footers",
-          "message": "All page footers are appended after the totals rather than at their page breaks, so invoices with more than ten items do not actually show a footer on each printed page.",
-          "cwe": [],
-          "function": "renderInvoice"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 24,
-          "rule": "unchecked-numeric-range",
-          "message": "The price check accepts values such as JSON `1e400` as `Infinity`, which then produces `NaN` or infinite invoice totals; reject non-finite and out-of-range values before doing cent arithmetic.",
-          "cwe": [
-            682
-          ],
-          "function": "parseItem"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 49,
-          "rule": "floating-point-rounding",
-          "message": "Converting decimal prices to cents with binary floating-point can misround values such as `1.005` to 100 cents instead of 101, producing an incorrect invoice amount.",
-          "cwe": [
-            682
-          ],
-          "function": "toCents"
-        },
-        {
-          "file": "repro.sh",
-          "line": 129,
-          "rule": "missing-required-file",
-          "message": "The script unconditionally opens `DEFECTS.json`, which is absent from the project, so `repro.sh` fails after running its cases instead of completing as documented.",
-          "cwe": [],
-          "function": null
-        }
-      ],
-      "fixed_invalid_findings": [],
-      "fixed_tool_errors": 0,
-      "fixed_usage": {
-        "prompt_tokens": 6752,
-        "completion_tokens": 3545,
-        "cost_usd": 0.00184029,
-        "seconds": 54.19,
-        "attempts": 1
-      },
-      "fixed": {
-        "defects": 10,
-        "still_reported": [],
-        "false_alarms": 5,
-        "findings": [
-          {
-            "file": "invoice.ts",
-            "kind": "baseline",
-            "text": "unneutralized-output in `renderInvoice` (line 74, CWE-116): SKU and description (and the customer field on line 72) are interpolated into invoice text without escaping, so input containing newlines or terminal control sequences can forge invoice lines or manipulate terminal output.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "invoice.ts",
-            "kind": "baseline",
-            "text": "misplaced-page-footers in `renderInvoice` (line 85): All page footers are appended after the totals rather than at their page breaks, so invoices with more than ten items do not actually show a footer on each printed page.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "pricing.ts",
-            "kind": "baseline",
-            "text": "unchecked-numeric-range in `parseItem` (line 24, CWE-682): The price check accepts values such as JSON `1e400` as `Infinity`, which then produces `NaN` or infinite invoice totals; reject non-finite and out-of-range values before doing cent arithmetic.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "pricing.ts",
-            "kind": "baseline",
-            "text": "floating-point-rounding in `toCents` (line 49, CWE-682): Converting decimal prices to cents with binary floating-point can misround values such as `1.005` to 100 cents instead of 101, producing an incorrect invoice amount.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "repro.sh",
-            "kind": "baseline",
-            "text": "missing-required-file (line 129): The script unconditionally opens `DEFECTS.json`, which is absent from the project, so `repro.sh` fails after running its cases instead of completing as documented.",
-            "status": "unreviewed"
-          }
-        ],
-        "finding_counts": {
-          "total": 5,
-          "defect_evidence": 0,
-          "real": 0,
-          "false_positive": 0,
-          "unreviewed": 5
-        },
-        "reviews_used": []
-      }
-    },
-    {
-      "run": 3,
-      "raw_findings": [
-        {
-          "file": "invoice.ts",
-          "line": 49,
-          "rule": "invalid-date-accepted",
-          "message": "The `--date` value is never validated, so values outside the documented `YYYY-MM-DD` format or impossible dates are printed on invoices and used to derive their IDs.",
-          "cwe": [
-            20
-          ],
-          "function": "value"
-        },
-        {
-          "file": "invoice.ts",
-          "line": 61,
-          "rule": "duplicate-invoice-identifiers",
-          "message": "The ID depends only on customer and date, so distinct invoices for the same customer on the same date receive the same identifier.",
-          "cwe": [],
-          "function": "invoiceId"
-        },
-        {
-          "file": "invoice.ts",
-          "line": 70,
-          "rule": "text-output-injection",
-          "message": "Customer names and item text are inserted into the text invoice without escaping, so embedded newlines or terminal control characters can forge or obscure invoice content.",
-          "cwe": [
-            116
-          ],
-          "function": "renderInvoice"
-        },
-        {
-          "file": "invoice.ts",
-          "line": 79,
-          "rule": "tax-line-mismatch",
-          "message": "The displayed tax is calculated on the subtotal while the total uses tax on the discounted net amount, so invoices with a discount show a tax line inconsistent with their total.",
-          "cwe": [],
-          "function": "renderInvoice"
-        },
-        {
-          "file": "invoice.ts",
-          "line": 83,
-          "rule": "page-footers-at-wrong-position",
-          "message": "All page footers are appended after the entire invoice rather than placed at their respective page boundaries, so multi-page invoices do not have per-page footers.",
-          "cwe": [],
-          "function": "renderInvoice"
-        },
-        {
-          "file": "invoice.ts",
-          "line": 89,
-          "rule": "shell-command-injection",
-          "message": "The output path is concatenated into a shell command, so a path such as `inv.txt;touch pwned.flag` executes attacker-controlled commands when `--out` is used.",
-          "cwe": [
-            78
-          ],
-          "function": "writeInvoice"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 24,
-          "rule": "non-finite-unit-price",
-          "message": "The parser accepts non-finite unit prices because it checks only the type and lower bound, so a JSON value such as `1e400` can produce infinite invoice amounts.",
-          "cwe": [
-            20
-          ],
-          "function": "parseItem"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 27,
-          "rule": "negative-quantity-accepted",
-          "message": "The parser checks that quantity is an integer but not that it is non-negative, so negative quantities can reduce the subtotal and produce invalid invoices.",
-          "cwe": [
-            20
-          ],
-          "function": "parseItem"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 41,
-          "rule": "invalid-items-silently-skipped",
-          "message": "Invalid items are discarded without reporting an error, so a malformed line item can disappear from an otherwise successful invoice and its totals.",
-          "cwe": [],
-          "function": "parseItems"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 55,
-          "rule": "discount-out-of-range",
-          "message": "The discount is checked only for finiteness, so negative discounts or discounts above 100 percent are accepted and can produce surcharges or negative totals.",
-          "cwe": [
-            20
-          ],
-          "function": "subtotal"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 55,
-          "rule": "floating-point-money",
-          "message": "Money is accumulated using binary floating-point values, so inputs such as three items priced at `0.1` can yield inaccurate totals and expose artifacts in JSON output.",
-          "cwe": [
-            682
-          ],
-          "function": "subtotal"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 67,
-          "rule": "tax-truncated-instead-of-rounded",
-          "message": "Tax is floored to cents rather than rounded, so a tax amount such as 10% of 19.99 is reported as 1.99 instead of 2.00.",
-          "cwe": [
-            682
-          ],
-          "function": "taxAmount"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 79,
-          "rule": "undefined-effective-tax-rate",
-          "message": "The effective tax rate divides by the net amount without handling zero, so a full discount or zero-value invoice prints `NaN`.",
-          "cwe": [],
-          "function": "effectiveTaxRate"
-        },
-        {
-          "file": "pricing.ts",
-          "line": 89,
-          "rule": "partial-page-footer-crash",
-          "message": "For a final page with fewer than `perPage` items, the indexed last item is undefined and accessing its SKU throws, so invoices with 11–19 items fail to render.",
-          "cwe": [],
-          "function": "pageFooters"
-        }
-      ],
-      "invalid_findings": [],
-      "tool_errors": 0,
-      "usage": {
-        "prompt_tokens": 6546,
-        "completion_tokens": 3688,
-        "cost_usd": 0.00190973,
-        "seconds": 53.51,
-        "attempts": 1
-      },
-      "defects": [
-        {
-          "id": "TS03-D01",
-          "file": "pricing.ts",
-          "function": "subtotal",
-          "category": "float-money",
-          "class": "design",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "floating-point-money in `subtotal` (line 55, CWE-682): Money is accumulated using binary floating-point values, so inputs such as three items priced at `0.1` can yield inaccurate totals and expose artifacts in JSON output."
-          ]
-        },
-        {
-          "id": "TS03-D02",
-          "file": "invoice.ts",
-          "function": "renderInvoice",
-          "category": "logic-error",
-          "class": "bug",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "text-output-injection in `renderInvoice` (line 70, CWE-116): Customer names and item text are inserted into the text invoice without escaping, so embedded newlines or terminal control characters can forge or obscure invoice content.",
-            "tax-line-mismatch in `renderInvoice` (line 79): The displayed tax is calculated on the subtotal while the total uses tax on the discounted net amount, so invoices with a discount show a tax line inconsistent with their total.",
-            "page-footers-at-wrong-position in `renderInvoice` (line 83): All page footers are appended after the entire invoice rather than placed at their respective page boundaries, so multi-page invoices do not have per-page footers."
-          ]
-        },
-        {
-          "id": "TS03-D03",
-          "file": "pricing.ts",
-          "function": "effectiveTaxRate",
-          "category": "division-by-zero",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "undefined-effective-tax-rate in `effectiveTaxRate` (line 79): The effective tax rate divides by the net amount without handling zero, so a full discount or zero-value invoice prints `NaN`."
-          ]
-        },
-        {
-          "id": "TS03-D04",
-          "file": "pricing.ts",
-          "function": "parseItem",
-          "category": "missing-precondition",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "non-finite-unit-price in `parseItem` (line 24, CWE-20): The parser accepts non-finite unit prices because it checks only the type and lower bound, so a JSON value such as `1e400` can produce infinite invoice amounts.",
-            "negative-quantity-accepted in `parseItem` (line 27, CWE-20): The parser checks that quantity is an integer but not that it is non-negative, so negative quantities can reduce the subtotal and produce invalid invoices."
-          ]
-        },
-        {
-          "id": "TS03-D05",
-          "file": "pricing.ts",
-          "function": "pageFooters",
-          "category": "out-of-bounds",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "partial-page-footer-crash in `pageFooters` (line 89): For a final page with fewer than `perPage` items, the indexed last item is undefined and accessing its SKU throws, so invoices with 11–19 items fail to render."
-          ]
-        },
-        {
-          "id": "TS03-D06",
-          "file": "invoice.ts",
-          "function": "invoiceId",
-          "category": "weak-crypto",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "duplicate-invoice-identifiers in `invoiceId` (line 61): The ID depends only on customer and date, so distinct invoices for the same customer on the same date receive the same identifier."
-          ]
-        },
-        {
-          "id": "TS03-D07",
-          "file": "invoice.ts",
-          "function": "writeInvoice",
-          "category": "command-injection",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "shell-command-injection in `writeInvoice` (line 89, CWE-78): The output path is concatenated into a shell command, so a path such as `inv.txt;touch pwned.flag` executes attacker-controlled commands when `--out` is used."
-          ]
-        },
-        {
-          "id": "TS03-D08",
-          "file": "pricing.ts",
-          "function": "parseItems",
-          "category": "error-handling",
-          "class": "design",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "invalid-items-silently-skipped in `parseItems` (line 41): Invalid items are discarded without reporting an error, so a malformed line item can disappear from an otherwise successful invoice and its totals."
+            "silent-input-truncation in `parseItems` (line 41, CWE-20): Malformed item entries are silently skipped, so a partially invalid input file produces an invoice that omits items rather than rejecting the input."
           ]
         },
         {
@@ -1213,204 +192,158 @@
           "category": "rounding-error",
           "class": "bug",
           "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "tax-truncated-instead-of-rounded in `taxAmount` (line 67, CWE-682): Tax is floored to cents rather than rounded, so a tax amount such as 10% of 19.99 is reported as 1.99 instead of 2.00."
-          ]
+          "status": "missed",
+          "findings": []
         }
       ],
       "counts": {
         "total": 10,
-        "detected": 6,
-        "function_flagged": 3,
-        "missed": 1
+        "detected": 4,
+        "function_flagged": 2,
+        "missed": 4
       },
       "findings": [
         {
           "file": "invoice.ts",
           "kind": "baseline",
-          "text": "invalid-date-accepted in `value` (line 49, CWE-20): The `--date` value is never validated, so values outside the documented `YYYY-MM-DD` format or impossible dates are printed on invoices and used to derive their IDs.",
+          "text": "incorrect-tax-display in `renderInvoice` (line 79, CWE-682): The displayed tax is calculated on the subtotal instead of the discounted net, so invoices with a discount show tax that disagrees with the computed total.",
           "status": "unreviewed"
         },
         {
           "file": "invoice.ts",
           "kind": "baseline",
-          "text": "duplicate-invoice-identifiers in `invoiceId` (line 61): The ID depends only on customer and date, so distinct invoices for the same customer on the same date receive the same identifier.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "invoice.ts",
-          "kind": "baseline",
-          "text": "text-output-injection in `renderInvoice` (line 70, CWE-116): Customer names and item text are inserted into the text invoice without escaping, so embedded newlines or terminal control characters can forge or obscure invoice content.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "invoice.ts",
-          "kind": "baseline",
-          "text": "tax-line-mismatch in `renderInvoice` (line 79): The displayed tax is calculated on the subtotal while the total uses tax on the discounted net amount, so invoices with a discount show a tax line inconsistent with their total.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "invoice.ts",
-          "kind": "baseline",
-          "text": "page-footers-at-wrong-position in `renderInvoice` (line 83): All page footers are appended after the entire invoice rather than placed at their respective page boundaries, so multi-page invoices do not have per-page footers.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "invoice.ts",
-          "kind": "baseline",
-          "text": "shell-command-injection in `writeInvoice` (line 89, CWE-78): The output path is concatenated into a shell command, so a path such as `inv.txt;touch pwned.flag` executes attacker-controlled commands when `--out` is used.",
+          "text": "os-command-injection in `writeInvoice` (line 89, CWE-78): The user-controlled `--out` path is concatenated into a shell command, so shell metacharacters in the path can execute arbitrary commands.",
           "status": "defect_evidence"
         },
         {
           "file": "pricing.ts",
           "kind": "baseline",
-          "text": "non-finite-unit-price in `parseItem` (line 24, CWE-20): The parser accepts non-finite unit prices because it checks only the type and lower bound, so a JSON value such as `1e400` can produce infinite invoice amounts.",
+          "text": "non-finite-price-accepted in `parseItem` (line 24, CWE-20): The price check accepts positive infinity, which `JSON.parse` can produce from an overflowing numeric literal, leading to infinite totals or `null` values in JSON output.",
           "status": "defect_evidence"
         },
         {
           "file": "pricing.ts",
           "kind": "baseline",
-          "text": "negative-quantity-accepted in `parseItem` (line 27, CWE-20): The parser checks that quantity is an integer but not that it is non-negative, so negative quantities can reduce the subtotal and produce invalid invoices.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "invalid-items-silently-skipped in `parseItems` (line 41): Invalid items are discarded without reporting an error, so a malformed line item can disappear from an otherwise successful invoice and its totals.",
+          "text": "silent-input-truncation in `parseItems` (line 41, CWE-20): Malformed item entries are silently skipped, so a partially invalid input file produces an invoice that omits items rather than rejecting the input.",
           "status": "unreviewed"
         },
         {
           "file": "pricing.ts",
           "kind": "baseline",
-          "text": "discount-out-of-range in `subtotal` (line 55, CWE-20): The discount is checked only for finiteness, so negative discounts or discounts above 100 percent are accepted and can produce surcharges or negative totals.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "floating-point-money in `subtotal` (line 55, CWE-682): Money is accumulated using binary floating-point values, so inputs such as three items priced at `0.1` can yield inaccurate totals and expose artifacts in JSON output.",
+          "text": "division-by-zero in `effectiveTaxRate` (line 79, CWE-369): When the net amount is zero, this division returns `NaN` or infinity, causing the printed effective tax rate to be invalid.",
           "status": "defect_evidence"
         },
         {
           "file": "pricing.ts",
           "kind": "baseline",
-          "text": "tax-truncated-instead-of-rounded in `taxAmount` (line 67, CWE-682): Tax is floored to cents rather than rounded, so a tax amount such as 10% of 19.99 is reported as 1.99 instead of 2.00.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "undefined-effective-tax-rate in `effectiveTaxRate` (line 79): The effective tax rate divides by the net amount without handling zero, so a full discount or zero-value invoice prints `NaN`.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "pricing.ts",
-          "kind": "baseline",
-          "text": "partial-page-footer-crash in `pageFooters` (line 89): For a final page with fewer than `perPage` items, the indexed last item is undefined and accessing its SKU throws, so invoices with 11–19 items fail to render.",
+          "text": "invalid-page-footer-index in `pageFooters` (line 89, CWE-476): On a partial final page, this index is beyond the item array, so invoices with more than one page and a non-multiple-of-`perPage` item count throw when accessing `last.sku`.",
           "status": "defect_evidence"
         }
       ],
       "finding_counts": {
-        "total": 14,
-        "defect_evidence": 7,
+        "total": 6,
+        "defect_evidence": 4,
         "real": 0,
         "false_positive": 0,
-        "unreviewed": 7
+        "unreviewed": 2
       },
       "reviews_used": [],
       "fixed_raw_findings": [
         {
           "file": "invoice.ts",
+          "line": 57,
+          "rule": "invalid-date-accepted",
+          "message": "The supplied date is never checked against the documented YYYY-MM-DD format, so arbitrary strings are accepted and used in both the displayed invoice and its ID.",
+          "cwe": [
+            20
+          ],
+          "function": "value"
+        },
+        {
+          "file": "invoice.ts",
           "line": 72,
-          "rule": "unescaped-invoice-output",
-          "message": "Customer and date values, and likewise item text on line 74, are emitted without escaping, so embedded newlines can forge invoice lines and terminal escape sequences can manipulate the display.",
+          "rule": "terminal-control-injection",
+          "message": "Customer, date, SKU, and description values are interpolated into plain-text output without escaping control characters, so crafted input can inject terminal escape sequences or forged invoice lines when the output is displayed.",
           "cwe": [
             150
           ],
           "function": "renderInvoice"
         },
         {
-          "file": "invoice.ts",
-          "line": 85,
-          "rule": "misplaced-page-footers",
-          "message": "For invoices with more than ten items, all page footer strings are appended after the totals instead of being placed at their corresponding page boundaries.",
-          "cwe": [],
-          "function": "renderInvoice"
-        },
-        {
           "file": "pricing.ts",
           "line": 24,
-          "rule": "invalid-numeric-range",
-          "message": "This accepts non-finite prices such as JSON `1e400`, which propagate into invoice calculations and produce invalid totals such as `null` in JSON output.",
+          "rule": "non-finite-price-accepted",
+          "message": "This check accepts Infinity because it only tests the type and whether the value is negative; a JSON price such as `1e400` then produces non-finite invoice totals instead of being rejected.",
           "cwe": [
-            682
+            754
           ],
           "function": "parseItem"
         },
         {
           "file": "pricing.ts",
           "line": 27,
-          "rule": "unsafe-integer-quantity",
-          "message": "`Number.isInteger` accepts quantities above JavaScript's safe-integer limit, so large valid-looking quantities can be rounded and yield incorrect invoice totals.",
+          "rule": "unsafe-quantity-arithmetic",
+          "message": "`Number.isInteger` accepts integers beyond JavaScript's safe-integer range, so a sufficiently large quantity loses precision or overflows during subtotal calculations and yields incorrect totals.",
           "cwe": [
-            682
+            190
           ],
           "function": "parseItem"
         },
         {
           "file": "pricing.ts",
-          "line": 49,
-          "rule": "inaccurate-money-rounding",
-          "message": "Binary floating-point can make values such as `1.005 * 100` slightly less than 100.5, so this rounds a price of 1.005 down to 1.00 and undercharges.",
+          "line": 72,
+          "rule": "tax-calculation-overflow",
+          "message": "A finite but extremely large tax rate is accepted and can overflow this multiplication; for example, `--tax 1e308` makes tax and total Infinity on an ordinary invoice.",
           "cwe": [
-            682
+            190
           ],
-          "function": "toCents"
+          "function": "taxAmount"
         }
       ],
       "fixed_invalid_findings": [],
       "fixed_tool_errors": 0,
       "fixed_usage": {
-        "prompt_tokens": 6752,
-        "completion_tokens": 3632,
-        "cost_usd": 0.002659925,
-        "seconds": 55.23,
+        "prompt_tokens": 3383,
+        "completion_tokens": 2226,
+        "cost_usd": 0.0015358,
+        "seconds": 29.61,
         "attempts": 1
       },
       "fixed": {
         "defects": 10,
-        "still_reported": [],
+        "still_reported": [
+          "TS03-D04"
+        ],
         "false_alarms": 5,
         "findings": [
           {
             "file": "invoice.ts",
             "kind": "baseline",
-            "text": "unescaped-invoice-output in `renderInvoice` (line 72, CWE-150): Customer and date values, and likewise item text on line 74, are emitted without escaping, so embedded newlines can forge invoice lines and terminal escape sequences can manipulate the display.",
+            "text": "invalid-date-accepted in `value` (line 57, CWE-20): The supplied date is never checked against the documented YYYY-MM-DD format, so arbitrary strings are accepted and used in both the displayed invoice and its ID.",
             "status": "unreviewed"
           },
           {
             "file": "invoice.ts",
             "kind": "baseline",
-            "text": "misplaced-page-footers in `renderInvoice` (line 85): For invoices with more than ten items, all page footer strings are appended after the totals instead of being placed at their corresponding page boundaries.",
+            "text": "terminal-control-injection in `renderInvoice` (line 72, CWE-150): Customer, date, SKU, and description values are interpolated into plain-text output without escaping control characters, so crafted input can inject terminal escape sequences or forged invoice lines when the output is displayed.",
             "status": "unreviewed"
           },
           {
             "file": "pricing.ts",
             "kind": "baseline",
-            "text": "invalid-numeric-range in `parseItem` (line 24, CWE-682): This accepts non-finite prices such as JSON `1e400`, which propagate into invoice calculations and produce invalid totals such as `null` in JSON output.",
+            "text": "non-finite-price-accepted in `parseItem` (line 24, CWE-754): This check accepts Infinity because it only tests the type and whether the value is negative; a JSON price such as `1e400` then produces non-finite invoice totals instead of being rejected.",
             "status": "unreviewed"
           },
           {
             "file": "pricing.ts",
             "kind": "baseline",
-            "text": "unsafe-integer-quantity in `parseItem` (line 27, CWE-682): `Number.isInteger` accepts quantities above JavaScript's safe-integer limit, so large valid-looking quantities can be rounded and yield incorrect invoice totals.",
+            "text": "unsafe-quantity-arithmetic in `parseItem` (line 27, CWE-190): `Number.isInteger` accepts integers beyond JavaScript's safe-integer range, so a sufficiently large quantity loses precision or overflows during subtotal calculations and yields incorrect totals.",
             "status": "unreviewed"
           },
           {
             "file": "pricing.ts",
             "kind": "baseline",
-            "text": "inaccurate-money-rounding in `toCents` (line 49, CWE-682): Binary floating-point can make values such as `1.005 * 100` slightly less than 100.5, so this rounds a price of 1.005 down to 1.00 and undercharges.",
+            "text": "tax-calculation-overflow in `taxAmount` (line 72, CWE-190): A finite but extremely large tax rate is accepted and can overflow this multiplication; for example, `--tax 1e308` makes tax and total Infinity on an ordinary invoice.",
             "status": "unreviewed"
           }
         ],
@@ -1420,6 +353,725 @@
           "real": 0,
           "false_positive": 0,
           "unreviewed": 5
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 2,
+      "raw_findings": [
+        {
+          "file": "invoice.ts",
+          "line": 70,
+          "rule": "output-injection",
+          "message": "Customer names and item text are inserted into the invoice without escaping, so input containing newlines can forge or obscure invoice fields in the rendered document.",
+          "cwe": [
+            116
+          ],
+          "function": "renderInvoice"
+        },
+        {
+          "file": "invoice.ts",
+          "line": 79,
+          "rule": "incorrect-tax-calculation",
+          "message": "The displayed tax is calculated from the subtotal rather than the discounted net amount, so invoices with a discount show a tax figure inconsistent with the total.",
+          "cwe": [
+            682
+          ],
+          "function": "renderInvoice"
+        },
+        {
+          "file": "invoice.ts",
+          "line": 89,
+          "rule": "os-command-injection",
+          "message": "The user-controlled output path is concatenated into a shell command, so a path containing shell metacharacters can execute arbitrary commands.",
+          "cwe": [
+            78
+          ],
+          "function": "writeInvoice"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 24,
+          "rule": "improper-input-validation",
+          "message": "The unit-price check accepts Infinity, which can be supplied as a JSON number such as 1e400 and then produces non-finite invoice totals.",
+          "cwe": [
+            20
+          ],
+          "function": "parseItem"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 27,
+          "rule": "improper-input-validation",
+          "message": "Negative integer quantities are accepted, allowing input to create negative line totals and reduce or reverse the invoice subtotal.",
+          "cwe": [
+            20
+          ],
+          "function": "parseItem"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 41,
+          "rule": "silent-input-loss",
+          "message": "Invalid items are caught and silently discarded, so a malformed item can be omitted from the invoice without alerting the user.",
+          "cwe": [],
+          "function": "parseItems"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 55,
+          "rule": "improper-input-validation",
+          "message": "Discounts are checked only for finiteness, so negative discounts or discounts above 100% are accepted and can produce surcharges or negative invoice totals.",
+          "cwe": [
+            20
+          ],
+          "function": "subtotal"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 79,
+          "rule": "division-by-zero",
+          "message": "When the net amount is zero, this calculation returns NaN or Infinity, which is then printed as the effective tax rate for a zero-value invoice.",
+          "cwe": [
+            682
+          ],
+          "function": "effectiveTaxRate"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 89,
+          "rule": "undefined-property-access",
+          "message": "For a final page containing fewer than perPage items, this index is out of bounds and reading last.sku throws, so invoices with more than one page and a partial final page fail.",
+          "cwe": [
+            476
+          ],
+          "function": "pageFooters"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 3177,
+        "completion_tokens": 2693,
+        "cost_usd": 0.00137854,
+        "seconds": 36.66,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "TS03-D01",
+          "file": "pricing.ts",
+          "function": "subtotal",
+          "category": "float-money",
+          "class": "design",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "improper-input-validation in `subtotal` (line 55, CWE-20): Discounts are checked only for finiteness, so negative discounts or discounts above 100% are accepted and can produce surcharges or negative invoice totals."
+          ]
+        },
+        {
+          "id": "TS03-D02",
+          "file": "invoice.ts",
+          "function": "renderInvoice",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "output-injection in `renderInvoice` (line 70, CWE-116): Customer names and item text are inserted into the invoice without escaping, so input containing newlines can forge or obscure invoice fields in the rendered document.",
+            "incorrect-tax-calculation in `renderInvoice` (line 79, CWE-682): The displayed tax is calculated from the subtotal rather than the discounted net amount, so invoices with a discount show a tax figure inconsistent with the total."
+          ]
+        },
+        {
+          "id": "TS03-D03",
+          "file": "pricing.ts",
+          "function": "effectiveTaxRate",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `effectiveTaxRate` (line 79, CWE-682): When the net amount is zero, this calculation returns NaN or Infinity, which is then printed as the effective tax rate for a zero-value invoice."
+          ]
+        },
+        {
+          "id": "TS03-D04",
+          "file": "pricing.ts",
+          "function": "parseItem",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "improper-input-validation in `parseItem` (line 24, CWE-20): The unit-price check accepts Infinity, which can be supplied as a JSON number such as 1e400 and then produces non-finite invoice totals.",
+            "improper-input-validation in `parseItem` (line 27, CWE-20): Negative integer quantities are accepted, allowing input to create negative line totals and reduce or reverse the invoice subtotal."
+          ]
+        },
+        {
+          "id": "TS03-D05",
+          "file": "pricing.ts",
+          "function": "pageFooters",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "undefined-property-access in `pageFooters` (line 89, CWE-476): For a final page containing fewer than perPage items, this index is out of bounds and reading last.sku throws, so invoices with more than one page and a partial final page fail."
+          ]
+        },
+        {
+          "id": "TS03-D06",
+          "file": "invoice.ts",
+          "function": "invoiceId",
+          "category": "weak-crypto",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "TS03-D07",
+          "file": "invoice.ts",
+          "function": "writeInvoice",
+          "category": "command-injection",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "os-command-injection in `writeInvoice` (line 89, CWE-78): The user-controlled output path is concatenated into a shell command, so a path containing shell metacharacters can execute arbitrary commands."
+          ]
+        },
+        {
+          "id": "TS03-D08",
+          "file": "pricing.ts",
+          "function": "parseItems",
+          "category": "error-handling",
+          "class": "design",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "silent-input-loss in `parseItems` (line 41): Invalid items are caught and silently discarded, so a malformed item can be omitted from the invoice without alerting the user."
+          ]
+        },
+        {
+          "id": "TS03-D09",
+          "file": "pricing.ts",
+          "function": "applyDiscount",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "TS03-D10",
+          "file": "pricing.ts",
+          "function": "taxAmount",
+          "category": "rounding-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        }
+      ],
+      "counts": {
+        "total": 10,
+        "detected": 4,
+        "function_flagged": 3,
+        "missed": 3
+      },
+      "findings": [
+        {
+          "file": "invoice.ts",
+          "kind": "baseline",
+          "text": "output-injection in `renderInvoice` (line 70, CWE-116): Customer names and item text are inserted into the invoice without escaping, so input containing newlines can forge or obscure invoice fields in the rendered document.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "invoice.ts",
+          "kind": "baseline",
+          "text": "incorrect-tax-calculation in `renderInvoice` (line 79, CWE-682): The displayed tax is calculated from the subtotal rather than the discounted net amount, so invoices with a discount show a tax figure inconsistent with the total.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "invoice.ts",
+          "kind": "baseline",
+          "text": "os-command-injection in `writeInvoice` (line 89, CWE-78): The user-controlled output path is concatenated into a shell command, so a path containing shell metacharacters can execute arbitrary commands.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "pricing.ts",
+          "kind": "baseline",
+          "text": "improper-input-validation in `parseItem` (line 24, CWE-20): The unit-price check accepts Infinity, which can be supplied as a JSON number such as 1e400 and then produces non-finite invoice totals.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "pricing.ts",
+          "kind": "baseline",
+          "text": "improper-input-validation in `parseItem` (line 27, CWE-20): Negative integer quantities are accepted, allowing input to create negative line totals and reduce or reverse the invoice subtotal.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "pricing.ts",
+          "kind": "baseline",
+          "text": "silent-input-loss in `parseItems` (line 41): Invalid items are caught and silently discarded, so a malformed item can be omitted from the invoice without alerting the user.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "pricing.ts",
+          "kind": "baseline",
+          "text": "improper-input-validation in `subtotal` (line 55, CWE-20): Discounts are checked only for finiteness, so negative discounts or discounts above 100% are accepted and can produce surcharges or negative invoice totals.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "pricing.ts",
+          "kind": "baseline",
+          "text": "division-by-zero in `effectiveTaxRate` (line 79, CWE-682): When the net amount is zero, this calculation returns NaN or Infinity, which is then printed as the effective tax rate for a zero-value invoice.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "pricing.ts",
+          "kind": "baseline",
+          "text": "undefined-property-access in `pageFooters` (line 89, CWE-476): For a final page containing fewer than perPage items, this index is out of bounds and reading last.sku throws, so invoices with more than one page and a partial final page fail.",
+          "status": "defect_evidence"
+        }
+      ],
+      "finding_counts": {
+        "total": 9,
+        "defect_evidence": 5,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 4
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "invoice.ts",
+          "line": 72,
+          "rule": "unescaped-invoice-fields",
+          "message": "Customer, date, invoice ID, and item text are written raw into the text invoice, so embedded newlines or terminal escape sequences can forge invoice content or manipulate a terminal.",
+          "cwe": [
+            116
+          ],
+          "function": "renderInvoice"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 24,
+          "rule": "non-finite-price-accepted",
+          "message": "This check accepts Infinity because it only rejects values below zero, so a JSON price such as 1e400 can make invoice totals NaN or Infinity.",
+          "cwe": [
+            20
+          ],
+          "function": "parseItem"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 27,
+          "rule": "unsafe-quantity",
+          "message": "Number.isInteger accepts integers beyond JavaScript's safe-integer range, so a large quantity can silently lose precision in line totals and invoice totals.",
+          "cwe": [
+            190
+          ],
+          "function": "parseItem"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 49,
+          "rule": "incorrect-currency-rounding",
+          "message": "Multiplying decimal prices by 100 can produce binary floating-point values just below a half-cent, so a price such as 1.005 is rounded to 1.00 instead of 1.01.",
+          "cwe": [
+            682
+          ],
+          "function": "toCents"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 72,
+          "rule": "tax-calculation-overflow",
+          "message": "A sufficiently large finite tax rate can overflow this multiplication and produce an infinite tax amount; for example, the CLI accepts --tax 1e308.",
+          "cwe": [
+            190
+          ],
+          "function": "taxAmount"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 3383,
+        "completion_tokens": 1873,
+        "cost_usd": 0.0009706,
+        "seconds": 27.03,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 10,
+        "still_reported": [
+          "TS03-D04"
+        ],
+        "false_alarms": 5,
+        "findings": [
+          {
+            "file": "invoice.ts",
+            "kind": "baseline",
+            "text": "unescaped-invoice-fields in `renderInvoice` (line 72, CWE-116): Customer, date, invoice ID, and item text are written raw into the text invoice, so embedded newlines or terminal escape sequences can forge invoice content or manipulate a terminal.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "pricing.ts",
+            "kind": "baseline",
+            "text": "non-finite-price-accepted in `parseItem` (line 24, CWE-20): This check accepts Infinity because it only rejects values below zero, so a JSON price such as 1e400 can make invoice totals NaN or Infinity.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "pricing.ts",
+            "kind": "baseline",
+            "text": "unsafe-quantity in `parseItem` (line 27, CWE-190): Number.isInteger accepts integers beyond JavaScript's safe-integer range, so a large quantity can silently lose precision in line totals and invoice totals.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "pricing.ts",
+            "kind": "baseline",
+            "text": "incorrect-currency-rounding in `toCents` (line 49, CWE-682): Multiplying decimal prices by 100 can produce binary floating-point values just below a half-cent, so a price such as 1.005 is rounded to 1.00 instead of 1.01.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "pricing.ts",
+            "kind": "baseline",
+            "text": "tax-calculation-overflow in `taxAmount` (line 72, CWE-190): A sufficiently large finite tax rate can overflow this multiplication and produce an infinite tax amount; for example, the CLI accepts --tax 1e308.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 5,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 5
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 3,
+      "raw_findings": [
+        {
+          "file": "invoice.ts",
+          "line": 55,
+          "rule": "unbounded-discount",
+          "message": "Discounts below zero or above 100 are accepted, allowing a supposed discount to increase the amount or make the net payable negative.",
+          "cwe": [],
+          "function": "value"
+        },
+        {
+          "file": "invoice.ts",
+          "line": 89,
+          "rule": "os-command-injection",
+          "message": "The user-controlled output path is concatenated into a shell command, so a path containing shell metacharacters can execute arbitrary commands.",
+          "cwe": [
+            78
+          ],
+          "function": "writeInvoice"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 24,
+          "rule": "non-finite-unit-price",
+          "message": "This check accepts positive infinity, which can result from valid JSON such as `1e400`, producing non-finite invoice totals.",
+          "cwe": [
+            1284
+          ],
+          "function": "parseItem"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 27,
+          "rule": "negative-quantity",
+          "message": "Negative integer quantities are accepted and can make invoice line totals and the subtotal negative.",
+          "cwe": [],
+          "function": "parseItem"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 41,
+          "rule": "silent-invalid-item-drop",
+          "message": "Invalid entries are silently skipped, so an invoice can be generated with malformed items omitted instead of reporting the input error.",
+          "cwe": [],
+          "function": "parseItems"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 79,
+          "rule": "division-by-zero",
+          "message": "When the net amount is zero, this returns `NaN` or infinity, which is then printed as the effective tax rate for an otherwise valid invoice.",
+          "cwe": [
+            369
+          ],
+          "function": "effectiveTaxRate"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 89,
+          "rule": "partial-page-footer-crash",
+          "message": "For more than one page with a partially filled final page, this index is out of bounds and accessing `last.sku` throws.",
+          "cwe": [],
+          "function": "pageFooters"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 3177,
+        "completion_tokens": 2438,
+        "cost_usd": 0.00125104,
+        "seconds": 32.18,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "TS03-D01",
+          "file": "pricing.ts",
+          "function": "subtotal",
+          "category": "float-money",
+          "class": "design",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "TS03-D02",
+          "file": "invoice.ts",
+          "function": "renderInvoice",
+          "category": "logic-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "TS03-D03",
+          "file": "pricing.ts",
+          "function": "effectiveTaxRate",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "division-by-zero in `effectiveTaxRate` (line 79, CWE-369): When the net amount is zero, this returns `NaN` or infinity, which is then printed as the effective tax rate for an otherwise valid invoice."
+          ]
+        },
+        {
+          "id": "TS03-D04",
+          "file": "pricing.ts",
+          "function": "parseItem",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "non-finite-unit-price in `parseItem` (line 24, CWE-1284): This check accepts positive infinity, which can result from valid JSON such as `1e400`, producing non-finite invoice totals.",
+            "negative-quantity in `parseItem` (line 27): Negative integer quantities are accepted and can make invoice line totals and the subtotal negative."
+          ]
+        },
+        {
+          "id": "TS03-D05",
+          "file": "pricing.ts",
+          "function": "pageFooters",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "partial-page-footer-crash in `pageFooters` (line 89): For more than one page with a partially filled final page, this index is out of bounds and accessing `last.sku` throws."
+          ]
+        },
+        {
+          "id": "TS03-D06",
+          "file": "invoice.ts",
+          "function": "invoiceId",
+          "category": "weak-crypto",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "TS03-D07",
+          "file": "invoice.ts",
+          "function": "writeInvoice",
+          "category": "command-injection",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "os-command-injection in `writeInvoice` (line 89, CWE-78): The user-controlled output path is concatenated into a shell command, so a path containing shell metacharacters can execute arbitrary commands."
+          ]
+        },
+        {
+          "id": "TS03-D08",
+          "file": "pricing.ts",
+          "function": "parseItems",
+          "category": "error-handling",
+          "class": "design",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "silent-invalid-item-drop in `parseItems` (line 41): Invalid entries are silently skipped, so an invoice can be generated with malformed items omitted instead of reporting the input error."
+          ]
+        },
+        {
+          "id": "TS03-D09",
+          "file": "pricing.ts",
+          "function": "applyDiscount",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "TS03-D10",
+          "file": "pricing.ts",
+          "function": "taxAmount",
+          "category": "rounding-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        }
+      ],
+      "counts": {
+        "total": 10,
+        "detected": 4,
+        "function_flagged": 1,
+        "missed": 5
+      },
+      "findings": [
+        {
+          "file": "invoice.ts",
+          "kind": "baseline",
+          "text": "unbounded-discount in `value` (line 55): Discounts below zero or above 100 are accepted, allowing a supposed discount to increase the amount or make the net payable negative.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "invoice.ts",
+          "kind": "baseline",
+          "text": "os-command-injection in `writeInvoice` (line 89, CWE-78): The user-controlled output path is concatenated into a shell command, so a path containing shell metacharacters can execute arbitrary commands.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "pricing.ts",
+          "kind": "baseline",
+          "text": "non-finite-unit-price in `parseItem` (line 24, CWE-1284): This check accepts positive infinity, which can result from valid JSON such as `1e400`, producing non-finite invoice totals.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "pricing.ts",
+          "kind": "baseline",
+          "text": "negative-quantity in `parseItem` (line 27): Negative integer quantities are accepted and can make invoice line totals and the subtotal negative.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "pricing.ts",
+          "kind": "baseline",
+          "text": "silent-invalid-item-drop in `parseItems` (line 41): Invalid entries are silently skipped, so an invoice can be generated with malformed items omitted instead of reporting the input error.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "pricing.ts",
+          "kind": "baseline",
+          "text": "division-by-zero in `effectiveTaxRate` (line 79, CWE-369): When the net amount is zero, this returns `NaN` or infinity, which is then printed as the effective tax rate for an otherwise valid invoice.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "pricing.ts",
+          "kind": "baseline",
+          "text": "partial-page-footer-crash in `pageFooters` (line 89): For more than one page with a partially filled final page, this index is out of bounds and accessing `last.sku` throws.",
+          "status": "defect_evidence"
+        }
+      ],
+      "finding_counts": {
+        "total": 7,
+        "defect_evidence": 5,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 2
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "invoice.ts",
+          "line": 48,
+          "rule": "invalid-date-accepted",
+          "message": "The supplied date is never validated, so values that are not YYYY-MM-DD dates are emitted on invoices and inserted into invoice IDs, breaking the documented date format and sortable date prefix.",
+          "cwe": [
+            20
+          ],
+          "function": "value"
+        },
+        {
+          "file": "invoice.ts",
+          "line": 72,
+          "rule": "unescaped-invoice-output",
+          "message": "Untrusted customer, date, SKU, and description values are written into the text invoice without escaping control characters or newlines, allowing an input to spoof invoice fields or inject terminal escape sequences.",
+          "cwe": [
+            150
+          ],
+          "function": "renderInvoice"
+        },
+        {
+          "file": "pricing.ts",
+          "line": 24,
+          "rule": "numeric-overflow",
+          "message": "Prices and quantities are not bounded to values whose cent conversions and products remain finite and safely representable, so accepted inputs such as a very large price or quantity can produce incorrect totals or NaN/Infinity output.",
+          "cwe": [
+            682
+          ],
+          "function": "parseItem"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 3383,
+        "completion_tokens": 1946,
+        "cost_usd": 0.0010071,
+        "seconds": 29.5,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 10,
+        "still_reported": [],
+        "false_alarms": 3,
+        "findings": [
+          {
+            "file": "invoice.ts",
+            "kind": "baseline",
+            "text": "invalid-date-accepted in `value` (line 48, CWE-20): The supplied date is never validated, so values that are not YYYY-MM-DD dates are emitted on invoices and inserted into invoice IDs, breaking the documented date format and sortable date prefix.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "invoice.ts",
+            "kind": "baseline",
+            "text": "unescaped-invoice-output in `renderInvoice` (line 72, CWE-150): Untrusted customer, date, SKU, and description values are written into the text invoice without escaping control characters or newlines, allowing an input to spoof invoice fields or inject terminal escape sequences.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "pricing.ts",
+            "kind": "baseline",
+            "text": "numeric-overflow in `parseItem` (line 24, CWE-682): Prices and quantities are not bounded to values whose cent conversions and products remain finite and safely representable, so accepted inputs such as a very large price or quantity can produce incorrect totals or NaN/Infinity output.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 3,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 3
         },
         "reviews_used": []
       }

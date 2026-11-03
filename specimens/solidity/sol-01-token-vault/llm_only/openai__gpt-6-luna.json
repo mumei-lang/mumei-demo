@@ -3,10 +3,10 @@
   "language": "solidity",
   "tool": "llm-only",
   "model": "openai/gpt-6-luna",
-  "prompt_version": 1,
-  "prompt_hash": "50865386f4c2f5d6",
+  "prompt_version": 2,
+  "prompt_hash": "2fd1a1213dca8cce",
   "temperature": 0,
-  "generated_at": "2026-11-03T04:59:40Z",
+  "generated_at": "2026-11-03T06:16:58Z",
   "source_hash": "06ece590119e0b2330e82017f2ba92081b5a0dc4ccb6ab4d984a80c39283ec89",
   "runs": [
     {
@@ -15,8 +15,8 @@
         {
           "file": "src/RewardVault.sol",
           "line": 57,
-          "rule": "share-truncation",
-          "message": "Casting minted shares to uint128 truncates positions above 2^128−1 while `totalShares` still records the full amount, so a large deposit leaves the user unable to withdraw the shares recorded in the vault.",
+          "rule": "integer-truncation",
+          "message": "Casting shares to uint128 silently truncates deposits that mint more than uint128 shares, while totalShares still increases by the full amount, leaving the depositor unable to withdraw the shares recorded in the vault.",
           "cwe": [
             197
           ],
@@ -25,398 +25,8 @@
         {
           "file": "src/RewardVault.sol",
           "line": 60,
-          "rule": "unbounded-reward-loop",
-          "message": "Every deposit appends another holder entry and `distributeRewards` iterates over the entire array, so users can grow it until reward distribution exceeds the transaction gas limit and becomes unusable.",
-          "cwe": [
-            400
-          ],
-          "function": "deposit"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 76,
-          "rule": "division-by-zero",
-          "message": "`sharePrice()` divides by `totalShares` without handling an empty vault, so calling it before the first deposit reverts.",
-          "cwe": [
-            369
-          ],
-          "function": "sharePrice"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 88,
-          "rule": "reentrancy",
-          "message": "Withdrawal makes external calls before reducing the caller's shares or total shares, allowing a recipient that reenters during a payout to withdraw repeatedly against the unchanged position.",
-          "cwe": [
-            841
-          ],
-          "function": "withdraw"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 107,
-          "rule": "reward-rounding-loss",
-          "message": "Dividing the reward amount by `totalShares` before multiplying by positions rounds small rewards to zero and leaves the supplied ETH uncredited as rewards.",
-          "cwe": [
-            682
-          ],
-          "function": "distributeRewards"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 111,
           "rule": "duplicate-reward-credit",
-          "message": "Because each deposit adds another entry for the same address, this loop credits that address's full position repeatedly, potentially making `rewardsOwed` exceed the ETH available for rewards.",
-          "cwe": [
-            682
-          ],
-          "function": "distributeRewards"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 129,
-          "rule": "missing-access-control",
-          "message": "Anyone can change `feeRecipient`, so an attacker can redirect fees from later withdrawals to an address they control.",
-          "cwe": [
-            862
-          ],
-          "function": "setFeeRecipient"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 135,
-          "rule": "tx-origin-authorization",
-          "message": "Checking `tx.origin` instead of `msg.sender` lets a contract called by the owner change the fee, so an owner can be tricked into invoking a malicious intermediary that sets the fee.",
-          "cwe": [
-            862
-          ],
-          "function": "setWithdrawFeeBps"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 159,
-          "rule": "incorrect-share-pricing",
-          "message": "During a deposit, `totalAssets()` already includes the incoming ETH, so the deposit is included in its own pricing denominator and mints too few shares, potentially zeroing a depositor's shares.",
-          "cwe": [
-            682
-          ],
-          "function": "_sharesFor"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 171,
-          "rule": "ignored-transfer-failure",
-          "message": "The fee transfer's success flag is ignored, so if `feeRecipient` rejects ETH the withdrawal still succeeds and the unpaid fee remains in the vault instead of reaching the recipient.",
-          "cwe": [
-            754
-          ],
-          "function": "_payFee"
-        },
-        {
-          "file": "src/VaultToken.sol",
-          "line": 59,
-          "rule": "allowance-underflow",
-          "message": "Unchecked subtraction wraps an insufficient allowance to a huge value, allowing an unapproved spender to transfer tokens from an account that has enough balance.",
-          "cwe": [
-            191
-          ],
-          "function": "transferFrom"
-        }
-      ],
-      "invalid_findings": [],
-      "tool_errors": 0,
-      "usage": {
-        "prompt_tokens": 8808,
-        "completion_tokens": 3626,
-        "cost_usd": 0.002913925,
-        "seconds": 56.02,
-        "attempts": 1
-      },
-      "defects": [
-        {
-          "id": "SOL01-D01",
-          "file": "src/RewardVault.sol",
-          "function": "withdraw",
-          "category": "reentrancy",
-          "class": "vulnerability",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "reentrancy in `withdraw` (line 88, CWE-841): Withdrawal makes external calls before reducing the caller's shares or total shares, allowing a recipient that reenters during a payout to withdraw repeatedly against the unchanged position."
-          ]
-        },
-        {
-          "id": "SOL01-D02",
-          "file": "src/VaultToken.sol",
-          "function": "transferFrom",
-          "category": "integer-underflow",
-          "class": "vulnerability",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "allowance-underflow in `transferFrom` (line 59, CWE-191): Unchecked subtraction wraps an insufficient allowance to a huge value, allowing an unapproved spender to transfer tokens from an account that has enough balance."
-          ]
-        },
-        {
-          "id": "SOL01-D03",
-          "file": "src/RewardVault.sol",
-          "function": "sharePrice",
-          "category": "division-by-zero",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "division-by-zero in `sharePrice` (line 76, CWE-369): `sharePrice()` divides by `totalShares` without handling an empty vault, so calling it before the first deposit reverts."
-          ]
-        },
-        {
-          "id": "SOL01-D04",
-          "file": "src/RewardVault.sol",
-          "function": "_sharesFor",
-          "category": "rounding-error",
-          "class": "design",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "incorrect-share-pricing in `_sharesFor` (line 159, CWE-682): During a deposit, `totalAssets()` already includes the incoming ETH, so the deposit is included in its own pricing denominator and mints too few shares, potentially zeroing a depositor's shares."
-          ]
-        },
-        {
-          "id": "SOL01-D05",
-          "file": "src/RewardVault.sol",
-          "function": "setFeeRecipient",
-          "category": "access-control",
-          "class": "vulnerability",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "missing-access-control in `setFeeRecipient` (line 129, CWE-862): Anyone can change `feeRecipient`, so an attacker can redirect fees from later withdrawals to an address they control."
-          ]
-        },
-        {
-          "id": "SOL01-D06",
-          "file": "src/RewardVault.sol",
-          "function": "setWithdrawFeeBps",
-          "category": "tx-origin-auth",
-          "class": "vulnerability",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "tx-origin-authorization in `setWithdrawFeeBps` (line 135, CWE-862): Checking `tx.origin` instead of `msg.sender` lets a contract called by the owner change the fee, so an owner can be tricked into invoking a malicious intermediary that sets the fee."
-          ]
-        },
-        {
-          "id": "SOL01-D07",
-          "file": "src/RewardVault.sol",
-          "function": "_payFee",
-          "category": "unchecked-call",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "ignored-transfer-failure in `_payFee` (line 171, CWE-754): The fee transfer's success flag is ignored, so if `feeRecipient` rejects ETH the withdrawal still succeeds and the unpaid fee remains in the vault instead of reaching the recipient."
-          ]
-        },
-        {
-          "id": "SOL01-D08",
-          "file": "src/RewardVault.sol",
-          "function": "deposit",
-          "category": "integer-overflow",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "share-truncation in `deposit` (line 57, CWE-197): Casting minted shares to uint128 truncates positions above 2^128−1 while `totalShares` still records the full amount, so a large deposit leaves the user unable to withdraw the shares recorded in the vault."
-          ]
-        },
-        {
-          "id": "SOL01-D09",
-          "file": "src/RewardVault.sol",
-          "function": "distributeRewards",
-          "category": "denial-of-service",
-          "class": "design",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "reward-rounding-loss in `distributeRewards` (line 107, CWE-682): Dividing the reward amount by `totalShares` before multiplying by positions rounds small rewards to zero and leaves the supplied ETH uncredited as rewards.",
-            "duplicate-reward-credit in `distributeRewards` (line 111, CWE-682): Because each deposit adds another entry for the same address, this loop credits that address's full position repeatedly, potentially making `rewardsOwed` exceed the ETH available for rewards."
-          ]
-        },
-        {
-          "id": "SOL01-D10",
-          "file": "src/RewardVault.sol",
-          "function": "distributeRewards",
-          "category": "rounding-error",
-          "class": "bug",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "reward-rounding-loss in `distributeRewards` (line 107, CWE-682): Dividing the reward amount by `totalShares` before multiplying by positions rounds small rewards to zero and leaves the supplied ETH uncredited as rewards.",
-            "duplicate-reward-credit in `distributeRewards` (line 111, CWE-682): Because each deposit adds another entry for the same address, this loop credits that address's full position repeatedly, potentially making `rewardsOwed` exceed the ETH available for rewards."
-          ]
-        }
-      ],
-      "counts": {
-        "total": 10,
-        "detected": 9,
-        "function_flagged": 1,
-        "missed": 0
-      },
-      "findings": [
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "share-truncation in `deposit` (line 57, CWE-197): Casting minted shares to uint128 truncates positions above 2^128−1 while `totalShares` still records the full amount, so a large deposit leaves the user unable to withdraw the shares recorded in the vault.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "unbounded-reward-loop in `deposit` (line 60, CWE-400): Every deposit appends another holder entry and `distributeRewards` iterates over the entire array, so users can grow it until reward distribution exceeds the transaction gas limit and becomes unusable.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "division-by-zero in `sharePrice` (line 76, CWE-369): `sharePrice()` divides by `totalShares` without handling an empty vault, so calling it before the first deposit reverts.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "reentrancy in `withdraw` (line 88, CWE-841): Withdrawal makes external calls before reducing the caller's shares or total shares, allowing a recipient that reenters during a payout to withdraw repeatedly against the unchanged position.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "reward-rounding-loss in `distributeRewards` (line 107, CWE-682): Dividing the reward amount by `totalShares` before multiplying by positions rounds small rewards to zero and leaves the supplied ETH uncredited as rewards.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "duplicate-reward-credit in `distributeRewards` (line 111, CWE-682): Because each deposit adds another entry for the same address, this loop credits that address's full position repeatedly, potentially making `rewardsOwed` exceed the ETH available for rewards.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "missing-access-control in `setFeeRecipient` (line 129, CWE-862): Anyone can change `feeRecipient`, so an attacker can redirect fees from later withdrawals to an address they control.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "tx-origin-authorization in `setWithdrawFeeBps` (line 135, CWE-862): Checking `tx.origin` instead of `msg.sender` lets a contract called by the owner change the fee, so an owner can be tricked into invoking a malicious intermediary that sets the fee.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "incorrect-share-pricing in `_sharesFor` (line 159, CWE-682): During a deposit, `totalAssets()` already includes the incoming ETH, so the deposit is included in its own pricing denominator and mints too few shares, potentially zeroing a depositor's shares.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "ignored-transfer-failure in `_payFee` (line 171, CWE-754): The fee transfer's success flag is ignored, so if `feeRecipient` rejects ETH the withdrawal still succeeds and the unpaid fee remains in the vault instead of reaching the recipient.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/VaultToken.sol",
-          "kind": "baseline",
-          "text": "allowance-underflow in `transferFrom` (line 59, CWE-191): Unchecked subtraction wraps an insufficient allowance to a huge value, allowing an unapproved spender to transfer tokens from an account that has enough balance.",
-          "status": "defect_evidence"
-        }
-      ],
-      "finding_counts": {
-        "total": 11,
-        "defect_evidence": 10,
-        "real": 0,
-        "false_positive": 0,
-        "unreviewed": 1
-      },
-      "reviews_used": [],
-      "fixed_raw_findings": [
-        {
-          "file": "src/RewardVault.sol",
-          "line": 145,
-          "rule": "reward-accounting-rounding",
-          "message": "Rounding each distribution's reserve separately can leave cumulative holder rewards greater than `rewardsOwed`; for example, a sole holder with 0.9 ETH in shares and two 1-wei distributions accrues 1 wei while `rewardsOwed` remains zero, so claiming or withdrawing reverts on the subtraction.",
-          "cwe": [
-            682
-          ],
-          "function": "distributeRewards"
-        },
-        {
-          "file": "src/VaultToken.sol",
-          "line": 64,
-          "rule": "zero-address-token-transfer",
-          "message": "Neither minting nor `_move` rejects `address(0)`, so tokens can be sent to an irrecoverable address without reducing `totalSupply`, leaving supply and balances inconsistent with usable tokens.",
-          "cwe": [
-            20
-          ],
-          "function": "_move"
-        }
-      ],
-      "fixed_invalid_findings": [],
-      "fixed_tool_errors": 0,
-      "fixed_usage": {
-        "prompt_tokens": 9528,
-        "completion_tokens": 5976,
-        "cost_usd": 0.00308355,
-        "seconds": 89.86,
-        "attempts": 1
-      },
-      "fixed": {
-        "defects": 10,
-        "still_reported": [
-          "SOL01-D10"
-        ],
-        "false_alarms": 2,
-        "findings": [
-          {
-            "file": "src/RewardVault.sol",
-            "kind": "baseline",
-            "text": "reward-accounting-rounding in `distributeRewards` (line 145, CWE-682): Rounding each distribution's reserve separately can leave cumulative holder rewards greater than `rewardsOwed`; for example, a sole holder with 0.9 ETH in shares and two 1-wei distributions accrues 1 wei while `rewardsOwed` remains zero, so claiming or withdrawing reverts on the subtraction.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "src/VaultToken.sol",
-            "kind": "baseline",
-            "text": "zero-address-token-transfer in `_move` (line 64, CWE-20): Neither minting nor `_move` rejects `address(0)`, so tokens can be sent to an irrecoverable address without reducing `totalSupply`, leaving supply and balances inconsistent with usable tokens.",
-            "status": "unreviewed"
-          }
-        ],
-        "finding_counts": {
-          "total": 2,
-          "defect_evidence": 0,
-          "real": 0,
-          "false_positive": 0,
-          "unreviewed": 2
-        },
-        "reviews_used": []
-      }
-    },
-    {
-      "run": 2,
-      "raw_findings": [
-        {
-          "file": "src/RewardVault.sol",
-          "line": 57,
-          "rule": "unsafe-integer-cast",
-          "message": "Casting `shares` to `uint128` truncates deposits above `type(uint128).max` while `totalShares` is increased by the full amount, leaving the depositor unable to withdraw their recorded share of the assets.",
-          "cwe": [
-            681
-          ],
-          "function": "deposit"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 60,
-          "rule": "duplicate-holder-rewards",
-          "message": "Every deposit appends another entry for the same address, so `distributeRewards` credits that holder once per entry and can make `rewardsOwed` exceed the vault balance, breaking asset accounting and withdrawals.",
+          "message": "Every deposit appends the depositor again, so distributeRewards credits that user's full current share balance once per entry and can make rewardsOwed exceed the ETH actually received.",
           "cwe": [
             682
           ],
@@ -426,7 +36,7 @@
           "file": "src/RewardVault.sol",
           "line": 60,
           "rule": "unbounded-reward-loop",
-          "message": "Repeated deposits grow `holders` without bound, and the distribution loop processes every entry, allowing an attacker to make owner reward distributions run out of gas.",
+          "message": "Anyone can append arbitrarily many holder entries, including with deposits that mint zero shares, eventually making the owner-only reward distribution loop exceed the transaction gas limit and permanently preventing distributions.",
           "cwe": [
             400
           ],
@@ -436,406 +46,7 @@
           "file": "src/RewardVault.sol",
           "line": 76,
           "rule": "division-by-zero",
-          "message": "`sharePrice()` divides by `totalShares`, so it panics before the first deposit and again after all shares are withdrawn.",
-          "cwe": [
-            369
-          ],
-          "function": "sharePrice"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 93,
-          "rule": "reentrant-withdrawal",
-          "message": "Withdrawal makes external calls before reducing the caller's shares or clearing rewards, allowing a recipient or fee recipient to reenter and withdraw against stale state.",
-          "cwe": [
-            841
-          ],
-          "function": "withdraw"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 107,
-          "rule": "reward-rounding-loss",
-          "message": "Dividing the reward amount before allocating it rounds small distributions down to zero or leaves a remainder uncredited, so sent rewards instead remain in the vault as share backing.",
-          "cwe": [
-            682
-          ],
-          "function": "distributeRewards"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 129,
-          "rule": "missing-access-control",
-          "message": "Anyone can change `feeRecipient`, allowing an attacker to redirect future withdrawal fees to an address they control.",
-          "cwe": [
-            862
-          ],
-          "function": "setFeeRecipient"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 135,
-          "rule": "tx-origin-authorization",
-          "message": "Using `tx.origin` for authorization lets an intermediary contract change the fee when the owner is tricked into calling it, and prevents a contract owner from acting unless its origin is separately the owner.",
-          "cwe": [
-            287
-          ],
-          "function": "setWithdrawFeeBps"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 159,
-          "rule": "incorrect-share-pricing",
-          "message": "During a payable deposit, `totalAssets()` already includes `msg.value`, so the new deposit is priced against assets that include itself and subsequent depositors receive too few shares.",
-          "cwe": [
-            682
-          ],
-          "function": "_sharesFor"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 159,
-          "rule": "share-inflation-attack",
-          "message": "With no virtual shares or minimum-share check, an attacker can seed the vault with a tiny deposit and donate ETH until a victim's deposit rounds to zero shares, then withdraw the victim's contribution.",
-          "cwe": [
-            682
-          ],
-          "function": "_sharesFor"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 171,
-          "rule": "unchecked-call-result",
-          "message": "The fee transfer's success flag is ignored, so a rejecting fee recipient can prevent the fee from being paid while the withdrawal proceeds as if it had been.",
-          "cwe": [
-            252
-          ],
-          "function": "_payFee"
-        },
-        {
-          "file": "src/VaultToken.sol",
-          "line": 58,
-          "rule": "allowance-underflow",
-          "message": "Unchecked allowance subtraction wraps when `transferFrom` is called without sufficient approval, allowing tokens to be transferred and leaving the spender with a huge allowance.",
-          "cwe": [
-            191
-          ],
-          "function": "transferFrom"
-        }
-      ],
-      "invalid_findings": [],
-      "tool_errors": 0,
-      "usage": {
-        "prompt_tokens": 8808,
-        "completion_tokens": 4200,
-        "cost_usd": 0.00218835,
-        "seconds": 62.82,
-        "attempts": 1
-      },
-      "defects": [
-        {
-          "id": "SOL01-D01",
-          "file": "src/RewardVault.sol",
-          "function": "withdraw",
-          "category": "reentrancy",
-          "class": "vulnerability",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "reentrant-withdrawal in `withdraw` (line 93, CWE-841): Withdrawal makes external calls before reducing the caller's shares or clearing rewards, allowing a recipient or fee recipient to reenter and withdraw against stale state."
-          ]
-        },
-        {
-          "id": "SOL01-D02",
-          "file": "src/VaultToken.sol",
-          "function": "transferFrom",
-          "category": "integer-underflow",
-          "class": "vulnerability",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "allowance-underflow in `transferFrom` (line 58, CWE-191): Unchecked allowance subtraction wraps when `transferFrom` is called without sufficient approval, allowing tokens to be transferred and leaving the spender with a huge allowance."
-          ]
-        },
-        {
-          "id": "SOL01-D03",
-          "file": "src/RewardVault.sol",
-          "function": "sharePrice",
-          "category": "division-by-zero",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "division-by-zero in `sharePrice` (line 76, CWE-369): `sharePrice()` divides by `totalShares`, so it panics before the first deposit and again after all shares are withdrawn."
-          ]
-        },
-        {
-          "id": "SOL01-D04",
-          "file": "src/RewardVault.sol",
-          "function": "_sharesFor",
-          "category": "rounding-error",
-          "class": "design",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "incorrect-share-pricing in `_sharesFor` (line 159, CWE-682): During a payable deposit, `totalAssets()` already includes `msg.value`, so the new deposit is priced against assets that include itself and subsequent depositors receive too few shares.",
-            "share-inflation-attack in `_sharesFor` (line 159, CWE-682): With no virtual shares or minimum-share check, an attacker can seed the vault with a tiny deposit and donate ETH until a victim's deposit rounds to zero shares, then withdraw the victim's contribution."
-          ]
-        },
-        {
-          "id": "SOL01-D05",
-          "file": "src/RewardVault.sol",
-          "function": "setFeeRecipient",
-          "category": "access-control",
-          "class": "vulnerability",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "missing-access-control in `setFeeRecipient` (line 129, CWE-862): Anyone can change `feeRecipient`, allowing an attacker to redirect future withdrawal fees to an address they control."
-          ]
-        },
-        {
-          "id": "SOL01-D06",
-          "file": "src/RewardVault.sol",
-          "function": "setWithdrawFeeBps",
-          "category": "tx-origin-auth",
-          "class": "vulnerability",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "tx-origin-authorization in `setWithdrawFeeBps` (line 135, CWE-287): Using `tx.origin` for authorization lets an intermediary contract change the fee when the owner is tricked into calling it, and prevents a contract owner from acting unless its origin is separately the owner."
-          ]
-        },
-        {
-          "id": "SOL01-D07",
-          "file": "src/RewardVault.sol",
-          "function": "_payFee",
-          "category": "unchecked-call",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "unchecked-call-result in `_payFee` (line 171, CWE-252): The fee transfer's success flag is ignored, so a rejecting fee recipient can prevent the fee from being paid while the withdrawal proceeds as if it had been."
-          ]
-        },
-        {
-          "id": "SOL01-D08",
-          "file": "src/RewardVault.sol",
-          "function": "deposit",
-          "category": "integer-overflow",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "function_flagged",
-          "findings": [
-            "unsafe-integer-cast in `deposit` (line 57, CWE-681): Casting `shares` to `uint128` truncates deposits above `type(uint128).max` while `totalShares` is increased by the full amount, leaving the depositor unable to withdraw their recorded share of the assets.",
-            "duplicate-holder-rewards in `deposit` (line 60, CWE-682): Every deposit appends another entry for the same address, so `distributeRewards` credits that holder once per entry and can make `rewardsOwed` exceed the vault balance, breaking asset accounting and withdrawals.",
-            "unbounded-reward-loop in `deposit` (line 60, CWE-400): Repeated deposits grow `holders` without bound, and the distribution loop processes every entry, allowing an attacker to make owner reward distributions run out of gas."
-          ]
-        },
-        {
-          "id": "SOL01-D09",
-          "file": "src/RewardVault.sol",
-          "function": "distributeRewards",
-          "category": "denial-of-service",
-          "class": "design",
-          "in_target_category": false,
-          "status": "function_flagged",
-          "findings": [
-            "reward-rounding-loss in `distributeRewards` (line 107, CWE-682): Dividing the reward amount before allocating it rounds small distributions down to zero or leaves a remainder uncredited, so sent rewards instead remain in the vault as share backing."
-          ]
-        },
-        {
-          "id": "SOL01-D10",
-          "file": "src/RewardVault.sol",
-          "function": "distributeRewards",
-          "category": "rounding-error",
-          "class": "bug",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "reward-rounding-loss in `distributeRewards` (line 107, CWE-682): Dividing the reward amount before allocating it rounds small distributions down to zero or leaves a remainder uncredited, so sent rewards instead remain in the vault as share backing."
-          ]
-        }
-      ],
-      "counts": {
-        "total": 10,
-        "detected": 8,
-        "function_flagged": 2,
-        "missed": 0
-      },
-      "findings": [
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "unsafe-integer-cast in `deposit` (line 57, CWE-681): Casting `shares` to `uint128` truncates deposits above `type(uint128).max` while `totalShares` is increased by the full amount, leaving the depositor unable to withdraw their recorded share of the assets.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "duplicate-holder-rewards in `deposit` (line 60, CWE-682): Every deposit appends another entry for the same address, so `distributeRewards` credits that holder once per entry and can make `rewardsOwed` exceed the vault balance, breaking asset accounting and withdrawals.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "unbounded-reward-loop in `deposit` (line 60, CWE-400): Repeated deposits grow `holders` without bound, and the distribution loop processes every entry, allowing an attacker to make owner reward distributions run out of gas.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "division-by-zero in `sharePrice` (line 76, CWE-369): `sharePrice()` divides by `totalShares`, so it panics before the first deposit and again after all shares are withdrawn.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "reentrant-withdrawal in `withdraw` (line 93, CWE-841): Withdrawal makes external calls before reducing the caller's shares or clearing rewards, allowing a recipient or fee recipient to reenter and withdraw against stale state.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "reward-rounding-loss in `distributeRewards` (line 107, CWE-682): Dividing the reward amount before allocating it rounds small distributions down to zero or leaves a remainder uncredited, so sent rewards instead remain in the vault as share backing.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "missing-access-control in `setFeeRecipient` (line 129, CWE-862): Anyone can change `feeRecipient`, allowing an attacker to redirect future withdrawal fees to an address they control.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "tx-origin-authorization in `setWithdrawFeeBps` (line 135, CWE-287): Using `tx.origin` for authorization lets an intermediary contract change the fee when the owner is tricked into calling it, and prevents a contract owner from acting unless its origin is separately the owner.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "incorrect-share-pricing in `_sharesFor` (line 159, CWE-682): During a payable deposit, `totalAssets()` already includes `msg.value`, so the new deposit is priced against assets that include itself and subsequent depositors receive too few shares.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "share-inflation-attack in `_sharesFor` (line 159, CWE-682): With no virtual shares or minimum-share check, an attacker can seed the vault with a tiny deposit and donate ETH until a victim's deposit rounds to zero shares, then withdraw the victim's contribution.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "unchecked-call-result in `_payFee` (line 171, CWE-252): The fee transfer's success flag is ignored, so a rejecting fee recipient can prevent the fee from being paid while the withdrawal proceeds as if it had been.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/VaultToken.sol",
-          "kind": "baseline",
-          "text": "allowance-underflow in `transferFrom` (line 58, CWE-191): Unchecked allowance subtraction wraps when `transferFrom` is called without sufficient approval, allowing tokens to be transferred and leaving the spender with a huge allowance.",
-          "status": "defect_evidence"
-        }
-      ],
-      "finding_counts": {
-        "total": 12,
-        "defect_evidence": 9,
-        "real": 0,
-        "false_positive": 0,
-        "unreviewed": 3
-      },
-      "reviews_used": [],
-      "fixed_raw_findings": [
-        {
-          "file": "src/RewardVault.sol",
-          "line": 145,
-          "rule": "reward-rounding-under-reservation",
-          "message": "Rounding the reserved amount down independently for each distribution can leave `rewardsOwed` below accumulated user rewards; for example, two 1-wei distributions to a position of 1,000,000,001 shares accrue 2 wei while reserving 0, causing claims and withdrawals to revert on subtraction.",
-          "cwe": [
-            682
-          ],
-          "function": "distributeRewards"
-        },
-        {
-          "file": "src/VaultToken.sol",
-          "line": 32,
-          "rule": "mint-to-zero-address",
-          "message": "The owner can mint tokens to `address(0)`, creating permanently inaccessible tokens while increasing `totalSupply`.",
-          "cwe": [],
-          "function": "mint"
-        },
-        {
-          "file": "src/VaultToken.sol",
-          "line": 64,
-          "rule": "transfer-to-zero-address",
-          "message": "`_move` permits transfers to `address(0)`, permanently locking the transferred tokens in the zero address instead of rejecting the transfer.",
-          "cwe": [],
-          "function": "_move"
-        }
-      ],
-      "fixed_invalid_findings": [],
-      "fixed_tool_errors": 0,
-      "fixed_usage": {
-        "prompt_tokens": 9528,
-        "completion_tokens": 4358,
-        "cost_usd": 0.00227455,
-        "seconds": 68.49,
-        "attempts": 1
-      },
-      "fixed": {
-        "defects": 10,
-        "still_reported": [
-          "SOL01-D10"
-        ],
-        "false_alarms": 3,
-        "findings": [
-          {
-            "file": "src/RewardVault.sol",
-            "kind": "baseline",
-            "text": "reward-rounding-under-reservation in `distributeRewards` (line 145, CWE-682): Rounding the reserved amount down independently for each distribution can leave `rewardsOwed` below accumulated user rewards; for example, two 1-wei distributions to a position of 1,000,000,001 shares accrue 2 wei while reserving 0, causing claims and withdrawals to revert on subtraction.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "src/VaultToken.sol",
-            "kind": "baseline",
-            "text": "mint-to-zero-address in `mint` (line 32): The owner can mint tokens to `address(0)`, creating permanently inaccessible tokens while increasing `totalSupply`.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "src/VaultToken.sol",
-            "kind": "baseline",
-            "text": "transfer-to-zero-address in `_move` (line 64): `_move` permits transfers to `address(0)`, permanently locking the transferred tokens in the zero address instead of rejecting the transfer.",
-            "status": "unreviewed"
-          }
-        ],
-        "finding_counts": {
-          "total": 3,
-          "defect_evidence": 0,
-          "real": 0,
-          "false_positive": 0,
-          "unreviewed": 3
-        },
-        "reviews_used": []
-      }
-    },
-    {
-      "run": 3,
-      "raw_findings": [
-        {
-          "file": "src/RewardVault.sol",
-          "line": 57,
-          "rule": "share-count-truncation",
-          "message": "Casting minted shares to uint128 truncates deposits above the type limit while totalShares records the full amount, leaving shares unwithdrawable and corrupting ownership accounting.",
-          "cwe": [
-            682
-          ],
-          "function": "deposit"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 76,
-          "rule": "division-by-zero",
-          "message": "sharePrice divides by totalShares without handling an empty vault, so calling it before any shares exist or after the vault is emptied reverts.",
+          "message": "sharePrice divides by totalShares without handling an empty vault, so calling it before the first deposit or after all shares are withdrawn always reverts.",
           "cwe": [
             369
           ],
@@ -845,57 +56,17 @@
           "file": "src/RewardVault.sol",
           "line": 94,
           "rule": "reentrancy",
-          "message": "The vault pays the withdrawing user before reducing their shares or clearing rewards, allowing a reentrant receiver to withdraw against the same position and claim more than its entitlement.",
+          "message": "The vault pays the withdrawing contract before burning its shares, allowing its callback to deposit against the temporarily reduced balance and unchanged share supply to obtain excess shares at other holders' expense.",
           "cwe": [
-            841
+            362
           ],
           "function": "withdraw"
         },
         {
           "file": "src/RewardVault.sol",
-          "line": 107,
-          "rule": "division-by-zero",
-          "message": "distributeRewards divides by totalShares without checking for an empty vault, so an owner call before any deposits reverts.",
-          "cwe": [
-            369
-          ],
-          "function": "distributeRewards"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 107,
-          "rule": "reward-rounding",
-          "message": "Dividing the reward amount by totalShares before multiplying truncates fractional per-share rewards; when msg.value is less than totalShares, no rewards are credited and the funds instead become share backing.",
-          "cwe": [
-            682
-          ],
-          "function": "distributeRewards"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 109,
-          "rule": "unbounded-reward-loop",
-          "message": "Reward distribution iterates over every historical holder entry, so enough deposits can make the loop exceed the block gas limit and permanently prevent reward distributions.",
-          "cwe": [
-            400
-          ],
-          "function": "distributeRewards"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "line": 111,
-          "rule": "duplicate-reward-credit",
-          "message": "Because each deposit appends another holder entry, repeat depositors are credited their full balance multiple times; this can make rewardsOwed exceed the ETH held and cause totalAssets to underflow.",
-          "cwe": [
-            682
-          ],
-          "function": "distributeRewards"
-        },
-        {
-          "file": "src/RewardVault.sol",
           "line": 129,
-          "rule": "missing-access-control",
-          "message": "setFeeRecipient has no owner check, so any caller can redirect future withdrawal fees to an address they control.",
+          "rule": "missing-authorization",
+          "message": "Any caller can change feeRecipient and redirect future withdrawal fees because this setter has no owner authorization check.",
           "cwe": [
             862
           ],
@@ -905,9 +76,9 @@
           "file": "src/RewardVault.sol",
           "line": 135,
           "rule": "tx-origin-authorization",
-          "message": "Using tx.origin for authorization lets an owner EOA be tricked into changing the fee through an intermediary contract and prevents contract-based owners from authorizing the call normally.",
+          "message": "Using tx.origin for authorization lets an owner be tricked into calling an intermediary that invokes this setter, allowing that intermediary to change the withdrawal fee.",
           "cwe": [
-            477
+            287
           ],
           "function": "setWithdrawFeeBps"
         },
@@ -915,7 +86,7 @@
           "file": "src/RewardVault.sol",
           "line": 171,
           "rule": "unchecked-call-result",
-          "message": "The fee transfer's return value is ignored, so a rejecting fee recipient leaves the fee in the vault while the withdrawal proceeds as if it was paid.",
+          "message": "The fee transfer's success value is ignored, so a rejecting fee recipient causes the withdrawal to proceed without collecting the fee and leaves that amount in the vault.",
           "cwe": [
             252
           ],
@@ -925,7 +96,7 @@
           "file": "src/VaultToken.sol",
           "line": 59,
           "rule": "allowance-underflow",
-          "message": "Unchecked allowance subtraction wraps when transferFrom is called without sufficient approval, allowing a caller with no allowance to transfer tokens from any sufficiently funded account.",
+          "message": "Unchecked subtraction lets transferFrom wrap a zero or insufficient allowance to a huge value, allowing callers to transfer tokens without the owner's required allowance.",
           "cwe": [
             191
           ],
@@ -935,10 +106,10 @@
       "invalid_findings": [],
       "tool_errors": 0,
       "usage": {
-        "prompt_tokens": 8808,
-        "completion_tokens": 2744,
-        "cost_usd": 0.002472925,
-        "seconds": 42.49,
+        "prompt_tokens": 3617,
+        "completion_tokens": 4150,
+        "cost_usd": 0.00252705,
+        "seconds": 52.37,
         "attempts": 1
       },
       "defects": [
@@ -951,7 +122,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "reentrancy in `withdraw` (line 94, CWE-841): The vault pays the withdrawing user before reducing their shares or clearing rewards, allowing a reentrant receiver to withdraw against the same position and claim more than its entitlement."
+            "reentrancy in `withdraw` (line 94, CWE-362): The vault pays the withdrawing contract before burning its shares, allowing its callback to deposit against the temporarily reduced balance and unchanged share supply to obtain excess shares at other holders' expense."
           ]
         },
         {
@@ -963,7 +134,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "allowance-underflow in `transferFrom` (line 59, CWE-191): Unchecked allowance subtraction wraps when transferFrom is called without sufficient approval, allowing a caller with no allowance to transfer tokens from any sufficiently funded account."
+            "allowance-underflow in `transferFrom` (line 59, CWE-191): Unchecked subtraction lets transferFrom wrap a zero or insufficient allowance to a huge value, allowing callers to transfer tokens without the owner's required allowance."
           ]
         },
         {
@@ -975,7 +146,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "division-by-zero in `sharePrice` (line 76, CWE-369): sharePrice divides by totalShares without handling an empty vault, so calling it before any shares exist or after the vault is emptied reverts."
+            "division-by-zero in `sharePrice` (line 76, CWE-369): sharePrice divides by totalShares without handling an empty vault, so calling it before the first deposit or after all shares are withdrawn always reverts."
           ]
         },
         {
@@ -997,7 +168,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "missing-access-control in `setFeeRecipient` (line 129, CWE-862): setFeeRecipient has no owner check, so any caller can redirect future withdrawal fees to an address they control."
+            "missing-authorization in `setFeeRecipient` (line 129, CWE-862): Any caller can change feeRecipient and redirect future withdrawal fees because this setter has no owner authorization check."
           ]
         },
         {
@@ -1009,7 +180,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "tx-origin-authorization in `setWithdrawFeeBps` (line 135, CWE-477): Using tx.origin for authorization lets an owner EOA be tricked into changing the fee through an intermediary contract and prevents contract-based owners from authorizing the call normally."
+            "tx-origin-authorization in `setWithdrawFeeBps` (line 135, CWE-287): Using tx.origin for authorization lets an owner be tricked into calling an intermediary that invokes this setter, allowing that intermediary to change the withdrawal fee."
           ]
         },
         {
@@ -1021,7 +192,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "unchecked-call-result in `_payFee` (line 171, CWE-252): The fee transfer's return value is ignored, so a rejecting fee recipient leaves the fee in the vault while the withdrawal proceeds as if it was paid."
+            "unchecked-call-result in `_payFee` (line 171, CWE-252): The fee transfer's success value is ignored, so a rejecting fee recipient causes the withdrawal to proceed without collecting the fee and leaves that amount in the vault."
           ]
         },
         {
@@ -1031,9 +202,347 @@
           "category": "integer-overflow",
           "class": "bug",
           "in_target_category": true,
-          "status": "function_flagged",
+          "status": "detected",
           "findings": [
-            "share-count-truncation in `deposit` (line 57, CWE-682): Casting minted shares to uint128 truncates deposits above the type limit while totalShares records the full amount, leaving shares unwithdrawable and corrupting ownership accounting."
+            "integer-truncation in `deposit` (line 57, CWE-197): Casting shares to uint128 silently truncates deposits that mint more than uint128 shares, while totalShares still increases by the full amount, leaving the depositor unable to withdraw the shares recorded in the vault."
+          ]
+        },
+        {
+          "id": "SOL01-D09",
+          "file": "src/RewardVault.sol",
+          "function": "distributeRewards",
+          "category": "denial-of-service",
+          "class": "design",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "SOL01-D10",
+          "file": "src/RewardVault.sol",
+          "function": "distributeRewards",
+          "category": "rounding-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        }
+      ],
+      "counts": {
+        "total": 10,
+        "detected": 7,
+        "function_flagged": 0,
+        "missed": 3
+      },
+      "findings": [
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "integer-truncation in `deposit` (line 57, CWE-197): Casting shares to uint128 silently truncates deposits that mint more than uint128 shares, while totalShares still increases by the full amount, leaving the depositor unable to withdraw the shares recorded in the vault.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "duplicate-reward-credit in `deposit` (line 60, CWE-682): Every deposit appends the depositor again, so distributeRewards credits that user's full current share balance once per entry and can make rewardsOwed exceed the ETH actually received.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "unbounded-reward-loop in `deposit` (line 60, CWE-400): Anyone can append arbitrarily many holder entries, including with deposits that mint zero shares, eventually making the owner-only reward distribution loop exceed the transaction gas limit and permanently preventing distributions.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "division-by-zero in `sharePrice` (line 76, CWE-369): sharePrice divides by totalShares without handling an empty vault, so calling it before the first deposit or after all shares are withdrawn always reverts.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "reentrancy in `withdraw` (line 94, CWE-362): The vault pays the withdrawing contract before burning its shares, allowing its callback to deposit against the temporarily reduced balance and unchanged share supply to obtain excess shares at other holders' expense.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "missing-authorization in `setFeeRecipient` (line 129, CWE-862): Any caller can change feeRecipient and redirect future withdrawal fees because this setter has no owner authorization check.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "tx-origin-authorization in `setWithdrawFeeBps` (line 135, CWE-287): Using tx.origin for authorization lets an owner be tricked into calling an intermediary that invokes this setter, allowing that intermediary to change the withdrawal fee.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "unchecked-call-result in `_payFee` (line 171, CWE-252): The fee transfer's success value is ignored, so a rejecting fee recipient causes the withdrawal to proceed without collecting the fee and leaves that amount in the vault.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/VaultToken.sol",
+          "kind": "baseline",
+          "text": "allowance-underflow in `transferFrom` (line 59, CWE-191): Unchecked subtraction lets transferFrom wrap a zero or insufficient allowance to a huge value, allowing callers to transfer tokens without the owner's required allowance.",
+          "status": "defect_evidence"
+        }
+      ],
+      "finding_counts": {
+        "total": 9,
+        "defect_evidence": 7,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 2
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "src/RewardVault.sol",
+          "line": 145,
+          "rule": "reward-accounting",
+          "message": "Rounding `rewardsOwed` down independently for each distribution can leave it below rewards accumulated by holders across multiple distributions, so a later claim or withdrawal can revert when subtracting the holder's reward amount.",
+          "cwe": [
+            682
+          ],
+          "function": "distributeRewards"
+        },
+        {
+          "file": "src/VaultToken.sol",
+          "line": 64,
+          "rule": "zero-address-recipient",
+          "message": "`_move` allows transfers to `address(0)`, permanently locking the tokens while leaving them in `totalSupply`; `mint` also accepts `address(0)`.",
+          "cwe": [
+            20
+          ],
+          "function": "_move"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 4352,
+        "completion_tokens": 3089,
+        "cost_usd": 0.002088425,
+        "seconds": 44.4,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 10,
+        "still_reported": [
+          "SOL01-D10"
+        ],
+        "false_alarms": 2,
+        "findings": [
+          {
+            "file": "src/RewardVault.sol",
+            "kind": "baseline",
+            "text": "reward-accounting in `distributeRewards` (line 145, CWE-682): Rounding `rewardsOwed` down independently for each distribution can leave it below rewards accumulated by holders across multiple distributions, so a later claim or withdrawal can revert when subtracting the holder's reward amount.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "src/VaultToken.sol",
+            "kind": "baseline",
+            "text": "zero-address-recipient in `_move` (line 64, CWE-20): `_move` allows transfers to `address(0)`, permanently locking the tokens while leaving them in `totalSupply`; `mint` also accepts `address(0)`.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 2,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 2
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 2,
+      "raw_findings": [
+        {
+          "file": "src/RewardVault.sol",
+          "line": 57,
+          "rule": "integer-truncation",
+          "message": "Casting `shares` to `uint128` can truncate a large deposit's minted shares while `totalShares` is increased by the full amount, leaving the depositor unable to withdraw the unrecorded shares.",
+          "cwe": [
+            197
+          ],
+          "function": "deposit"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "line": 60,
+          "rule": "duplicate-reward-credit",
+          "message": "Every deposit adds another holder entry, so `distributeRewards` credits a repeat depositor's full current balance once per entry and can make `rewardsOwed` exceed the ETH held, causing `totalAssets` to underflow.",
+          "cwe": [
+            682
+          ],
+          "function": "deposit"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "line": 94,
+          "rule": "reentrancy",
+          "message": "The payout calls the recipient before burning shares, allowing a recipient callback to deposit against the transient balance and mint excess shares that dilute other holders.",
+          "cwe": [
+            841
+          ],
+          "function": "withdraw"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "line": 109,
+          "rule": "unbounded-iteration",
+          "message": "The reward loop processes every historical deposit entry, so users can make `distributeRewards` exceed the block gas limit by making enough small deposits and thereby prevent reward distributions.",
+          "cwe": [
+            400
+          ],
+          "function": "distributeRewards"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "line": 129,
+          "rule": "missing-access-control",
+          "message": "Anyone can change `feeRecipient`, allowing an attacker to redirect future withdrawal fees to an address they control.",
+          "cwe": [
+            284
+          ],
+          "function": "setFeeRecipient"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "line": 135,
+          "rule": "tx-origin-authentication",
+          "message": "Authenticating with `tx.origin` lets a malicious contract called by the owner change the withdrawal fee without being the owner contract's direct caller.",
+          "cwe": [
+            287
+          ],
+          "function": "setWithdrawFeeBps"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "line": 171,
+          "rule": "unchecked-call-result",
+          "message": "The fee transfer's success value is ignored, so a reverting fee recipient can prevent the fee from being paid while the withdrawal proceeds as if it had been paid.",
+          "cwe": [
+            252
+          ],
+          "function": "_payFee"
+        },
+        {
+          "file": "src/VaultToken.sol",
+          "line": 59,
+          "rule": "allowance-underflow",
+          "message": "The unchecked subtraction wraps when `amount` exceeds the approved allowance, allowing any spender to call `transferFrom` and drain a holder's tokens if that holder has sufficient balance.",
+          "cwe": [
+            191
+          ],
+          "function": "transferFrom"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 3617,
+        "completion_tokens": 4835,
+        "cost_usd": 0.00245394,
+        "seconds": 62.47,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "SOL01-D01",
+          "file": "src/RewardVault.sol",
+          "function": "withdraw",
+          "category": "reentrancy",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "reentrancy in `withdraw` (line 94, CWE-841): The payout calls the recipient before burning shares, allowing a recipient callback to deposit against the transient balance and mint excess shares that dilute other holders."
+          ]
+        },
+        {
+          "id": "SOL01-D02",
+          "file": "src/VaultToken.sol",
+          "function": "transferFrom",
+          "category": "integer-underflow",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "allowance-underflow in `transferFrom` (line 59, CWE-191): The unchecked subtraction wraps when `amount` exceeds the approved allowance, allowing any spender to call `transferFrom` and drain a holder's tokens if that holder has sufficient balance."
+          ]
+        },
+        {
+          "id": "SOL01-D03",
+          "file": "src/RewardVault.sol",
+          "function": "sharePrice",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "SOL01-D04",
+          "file": "src/RewardVault.sol",
+          "function": "_sharesFor",
+          "category": "rounding-error",
+          "class": "design",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "SOL01-D05",
+          "file": "src/RewardVault.sol",
+          "function": "setFeeRecipient",
+          "category": "access-control",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "missing-access-control in `setFeeRecipient` (line 129, CWE-284): Anyone can change `feeRecipient`, allowing an attacker to redirect future withdrawal fees to an address they control."
+          ]
+        },
+        {
+          "id": "SOL01-D06",
+          "file": "src/RewardVault.sol",
+          "function": "setWithdrawFeeBps",
+          "category": "tx-origin-auth",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "tx-origin-authentication in `setWithdrawFeeBps` (line 135, CWE-287): Authenticating with `tx.origin` lets a malicious contract called by the owner change the withdrawal fee without being the owner contract's direct caller."
+          ]
+        },
+        {
+          "id": "SOL01-D07",
+          "file": "src/RewardVault.sol",
+          "function": "_payFee",
+          "category": "unchecked-call",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "unchecked-call-result in `_payFee` (line 171, CWE-252): The fee transfer's success value is ignored, so a reverting fee recipient can prevent the fee from being paid while the withdrawal proceeds as if it had been paid."
+          ]
+        },
+        {
+          "id": "SOL01-D08",
+          "file": "src/RewardVault.sol",
+          "function": "deposit",
+          "category": "integer-overflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "integer-truncation in `deposit` (line 57, CWE-197): Casting `shares` to `uint128` can truncate a large deposit's minted shares while `totalShares` is increased by the full amount, leaving the depositor unable to withdraw the unrecorded shares."
           ]
         },
         {
@@ -1045,7 +554,326 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "unbounded-reward-loop in `distributeRewards` (line 109, CWE-400): Reward distribution iterates over every historical holder entry, so enough deposits can make the loop exceed the block gas limit and permanently prevent reward distributions."
+            "unbounded-iteration in `distributeRewards` (line 109, CWE-400): The reward loop processes every historical deposit entry, so users can make `distributeRewards` exceed the block gas limit by making enough small deposits and thereby prevent reward distributions."
+          ]
+        },
+        {
+          "id": "SOL01-D10",
+          "file": "src/RewardVault.sol",
+          "function": "distributeRewards",
+          "category": "rounding-error",
+          "class": "bug",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "unbounded-iteration in `distributeRewards` (line 109, CWE-400): The reward loop processes every historical deposit entry, so users can make `distributeRewards` exceed the block gas limit by making enough small deposits and thereby prevent reward distributions."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 10,
+        "detected": 7,
+        "function_flagged": 1,
+        "missed": 2
+      },
+      "findings": [
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "integer-truncation in `deposit` (line 57, CWE-197): Casting `shares` to `uint128` can truncate a large deposit's minted shares while `totalShares` is increased by the full amount, leaving the depositor unable to withdraw the unrecorded shares.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "duplicate-reward-credit in `deposit` (line 60, CWE-682): Every deposit adds another holder entry, so `distributeRewards` credits a repeat depositor's full current balance once per entry and can make `rewardsOwed` exceed the ETH held, causing `totalAssets` to underflow.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "reentrancy in `withdraw` (line 94, CWE-841): The payout calls the recipient before burning shares, allowing a recipient callback to deposit against the transient balance and mint excess shares that dilute other holders.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "unbounded-iteration in `distributeRewards` (line 109, CWE-400): The reward loop processes every historical deposit entry, so users can make `distributeRewards` exceed the block gas limit by making enough small deposits and thereby prevent reward distributions.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "missing-access-control in `setFeeRecipient` (line 129, CWE-284): Anyone can change `feeRecipient`, allowing an attacker to redirect future withdrawal fees to an address they control.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "tx-origin-authentication in `setWithdrawFeeBps` (line 135, CWE-287): Authenticating with `tx.origin` lets a malicious contract called by the owner change the withdrawal fee without being the owner contract's direct caller.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "kind": "baseline",
+          "text": "unchecked-call-result in `_payFee` (line 171, CWE-252): The fee transfer's success value is ignored, so a reverting fee recipient can prevent the fee from being paid while the withdrawal proceeds as if it had been paid.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "src/VaultToken.sol",
+          "kind": "baseline",
+          "text": "allowance-underflow in `transferFrom` (line 59, CWE-191): The unchecked subtraction wraps when `amount` exceeds the approved allowance, allowing any spender to call `transferFrom` and drain a holder's tokens if that holder has sufficient balance.",
+          "status": "defect_evidence"
+        }
+      ],
+      "finding_counts": {
+        "total": 8,
+        "defect_evidence": 7,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 1
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "src/RewardVault.sol",
+          "line": 145,
+          "rule": "reward-liability-undercount",
+          "message": "Rounding this reserve separately for each distribution can undercount liabilities that accumulate in `accRewardPerShare`; for example, with three one-share holders, four 2-wei distributions leave each holder 2 wei claimable but `rewardsOwed` at only 4 wei, so the third claim reverts on subtraction.",
+          "cwe": [
+            682
+          ],
+          "function": "distributeRewards"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 4352,
+        "completion_tokens": 4536,
+        "cost_usd": 0.00231179,
+        "seconds": 66.61,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 10,
+        "still_reported": [
+          "SOL01-D10"
+        ],
+        "false_alarms": 1,
+        "findings": [
+          {
+            "file": "src/RewardVault.sol",
+            "kind": "baseline",
+            "text": "reward-liability-undercount in `distributeRewards` (line 145, CWE-682): Rounding this reserve separately for each distribution can undercount liabilities that accumulate in `accRewardPerShare`; for example, with three one-share holders, four 2-wei distributions leave each holder 2 wei claimable but `rewardsOwed` at only 4 wei, so the third claim reverts on subtraction.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 1,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 1
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 3,
+      "raw_findings": [
+        {
+          "file": "src/RewardVault.sol",
+          "line": 60,
+          "rule": "unbounded-reward-loop",
+          "message": "Every deposit appends another holder entry, so repeated deposits can grow `holders` until `distributeRewards` runs out of gas and rewards can no longer be distributed.",
+          "cwe": [
+            400
+          ],
+          "function": "deposit"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "line": 107,
+          "rule": "division-by-zero",
+          "message": "Calling `distributeRewards` before any shares exist divides by zero and reverts, so the owner cannot fund rewards before the first deposit.",
+          "cwe": [
+            369
+          ],
+          "function": "distributeRewards"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "line": 111,
+          "rule": "duplicate-reward-credit",
+          "message": "Because `holders` contains duplicate addresses, the loop credits each repeated holder entry with their full current shares, allowing a depositor to make `rewardsOwed` exceed the ETH actually supplied for rewards.",
+          "cwe": [
+            682
+          ],
+          "function": "distributeRewards"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "line": 129,
+          "rule": "missing-access-control",
+          "message": "Anyone can replace `feeRecipient`, allowing an attacker to redirect fees from future withdrawals to themselves.",
+          "cwe": [
+            284
+          ],
+          "function": "setFeeRecipient"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "line": 135,
+          "rule": "tx-origin-authorization",
+          "message": "Checking `tx.origin` lets a contract called by the owner change the withdrawal fee without being the owner, so a phishing interaction can set the fee up to its maximum.",
+          "cwe": [
+            287
+          ],
+          "function": "setWithdrawFeeBps"
+        },
+        {
+          "file": "src/RewardVault.sol",
+          "line": 171,
+          "rule": "unchecked-call-result",
+          "message": "The fee transfer's success value is ignored, so a rejecting fee recipient leaves the fee in the vault while withdrawals proceed as if it was paid.",
+          "cwe": [
+            252
+          ],
+          "function": "_payFee"
+        },
+        {
+          "file": "src/VaultToken.sol",
+          "line": 59,
+          "rule": "allowance-underflow",
+          "message": "The unchecked subtraction wraps when `amount` exceeds the allowance, allowing anyone to use `transferFrom` to take tokens from an address with sufficient balance and insufficient approval.",
+          "cwe": [
+            191
+          ],
+          "function": "transferFrom"
+        },
+        {
+          "file": "src/VaultToken.sol",
+          "line": 68,
+          "rule": "zero-address-transfer",
+          "message": "Transfers to the zero address are allowed, permanently locking tokens there while leaving them included in `totalSupply`.",
+          "cwe": [
+            682
+          ],
+          "function": "_move"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 3617,
+        "completion_tokens": 4832,
+        "cost_usd": 0.00245244,
+        "seconds": 63.22,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "SOL01-D01",
+          "file": "src/RewardVault.sol",
+          "function": "withdraw",
+          "category": "reentrancy",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "SOL01-D02",
+          "file": "src/VaultToken.sol",
+          "function": "transferFrom",
+          "category": "integer-underflow",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "allowance-underflow in `transferFrom` (line 59, CWE-191): The unchecked subtraction wraps when `amount` exceeds the allowance, allowing anyone to use `transferFrom` to take tokens from an address with sufficient balance and insufficient approval."
+          ]
+        },
+        {
+          "id": "SOL01-D03",
+          "file": "src/RewardVault.sol",
+          "function": "sharePrice",
+          "category": "division-by-zero",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "SOL01-D04",
+          "file": "src/RewardVault.sol",
+          "function": "_sharesFor",
+          "category": "rounding-error",
+          "class": "design",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "SOL01-D05",
+          "file": "src/RewardVault.sol",
+          "function": "setFeeRecipient",
+          "category": "access-control",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "missing-access-control in `setFeeRecipient` (line 129, CWE-284): Anyone can replace `feeRecipient`, allowing an attacker to redirect fees from future withdrawals to themselves."
+          ]
+        },
+        {
+          "id": "SOL01-D06",
+          "file": "src/RewardVault.sol",
+          "function": "setWithdrawFeeBps",
+          "category": "tx-origin-auth",
+          "class": "vulnerability",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "tx-origin-authorization in `setWithdrawFeeBps` (line 135, CWE-287): Checking `tx.origin` lets a contract called by the owner change the withdrawal fee without being the owner, so a phishing interaction can set the fee up to its maximum."
+          ]
+        },
+        {
+          "id": "SOL01-D07",
+          "file": "src/RewardVault.sol",
+          "function": "_payFee",
+          "category": "unchecked-call",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "unchecked-call-result in `_payFee` (line 171, CWE-252): The fee transfer's success value is ignored, so a rejecting fee recipient leaves the fee in the vault while withdrawals proceed as if it was paid."
+          ]
+        },
+        {
+          "id": "SOL01-D08",
+          "file": "src/RewardVault.sol",
+          "function": "deposit",
+          "category": "integer-overflow",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "unbounded-reward-loop in `deposit` (line 60, CWE-400): Every deposit appends another holder entry, so repeated deposits can grow `holders` until `distributeRewards` runs out of gas and rewards can no longer be distributed."
+          ]
+        },
+        {
+          "id": "SOL01-D09",
+          "file": "src/RewardVault.sol",
+          "function": "distributeRewards",
+          "category": "denial-of-service",
+          "class": "design",
+          "in_target_category": false,
+          "status": "function_flagged",
+          "findings": [
+            "division-by-zero in `distributeRewards` (line 107, CWE-369): Calling `distributeRewards` before any shares exist divides by zero and reverts, so the owner cannot fund rewards before the first deposit.",
+            "duplicate-reward-credit in `distributeRewards` (line 111, CWE-682): Because `holders` contains duplicate addresses, the loop credits each repeated holder entry with their full current shares, allowing a depositor to make `rewardsOwed` exceed the ETH actually supplied for rewards."
           ]
         },
         {
@@ -1057,109 +885,80 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "reward-rounding in `distributeRewards` (line 107, CWE-682): Dividing the reward amount by totalShares before multiplying truncates fractional per-share rewards; when msg.value is less than totalShares, no rewards are credited and the funds instead become share backing.",
-            "duplicate-reward-credit in `distributeRewards` (line 111, CWE-682): Because each deposit appends another holder entry, repeat depositors are credited their full balance multiple times; this can make rewardsOwed exceed the ETH held and cause totalAssets to underflow."
+            "duplicate-reward-credit in `distributeRewards` (line 111, CWE-682): Because `holders` contains duplicate addresses, the loop credits each repeated holder entry with their full current shares, allowing a depositor to make `rewardsOwed` exceed the ETH actually supplied for rewards."
           ]
         }
       ],
       "counts": {
         "total": 10,
-        "detected": 8,
-        "function_flagged": 1,
-        "missed": 1
+        "detected": 5,
+        "function_flagged": 2,
+        "missed": 3
       },
       "findings": [
         {
           "file": "src/RewardVault.sol",
           "kind": "baseline",
-          "text": "share-count-truncation in `deposit` (line 57, CWE-682): Casting minted shares to uint128 truncates deposits above the type limit while totalShares records the full amount, leaving shares unwithdrawable and corrupting ownership accounting.",
+          "text": "unbounded-reward-loop in `deposit` (line 60, CWE-400): Every deposit appends another holder entry, so repeated deposits can grow `holders` until `distributeRewards` runs out of gas and rewards can no longer be distributed.",
           "status": "unreviewed"
         },
         {
           "file": "src/RewardVault.sol",
           "kind": "baseline",
-          "text": "division-by-zero in `sharePrice` (line 76, CWE-369): sharePrice divides by totalShares without handling an empty vault, so calling it before any shares exist or after the vault is emptied reverts.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "reentrancy in `withdraw` (line 94, CWE-841): The vault pays the withdrawing user before reducing their shares or clearing rewards, allowing a reentrant receiver to withdraw against the same position and claim more than its entitlement.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "division-by-zero in `distributeRewards` (line 107, CWE-369): distributeRewards divides by totalShares without checking for an empty vault, so an owner call before any deposits reverts.",
+          "text": "division-by-zero in `distributeRewards` (line 107, CWE-369): Calling `distributeRewards` before any shares exist divides by zero and reverts, so the owner cannot fund rewards before the first deposit.",
           "status": "unreviewed"
         },
         {
           "file": "src/RewardVault.sol",
           "kind": "baseline",
-          "text": "reward-rounding in `distributeRewards` (line 107, CWE-682): Dividing the reward amount by totalShares before multiplying truncates fractional per-share rewards; when msg.value is less than totalShares, no rewards are credited and the funds instead become share backing.",
+          "text": "duplicate-reward-credit in `distributeRewards` (line 111, CWE-682): Because `holders` contains duplicate addresses, the loop credits each repeated holder entry with their full current shares, allowing a depositor to make `rewardsOwed` exceed the ETH actually supplied for rewards.",
           "status": "defect_evidence"
         },
         {
           "file": "src/RewardVault.sol",
           "kind": "baseline",
-          "text": "unbounded-reward-loop in `distributeRewards` (line 109, CWE-400): Reward distribution iterates over every historical holder entry, so enough deposits can make the loop exceed the block gas limit and permanently prevent reward distributions.",
+          "text": "missing-access-control in `setFeeRecipient` (line 129, CWE-284): Anyone can replace `feeRecipient`, allowing an attacker to redirect fees from future withdrawals to themselves.",
           "status": "defect_evidence"
         },
         {
           "file": "src/RewardVault.sol",
           "kind": "baseline",
-          "text": "duplicate-reward-credit in `distributeRewards` (line 111, CWE-682): Because each deposit appends another holder entry, repeat depositors are credited their full balance multiple times; this can make rewardsOwed exceed the ETH held and cause totalAssets to underflow.",
+          "text": "tx-origin-authorization in `setWithdrawFeeBps` (line 135, CWE-287): Checking `tx.origin` lets a contract called by the owner change the withdrawal fee without being the owner, so a phishing interaction can set the fee up to its maximum.",
           "status": "defect_evidence"
         },
         {
           "file": "src/RewardVault.sol",
           "kind": "baseline",
-          "text": "missing-access-control in `setFeeRecipient` (line 129, CWE-862): setFeeRecipient has no owner check, so any caller can redirect future withdrawal fees to an address they control.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "tx-origin-authorization in `setWithdrawFeeBps` (line 135, CWE-477): Using tx.origin for authorization lets an owner EOA be tricked into changing the fee through an intermediary contract and prevents contract-based owners from authorizing the call normally.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "src/RewardVault.sol",
-          "kind": "baseline",
-          "text": "unchecked-call-result in `_payFee` (line 171, CWE-252): The fee transfer's return value is ignored, so a rejecting fee recipient leaves the fee in the vault while the withdrawal proceeds as if it was paid.",
+          "text": "unchecked-call-result in `_payFee` (line 171, CWE-252): The fee transfer's success value is ignored, so a rejecting fee recipient leaves the fee in the vault while withdrawals proceed as if it was paid.",
           "status": "defect_evidence"
         },
         {
           "file": "src/VaultToken.sol",
           "kind": "baseline",
-          "text": "allowance-underflow in `transferFrom` (line 59, CWE-191): Unchecked allowance subtraction wraps when transferFrom is called without sufficient approval, allowing a caller with no allowance to transfer tokens from any sufficiently funded account.",
+          "text": "allowance-underflow in `transferFrom` (line 59, CWE-191): The unchecked subtraction wraps when `amount` exceeds the allowance, allowing anyone to use `transferFrom` to take tokens from an address with sufficient balance and insufficient approval.",
           "status": "defect_evidence"
+        },
+        {
+          "file": "src/VaultToken.sol",
+          "kind": "baseline",
+          "text": "zero-address-transfer in `_move` (line 68, CWE-682): Transfers to the zero address are allowed, permanently locking tokens there while leaving them included in `totalSupply`.",
+          "status": "unreviewed"
         }
       ],
       "finding_counts": {
-        "total": 11,
-        "defect_evidence": 9,
+        "total": 8,
+        "defect_evidence": 5,
         "real": 0,
         "false_positive": 0,
-        "unreviewed": 2
+        "unreviewed": 3
       },
       "reviews_used": [],
       "fixed_raw_findings": [
         {
           "file": "src/RewardVault.sol",
-          "line": 72,
-          "rule": "share-price-inflation",
-          "message": "The share calculation has no virtual shares or other protection against donation-driven price manipulation, so an attacker can make a victim's deposit mint very few shares and then withdraw nearly all of the victim's ETH.",
-          "cwe": [
-            682
-          ],
-          "function": "deposit"
-        },
-        {
-          "file": "src/RewardVault.sol",
           "line": 145,
-          "rule": "reward-rounding-lockup",
-          "message": "This reserves rewards using aggregate shares even when per-holder rounding makes the sum claimable smaller; for example, three holders with 1 gwei of shares each and a 4 wei reward leave 1 wei permanently excluded from totalAssets after they claim.",
+          "rule": "reward-accounting-rounding",
+          "message": "Rounding each distribution down when reserving rewards can leave `rewardsOwed` below rewards accumulated across distributions; for example, with 1,000,000,001 shares, two 1-wei distributions accrue 1 wei to the sole holder while reserving 0, so claiming reverts on the subtraction at line 154.",
           "cwe": [
             682
           ],
@@ -1167,30 +966,32 @@
         },
         {
           "file": "src/VaultToken.sol",
-          "line": 46,
-          "rule": "allowance-change-race",
-          "message": "Replacing a nonzero allowance lets a spender front-run the approval and spend the old allowance before the new one takes effect, potentially consuming both amounts.",
+          "line": 32,
+          "rule": "zero-address-mint",
+          "message": "`mint` accepts `address(0)`, increasing supply for tokens that no account can access or transfer.",
           "cwe": [
-            362
+            20
           ],
-          "function": "approve"
+          "function": "mint"
         },
         {
           "file": "src/VaultToken.sol",
           "line": 64,
-          "rule": "zero-address-token-destination",
-          "message": "Transfers accept the zero address as a recipient, permanently locking tokens while reporting success; mint also permits this destination at line 32.",
-          "cwe": [],
+          "rule": "zero-address-transfer",
+          "message": "`_move` accepts `address(0)` as the destination, so `transfer` and `transferFrom` can permanently lock tokens there without reducing total supply.",
+          "cwe": [
+            20
+          ],
           "function": "_move"
         }
       ],
       "fixed_invalid_findings": [],
       "fixed_tool_errors": 0,
       "fixed_usage": {
-        "prompt_tokens": 9528,
-        "completion_tokens": 6476,
-        "cost_usd": 0.004428925,
-        "seconds": 97.32,
+        "prompt_tokens": 4352,
+        "completion_tokens": 3853,
+        "cost_usd": 0.00197029,
+        "seconds": 57.51,
         "attempts": 1
       },
       "fixed": {
@@ -1198,39 +999,33 @@
         "still_reported": [
           "SOL01-D10"
         ],
-        "false_alarms": 4,
+        "false_alarms": 3,
         "findings": [
           {
             "file": "src/RewardVault.sol",
             "kind": "baseline",
-            "text": "share-price-inflation in `deposit` (line 72, CWE-682): The share calculation has no virtual shares or other protection against donation-driven price manipulation, so an attacker can make a victim's deposit mint very few shares and then withdraw nearly all of the victim's ETH.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "src/RewardVault.sol",
-            "kind": "baseline",
-            "text": "reward-rounding-lockup in `distributeRewards` (line 145, CWE-682): This reserves rewards using aggregate shares even when per-holder rounding makes the sum claimable smaller; for example, three holders with 1 gwei of shares each and a 4 wei reward leave 1 wei permanently excluded from totalAssets after they claim.",
+            "text": "reward-accounting-rounding in `distributeRewards` (line 145, CWE-682): Rounding each distribution down when reserving rewards can leave `rewardsOwed` below rewards accumulated across distributions; for example, with 1,000,000,001 shares, two 1-wei distributions accrue 1 wei to the sole holder while reserving 0, so claiming reverts on the subtraction at line 154.",
             "status": "unreviewed"
           },
           {
             "file": "src/VaultToken.sol",
             "kind": "baseline",
-            "text": "allowance-change-race in `approve` (line 46, CWE-362): Replacing a nonzero allowance lets a spender front-run the approval and spend the old allowance before the new one takes effect, potentially consuming both amounts.",
+            "text": "zero-address-mint in `mint` (line 32, CWE-20): `mint` accepts `address(0)`, increasing supply for tokens that no account can access or transfer.",
             "status": "unreviewed"
           },
           {
             "file": "src/VaultToken.sol",
             "kind": "baseline",
-            "text": "zero-address-token-destination in `_move` (line 64): Transfers accept the zero address as a recipient, permanently locking tokens while reporting success; mint also permits this destination at line 32.",
+            "text": "zero-address-transfer in `_move` (line 64, CWE-20): `_move` accepts `address(0)` as the destination, so `transfer` and `transferFrom` can permanently lock tokens there without reducing total supply.",
             "status": "unreviewed"
           }
         ],
         "finding_counts": {
-          "total": 4,
+          "total": 3,
           "defect_evidence": 0,
           "real": 0,
           "false_positive": 0,
-          "unreviewed": 4
+          "unreviewed": 3
         },
         "reviews_used": []
       }

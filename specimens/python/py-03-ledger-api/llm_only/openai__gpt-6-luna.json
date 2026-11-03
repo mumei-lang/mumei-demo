@@ -3,10 +3,10 @@
   "language": "python",
   "tool": "llm-only",
   "model": "openai/gpt-6-luna",
-  "prompt_version": 1,
-  "prompt_hash": "50865386f4c2f5d6",
+  "prompt_version": 2,
+  "prompt_hash": "2fd1a1213dca8cce",
   "temperature": 0,
-  "generated_at": "2026-11-03T04:59:40Z",
+  "generated_at": "2026-11-03T06:16:58Z",
   "source_hash": "99b373335ac90ed3090f35d654ab0faed1a89d019b8f87c714205ffbe5cc5246",
   "runs": [
     {
@@ -16,7 +16,7 @@
           "file": "app.py",
           "line": 27,
           "rule": "unbounded-request-body",
-          "message": "The handler reads the full client-supplied Content-Length without a size limit, so a large or incomplete body can exhaust memory or tie up a request thread.",
+          "message": "Content-Length is trusted without a size limit, allowing a client to make a handler read an arbitrarily large body or tie up a thread while sending it slowly.",
           "cwe": [
             400
           ],
@@ -24,29 +24,9 @@
         },
         {
           "file": "app.py",
-          "line": 66,
-          "rule": "cross-owner-data-disclosure",
-          "message": "Account lists and the other account and statement GET routes do not check the caller's identity, exposing every owner's balances and statements.",
-          "cwe": [
-            200
-          ],
-          "function": "_route"
-        },
-        {
-          "file": "app.py",
-          "line": 101,
-          "rule": "fractional-cents-truncation",
-          "message": "Converting JSON amounts with int() silently truncates fractional values such as 1.9 to 1 instead of rejecting non-integer cents.",
-          "cwe": [
-            704
-          ],
-          "function": "do_transfer"
-        },
-        {
-          "file": "app.py",
           "line": 102,
-          "rule": "missing-mutation-authorization",
-          "message": "Transfer and close requests never verify that X-Owner owns the targeted account, so any caller can debit or close another owner's account.",
+          "rule": "missing-authorization",
+          "message": "The mutating handlers do not read or verify X-Owner, so a caller can transfer from or close an account belonging to another owner by supplying its ID.",
           "cwe": [
             862
           ],
@@ -55,8 +35,8 @@
         {
           "file": "app.py",
           "line": 127,
-          "rule": "stored-xss",
-          "message": "The account label is interpolated into HTML without escaping, so a label containing script markup executes when its statement is viewed.",
+          "rule": "stored-cross-site-scripting",
+          "message": "The user-controlled account label is interpolated into HTML without escaping, so a label containing markup or script executes when its statement page is viewed.",
           "cwe": [
             79
           ],
@@ -64,29 +44,9 @@
         },
         {
           "file": "ledger.py",
-          "line": 23,
-          "rule": "negative-pagination",
-          "message": "Negative offsets or limits are passed directly to Python slicing, allowing requests to return unintended tail entries or omit entries.",
-          "cwe": [
-            839
-          ],
-          "function": "page"
-        },
-        {
-          "file": "ledger.py",
-          "line": 67,
-          "rule": "negative-initial-balance",
-          "message": "Only the upper deposit limit is enforced, so a negative initial_cents value creates an account with a negative balance.",
-          "cwe": [
-            1284
-          ],
-          "function": "create_account"
-        },
-        {
-          "file": "ledger.py",
-          "line": 75,
+          "line": 74,
           "rule": "mass-assignment",
-          "message": "Request fields are copied onto the account without an allowlist, letting a caller set protected fields such as balance_cents or id and bypass the deposit cap or overwrite an existing account.",
+          "message": "Client-supplied fields are assigned directly to the Account object, allowing a caller to set protected attributes such as balance_cents, closed, or id and thereby mint funds or corrupt account state.",
           "cwe": [
             915
           ],
@@ -94,9 +54,19 @@
         },
         {
           "file": "ledger.py",
+          "line": 81,
+          "rule": "closed-account-transactions",
+          "message": "Transfers do not check whether either account is closed, so funds can still be sent from or into an account after it has been closed.",
+          "cwe": [
+            841
+          ],
+          "function": "transfer"
+        },
+        {
+          "file": "ledger.py",
           "line": 82,
           "rule": "fee-overdraft",
-          "message": "The funds check excludes the 25-cent fee, so a transfer equal to the source balance is accepted and leaves that account overdrawn.",
+          "message": "The funds check covers only the transfer amount, not the amount plus FEE_CENTS, so transferring the entire balance succeeds and leaves the source overdrawn.",
           "cwe": [
             682
           ],
@@ -106,37 +76,7 @@
           "file": "ledger.py",
           "line": 82,
           "rule": "negative-transfer-amount",
-          "message": "Negative amounts pass the funds check and reverse the transfer direction, so a caller can increase the source balance while taking funds from the destination.",
-          "cwe": [
-            1284
-          ],
-          "function": "transfer"
-        },
-        {
-          "file": "ledger.py",
-          "line": 84,
-          "rule": "unsynchronized-ledger-updates",
-          "message": "Concurrent transfers can read the same source balance before either writes it, causing lost debits and inconsistent ledger balances.",
-          "cwe": [
-            362
-          ],
-          "function": "transfer"
-        },
-        {
-          "file": "ledger.py",
-          "line": 86,
-          "rule": "transfer-to-closed-account",
-          "message": "Transfers do not check the destination's closed flag, so funds can be credited to an account after it has been closed.",
-          "cwe": [
-            841
-          ],
-          "function": "transfer"
-        },
-        {
-          "file": "ledger.py",
-          "line": 88,
-          "rule": "house-account-spend",
-          "message": "The house account is accepted as a transfer source, and when it is the source the following fee assignment overwrites its debit, allowing the destination to receive funds without the house paying them.",
+          "message": "Negative amounts pass can_cover and are applied as reverse transfers without checking the destination's balance, so a caller can drain another account into their own.",
           "cwe": [
             682
           ],
@@ -144,32 +84,32 @@
         },
         {
           "file": "ledger.py",
-          "line": 88,
-          "rule": "partial-transfer-commit",
-          "message": "The source and house balances are changed before the destination is validated, so transferring to an unknown account returns an error after partially applying the transfer.",
+          "line": 84,
+          "rule": "race-condition",
+          "message": "Concurrent transfers can read the same source and house balances before either updates them, causing lost debits or fees while both destinations receive funds.",
           "cwe": [
-            755
+            362
           ],
           "function": "transfer"
         },
         {
           "file": "ledger.py",
-          "line": 97,
-          "rule": "repeated-close",
-          "message": "Closing an already-closed account is not rejected, so every repeat appends another close entry to its statement.",
+          "line": 90,
+          "rule": "partial-transfer-on-error",
+          "message": "The destination is checked only after the source is debited and the fee is credited, so transferring to an unknown account returns an error after changing balances.",
           "cwe": [
-            841
+            755
           ],
-          "function": "close_account"
+          "function": "transfer"
         }
       ],
       "invalid_findings": [],
       "tool_errors": 0,
       "usage": {
-        "prompt_tokens": 8291,
-        "completion_tokens": 5239,
-        "cost_usd": 0.00270268,
-        "seconds": 80.12,
+        "prompt_tokens": 3420,
+        "completion_tokens": 4073,
+        "cost_usd": 0.002463925,
+        "seconds": 50.0,
         "attempts": 1
       },
       "defects": [
@@ -182,7 +122,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "negative-transfer-amount in `transfer` (line 82, CWE-1284): Negative amounts pass the funds check and reverse the transfer direction, so a caller can increase the source balance while taking funds from the destination."
+            "negative-transfer-amount in `transfer` (line 82, CWE-682): Negative amounts pass can_cover and are applied as reverse transfers without checking the destination's balance, so a caller can drain another account into their own."
           ]
         },
         {
@@ -194,8 +134,8 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "fee-overdraft in `transfer` (line 82, CWE-682): The funds check excludes the 25-cent fee, so a transfer equal to the source balance is accepted and leaves that account overdrawn.",
-            "house-account-spend in `transfer` (line 88, CWE-682): The house account is accepted as a transfer source, and when it is the source the following fee assignment overwrites its debit, allowing the destination to receive funds without the house paying them."
+            "fee-overdraft in `transfer` (line 82, CWE-682): The funds check covers only the transfer amount, not the amount plus FEE_CENTS, so transferring the entire balance succeeds and leaves the source overdrawn.",
+            "negative-transfer-amount in `transfer` (line 82, CWE-682): Negative amounts pass can_cover and are applied as reverse transfers without checking the destination's balance, so a caller can drain another account into their own."
           ]
         },
         {
@@ -205,10 +145,8 @@
           "category": "invalid-state-transition",
           "class": "bug",
           "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "repeated-close in `close_account` (line 97, CWE-841): Closing an already-closed account is not rejected, so every repeat appends another close entry to its statement."
-          ]
+          "status": "missed",
+          "findings": []
         },
         {
           "id": "PY03-D04",
@@ -219,7 +157,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "unsynchronized-ledger-updates in `transfer` (line 84, CWE-362): Concurrent transfers can read the same source balance before either writes it, causing lost debits and inconsistent ledger balances."
+            "race-condition in `transfer` (line 84, CWE-362): Concurrent transfers can read the same source and house balances before either updates them, causing lost debits or fees while both destinations receive funds."
           ]
         },
         {
@@ -229,10 +167,8 @@
           "category": "out-of-bounds",
           "class": "bug",
           "in_target_category": true,
-          "status": "function_flagged",
-          "findings": [
-            "negative-pagination in `page` (line 23, CWE-839): Negative offsets or limits are passed directly to Python slicing, allowing requests to return unintended tail entries or omit entries."
-          ]
+          "status": "missed",
+          "findings": []
         },
         {
           "id": "PY03-D06",
@@ -243,8 +179,8 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "fee-overdraft in `transfer` (line 82, CWE-682): The funds check excludes the 25-cent fee, so a transfer equal to the source balance is accepted and leaves that account overdrawn.",
-            "house-account-spend in `transfer` (line 88, CWE-682): The house account is accepted as a transfer source, and when it is the source the following fee assignment overwrites its debit, allowing the destination to receive funds without the house paying them."
+            "fee-overdraft in `transfer` (line 82, CWE-682): The funds check covers only the transfer amount, not the amount plus FEE_CENTS, so transferring the entire balance succeeds and leaves the source overdrawn.",
+            "negative-transfer-amount in `transfer` (line 82, CWE-682): Negative amounts pass can_cover and are applied as reverse transfers without checking the destination's balance, so a caller can drain another account into their own."
           ]
         },
         {
@@ -266,7 +202,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "stored-xss in `statement_html` (line 127, CWE-79): The account label is interpolated into HTML without escaping, so a label containing script markup executes when its statement is viewed."
+            "stored-cross-site-scripting in `statement_html` (line 127, CWE-79): The user-controlled account label is interpolated into HTML without escaping, so a label containing markup or script executes when its statement page is viewed."
           ]
         },
         {
@@ -278,7 +214,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "mass-assignment in `create_account` (line 75, CWE-915): Request fields are copied onto the account without an allowlist, letting a caller set protected fields such as balance_cents or id and bypass the deposit cap or overwrite an existing account."
+            "mass-assignment in `create_account` (line 74, CWE-915): Client-supplied fields are assigned directly to the Account object, allowing a caller to set protected attributes such as balance_cents, closed, or id and thereby mint funds or corrupt account state."
           ]
         },
         {
@@ -290,152 +226,106 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "missing-mutation-authorization in `do_transfer` (line 102, CWE-862): Transfer and close requests never verify that X-Owner owns the targeted account, so any caller can debit or close another owner's account."
+            "missing-authorization in `do_transfer` (line 102, CWE-862): The mutating handlers do not read or verify X-Owner, so a caller can transfer from or close an account belonging to another owner by supplying its ID."
           ]
         }
       ],
       "counts": {
         "total": 10,
-        "detected": 8,
-        "function_flagged": 1,
-        "missed": 1
+        "detected": 7,
+        "function_flagged": 0,
+        "missed": 3
       },
       "findings": [
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "unbounded-request-body in `_read_json` (line 27, CWE-400): The handler reads the full client-supplied Content-Length without a size limit, so a large or incomplete body can exhaust memory or tie up a request thread.",
+          "text": "unbounded-request-body in `_read_json` (line 27, CWE-400): Content-Length is trusted without a size limit, allowing a client to make a handler read an arbitrarily large body or tie up a thread while sending it slowly.",
           "status": "unreviewed"
         },
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "cross-owner-data-disclosure in `_route` (line 66, CWE-200): Account lists and the other account and statement GET routes do not check the caller's identity, exposing every owner's balances and statements.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "fractional-cents-truncation in `do_transfer` (line 101, CWE-704): Converting JSON amounts with int() silently truncates fractional values such as 1.9 to 1 instead of rejecting non-integer cents.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "missing-mutation-authorization in `do_transfer` (line 102, CWE-862): Transfer and close requests never verify that X-Owner owns the targeted account, so any caller can debit or close another owner's account.",
+          "text": "missing-authorization in `do_transfer` (line 102, CWE-862): The mutating handlers do not read or verify X-Owner, so a caller can transfer from or close an account belonging to another owner by supplying its ID.",
           "status": "defect_evidence"
         },
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "stored-xss in `statement_html` (line 127, CWE-79): The account label is interpolated into HTML without escaping, so a label containing script markup executes when its statement is viewed.",
+          "text": "stored-cross-site-scripting in `statement_html` (line 127, CWE-79): The user-controlled account label is interpolated into HTML without escaping, so a label containing markup or script executes when its statement page is viewed.",
           "status": "defect_evidence"
         },
         {
           "file": "ledger.py",
           "kind": "baseline",
-          "text": "negative-pagination in `page` (line 23, CWE-839): Negative offsets or limits are passed directly to Python slicing, allowing requests to return unintended tail entries or omit entries.",
+          "text": "mass-assignment in `create_account` (line 74, CWE-915): Client-supplied fields are assigned directly to the Account object, allowing a caller to set protected attributes such as balance_cents, closed, or id and thereby mint funds or corrupt account state.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "closed-account-transactions in `transfer` (line 81, CWE-841): Transfers do not check whether either account is closed, so funds can still be sent from or into an account after it has been closed.",
           "status": "unreviewed"
         },
         {
           "file": "ledger.py",
           "kind": "baseline",
-          "text": "negative-initial-balance in `create_account` (line 67, CWE-1284): Only the upper deposit limit is enforced, so a negative initial_cents value creates an account with a negative balance.",
+          "text": "fee-overdraft in `transfer` (line 82, CWE-682): The funds check covers only the transfer amount, not the amount plus FEE_CENTS, so transferring the entire balance succeeds and leaves the source overdrawn.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "negative-transfer-amount in `transfer` (line 82, CWE-682): Negative amounts pass can_cover and are applied as reverse transfers without checking the destination's balance, so a caller can drain another account into their own.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "race-condition in `transfer` (line 84, CWE-362): Concurrent transfers can read the same source and house balances before either updates them, causing lost debits or fees while both destinations receive funds.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "partial-transfer-on-error in `transfer` (line 90, CWE-755): The destination is checked only after the source is debited and the fee is credited, so transferring to an unknown account returns an error after changing balances.",
           "status": "unreviewed"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "mass-assignment in `create_account` (line 75, CWE-915): Request fields are copied onto the account without an allowlist, letting a caller set protected fields such as balance_cents or id and bypass the deposit cap or overwrite an existing account.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "fee-overdraft in `transfer` (line 82, CWE-682): The funds check excludes the 25-cent fee, so a transfer equal to the source balance is accepted and leaves that account overdrawn.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "negative-transfer-amount in `transfer` (line 82, CWE-1284): Negative amounts pass the funds check and reverse the transfer direction, so a caller can increase the source balance while taking funds from the destination.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "unsynchronized-ledger-updates in `transfer` (line 84, CWE-362): Concurrent transfers can read the same source balance before either writes it, causing lost debits and inconsistent ledger balances.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "transfer-to-closed-account in `transfer` (line 86, CWE-841): Transfers do not check the destination's closed flag, so funds can be credited to an account after it has been closed.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "house-account-spend in `transfer` (line 88, CWE-682): The house account is accepted as a transfer source, and when it is the source the following fee assignment overwrites its debit, allowing the destination to receive funds without the house paying them.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "partial-transfer-commit in `transfer` (line 88, CWE-755): The source and house balances are changed before the destination is validated, so transferring to an unknown account returns an error after partially applying the transfer.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "repeated-close in `close_account` (line 97, CWE-841): Closing an already-closed account is not rejected, so every repeat appends another close entry to its statement.",
-          "status": "defect_evidence"
         }
       ],
       "finding_counts": {
-        "total": 15,
-        "defect_evidence": 8,
+        "total": 9,
+        "defect_evidence": 6,
         "real": 0,
         "false_positive": 0,
-        "unreviewed": 7
+        "unreviewed": 3
       },
       "reviews_used": [],
       "fixed_raw_findings": [
         {
           "file": "app.py",
-          "line": 95,
-          "rule": "account-owner-spoofing",
-          "message": "Account creation does not bind the requested owner to the caller's X-Owner identity, so a caller authenticated as one owner can create accounts assigned to another owner.",
-          "cwe": [
-            862
-          ],
-          "function": "create_account"
-        },
-        {
-          "file": "app.py",
           "line": 102,
-          "rule": "client-controlled-authentication",
-          "message": "Ownership is established solely by comparing the account owner to the client-supplied X-Owner header, so any API caller who supplies a victim's owner value can read or mutate that victim's accounts.",
+          "rule": "identity-header-spoofing",
+          "message": "Ownership checks trust the client-supplied X-Owner value without authenticating it, so a caller who can reach the service can claim another owner's identity and access or mutate that owner's accounts.",
           "cwe": [
             290
           ],
           "function": "_owned"
         },
         {
-          "file": "app.py",
-          "line": 113,
-          "rule": "fractional-cent-truncation",
-          "message": "int() silently truncates fractional JSON amounts, so a request for a transfer of 1.9 cents is executed as a transfer of 1 cent rather than being rejected.",
+          "file": "ledger.py",
+          "line": 70,
+          "rule": "unrestricted-fund-creation",
+          "message": "Account creation accepts caller-chosen initial balances without debiting any source or binding creation to an authorized identity, so repeated requests can create arbitrary funds up to the per-account cap.",
           "cwe": [
-            681
+            840
           ],
-          "function": "do_transfer"
+          "function": "create_account"
         },
         {
           "file": "ledger.py",
           "line": 71,
-          "rule": "negative-initial-balance",
-          "message": "The upper cap does not reject negative initial_cents, allowing an account to be created with a negative balance despite the API describing this value as an initial deposit.",
+          "rule": "negative-account-balance",
+          "message": "The upper-bound-only clamp accepts negative initial_cents, allowing accounts to start with negative balances and closing one to reduce the house balance.",
           "cwe": [
             20
           ],
@@ -443,69 +333,62 @@
         },
         {
           "file": "ledger.py",
-          "line": 74,
-          "rule": "missing-owner-validation",
-          "message": "A missing owner is stored as an empty string, but app.py's _owned rejects accounts with empty owners, leaving the created account and its balance inaccessible.",
+          "line": 101,
+          "rule": "unsynchronized-account-close",
+          "message": "Closing an account does not acquire the lock used by transfers, so a concurrent transfer can pass its checks while the close moves the balance and marks the account closed, then debit the closed account and credit the destination.",
           "cwe": [
-            20
+            362
           ],
-          "function": "create_account"
+          "function": "close_account"
         }
       ],
       "fixed_invalid_findings": [],
       "fixed_tool_errors": 0,
       "fixed_usage": {
-        "prompt_tokens": 8529,
-        "completion_tokens": 4466,
-        "cost_usd": 0.00231856,
-        "seconds": 69.14,
+        "prompt_tokens": 3658,
+        "completion_tokens": 2845,
+        "cost_usd": 0.001879675,
+        "seconds": 39.03,
         "attempts": 1
       },
       "fixed": {
         "defects": 10,
         "still_reported": [
-          "PY03-D07",
           "PY03-D10"
         ],
-        "false_alarms": 5,
+        "false_alarms": 4,
         "findings": [
           {
             "file": "app.py",
             "kind": "baseline",
-            "text": "account-owner-spoofing in `create_account` (line 95, CWE-862): Account creation does not bind the requested owner to the caller's X-Owner identity, so a caller authenticated as one owner can create accounts assigned to another owner.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "app.py",
-            "kind": "baseline",
-            "text": "client-controlled-authentication in `_owned` (line 102, CWE-290): Ownership is established solely by comparing the account owner to the client-supplied X-Owner header, so any API caller who supplies a victim's owner value can read or mutate that victim's accounts.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "app.py",
-            "kind": "baseline",
-            "text": "fractional-cent-truncation in `do_transfer` (line 113, CWE-681): int() silently truncates fractional JSON amounts, so a request for a transfer of 1.9 cents is executed as a transfer of 1 cent rather than being rejected.",
+            "text": "identity-header-spoofing in `_owned` (line 102, CWE-290): Ownership checks trust the client-supplied X-Owner value without authenticating it, so a caller who can reach the service can claim another owner's identity and access or mutate that owner's accounts.",
             "status": "unreviewed"
           },
           {
             "file": "ledger.py",
             "kind": "baseline",
-            "text": "negative-initial-balance in `create_account` (line 71, CWE-20): The upper cap does not reject negative initial_cents, allowing an account to be created with a negative balance despite the API describing this value as an initial deposit.",
+            "text": "unrestricted-fund-creation in `create_account` (line 70, CWE-840): Account creation accepts caller-chosen initial balances without debiting any source or binding creation to an authorized identity, so repeated requests can create arbitrary funds up to the per-account cap.",
             "status": "unreviewed"
           },
           {
             "file": "ledger.py",
             "kind": "baseline",
-            "text": "missing-owner-validation in `create_account` (line 74, CWE-20): A missing owner is stored as an empty string, but app.py's _owned rejects accounts with empty owners, leaving the created account and its balance inaccessible.",
+            "text": "negative-account-balance in `create_account` (line 71, CWE-20): The upper-bound-only clamp accepts negative initial_cents, allowing accounts to start with negative balances and closing one to reduce the house balance.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "ledger.py",
+            "kind": "baseline",
+            "text": "unsynchronized-account-close in `close_account` (line 101, CWE-362): Closing an account does not acquire the lock used by transfers, so a concurrent transfer can pass its checks while the close moves the balance and marks the account closed, then debit the closed account and credit the destination.",
             "status": "unreviewed"
           }
         ],
         "finding_counts": {
-          "total": 5,
+          "total": 4,
           "defect_evidence": 0,
           "real": 0,
           "false_positive": 0,
-          "unreviewed": 5
+          "unreviewed": 4
         },
         "reviews_used": []
       }
@@ -515,19 +398,9 @@
       "raw_findings": [
         {
           "file": "app.py",
-          "line": 66,
-          "rule": "missing-read-authorization",
-          "message": "The accounts list returns every owner's balances and account details without checking X-Owner, so any caller can read all accounts.",
-          "cwe": [
-            862
-          ],
-          "function": "_route"
-        },
-        {
-          "file": "app.py",
-          "line": 102,
-          "rule": "unauthorized-transfer",
-          "message": "Transfers do not verify that X-Owner owns the source account, so any caller who knows an account ID can debit it.",
+          "line": 97,
+          "rule": "missing-authorization",
+          "message": "No route verifies the caller's X-Owner identity or account ownership, so any caller that can reach the service can read other accounts and transfer funds or close accounts.",
           "cwe": [
             862
           ],
@@ -535,19 +408,9 @@
         },
         {
           "file": "app.py",
-          "line": 108,
-          "rule": "unauthorized-account-close",
-          "message": "The close endpoint does not verify that X-Owner owns the requested account, so any caller can close another owner's account.",
-          "cwe": [
-            862
-          ],
-          "function": "do_close"
-        },
-        {
-          "file": "app.py",
           "line": 127,
-          "rule": "html-injection",
-          "message": "The account label is interpolated into HTML without escaping, so a label containing script markup executes when the HTML statement is viewed.",
+          "rule": "stored-cross-site-scripting",
+          "message": "The user-controlled account label is inserted into HTML without escaping, so a label containing markup or script executes when the HTML statement is viewed.",
           "cwe": [
             79
           ],
@@ -555,39 +418,9 @@
         },
         {
           "file": "ledger.py",
-          "line": 23,
-          "rule": "negative-pagination",
-          "message": "Negative offset or limit values are passed directly to Python slicing, allowing requests such as offset=-2 to return entries from the end of the statement.",
-          "cwe": [
-            20
-          ],
-          "function": "page"
-        },
-        {
-          "file": "ledger.py",
-          "line": 67,
-          "rule": "negative-initial-balance",
-          "message": "The initial deposit is capped only above, so a negative initial_cents value creates an account with a negative balance.",
-          "cwe": [
-            20
-          ],
-          "function": "create_account"
-        },
-        {
-          "file": "ledger.py",
-          "line": 70,
-          "rule": "owner-impersonation",
-          "message": "Account creation trusts the request body's owner instead of verifying it against X-Owner, allowing a caller to create accounts attributed to another owner.",
-          "cwe": [
-            862
-          ],
-          "function": "create_account"
-        },
-        {
-          "file": "ledger.py",
           "line": 74,
           "rule": "mass-assignment",
-          "message": "Every request field is assigned directly to the Account, so a caller can overwrite fields such as id, balance_cents, or entries and even replace the house account.",
+          "message": "The request fields are copied onto the Account after its ID and capped balance are set, allowing a caller to assign an arbitrary balance or ID and, for example, overwrite the house account.",
           "cwe": [
             915
           ],
@@ -596,18 +429,18 @@
         {
           "file": "ledger.py",
           "line": 81,
-          "rule": "closed-account-transactions",
-          "message": "Transfers never check the accounts' closed flags, so closed accounts can still send or receive funds.",
+          "rule": "closed-account-operations",
+          "message": "Transfers do not check whether either account is closed, so a closed account can still send or receive funds after being closed.",
           "cwe": [
-            841
+            672
           ],
           "function": "transfer"
         },
         {
           "file": "ledger.py",
           "line": 82,
-          "rule": "fee-overdraft",
-          "message": "The coverage check compares the source balance only with the transfer amount, so a transfer can be accepted even when the balance cannot cover the additional fee.",
+          "rule": "fee-omitted-from-balance-check",
+          "message": "The balance check covers only the transfer amount and not the fee, so transferring an entire balance succeeds and leaves the source account negative by the fee.",
           "cwe": [
             682
           ],
@@ -617,17 +450,17 @@
           "file": "ledger.py",
           "line": 82,
           "rule": "negative-transfer-amount",
-          "message": "Negative amounts pass the coverage check and make a transfer increase the source balance while decreasing the destination balance.",
+          "message": "Negative amounts pass the balance check and cause the source to gain funds while the destination is debited, so a caller can create an invalid transfer and distort account balances.",
           "cwe": [
-            1284
+            20
           ],
           "function": "transfer"
         },
         {
           "file": "ledger.py",
-          "line": 84,
-          "rule": "concurrent-lost-update",
-          "message": "Concurrent transfers can read the same balances before the journal sleep and then overwrite one another's balance updates, leaving balances inconsistent with accepted transfers.",
+          "line": 87,
+          "rule": "race-condition",
+          "message": "Concurrent transfers can both read the same source balance before the journal write and sleep, then each credit its destination while only one source debit is reflected.",
           "cwe": [
             362
           ],
@@ -635,32 +468,22 @@
         },
         {
           "file": "ledger.py",
-          "line": 87,
-          "rule": "partial-transfer-on-error",
-          "message": "The journal is written and the source and house balances are changed before the destination is validated, so transferring to an unknown account returns an error after destroying funds.",
+          "line": 90,
+          "rule": "non-atomic-transfer",
+          "message": "The destination is checked only after the source and house balances are changed, so a transfer to an unknown account returns an error after still debiting the source and charging the fee.",
           "cwe": [
-            840
+            662
           ],
           "function": "transfer"
-        },
-        {
-          "file": "ledger.py",
-          "line": 98,
-          "rule": "repeated-account-close",
-          "message": "Closing an already-closed account succeeds and appends another close entry, so repeated requests corrupt its statement history.",
-          "cwe": [
-            841
-          ],
-          "function": "close_account"
         }
       ],
       "invalid_findings": [],
       "tool_errors": 0,
       "usage": {
-        "prompt_tokens": 8291,
-        "completion_tokens": 3706,
-        "cost_usd": 0.00193618,
-        "seconds": 62.34,
+        "prompt_tokens": 3420,
+        "completion_tokens": 2343,
+        "cost_usd": 0.00120597,
+        "seconds": 31.76,
         "attempts": 1
       },
       "defects": [
@@ -673,7 +496,8 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "negative-transfer-amount in `transfer` (line 82, CWE-1284): Negative amounts pass the coverage check and make a transfer increase the source balance while decreasing the destination balance."
+            "fee-omitted-from-balance-check in `transfer` (line 82, CWE-682): The balance check covers only the transfer amount and not the fee, so transferring an entire balance succeeds and leaves the source account negative by the fee.",
+            "negative-transfer-amount in `transfer` (line 82, CWE-20): Negative amounts pass the balance check and cause the source to gain funds while the destination is debited, so a caller can create an invalid transfer and distort account balances."
           ]
         },
         {
@@ -685,7 +509,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "fee-overdraft in `transfer` (line 82, CWE-682): The coverage check compares the source balance only with the transfer amount, so a transfer can be accepted even when the balance cannot cover the additional fee."
+            "fee-omitted-from-balance-check in `transfer` (line 82, CWE-682): The balance check covers only the transfer amount and not the fee, so transferring an entire balance succeeds and leaves the source account negative by the fee."
           ]
         },
         {
@@ -695,10 +519,8 @@
           "category": "invalid-state-transition",
           "class": "bug",
           "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "repeated-account-close in `close_account` (line 98, CWE-841): Closing an already-closed account succeeds and appends another close entry, so repeated requests corrupt its statement history."
-          ]
+          "status": "missed",
+          "findings": []
         },
         {
           "id": "PY03-D04",
@@ -709,7 +531,8 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "concurrent-lost-update in `transfer` (line 84, CWE-362): Concurrent transfers can read the same balances before the journal sleep and then overwrite one another's balance updates, leaving balances inconsistent with accepted transfers."
+            "race-condition in `transfer` (line 87, CWE-362): Concurrent transfers can both read the same source balance before the journal write and sleep, then each credit its destination while only one source debit is reflected.",
+            "non-atomic-transfer in `transfer` (line 90, CWE-662): The destination is checked only after the source and house balances are changed, so a transfer to an unknown account returns an error after still debiting the source and charging the fee."
           ]
         },
         {
@@ -719,10 +542,8 @@
           "category": "out-of-bounds",
           "class": "bug",
           "in_target_category": true,
-          "status": "function_flagged",
-          "findings": [
-            "negative-pagination in `page` (line 23, CWE-20): Negative offset or limit values are passed directly to Python slicing, allowing requests such as offset=-2 to return entries from the end of the statement."
-          ]
+          "status": "missed",
+          "findings": []
         },
         {
           "id": "PY03-D06",
@@ -733,7 +554,7 @@
           "in_target_category": true,
           "status": "detected",
           "findings": [
-            "fee-overdraft in `transfer` (line 82, CWE-682): The coverage check compares the source balance only with the transfer amount, so a transfer can be accepted even when the balance cannot cover the additional fee."
+            "fee-omitted-from-balance-check in `transfer` (line 82, CWE-682): The balance check covers only the transfer amount and not the fee, so transferring an entire balance succeeds and leaves the source account negative by the fee."
           ]
         },
         {
@@ -755,7 +576,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "html-injection in `statement_html` (line 127, CWE-79): The account label is interpolated into HTML without escaping, so a label containing script markup executes when the HTML statement is viewed."
+            "stored-cross-site-scripting in `statement_html` (line 127, CWE-79): The user-controlled account label is inserted into HTML without escaping, so a label containing markup or script executes when the HTML statement is viewed."
           ]
         },
         {
@@ -767,7 +588,7 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "mass-assignment in `create_account` (line 74, CWE-915): Every request field is assigned directly to the Account, so a caller can overwrite fields such as id, balance_cents, or entries and even replace the house account."
+            "mass-assignment in `create_account` (line 74, CWE-915): The request fields are copied onto the Account after its ID and capped balance are set, allowing a caller to assign an arbitrary balance or ID and, for example, overwrite the house account."
           ]
         },
         {
@@ -779,116 +600,534 @@
           "in_target_category": false,
           "status": "detected",
           "findings": [
-            "unauthorized-transfer in `do_transfer` (line 102, CWE-862): Transfers do not verify that X-Owner owns the source account, so any caller who knows an account ID can debit it."
+            "missing-authorization in `do_transfer` (line 97, CWE-862): No route verifies the caller's X-Owner identity or account ownership, so any caller that can reach the service can read other accounts and transfer funds or close accounts."
           ]
         }
       ],
       "counts": {
         "total": 10,
-        "detected": 8,
-        "function_flagged": 1,
-        "missed": 1
+        "detected": 7,
+        "function_flagged": 0,
+        "missed": 3
       },
       "findings": [
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "missing-read-authorization in `_route` (line 66, CWE-862): The accounts list returns every owner's balances and account details without checking X-Owner, so any caller can read all accounts.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "unauthorized-transfer in `do_transfer` (line 102, CWE-862): Transfers do not verify that X-Owner owns the source account, so any caller who knows an account ID can debit it.",
+          "text": "missing-authorization in `do_transfer` (line 97, CWE-862): No route verifies the caller's X-Owner identity or account ownership, so any caller that can reach the service can read other accounts and transfer funds or close accounts.",
           "status": "defect_evidence"
         },
         {
           "file": "app.py",
           "kind": "baseline",
-          "text": "unauthorized-account-close in `do_close` (line 108, CWE-862): The close endpoint does not verify that X-Owner owns the requested account, so any caller can close another owner's account.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "html-injection in `statement_html` (line 127, CWE-79): The account label is interpolated into HTML without escaping, so a label containing script markup executes when the HTML statement is viewed.",
+          "text": "stored-cross-site-scripting in `statement_html` (line 127, CWE-79): The user-controlled account label is inserted into HTML without escaping, so a label containing markup or script executes when the HTML statement is viewed.",
           "status": "defect_evidence"
         },
         {
           "file": "ledger.py",
           "kind": "baseline",
-          "text": "negative-pagination in `page` (line 23, CWE-20): Negative offset or limit values are passed directly to Python slicing, allowing requests such as offset=-2 to return entries from the end of the statement.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "negative-initial-balance in `create_account` (line 67, CWE-20): The initial deposit is capped only above, so a negative initial_cents value creates an account with a negative balance.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "owner-impersonation in `create_account` (line 70, CWE-862): Account creation trusts the request body's owner instead of verifying it against X-Owner, allowing a caller to create accounts attributed to another owner.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "mass-assignment in `create_account` (line 74, CWE-915): Every request field is assigned directly to the Account, so a caller can overwrite fields such as id, balance_cents, or entries and even replace the house account.",
+          "text": "mass-assignment in `create_account` (line 74, CWE-915): The request fields are copied onto the Account after its ID and capped balance are set, allowing a caller to assign an arbitrary balance or ID and, for example, overwrite the house account.",
           "status": "defect_evidence"
         },
         {
           "file": "ledger.py",
           "kind": "baseline",
-          "text": "closed-account-transactions in `transfer` (line 81, CWE-841): Transfers never check the accounts' closed flags, so closed accounts can still send or receive funds.",
+          "text": "closed-account-operations in `transfer` (line 81, CWE-672): Transfers do not check whether either account is closed, so a closed account can still send or receive funds after being closed.",
           "status": "unreviewed"
         },
         {
           "file": "ledger.py",
           "kind": "baseline",
-          "text": "fee-overdraft in `transfer` (line 82, CWE-682): The coverage check compares the source balance only with the transfer amount, so a transfer can be accepted even when the balance cannot cover the additional fee.",
+          "text": "fee-omitted-from-balance-check in `transfer` (line 82, CWE-682): The balance check covers only the transfer amount and not the fee, so transferring an entire balance succeeds and leaves the source account negative by the fee.",
           "status": "defect_evidence"
         },
         {
           "file": "ledger.py",
           "kind": "baseline",
-          "text": "negative-transfer-amount in `transfer` (line 82, CWE-1284): Negative amounts pass the coverage check and make a transfer increase the source balance while decreasing the destination balance.",
+          "text": "negative-transfer-amount in `transfer` (line 82, CWE-20): Negative amounts pass the balance check and cause the source to gain funds while the destination is debited, so a caller can create an invalid transfer and distort account balances.",
           "status": "defect_evidence"
         },
         {
           "file": "ledger.py",
           "kind": "baseline",
-          "text": "concurrent-lost-update in `transfer` (line 84, CWE-362): Concurrent transfers can read the same balances before the journal sleep and then overwrite one another's balance updates, leaving balances inconsistent with accepted transfers.",
+          "text": "race-condition in `transfer` (line 87, CWE-362): Concurrent transfers can both read the same source balance before the journal write and sleep, then each credit its destination while only one source debit is reflected.",
           "status": "defect_evidence"
         },
         {
           "file": "ledger.py",
           "kind": "baseline",
-          "text": "partial-transfer-on-error in `transfer` (line 87, CWE-840): The journal is written and the source and house balances are changed before the destination is validated, so transferring to an unknown account returns an error after destroying funds.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "repeated-account-close in `close_account` (line 98, CWE-841): Closing an already-closed account succeeds and appends another close entry, so repeated requests corrupt its statement history.",
+          "text": "non-atomic-transfer in `transfer` (line 90, CWE-662): The destination is checked only after the source and house balances are changed, so a transfer to an unknown account returns an error after still debiting the source and charging the fee.",
           "status": "defect_evidence"
         }
       ],
       "finding_counts": {
-        "total": 14,
+        "total": 8,
         "defect_evidence": 7,
         "real": 0,
         "false_positive": 0,
-        "unreviewed": 7
+        "unreviewed": 1
       },
       "reviews_used": [],
       "fixed_raw_findings": [
         {
           "file": "app.py",
+          "line": 28,
+          "rule": "unbounded-request-body",
+          "message": "Content-Length is used to read the entire request body without a size limit, so a caller can exhaust memory or tie up a request thread by sending an excessively large body.",
+          "cwe": [
+            400
+          ],
+          "function": "_read_json"
+        },
+        {
+          "file": "app.py",
+          "line": 102,
+          "rule": "spoofable-owner-identity",
+          "message": "Ownership is authorized solely by comparing X-Owner, which a caller can supply, so a caller can impersonate an account owner and read, transfer from, or close that owner's accounts.",
+          "cwe": [
+            290
+          ],
+          "function": "_owned"
+        },
+        {
+          "file": "app.py",
+          "line": 102,
+          "rule": "unowned-account-inaccessible",
+          "message": "Accounts created without an owner are permanently inaccessible because this check rejects every request when acc.owner is empty, potentially trapping any initial balance in such an account.",
+          "cwe": [
+            667
+          ],
+          "function": "_owned"
+        },
+        {
+          "file": "ledger.py",
+          "line": 71,
+          "rule": "negative-account-balance",
+          "message": "Negative initial_cents values are accepted, creating accounts with negative balances that violate the ledger's balance invariants and can propagate negative funds when closed.",
+          "cwe": [],
+          "function": "create_account"
+        },
+        {
+          "file": "ledger.py",
+          "line": 74,
+          "rule": "client-controlled-account-owner",
+          "message": "Account ownership is taken directly from the request body rather than the caller's authenticated identity, so a caller can create accounts that appear under another owner's identity.",
+          "cwe": [
+            639
+          ],
+          "function": "create_account"
+        },
+        {
+          "file": "ledger.py",
+          "line": 103,
+          "rule": "system-account-can-be-closed",
+          "message": "The close operation permits closing HOUSE_ID, so a caller authorized as the house can close the shared fee account and cause all subsequent transfers to fail because transfers reject closed destinations.",
+          "cwe": [
+            668
+          ],
+          "function": "close_account"
+        }
+      ],
+      "fixed_invalid_findings": [],
+      "fixed_tool_errors": 0,
+      "fixed_usage": {
+        "prompt_tokens": 3658,
+        "completion_tokens": 3051,
+        "cost_usd": 0.00156235,
+        "seconds": 40.18,
+        "attempts": 1
+      },
+      "fixed": {
+        "defects": 10,
+        "still_reported": [
+          "PY03-D10"
+        ],
+        "false_alarms": 6,
+        "findings": [
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "unbounded-request-body in `_read_json` (line 28, CWE-400): Content-Length is used to read the entire request body without a size limit, so a caller can exhaust memory or tie up a request thread by sending an excessively large body.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "spoofable-owner-identity in `_owned` (line 102, CWE-290): Ownership is authorized solely by comparing X-Owner, which a caller can supply, so a caller can impersonate an account owner and read, transfer from, or close that owner's accounts.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "unowned-account-inaccessible in `_owned` (line 102, CWE-667): Accounts created without an owner are permanently inaccessible because this check rejects every request when acc.owner is empty, potentially trapping any initial balance in such an account.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "ledger.py",
+            "kind": "baseline",
+            "text": "negative-account-balance in `create_account` (line 71): Negative initial_cents values are accepted, creating accounts with negative balances that violate the ledger's balance invariants and can propagate negative funds when closed.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "ledger.py",
+            "kind": "baseline",
+            "text": "client-controlled-account-owner in `create_account` (line 74, CWE-639): Account ownership is taken directly from the request body rather than the caller's authenticated identity, so a caller can create accounts that appear under another owner's identity.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "ledger.py",
+            "kind": "baseline",
+            "text": "system-account-can-be-closed in `close_account` (line 103, CWE-668): The close operation permits closing HOUSE_ID, so a caller authorized as the house can close the shared fee account and cause all subsequent transfers to fail because transfers reject closed destinations.",
+            "status": "unreviewed"
+          }
+        ],
+        "finding_counts": {
+          "total": 6,
+          "defect_evidence": 0,
+          "real": 0,
+          "false_positive": 0,
+          "unreviewed": 6
+        },
+        "reviews_used": []
+      }
+    },
+    {
+      "run": 3,
+      "raw_findings": [
+        {
+          "file": "app.py",
+          "line": 27,
+          "rule": "unbounded-request-body",
+          "message": "Content-Length is trusted without a size limit, allowing clients to make server threads read arbitrarily large bodies and consume excessive memory or remain occupied.",
+          "cwe": [
+            400
+          ],
+          "function": "_read_json"
+        },
+        {
+          "file": "app.py",
+          "line": 66,
+          "rule": "unauthorized-data-disclosure",
+          "message": "Account listings and statements are served without owner checks, exposing every account's owner, label, balance, and transaction history to any client.",
+          "cwe": [
+            200
+          ],
+          "function": "_route"
+        },
+        {
+          "file": "app.py",
+          "line": 102,
+          "rule": "missing-authorization",
+          "message": "Transfer and close operations never validate the X-Owner header or account ownership, so any client able to reach the service can move funds from or close another owner's account.",
+          "cwe": [
+            862
+          ],
+          "function": "do_transfer"
+        },
+        {
+          "file": "app.py",
+          "line": 127,
+          "rule": "stored-cross-site-scripting",
+          "message": "The account label is interpolated into HTML without escaping, so a label containing markup or script is executed when its statement page is viewed.",
+          "cwe": [
+            79
+          ],
+          "function": "statement_html"
+        },
+        {
+          "file": "ledger.py",
+          "line": 23,
+          "rule": "invalid-pagination-input",
+          "message": "Negative offsets or limits are accepted as Python slice indices, causing requests to return unintended entries from the end of a statement.",
+          "cwe": [
+            20
+          ],
+          "function": "page"
+        },
+        {
+          "file": "ledger.py",
+          "line": 74,
+          "rule": "mass-assignment",
+          "message": "Applying every request field as an account attribute lets a caller override protected fields such as id and balance_cents, bypass the initial-balance cap, or overwrite an existing account including the house account.",
+          "cwe": [
+            915
+          ],
+          "function": "create_account"
+        },
+        {
+          "file": "ledger.py",
+          "line": 80,
+          "rule": "race-condition",
+          "message": "Concurrent transfers can both pass the balance check before either updates it, allowing overspending and inconsistent ledger balances.",
+          "cwe": [
+            362
+          ],
+          "function": "transfer"
+        },
+        {
+          "file": "ledger.py",
+          "line": 82,
+          "rule": "fee-excluded-from-funds-check",
+          "message": "The funds check ignores the 25-cent fee, so a transfer equal to the source balance succeeds and leaves that account overdrawn by 25 cents.",
+          "cwe": [
+            682
+          ],
+          "function": "transfer"
+        },
+        {
+          "file": "ledger.py",
+          "line": 82,
+          "rule": "negative-transfer-amount",
+          "message": "Negative amounts pass the funds check and let a caller credit the source while debiting the destination, potentially driving another account arbitrarily negative.",
+          "cwe": [
+            20
+          ],
+          "function": "transfer"
+        },
+        {
+          "file": "ledger.py",
+          "line": 87,
+          "rule": "partial-transfer-on-error",
+          "message": "The source and house balances are changed before a missing destination is rejected, so a transfer to an unknown account returns an error after still debiting the source and charging the fee.",
+          "cwe": [],
+          "function": "transfer"
+        },
+        {
+          "file": "ledger.py",
+          "line": 92,
+          "rule": "operation-on-closed-account",
+          "message": "Transfers do not reject closed accounts, so callers can credit a closed destination and leave funds in an account that has already been closed.",
+          "cwe": [
+            672
+          ],
+          "function": "transfer"
+        }
+      ],
+      "invalid_findings": [],
+      "tool_errors": 0,
+      "usage": {
+        "prompt_tokens": 3420,
+        "completion_tokens": 3619,
+        "cost_usd": 0.00184397,
+        "seconds": 48.79,
+        "attempts": 1
+      },
+      "defects": [
+        {
+          "id": "PY03-D01",
+          "file": "ledger.py",
+          "function": "transfer",
+          "category": "missing-precondition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "negative-transfer-amount in `transfer` (line 82, CWE-20): Negative amounts pass the funds check and let a caller credit the source while debiting the destination, potentially driving another account arbitrarily negative."
+          ]
+        },
+        {
+          "id": "PY03-D02",
+          "file": "ledger.py",
+          "function": "transfer",
+          "category": "invariant-violation",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "fee-excluded-from-funds-check in `transfer` (line 82, CWE-682): The funds check ignores the 25-cent fee, so a transfer equal to the source balance succeeds and leaves that account overdrawn by 25 cents."
+          ]
+        },
+        {
+          "id": "PY03-D03",
+          "file": "ledger.py",
+          "function": "close_account",
+          "category": "invalid-state-transition",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "PY03-D04",
+          "file": "ledger.py",
+          "function": "transfer",
+          "category": "race-condition",
+          "class": "design",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "race-condition in `transfer` (line 80, CWE-362): Concurrent transfers can both pass the balance check before either updates it, allowing overspending and inconsistent ledger balances."
+          ]
+        },
+        {
+          "id": "PY03-D05",
+          "file": "ledger.py",
+          "function": "page",
+          "category": "out-of-bounds",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "function_flagged",
+          "findings": [
+            "invalid-pagination-input in `page` (line 23, CWE-20): Negative offsets or limits are accepted as Python slice indices, causing requests to return unintended entries from the end of a statement."
+          ]
+        },
+        {
+          "id": "PY03-D06",
+          "file": "ledger.py",
+          "function": "transfer",
+          "category": "invariant-violation",
+          "class": "bug",
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "fee-excluded-from-funds-check in `transfer` (line 82, CWE-682): The funds check ignores the 25-cent fee, so a transfer equal to the source balance succeeds and leaves that account overdrawn by 25 cents."
+          ]
+        },
+        {
+          "id": "PY03-D07",
+          "file": "app.py",
+          "function": "show_account",
+          "category": "idor",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "missed",
+          "findings": []
+        },
+        {
+          "id": "PY03-D08",
+          "file": "app.py",
+          "function": "statement_html",
+          "category": "xss",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "stored-cross-site-scripting in `statement_html` (line 127, CWE-79): The account label is interpolated into HTML without escaping, so a label containing markup or script is executed when its statement page is viewed."
+          ]
+        },
+        {
+          "id": "PY03-D09",
+          "file": "ledger.py",
+          "function": "create_account",
+          "category": "mass-assignment",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "mass-assignment in `create_account` (line 74, CWE-915): Applying every request field as an account attribute lets a caller override protected fields such as id and balance_cents, bypass the initial-balance cap, or overwrite an existing account including the house account."
+          ]
+        },
+        {
+          "id": "PY03-D10",
+          "file": "app.py",
+          "function": "do_transfer",
+          "category": "missing-authorization",
+          "class": "vulnerability",
+          "in_target_category": false,
+          "status": "detected",
+          "findings": [
+            "missing-authorization in `do_transfer` (line 102, CWE-862): Transfer and close operations never validate the X-Owner header or account ownership, so any client able to reach the service can move funds from or close another owner's account."
+          ]
+        }
+      ],
+      "counts": {
+        "total": 10,
+        "detected": 7,
+        "function_flagged": 1,
+        "missed": 2
+      },
+      "findings": [
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "unbounded-request-body in `_read_json` (line 27, CWE-400): Content-Length is trusted without a size limit, allowing clients to make server threads read arbitrarily large bodies and consume excessive memory or remain occupied.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "unauthorized-data-disclosure in `_route` (line 66, CWE-200): Account listings and statements are served without owner checks, exposing every account's owner, label, balance, and transaction history to any client.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "missing-authorization in `do_transfer` (line 102, CWE-862): Transfer and close operations never validate the X-Owner header or account ownership, so any client able to reach the service can move funds from or close another owner's account.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "app.py",
+          "kind": "baseline",
+          "text": "stored-cross-site-scripting in `statement_html` (line 127, CWE-79): The account label is interpolated into HTML without escaping, so a label containing markup or script is executed when its statement page is viewed.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "invalid-pagination-input in `page` (line 23, CWE-20): Negative offsets or limits are accepted as Python slice indices, causing requests to return unintended entries from the end of a statement.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "mass-assignment in `create_account` (line 74, CWE-915): Applying every request field as an account attribute lets a caller override protected fields such as id and balance_cents, bypass the initial-balance cap, or overwrite an existing account including the house account.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "race-condition in `transfer` (line 80, CWE-362): Concurrent transfers can both pass the balance check before either updates it, allowing overspending and inconsistent ledger balances.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "fee-excluded-from-funds-check in `transfer` (line 82, CWE-682): The funds check ignores the 25-cent fee, so a transfer equal to the source balance succeeds and leaves that account overdrawn by 25 cents.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "negative-transfer-amount in `transfer` (line 82, CWE-20): Negative amounts pass the funds check and let a caller credit the source while debiting the destination, potentially driving another account arbitrarily negative.",
+          "status": "defect_evidence"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "partial-transfer-on-error in `transfer` (line 87): The source and house balances are changed before a missing destination is rejected, so a transfer to an unknown account returns an error after still debiting the source and charging the fee.",
+          "status": "unreviewed"
+        },
+        {
+          "file": "ledger.py",
+          "kind": "baseline",
+          "text": "operation-on-closed-account in `transfer` (line 92, CWE-672): Transfers do not reject closed accounts, so callers can credit a closed destination and leave funds in an account that has already been closed.",
+          "status": "unreviewed"
+        }
+      ],
+      "finding_counts": {
+        "total": 11,
+        "defect_evidence": 6,
+        "real": 0,
+        "false_positive": 0,
+        "unreviewed": 5
+      },
+      "reviews_used": [],
+      "fixed_raw_findings": [
+        {
+          "file": "app.py",
+          "line": 29,
+          "rule": "unbounded-request-body",
+          "message": "The handler reads the entire declared body without a size limit, so a client can send an oversized body or slowly withhold bytes to consume memory and tie up a server thread.",
+          "cwe": [
+            400
+          ],
+          "function": "_read_json"
+        },
+        {
+          "file": "app.py",
           "line": 72,
-          "rule": "unsynchronized-account-iteration",
-          "message": "This iterates the accounts dictionary while account creation can modify it without the ledger lock, so concurrent requests can make GET /accounts raise RuntimeError and return HTTP 500.",
+          "rule": "unsynchronized-dictionary-iteration",
+          "message": "This iterates the accounts dictionary while account creation can modify it without a shared lock, so a concurrent request can raise a mutation-during-iteration error and return 500.",
           "cwe": [
             362
           ],
@@ -896,48 +1135,40 @@
         },
         {
           "file": "app.py",
+          "line": 74,
+          "rule": "inaccessible-created-account",
+          "message": "If owner is omitted or empty, the account is created with an empty owner, which _owned rejects for every caller and can leave any opening funds permanently inaccessible.",
+          "cwe": [],
+          "function": "_route"
+        },
+        {
+          "file": "app.py",
           "line": 102,
-          "rule": "spoofable-identity",
-          "message": "The only ownership check trusts the client-supplied X-Owner value, so a caller can claim another user's identity to read or mutate their accounts, including transferring funds from the house account.",
+          "rule": "client-controlled-authorization",
+          "message": "Authorization trusts the caller-supplied X-Owner header without independently authenticating it, so a client can impersonate an account owner to read statements, transfer funds, or close accounts.",
           "cwe": [
-            287
+            639
           ],
           "function": "_owned"
         },
         {
           "file": "ledger.py",
           "line": 71,
-          "rule": "negative-initial-balance",
-          "message": "Negative initial_cents values are accepted, allowing account creation with a negative balance despite the deposit cap and normal nonnegative-balance invariant.",
+          "rule": "negative-opening-balance",
+          "message": "Only the upper bound is enforced, so a negative initial_cents value creates an account with a negative opening balance.",
           "cwe": [
             20
           ],
           "function": "create_account"
-        },
-        {
-          "file": "ledger.py",
-          "line": 94,
-          "rule": "missing-house-ledger-entry",
-          "message": "A transfer credits the house fee balance without appending a corresponding house statement entry, so its statement does not reflect the balance change.",
-          "cwe": [],
-          "function": "transfer"
-        },
-        {
-          "file": "ledger.py",
-          "line": 107,
-          "rule": "missing-house-ledger-entry",
-          "message": "Closing an account credits the house balance without recording a corresponding house statement entry, leaving the house statement inconsistent with its balance.",
-          "cwe": [],
-          "function": "close_account"
         }
       ],
       "fixed_invalid_findings": [],
       "fixed_tool_errors": 0,
       "fixed_usage": {
-        "prompt_tokens": 8529,
-        "completion_tokens": 2886,
-        "cost_usd": 0.00250905,
-        "seconds": 50.97,
+        "prompt_tokens": 3658,
+        "completion_tokens": 2640,
+        "cost_usd": 0.00135685,
+        "seconds": 35.93,
         "attempts": 1
       },
       "fixed": {
@@ -950,31 +1181,31 @@
           {
             "file": "app.py",
             "kind": "baseline",
-            "text": "unsynchronized-account-iteration in `_route` (line 72, CWE-362): This iterates the accounts dictionary while account creation can modify it without the ledger lock, so concurrent requests can make GET /accounts raise RuntimeError and return HTTP 500.",
+            "text": "unbounded-request-body in `_read_json` (line 29, CWE-400): The handler reads the entire declared body without a size limit, so a client can send an oversized body or slowly withhold bytes to consume memory and tie up a server thread.",
             "status": "unreviewed"
           },
           {
             "file": "app.py",
             "kind": "baseline",
-            "text": "spoofable-identity in `_owned` (line 102, CWE-287): The only ownership check trusts the client-supplied X-Owner value, so a caller can claim another user's identity to read or mutate their accounts, including transferring funds from the house account.",
+            "text": "unsynchronized-dictionary-iteration in `_route` (line 72, CWE-362): This iterates the accounts dictionary while account creation can modify it without a shared lock, so a concurrent request can raise a mutation-during-iteration error and return 500.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "inaccessible-created-account in `_route` (line 74): If owner is omitted or empty, the account is created with an empty owner, which _owned rejects for every caller and can leave any opening funds permanently inaccessible.",
+            "status": "unreviewed"
+          },
+          {
+            "file": "app.py",
+            "kind": "baseline",
+            "text": "client-controlled-authorization in `_owned` (line 102, CWE-639): Authorization trusts the caller-supplied X-Owner header without independently authenticating it, so a client can impersonate an account owner to read statements, transfer funds, or close accounts.",
             "status": "unreviewed"
           },
           {
             "file": "ledger.py",
             "kind": "baseline",
-            "text": "negative-initial-balance in `create_account` (line 71, CWE-20): Negative initial_cents values are accepted, allowing account creation with a negative balance despite the deposit cap and normal nonnegative-balance invariant.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "ledger.py",
-            "kind": "baseline",
-            "text": "missing-house-ledger-entry in `transfer` (line 94): A transfer credits the house fee balance without appending a corresponding house statement entry, so its statement does not reflect the balance change.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "ledger.py",
-            "kind": "baseline",
-            "text": "missing-house-ledger-entry in `close_account` (line 107): Closing an account credits the house balance without recording a corresponding house statement entry, leaving the house statement inconsistent with its balance.",
+            "text": "negative-opening-balance in `create_account` (line 71, CWE-20): Only the upper bound is enforced, so a negative initial_cents value creates an account with a negative opening balance.",
             "status": "unreviewed"
           }
         ],
@@ -984,539 +1215,6 @@
           "real": 0,
           "false_positive": 0,
           "unreviewed": 5
-        },
-        "reviews_used": []
-      }
-    },
-    {
-      "run": 3,
-      "raw_findings": [
-        {
-          "file": "app.py",
-          "line": 66,
-          "rule": "cross-owner-account-read",
-          "message": "Account listings and other account-reading routes do not check the caller's X-Owner, so any caller can view every owner's account details and balances.",
-          "cwe": [
-            862
-          ],
-          "function": "_route"
-        },
-        {
-          "file": "app.py",
-          "line": 102,
-          "rule": "unauthorized-transfer",
-          "message": "The transfer route never verifies that X-Owner owns the source account, so any caller can debit arbitrary accounts, including the house account.",
-          "cwe": [
-            862
-          ],
-          "function": "do_transfer"
-        },
-        {
-          "file": "app.py",
-          "line": 108,
-          "rule": "unauthorized-account-close",
-          "message": "The close route does not verify that X-Owner owns the requested account, so any caller can close another owner's account.",
-          "cwe": [
-            862
-          ],
-          "function": "do_close"
-        },
-        {
-          "file": "app.py",
-          "line": 127,
-          "rule": "stored-cross-site-scripting",
-          "message": "The account label is interpolated into HTML without escaping, so a label containing script markup executes when a statement is viewed.",
-          "cwe": [
-            79
-          ],
-          "function": "statement_html"
-        },
-        {
-          "file": "ledger.py",
-          "line": 23,
-          "rule": "negative-pagination-offset",
-          "message": "Negative offsets are passed directly to Python slicing, so a request such as offset=-2 returns entries from the end of the statement instead of rejecting the offset.",
-          "cwe": [
-            20
-          ],
-          "function": "page"
-        },
-        {
-          "file": "ledger.py",
-          "line": 67,
-          "rule": "negative-initial-balance",
-          "message": "Only an upper bound is applied to the initial deposit, so a negative initial_cents value creates an account with a negative balance.",
-          "cwe": [
-            20
-          ],
-          "function": "create_account"
-        },
-        {
-          "file": "ledger.py",
-          "line": 70,
-          "rule": "owner-identity-spoofing",
-          "message": "The account owner is taken from the request body without checking it against X-Owner, so a caller can create an account attributed to another owner.",
-          "cwe": [
-            862
-          ],
-          "function": "create_account"
-        },
-        {
-          "file": "ledger.py",
-          "line": 74,
-          "rule": "mass-assignment",
-          "message": "Request fields are assigned directly to the account, allowing callers to bypass the deposit cap by setting balance_cents or replace an existing account by setting id.",
-          "cwe": [
-            915
-          ],
-          "function": "create_account"
-        },
-        {
-          "file": "ledger.py",
-          "line": 81,
-          "rule": "closed-account-transactions",
-          "message": "Transfers do not check whether either account is closed, so a closed account can still send or receive funds.",
-          "cwe": [
-            841
-          ],
-          "function": "transfer"
-        },
-        {
-          "file": "ledger.py",
-          "line": 82,
-          "rule": "fee-overdraft",
-          "message": "The cover check verifies only the transfer amount and not the fee, so a balance equal to the amount can be driven 25 cents below zero.",
-          "cwe": [
-            682
-          ],
-          "function": "transfer"
-        },
-        {
-          "file": "ledger.py",
-          "line": 82,
-          "rule": "negative-transfer-amount",
-          "message": "The cover check accepts negative amounts, so a caller can transfer a negative value to increase the source balance and debit the destination.",
-          "cwe": [
-            20
-          ],
-          "function": "transfer"
-        },
-        {
-          "file": "ledger.py",
-          "line": 84,
-          "rule": "transfer-lost-update",
-          "message": "Transfers read balances before a sleep and later overwrite them without synchronization, so concurrent transfers can lose balance updates.",
-          "cwe": [
-            362
-          ],
-          "function": "transfer"
-        },
-        {
-          "file": "ledger.py",
-          "line": 88,
-          "rule": "partial-transfer-on-invalid-destination",
-          "message": "The source and house balances are changed before the destination is validated, so transferring to an unknown account returns an error after changing ledger balances.",
-          "cwe": [
-            703
-          ],
-          "function": "transfer"
-        },
-        {
-          "file": "ledger.py",
-          "line": 89,
-          "rule": "unrecorded-house-credits",
-          "message": "Transfer fees change the house balance without adding a corresponding house statement entry, so the ledger's statements omit those balance movements.",
-          "cwe": [
-            682
-          ],
-          "function": "transfer"
-        },
-        {
-          "file": "ledger.py",
-          "line": 98,
-          "rule": "repeated-account-close",
-          "message": "Closing an already-closed account is allowed and appends another close entry, so repeated requests produce duplicate closures in its statement.",
-          "cwe": [
-            841
-          ],
-          "function": "close_account"
-        }
-      ],
-      "invalid_findings": [],
-      "tool_errors": 0,
-      "usage": {
-        "prompt_tokens": 8291,
-        "completion_tokens": 4115,
-        "cost_usd": 0.0030938,
-        "seconds": 63.38,
-        "attempts": 1
-      },
-      "defects": [
-        {
-          "id": "PY03-D01",
-          "file": "ledger.py",
-          "function": "transfer",
-          "category": "missing-precondition",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "negative-transfer-amount in `transfer` (line 82, CWE-20): The cover check accepts negative amounts, so a caller can transfer a negative value to increase the source balance and debit the destination."
-          ]
-        },
-        {
-          "id": "PY03-D02",
-          "file": "ledger.py",
-          "function": "transfer",
-          "category": "invariant-violation",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "fee-overdraft in `transfer` (line 82, CWE-682): The cover check verifies only the transfer amount and not the fee, so a balance equal to the amount can be driven 25 cents below zero.",
-            "unrecorded-house-credits in `transfer` (line 89, CWE-682): Transfer fees change the house balance without adding a corresponding house statement entry, so the ledger's statements omit those balance movements."
-          ]
-        },
-        {
-          "id": "PY03-D03",
-          "file": "ledger.py",
-          "function": "close_account",
-          "category": "invalid-state-transition",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "repeated-account-close in `close_account` (line 98, CWE-841): Closing an already-closed account is allowed and appends another close entry, so repeated requests produce duplicate closures in its statement."
-          ]
-        },
-        {
-          "id": "PY03-D04",
-          "file": "ledger.py",
-          "function": "transfer",
-          "category": "race-condition",
-          "class": "design",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "transfer-lost-update in `transfer` (line 84, CWE-362): Transfers read balances before a sleep and later overwrite them without synchronization, so concurrent transfers can lose balance updates."
-          ]
-        },
-        {
-          "id": "PY03-D05",
-          "file": "ledger.py",
-          "function": "page",
-          "category": "out-of-bounds",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "function_flagged",
-          "findings": [
-            "negative-pagination-offset in `page` (line 23, CWE-20): Negative offsets are passed directly to Python slicing, so a request such as offset=-2 returns entries from the end of the statement instead of rejecting the offset."
-          ]
-        },
-        {
-          "id": "PY03-D06",
-          "file": "ledger.py",
-          "function": "transfer",
-          "category": "invariant-violation",
-          "class": "bug",
-          "in_target_category": true,
-          "status": "detected",
-          "findings": [
-            "fee-overdraft in `transfer` (line 82, CWE-682): The cover check verifies only the transfer amount and not the fee, so a balance equal to the amount can be driven 25 cents below zero.",
-            "unrecorded-house-credits in `transfer` (line 89, CWE-682): Transfer fees change the house balance without adding a corresponding house statement entry, so the ledger's statements omit those balance movements."
-          ]
-        },
-        {
-          "id": "PY03-D07",
-          "file": "app.py",
-          "function": "show_account",
-          "category": "idor",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "missed",
-          "findings": []
-        },
-        {
-          "id": "PY03-D08",
-          "file": "app.py",
-          "function": "statement_html",
-          "category": "xss",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "stored-cross-site-scripting in `statement_html` (line 127, CWE-79): The account label is interpolated into HTML without escaping, so a label containing script markup executes when a statement is viewed."
-          ]
-        },
-        {
-          "id": "PY03-D09",
-          "file": "ledger.py",
-          "function": "create_account",
-          "category": "mass-assignment",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "mass-assignment in `create_account` (line 74, CWE-915): Request fields are assigned directly to the account, allowing callers to bypass the deposit cap by setting balance_cents or replace an existing account by setting id."
-          ]
-        },
-        {
-          "id": "PY03-D10",
-          "file": "app.py",
-          "function": "do_transfer",
-          "category": "missing-authorization",
-          "class": "vulnerability",
-          "in_target_category": false,
-          "status": "detected",
-          "findings": [
-            "unauthorized-transfer in `do_transfer` (line 102, CWE-862): The transfer route never verifies that X-Owner owns the source account, so any caller can debit arbitrary accounts, including the house account."
-          ]
-        }
-      ],
-      "counts": {
-        "total": 10,
-        "detected": 8,
-        "function_flagged": 1,
-        "missed": 1
-      },
-      "findings": [
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "cross-owner-account-read in `_route` (line 66, CWE-862): Account listings and other account-reading routes do not check the caller's X-Owner, so any caller can view every owner's account details and balances.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "unauthorized-transfer in `do_transfer` (line 102, CWE-862): The transfer route never verifies that X-Owner owns the source account, so any caller can debit arbitrary accounts, including the house account.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "unauthorized-account-close in `do_close` (line 108, CWE-862): The close route does not verify that X-Owner owns the requested account, so any caller can close another owner's account.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "app.py",
-          "kind": "baseline",
-          "text": "stored-cross-site-scripting in `statement_html` (line 127, CWE-79): The account label is interpolated into HTML without escaping, so a label containing script markup executes when a statement is viewed.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "negative-pagination-offset in `page` (line 23, CWE-20): Negative offsets are passed directly to Python slicing, so a request such as offset=-2 returns entries from the end of the statement instead of rejecting the offset.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "negative-initial-balance in `create_account` (line 67, CWE-20): Only an upper bound is applied to the initial deposit, so a negative initial_cents value creates an account with a negative balance.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "owner-identity-spoofing in `create_account` (line 70, CWE-862): The account owner is taken from the request body without checking it against X-Owner, so a caller can create an account attributed to another owner.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "mass-assignment in `create_account` (line 74, CWE-915): Request fields are assigned directly to the account, allowing callers to bypass the deposit cap by setting balance_cents or replace an existing account by setting id.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "closed-account-transactions in `transfer` (line 81, CWE-841): Transfers do not check whether either account is closed, so a closed account can still send or receive funds.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "fee-overdraft in `transfer` (line 82, CWE-682): The cover check verifies only the transfer amount and not the fee, so a balance equal to the amount can be driven 25 cents below zero.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "negative-transfer-amount in `transfer` (line 82, CWE-20): The cover check accepts negative amounts, so a caller can transfer a negative value to increase the source balance and debit the destination.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "transfer-lost-update in `transfer` (line 84, CWE-362): Transfers read balances before a sleep and later overwrite them without synchronization, so concurrent transfers can lose balance updates.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "partial-transfer-on-invalid-destination in `transfer` (line 88, CWE-703): The source and house balances are changed before the destination is validated, so transferring to an unknown account returns an error after changing ledger balances.",
-          "status": "unreviewed"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "unrecorded-house-credits in `transfer` (line 89, CWE-682): Transfer fees change the house balance without adding a corresponding house statement entry, so the ledger's statements omit those balance movements.",
-          "status": "defect_evidence"
-        },
-        {
-          "file": "ledger.py",
-          "kind": "baseline",
-          "text": "repeated-account-close in `close_account` (line 98, CWE-841): Closing an already-closed account is allowed and appends another close entry, so repeated requests produce duplicate closures in its statement.",
-          "status": "defect_evidence"
-        }
-      ],
-      "finding_counts": {
-        "total": 15,
-        "defect_evidence": 8,
-        "real": 0,
-        "false_positive": 0,
-        "unreviewed": 7
-      },
-      "reviews_used": [],
-      "fixed_raw_findings": [
-        {
-          "file": "app.py",
-          "line": 29,
-          "rule": "unbounded-request-body",
-          "message": "The handler reads the entire client-supplied Content-Length without a size limit, so oversized or slow request bodies can exhaust memory or tie up server threads.",
-          "cwe": [
-            400
-          ],
-          "function": "_read_json"
-        },
-        {
-          "file": "app.py",
-          "line": 72,
-          "rule": "unsynchronized-account-list",
-          "message": "This iteration is not synchronized with account creation, so concurrent POST /accounts requests can change the dictionary during iteration and make GET /accounts fail with a 500 response.",
-          "cwe": [
-            362
-          ],
-          "function": "_route"
-        },
-        {
-          "file": "app.py",
-          "line": 95,
-          "rule": "unverified-account-owner",
-          "message": "Account creation accepts the body’s owner without checking it against the caller identity, so a request can create an account that appears in another owner's account list.",
-          "cwe": [
-            862
-          ],
-          "function": "create_account"
-        },
-        {
-          "file": "app.py",
-          "line": 102,
-          "rule": "spoofable-identity",
-          "message": "Authorization trusts the caller-supplied X-Owner value without authenticating it, so a caller can set it to another account's owner and read, close, or transfer from that account.",
-          "cwe": [
-            290
-          ],
-          "function": "_owned"
-        },
-        {
-          "file": "app.py",
-          "line": 107,
-          "rule": "non-atomic-ledger-reads",
-          "message": "Account reads do not acquire the ledger lock, so a GET concurrent with a transfer or close can observe balances partway through the multi-account update.",
-          "cwe": [
-            362
-          ],
-          "function": "show_account"
-        },
-        {
-          "file": "ledger.py",
-          "line": 71,
-          "rule": "negative-initial-balance",
-          "message": "The upper-only cap accepts negative initial_cents, allowing creation of accounts with negative balances and, when closed, reducing the house balance.",
-          "cwe": [
-            20
-          ],
-          "function": "create_account"
-        },
-        {
-          "file": "ledger.py",
-          "line": 107,
-          "rule": "missing-house-statement-entry",
-          "message": "Closing an account credits the house balance but adds no corresponding credit entry to the house account, leaving its statement inconsistent with its balance and the closed account's entry.",
-          "cwe": [
-            840
-          ],
-          "function": "close_account"
-        }
-      ],
-      "fixed_invalid_findings": [],
-      "fixed_tool_errors": 0,
-      "fixed_usage": {
-        "prompt_tokens": 8529,
-        "completion_tokens": 3882,
-        "cost_usd": 0.00300705,
-        "seconds": 57.68,
-        "attempts": 1
-      },
-      "fixed": {
-        "defects": 10,
-        "still_reported": [
-          "PY03-D07",
-          "PY03-D10"
-        ],
-        "false_alarms": 7,
-        "findings": [
-          {
-            "file": "app.py",
-            "kind": "baseline",
-            "text": "unbounded-request-body in `_read_json` (line 29, CWE-400): The handler reads the entire client-supplied Content-Length without a size limit, so oversized or slow request bodies can exhaust memory or tie up server threads.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "app.py",
-            "kind": "baseline",
-            "text": "unsynchronized-account-list in `_route` (line 72, CWE-362): This iteration is not synchronized with account creation, so concurrent POST /accounts requests can change the dictionary during iteration and make GET /accounts fail with a 500 response.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "app.py",
-            "kind": "baseline",
-            "text": "unverified-account-owner in `create_account` (line 95, CWE-862): Account creation accepts the body’s owner without checking it against the caller identity, so a request can create an account that appears in another owner's account list.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "app.py",
-            "kind": "baseline",
-            "text": "spoofable-identity in `_owned` (line 102, CWE-290): Authorization trusts the caller-supplied X-Owner value without authenticating it, so a caller can set it to another account's owner and read, close, or transfer from that account.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "app.py",
-            "kind": "baseline",
-            "text": "non-atomic-ledger-reads in `show_account` (line 107, CWE-362): Account reads do not acquire the ledger lock, so a GET concurrent with a transfer or close can observe balances partway through the multi-account update.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "ledger.py",
-            "kind": "baseline",
-            "text": "negative-initial-balance in `create_account` (line 71, CWE-20): The upper-only cap accepts negative initial_cents, allowing creation of accounts with negative balances and, when closed, reducing the house balance.",
-            "status": "unreviewed"
-          },
-          {
-            "file": "ledger.py",
-            "kind": "baseline",
-            "text": "missing-house-statement-entry in `close_account` (line 107, CWE-840): Closing an account credits the house balance but adds no corresponding credit entry to the house account, leaving its statement inconsistent with its balance and the closed account's entry.",
-            "status": "unreviewed"
-          }
-        ],
-        "finding_counts": {
-          "total": 7,
-          "defect_evidence": 0,
-          "real": 0,
-          "false_positive": 0,
-          "unreviewed": 7
         },
         "reviews_used": []
       }
