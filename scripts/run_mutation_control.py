@@ -97,14 +97,19 @@ def context(body: str, mutant: dict, width: int = 50) -> str:
 
 def run_case(case: dict, mumei_bin: str, timeout: int) -> dict:
     head, body = split_fixed(case)
+    out = {"id": case["id"], "language": case["language"], "function": case["function"],
+           "case_hash": case["case_hash"]}
+    # A refutation only kills a mutant if the unmutated fixed port is proven by the same build.
+    baseline = cb.verify_text(mumei_bin, head + body, timeout)["outcome"]
+    if baseline != "proven":
+        return {**out, "baseline": baseline, "mutants": []}
     rows = []
     for mt in mutants(body):
         res = cb.verify_text(mumei_bin, head + apply(body, mt), timeout)
         msg = res["diagnostics"][0]["message"].splitlines()[0][:200] if res["diagnostics"] else ""
         rows.append({**mt, "outcome": OUTCOME.get(res["outcome"], "invalid"), "status": res["status"],
                      "message": msg})
-    return {"id": case["id"], "language": case["language"], "function": case["function"],
-            "case_hash": case["case_hash"], "mutants": rows}
+    return {**out, "baseline": baseline, "mutants": rows}
 
 
 def tally(rows: list[dict]) -> dict:
@@ -190,6 +195,10 @@ def check(cases: list[dict]) -> list[str]:
             continue
         if r["case_hash"] != c["case_hash"]:
             problems.append(f"{c['id']}: port or contract changed since the mutation run")
+            continue
+        if r.get("baseline") != "proven":
+            problems.append(f"{c['id']}: the unmutated fixed port was not proven ({r.get('baseline')}), "
+                            "so its mutants cannot be scored")
             continue
         want = mutants(split_fixed(c)[1])
         got = [{k: m[k] for k in ("op", "at", "from", "to")} for m in r["mutants"]]

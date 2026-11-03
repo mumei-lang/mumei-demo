@@ -85,8 +85,10 @@ def test_every_benchmark_port_has_mutants_that_apply():
 
 
 def fake_verify(rule):
+    fixed = {c["ports"]["fixed"] for c in CASES}
+
     def verify(_bin, text, _timeout):
-        outcome = rule(text)
+        outcome = "proven" if text in fixed else rule(text)
         return {"outcome": outcome, "status": outcome,
                 "diagnostics": [{"message": f"Verification Error: {outcome}\nmore"}] if outcome != "proven" else []}
     return verify
@@ -95,9 +97,10 @@ def fake_verify(rule):
 @pytest.mark.parametrize("outcome, expected", [("refuted", "killed"), ("proven", "survived"),
                                                ("inconclusive", "invalid"), ("unverifiable", "invalid")])
 def test_run_case_maps_outcomes(monkeypatch, outcome, expected):
-    monkeypatch.setattr(mc.cb, "verify_text", fake_verify(lambda t: outcome))
     case = CASES[0]
+    monkeypatch.setattr(mc.cb, "verify_text", fake_verify(lambda t: outcome))
     r = mc.run_case(case, "mumei", 5)
+    assert r["baseline"] == "proven"
     assert r["id"] == case["id"] and r["case_hash"] == case["case_hash"]
     assert r["mutants"] and {m["outcome"] for m in r["mutants"]} == {expected}
     assert all("\n" not in m["message"] for m in r["mutants"])
@@ -105,13 +108,38 @@ def test_run_case_maps_outcomes(monkeypatch, outcome, expected):
 
 def test_run_case_verifies_the_mutated_body_under_the_original_contract(monkeypatch):
     seen = []
-    monkeypatch.setattr(mc.cb, "verify_text", lambda b, t, to: seen.append(t) or {
-        "outcome": "refuted", "status": "failed", "diagnostics": []})
     case = CASES[0]
+    monkeypatch.setattr(mc.cb, "verify_text", lambda b, t, to: seen.append(t) or {
+        "outcome": "proven" if t == case["ports"]["fixed"] else "refuted", "status": "failed", "diagnostics": []})
     head, body = mc.split_fixed(case)
     mc.run_case(case, "mumei", 5)
-    assert len(seen) == len(mc.mutants(body))
-    assert all(t.startswith(head) and t != case["ports"]["fixed"] for t in seen)
+    assert seen[0] == case["ports"]["fixed"]
+    assert len(seen) == 1 + len(mc.mutants(body))
+    assert all(t.startswith(head) and t != case["ports"]["fixed"] for t in seen[1:])
+
+
+@pytest.mark.parametrize("baseline", ["refuted", "inconclusive", "unverifiable"])
+def test_run_case_scores_no_mutant_when_the_fixed_port_is_not_proven(monkeypatch, baseline):
+    seen = []
+    monkeypatch.setattr(mc.cb, "verify_text", lambda b, t, to: seen.append(t) or {
+        "outcome": baseline, "status": "failed", "diagnostics": []})
+    r = mc.run_case(CASES[0], "mumei", 5)
+    assert r["baseline"] == baseline and r["mutants"] == [] and len(seen) == 1
+
+
+@pytest.mark.parametrize("baseline", ["refuted", None])
+def test_check_rejects_a_case_whose_fixed_port_was_not_proven(monkeypatch, tmp_path, baseline):
+    doc = json.loads(mc.RESULT.read_text())
+    target = doc["cases"][0]
+    if baseline is None:
+        target.pop("baseline")
+    else:
+        target["baseline"] = baseline
+    result = tmp_path / "mutation.json"
+    result.write_text(json.dumps(doc))
+    monkeypatch.setattr(mc, "RESULT", result)
+    problems = mc.check(mc.cb.load_cases()[0])
+    assert any(p.startswith(f"{target['id']}: the unmutated fixed port was not proven") for p in problems)
 
 
 @pytest.mark.parametrize("outcomes, score", [
