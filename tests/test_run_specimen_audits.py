@@ -1423,6 +1423,18 @@ def test_audit_files_excludes_fixed_patch(tmp_path, monkeypatch):
     assert "fixed.patch" in {f.name for f in rsa.tracked_files(d)}
 
 
+@pytest.mark.parametrize("out_dir", rsa.OUTPUT_DIRS)
+def test_tracked_files_skip_benchmark_outputs(tmp_path, monkeypatch, out_dir):
+    import subprocess as sp
+    d = _git_specimen(tmp_path, monkeypatch, None)
+    before = rsa.specimen_hash(d)
+    (d / out_dir).mkdir(exist_ok=True)
+    (d / out_dir / "record.json").write_text("{}")
+    sp.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+    assert {f.relative_to(d).as_posix() for f in rsa.audit_files(d)} == {"DEFECTS.json", "app.py"}
+    assert rsa.specimen_hash(d) == before
+
+
 def test_apply_fixed_patch(tmp_path):
     work = tmp_path / "w"
     work.mkdir()

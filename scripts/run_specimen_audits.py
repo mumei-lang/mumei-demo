@@ -152,6 +152,10 @@ def git_rev(path: Path) -> str | None:
     return out.stdout.strip()
 
 
+# Benchmark outputs kept next to each specimen; never part of its sources.
+OUTPUT_DIRS = ("audit", "baselines", "llm_only")
+
+
 def tracked_files(specimen_dir: Path) -> list[Path]:
     rel = specimen_dir.relative_to(REPO_ROOT)
     out = subprocess.run(
@@ -159,7 +163,7 @@ def tracked_files(specimen_dir: Path) -> list[Path]:
         capture_output=True, text=True, check=True,
     )
     files = [REPO_ROOT / p for p in out.stdout.split("\0") if p]
-    return [f for f in files if f.relative_to(specimen_dir).parts[:1] not in (("audit",), ("baselines",))]
+    return [f for f in files if f.relative_to(specimen_dir).parts[0] not in OUTPUT_DIRS]
 
 
 def audit_files(specimen_dir: Path) -> list[Path]:
@@ -806,16 +810,16 @@ SCOREBOARD_END = "<!-- scoreboard:end -->"
 
 
 def _specimen_files(specimen_dir: Path) -> list[Path]:
-    """Files that make up a specimen, excluding audit/ and baselines/ output.
+    """Files that make up a specimen, excluding the OUTPUT_DIRS outputs.
 
     Git-tracked files when specimen_dir lives under the repo; everything on
-    disk (except audit/ and baselines/) otherwise, so corpus_info also works on scratch dirs.
+    disk (except OUTPUT_DIRS) otherwise, so corpus_info also works on scratch dirs.
     """
     try:
         return tracked_files(specimen_dir)
     except (OSError, subprocess.CalledProcessError, ValueError):
         return sorted(f for f in specimen_dir.rglob("*")
-                      if f.is_file() and f.relative_to(specimen_dir).parts[0] not in ("audit", "baselines"))
+                      if f.is_file() and f.relative_to(specimen_dir).parts[0] not in OUTPUT_DIRS)
 
 
 def corpus_info(root: Path) -> dict:
