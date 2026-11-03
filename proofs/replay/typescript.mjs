@@ -73,7 +73,10 @@ async function check(id, v) {
     if (id === "TS03-D05") {
       const items = Array.from({ length: v.n }, (_, i) => ({ sku: `s${i}`, description: "", unitPrice: 1, quantity: 1 }));
       const [ok, r] = thrown(() => p.pageFooters(items, v.per_page));
-      return [!ok || r.some((f) => f.includes("undefined")), ok ? JSON.stringify(r) : `threw ${r?.name}: ${r?.message}`];
+      // A crash leaves no footer for any page, including the requested one.
+    const footer = ok ? r[v.page] : undefined;
+    return [!ok || footer === undefined || footer.includes("undefined"),
+      ok ? `page ${v.page}: ${JSON.stringify(footer)}` : `threw ${r?.name}: ${r?.message}`];
     }
     if (id === "TS03-D09") {
       const [ok, r] = thrown(() => p.applyDiscount(v.amount, v.percent));
