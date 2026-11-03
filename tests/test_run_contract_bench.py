@@ -489,3 +489,60 @@ def test_markdown_shows_llm_witness_for_fixed_rejections():
     llm = {"arm": "llm", "model": "m", "runs": [[r]]}
     text = cb.render_markdown(cb.arm_rows([llm]), [llm], [])
     assert "`A` fixed rejected, witness: epoch = max i64" in text
+
+
+@pytest.mark.parametrize("message,outcome", [
+    ("Verification Error: Unknown function: %", "inconclusive"),
+    ("Verification Error: Potential division by zero. Counter-example: d = 0", "refuted"),
+    ("Verification Error: Call to 'f': precondition (requires) not satisfied", "refuted"),
+])
+def test_classify_refutes_only_on_verification_failures(message, outcome):
+    doc = {"status": "failed", "diagnostics": [{"severity": "error", "message": message}]}
+    assert cb.classify(doc, 1)["outcome"] == outcome
+
+
+def test_classify_failed_without_diagnostics_is_inconclusive():
+    assert cb.classify({"status": "failed", "diagnostics": []}, 1)["outcome"] == "inconclusive"
+
+
+def test_check_reports_case_missing_from_one_run(repo, monkeypatch):
+    run_reference(repo, monkeypatch)
+    (case,) = cb.load_cases()[0]
+    r = cb.run_llm_case(case, StubProvider(lambda m, s: '{"verdict": "holds"}'), "llm", 0, None, 5)
+    cb.write_result("llm", "stub/model-1", [[r], []])
+    assert "llm (stub/model-1): PY09-D01 has no result in run 2" in cb.stale_records(cb.load_cases()[0], cb.load_results())
+
+
+def test_check_fails_without_reference_result(repo, capsys):
+    assert cb.main(["--check"]) == 1
+    assert "no reference result" in capsys.readouterr().err
+
+
+def test_prompt_template_change_marks_llm_results_stale(repo, monkeypatch):
+    before = cb.prompt_hash()
+
+    def other_prompt(case, variant):
+        return []
+
+    monkeypatch.setattr(cb, "llm_prompt", other_prompt)
+    assert cb.prompt_hash() != before
+
+
+def test_only_merges_into_committed_result(repo, monkeypatch):
+    run_reference(repo, monkeypatch)
+    doc = json.loads((repo / "proofs/results/mumei.json").read_text())
+    doc["runs"][0].append({**doc["runs"][0][0], "id": "OTHER"})
+    (repo / "proofs/results/mumei.json").write_text(json.dumps(doc))
+    assert cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--only", "PY09-D01"]) == 0
+    ids = sorted(r["id"] for r in json.loads((repo / "proofs/results/mumei.json").read_text())["runs"][0])
+    assert ids == ["OTHER", "PY09-D01"]
+
+
+def test_only_refuses_to_merge_other_run_count(repo, monkeypatch):
+    run_reference(repo, monkeypatch)
+    (case,) = cb.load_cases()[0]
+    prov = StubProvider(lambda m, s: '{"verdict": "holds"}')
+    r = cb.run_llm_case(case, prov, "llm", 0, None, 5)
+    cb.write_result("llm", prov.model, [[r], [r]])
+    with pytest.raises(SystemExit, match="rerun without --only"):
+        cb.main(["--arm", "llm", "--runs", "1", "--only", "PY09-D01"], provider=prov)

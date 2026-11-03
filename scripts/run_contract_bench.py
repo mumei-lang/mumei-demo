@@ -34,9 +34,11 @@ from __future__ import annotations
 
 import argparse
 import ast
+import atexit
 import concurrent.futures
 import datetime as dt
 import hashlib
+import inspect
 import json
 import os
 import re
@@ -64,6 +66,8 @@ PROMPT_VERSION = 2
 ARMS = ("mumei", "llm", "mumei-llm")
 RATE_LIMIT_RETRIES = 8
 TRANSPORT_ERROR = "LLM request failed"
+REFUTATION = re.compile(r"Postcondition|precondition|division by zero|Out-of-Bounds|overflow|underflow|"
+                        r"[Ii]nvariant|decreases|[Tt]ermination")
 
 FUNC_PATTERNS = {
     "go": r"^func\s+(\([^)]*\)\s*)?{n}\s*\(",
@@ -95,7 +99,8 @@ def sha256(text: str) -> str:
 
 
 def prompt_hash() -> str:
-    return sha256(json.dumps([PROMPT_VERSION, LLM_SYSTEM, PORT_SYSTEM], sort_keys=True))[:16]
+    templates = [inspect.getsource(f) for f in (llm_prompt, port_prompt, assemble)]
+    return sha256(json.dumps([PROMPT_VERSION, LLM_SYSTEM, PORT_SYSTEM, templates], sort_keys=True))[:16]
 
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
@@ -132,6 +137,7 @@ def target_defects() -> list[tuple[str, str, dict]]:
 def fixed_tree(specimen_dir: Path, cache: dict) -> Path:
     if specimen_dir not in cache:
         tmp = Path(tempfile.mkdtemp(prefix="contract-bench-"))
+        atexit.register(shutil.rmtree, tmp, True)
         shutil.copytree(specimen_dir, tmp / "s")
         subprocess.run(["git", "apply", "fixed.patch"], cwd=tmp / "s", check=True,
                        capture_output=True)
@@ -233,7 +239,8 @@ def classify(doc: dict | None, returncode: int) -> dict:
     if status == "success" and returncode == 0:
         outcome = "proven"
     elif status == "failed" and int(doc.get("unverifiable", 0) or 0) == 0 and int(doc.get("infra_errors", 0) or 0) == 0:
-        outcome = "refuted"
+        # Only a verification failure refutes; an unknown function or a type error says nothing about the code.
+        outcome = "refuted" if diags and all(REFUTATION.search(d["message"]) for d in diags) else "inconclusive"
     else:
         outcome = "inconclusive"
     return {"outcome": outcome, "status": status, "diagnostics": diags}
@@ -374,15 +381,14 @@ def stale_records(cases: list[dict], results: list[dict]) -> list[str]:
     for doc in results:
         if doc["arm"] != "mumei" and doc.get("prompt_hash") != prompt_hash():
             out.append(f"{doc['arm']} ({doc.get('model')}): prompt changed")
-        seen = set()
-        for run in doc["runs"]:
+        label = f"{doc['arm']} ({doc.get('model') or 'reference'})"
+        for n, run in enumerate(doc["runs"], 1):
             for r in run:
                 c = by_id.get(r["id"])
-                seen.add(r["id"])
                 if c is None or c["case_hash"] != r["case_hash"] or c["source_hash"] != r["source_hash"]:
-                    out.append(f"{doc['arm']} ({doc.get('model') or 'reference'}): {r['id']} is stale")
-        for missing in sorted(set(by_id) - seen):
-            out.append(f"{doc['arm']} ({doc.get('model') or 'reference'}): {missing} has no result")
+                    out.append(f"{label}: {r['id']} is stale")
+            for missing in sorted(set(by_id) - {r["id"] for r in run}):
+                out.append(f"{label}: {missing} has no result in run {n}")
     return out
 
 
@@ -446,7 +452,7 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
         out += ["Requests that failed (rate limits, timeouts) are not counted as answers: " +
                 ", ".join(f"{r['arm']} {fmt(r, 'errors')}" for r in failed) + ".", ""]
     out += ["The reference ports were written by hand with knowledge of the defects, so the first row shows "
-            "that the contracts can express each requirement and that the checker tells the two versions apart. "
+            "that the contracts can express each requirement and how often the checker tells the two versions apart. "
             "It is not a detection result. The LLM rows are the comparison. Both LLM arms see the product "
             "source file, the requirement, the modelling notes and the contract header, never the defect list "
             "or the reference ports. LLM only answers holds/violated itself; a \"holds\" is the model's "
@@ -541,6 +547,17 @@ def render_all(cases: list[dict], write: bool) -> list[str]:
     return outdated
 
 
+def merge_runs(arm: str, model: str | None, runs: list[list[dict]]) -> list[list[dict]]:
+    """Replace the given cases in the committed result, so that --only reruns a few cases."""
+    path = result_path(arm, model)
+    if not path.is_file():
+        return runs
+    old = json.loads(path.read_text())
+    if len(old["runs"]) != len(runs) or (arm != "mumei" and old.get("prompt_hash") != prompt_hash()):
+        raise SystemExit(f"{path.relative_to(REPO_ROOT)} has another prompt or run count; rerun without --only")
+    return [[r for r in o if r["id"] not in {x["id"] for x in n}] + n for o, n in zip(old["runs"], runs)]
+
+
 def write_result(arm: str, model: str | None, runs: list[list[dict]]) -> Path:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     doc = {"arm": arm, "model": model, "prompt_hash": None if arm == "mumei" else prompt_hash(),
@@ -570,7 +587,11 @@ def main(argv: list[str], provider=None) -> int:
     args = build_parser().parse_args(argv)
     cases, errors = load_cases()
     if args.check:
-        problems = errors + stale_records(cases, load_results()) + [f"{f} is out of date; run --render-only" for f in render_all(cases, write=False)]
+        results = load_results()
+        problems = errors + stale_records(cases, results)
+        if not any(d["arm"] == "mumei" for d in results):
+            problems.append("no reference result (proofs/results/mumei.json); run --arm mumei")
+        problems += [f"{f} is out of date; run --render-only" for f in render_all(cases, write=False)]
         for msg in problems:
             print(f"error: {msg}", file=sys.stderr)
         print(f"{len(cases)} cases, {len(problems)} problem(s)")
@@ -590,7 +611,8 @@ def main(argv: list[str], provider=None) -> int:
         if arm == "mumei":
             with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
                 run = list(pool.map(lambda c: run_mumei_case(c, args.mumei_bin, args.timeout), cases))
-            path = write_result(arm, None, [run])
+            runs = [run]
+            path = write_result(arm, None, merge_runs(arm, None, runs) if args.only else runs)
         else:
             prov = provider or llm_only.provider_from_env(timeout=600)
             prov.retries = max(getattr(prov, "retries", 0), RATE_LIMIT_RETRIES)
@@ -598,7 +620,7 @@ def main(argv: list[str], provider=None) -> int:
             for seed in range(args.runs):
                 with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
                     runs.append(list(pool.map(lambda c: run_llm_case(c, prov, arm, seed, args.mumei_bin, args.timeout), cases)))
-            path = write_result(arm, prov.model, runs)
+            path = write_result(arm, prov.model, merge_runs(arm, prov.model, runs) if args.only else runs)
         if arm != "mumei" and any(score(run)["errors"] for run in json.loads(path.read_text())["runs"]):
             print(f"warning: {arm} has requests that failed; rerun before publishing", file=sys.stderr)
         print(f"{arm}: {score(json.loads(path.read_text())['runs'][0])} -> {path.relative_to(REPO_ROOT)}")
