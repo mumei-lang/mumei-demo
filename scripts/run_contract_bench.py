@@ -66,8 +66,8 @@ PROMPT_VERSION = 2
 ARMS = ("mumei", "llm", "mumei-llm")
 RATE_LIMIT_RETRIES = 8
 TRANSPORT_ERROR = "LLM request failed"
-REFUTATION = re.compile(r"Postcondition|precondition|division by zero|Out-of-Bounds|overflow|underflow|"
-                        r"[Ii]nvariant|decreases|[Tt]ermination")
+REFUTATION = re.compile(r"^Verification Error: (Postcondition|Call to \S+: precondition|Potential |"
+                        r"(Loop )?[Ii]nvariant|[Tt]ermination|[Dd]ecreases)")
 
 FUNC_PATTERNS = {
     "go": r"^func\s+(\([^)]*\)\s*)?{n}\s*\(",
@@ -559,7 +559,7 @@ def merge_runs(arm: str, model: str | None, runs: list[list[dict]]) -> list[list
     """Replace the given cases in the committed result, so that --only reruns a few cases."""
     path = result_path(arm, model)
     if not path.is_file():
-        return runs
+        raise SystemExit(f"{path.relative_to(REPO_ROOT)} does not exist yet; run every case before using --only")
     old = json.loads(path.read_text())
     if len(old["runs"]) != len(runs) or (arm != "mumei" and old.get("prompt_hash") != prompt_hash()):
         raise SystemExit(f"{path.relative_to(REPO_ROOT)} has another prompt or run count; rerun without --only")

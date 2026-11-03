@@ -190,7 +190,7 @@ def test_extract_function(lang, source, name, expected):
 @pytest.mark.parametrize("doc,code,outcome", [
     ({"status": "success", "diagnostics": []}, 0, "proven"),
     ({"status": "success", "diagnostics": []}, 1, "inconclusive"),
-    ({"status": "failed", "diagnostics": [{"severity": "error", "message": "Postcondition", "atom": "f"}]}, 1, "refuted"),
+    ({"status": "failed", "diagnostics": [{"severity": "error", "message": "Verification Error: Postcondition (ensures) is not satisfied.", "atom": "f"}]}, 1, "refuted"),
     ({"status": "failed", "unverifiable": 1, "diagnostics": []}, 1, "inconclusive"),
     ({"status": "failed", "infra_errors": 1, "diagnostics": []}, 1, "inconclusive"),
     ({"status": "error", "diagnostics": []}, 1, "inconclusive"),
@@ -493,6 +493,8 @@ def test_markdown_shows_llm_witness_for_fixed_rejections():
 
 @pytest.mark.parametrize("message,outcome", [
     ("Verification Error: Unknown function: %", "inconclusive"),
+    ("Verification Error: Unknown function: overflow", "inconclusive"),
+    ("Verification Error: Unknown function: invariant_holds", "inconclusive"),
     ("Verification Error: Potential division by zero. Counter-example: d = 0", "refuted"),
     ("Verification Error: Call to 'f': precondition (requires) not satisfied", "refuted"),
 ])
@@ -573,3 +575,9 @@ def test_check_reports_duplicate_case_in_a_run(repo, monkeypatch):
     doc["runs"][0] *= 2
     (repo / "proofs/results/mumei.json").write_text(json.dumps(doc))
     assert "mumei (reference): PY09-D01 appears more than once in run 1" in cb.stale_records(cb.load_cases()[0], cb.load_results())
+
+
+def test_only_needs_a_committed_result(repo, monkeypatch):
+    monkeypatch.setattr(cb, "verify_text", fake_verify(REFERENCE))
+    with pytest.raises(SystemExit, match="run every case before using --only"):
+        cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--only", "PY09-D01"])
