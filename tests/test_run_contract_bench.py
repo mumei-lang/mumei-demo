@@ -655,3 +655,37 @@ def test_check_requires_the_reference_verifier_commit(repo, monkeypatch, capsys,
     path.write_text(json.dumps(doc))
     assert cb.main(["--check"]) == 1
     assert "does not record the mumei commit" in capsys.readouterr().err
+
+
+def _checkout(tmp_path):
+    checkout = tmp_path / "mumei"
+    (checkout / "target" / "debug").mkdir(parents=True)
+    (checkout / "src.rs").write_text("fn main() {}\n")
+    _git(checkout, "init", "-q")
+    _git(checkout, "add", "src.rs")
+    _git(checkout, "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-qm", "init")
+    return checkout
+
+
+def test_verifier_identity_ignores_a_binary_outside_target(tmp_path):
+    checkout = _checkout(tmp_path)
+    (checkout / "bin").mkdir()
+    got = cb.verifier_identity(str(_fake_mumei(checkout / "bin")))
+    assert got == {"version": "mumei 9.9.9", "commit": None, "dirty": None}
+
+
+def test_verifier_identity_ignores_a_binary_older_than_the_checkout(tmp_path):
+    import os
+    checkout = _checkout(tmp_path)
+    binary = _fake_mumei(checkout / "target" / "debug")
+    os.utime(binary, (1_000_000_000, 1_000_000_000))
+    got = cb.verifier_identity(str(binary))
+    assert got["version"] == "mumei 9.9.9" and got["commit"] is None
+
+
+def test_only_refuses_a_result_from_another_build(repo, monkeypatch):
+    run_reference(repo, monkeypatch)
+    monkeypatch.setattr(cb, "verify_text", fake_verify(REFERENCE))
+    monkeypatch.setattr(cb, "verifier_identity", lambda _bin: {**VERIFIER, "commit": "1" * 40})
+    with pytest.raises(SystemExit, match="another mumei build"):
+        cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--only", "PY09-D01"])
