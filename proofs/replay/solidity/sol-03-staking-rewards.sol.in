@@ -80,8 +80,10 @@ abstract contract ReplayChecks is SpecTest {
     }
 
     function check_SOL03_D02(uint256 rpt, uint256 paid, uint256 bal, uint256 rewards) internal {
-        rpt; paid; bal; rewards;
-        // The accumulator only falls below a user's paid mark through a new epoch after a claim.
+        rewards;
+        // earned() only wraps when the accumulator sits below the paid mark and there is a stake;
+        // that state is reached natively through a new epoch after a claim.
+        if (rpt >= paid || bal == 0) revert("unexpressible: only rpt < paid with a stake is reached natively");
         (StakingRewards pool, StakeToken stake, StakeToken reward) = deploy();
         stakeAs(pool, stake, ALICE, 1);
         startEpoch(pool, reward, 1_000 ether, 1_000);
