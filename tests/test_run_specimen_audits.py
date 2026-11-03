@@ -5,9 +5,12 @@ hand-built defects docs / audit dicts.
 """
 
 import importlib.util
+import io
 import json
+import shutil
 import subprocess
 import sys
+import urllib.error
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -534,10 +537,14 @@ def test_record_run_llm_modes_stay_separate(tmp_path):
     assert rsa.entry_llm(legacy) is False
     rsa.record_run(hp, legacy)
     hist = json.loads(hp.read_text())
-    # the legacy run keys as no-LLM, so it replaces that mode's entry — which is
-    # not the last one, so it appends instead of clobbering the with-LLM run
-    assert len(hist["runs"]) == 3
-    assert [rsa.entry_llm(r) for r in hist["runs"]] == [False, True, False]
+    # the legacy run keys as no-LLM, so it replaces that mode's latest entry in
+    # place, even though a with-LLM run came after it
+    assert len(hist["runs"]) == 2
+    assert [rsa.entry_llm(r) for r in hist["runs"]] == [False, True]
+    assert [r["totals"]["detected"] for r in hist["runs"]] == [9, 7]
+    # a new key in one mode still appends
+    rsa.record_run(hp, _run(llm=False, agent="ddddddd4444", date="2025-01-05"))
+    assert [rsa.entry_llm(r) for r in json.loads(hp.read_text())["runs"]] == [False, True, False]
 
 
 def test_latest_by_mode_picks_newest_per_mode():
@@ -1546,3 +1553,281 @@ def test_rescore_refuses_after_fixed_patch_changes(tmp_path, monkeypatch):
     (d / "fixed.patch").write_text(MINI_FIX.replace("return 2", "return 3"))
     with pytest.raises(SystemExit, match="changed since the audit"):
         rsa.rescore_specimen(d, [], [])
+
+
+# --- with-LLM run metadata ----------------------------------------------------
+
+SENTINEL_KEY = "sk-test-sentinel-not-a-real-key"
+
+
+def _clear_llm_env(monkeypatch):
+    for name in ("LLM_API_KEY", "OPENAI_API_KEY", "LLM_BASE_URL", "LLM_MODEL"):
+        monkeypatch.delenv(name, raising=False)
+
+
+@pytest.mark.parametrize("env,dotenv,expected", [
+    ({}, "", {"llm_model": "gpt-4o", "llm_endpoint": "api.openai.com"}),
+    ({"LLM_MODEL": "openai/gpt-6-luna", "LLM_BASE_URL": "https://openrouter.ai/api/v1"}, "",
+     {"llm_model": "openai/gpt-6-luna", "llm_endpoint": "openrouter.ai"}),
+    ({}, "LLM_MODEL=qwen\nLLM_BASE_URL=http://localhost:11434/v1\n",
+     {"llm_model": "qwen", "llm_endpoint": "localhost"}),
+    ({"LLM_MODEL": "env-wins"}, "LLM_MODEL=dotenv\n",
+     {"llm_model": "env-wins", "llm_endpoint": "api.openai.com"}),
+    ({"LLM_BASE_URL": "https://user:pw@proxy.example.invalid/v1?token=x#f"}, "",
+     {"llm_model": "gpt-4o", "llm_endpoint": "proxy.example.invalid"}),
+    ({"LLM_BASE_URL": "not a url"}, "", {"llm_model": "gpt-4o", "llm_endpoint": "api.openai.com"}),
+])
+def test_llm_settings(tmp_path, monkeypatch, env, dotenv, expected):
+    _clear_llm_env(monkeypatch)
+    for k, v in env.items():
+        monkeypatch.setenv(k, v)
+    (tmp_path / ".env").write_text(dotenv)
+    assert rsa.llm_settings(tmp_path) == expected
+
+
+class _Resp(io.BytesIO):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _usage_opener(body=None, exc=None, seen=None):
+    def opener(req, timeout):
+        if seen is not None:
+            seen.append(req)
+        if exc is not None:
+            raise exc
+        return _Resp(body.encode())
+    return opener
+
+
+@pytest.mark.parametrize("body,expected", [
+    ('{"data": {"usage": 0.25}}', 0.25),
+    ('{"data": {"usage": 3}}', 3.0),
+    ('{"data": {"usage": null}}', None),
+    ('{"data": {"usage": true}}', None),
+    ('{"data": {"usage": "0.2"}}', None),
+    ('{"data": {}}', None),
+    ('{"data": []}', None),
+    ("not json", None),
+])
+def test_openrouter_usage_reply_shapes(tmp_path, monkeypatch, body, expected):
+    _clear_llm_env(monkeypatch)
+    monkeypatch.setenv("LLM_API_KEY", SENTINEL_KEY)
+    monkeypatch.setenv("LLM_BASE_URL", "https://openrouter.ai/api/v1/")
+    seen = []
+    assert rsa.openrouter_usage(tmp_path, _usage_opener(body, seen=seen)) == expected
+    assert seen[0].full_url == "https://openrouter.ai/api/v1/key"
+    assert seen[0].get_header("Authorization") == f"Bearer {SENTINEL_KEY}"
+
+
+@pytest.mark.parametrize("exc", [urllib.error.URLError("down"), TimeoutError(),
+                                 urllib.error.HTTPError("u", 401, "no", {}, io.BytesIO(b""))])
+def test_openrouter_usage_lookup_failure_is_none(tmp_path, monkeypatch, exc):
+    _clear_llm_env(monkeypatch)
+    monkeypatch.setenv("OPENAI_API_KEY", SENTINEL_KEY)
+    monkeypatch.setenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
+    assert rsa.openrouter_usage(tmp_path, _usage_opener(exc=exc)) is None
+
+
+@pytest.mark.parametrize("env", [
+    {"LLM_BASE_URL": "https://openrouter.ai/api/v1"},
+    {"LLM_API_KEY": SENTINEL_KEY},
+    {"LLM_API_KEY": SENTINEL_KEY, "LLM_BASE_URL": "https://api.openai.com/v1"},
+    {"LLM_API_KEY": SENTINEL_KEY, "LLM_BASE_URL": "https://openrouter.ai.example.invalid/v1"},
+])
+def test_openrouter_usage_only_for_openrouter_with_key(tmp_path, monkeypatch, env):
+    _clear_llm_env(monkeypatch)
+    for k, v in env.items():
+        monkeypatch.setenv(k, v)
+
+    def opener(req, timeout):
+        raise AssertionError("no lookup expected")
+    assert rsa.openrouter_usage(tmp_path, opener) is None
+
+
+def test_openrouter_usage_reads_agent_dotenv(tmp_path, monkeypatch):
+    _clear_llm_env(monkeypatch)
+    (tmp_path / ".env").write_text(f"LLM_API_KEY={SENTINEL_KEY}\nLLM_BASE_URL=https://openrouter.ai/api/v1\n")
+    assert rsa.openrouter_usage(tmp_path, _usage_opener('{"data": {"usage": 1.5}}')) == 1.5
+
+
+def _llm_meta(**extra):
+    return {"mumei_agent_commit": "aaa", "mumei_commit": "bbb", "mumei_version": "mumei 0.1",
+            "llm_configured": True, "command": "cmd", "generated_at": "2025-01-01T00:00:00Z",
+            **extra}
+
+
+@pytest.mark.parametrize("extra,present,absent", [
+    ({}, [], ["- LLM:", "- Audit time", "- LLM cost"]),
+    ({"llm_model": "m/x", "llm_endpoint": "openrouter.ai"}, ["- LLM: `m/x` via `openrouter.ai`"],
+     ["- LLM cost"]),
+    ({"audit_seconds": 812.4}, ["- Audit time: 812 s"], ["- LLM cost"]),
+    ({"llm_cost_usd": 0.12345, "audit_seconds": 1.0}, ["- LLM cost: $0.1235", "- Audit time: 1 s"], []),
+    ({"llm_cost_usd": 0.0}, ["- LLM cost: $0.0000"], []),
+])
+def test_write_summary_llm_lines(tmp_path, extra, present, absent):
+    out = tmp_path / "s.md"
+    rsa.write_summary([_coverage("py-01-a", "python", [])], _llm_meta(**extra), out)
+    text = out.read_text()
+    for s in present:
+        assert s in text
+    for s in absent:
+        assert s not in text
+
+
+def test_history_entry_records_llm_run_stats():
+    cov = [_coverage("py-01-a", "python", [])]
+    corpus = {"specimens": 1, "defects": 0, "hash": "h"}
+    entry = rsa.history_entry(cov, _llm_meta(llm_model="m/x", llm_endpoint="openrouter.ai",
+                                             audit_seconds=10.0, llm_cost_usd=0.5), corpus, "s")
+    assert (entry["llm_model"], entry["llm_endpoint"]) == ("m/x", "openrouter.ai")
+    assert (entry["audit_seconds"], entry["llm_cost_usd"]) == (10.0, 0.5)
+    bare = rsa.history_entry(cov, _llm_meta(llm_cost_usd=None), corpus, "s")
+    for key in ("llm_model", "llm_endpoint", "audit_seconds", "llm_cost_usd"):
+        assert key not in bare
+
+
+def test_record_run_rescore_keeps_run_stats(tmp_path):
+    hp = tmp_path / "history.json"
+    rsa.record_run(hp, {**_run(), "llm": True, "audit_seconds": 9.0, "llm_cost_usd": 0.2})
+    rsa.record_run(hp, {**_run(detected=4), "llm": True, "rescored_at": "2025-01-05T00:00:00Z"})
+    run = json.loads(hp.read_text())["runs"][-1]
+    assert run["totals"]["detected"] == 4
+    assert (run["audit_seconds"], run["llm_cost_usd"]) == (9.0, 0.2)
+
+
+def test_record_run_fresh_run_does_not_inherit_stats(tmp_path):
+    hp = tmp_path / "history.json"
+    rsa.record_run(hp, {**_run(), "llm": True, "audit_seconds": 9.0, "llm_cost_usd": 0.2})
+    rsa.record_run(hp, {**_run(), "llm": True, "audit_seconds": 5.0})
+    run = json.loads(hp.read_text())["runs"][-1]
+    assert run["audit_seconds"] == 5.0 and "llm_cost_usd" not in run
+
+
+def test_record_run_rescore_of_other_mode_does_not_inherit(tmp_path):
+    hp = tmp_path / "history.json"
+    rsa.record_run(hp, {**_run(), "llm": True, "llm_cost_usd": 0.2})
+    rsa.record_run(hp, {**_run(), "llm": False, "rescored_at": "x"})
+    runs = json.loads(hp.read_text())["runs"]
+    assert len(runs) == 2 and "llm_cost_usd" not in runs[-1]
+
+
+@pytest.mark.parametrize("model,expected", [
+    ("openai/gpt-6-luna", "with LLM (`openai/gpt-6-luna`): "),
+    (None, "with LLM: "),
+])
+def test_readme_blocks_name_the_llm_model(model, expected):
+    llm_run = {**_run(date="2025-01-03"), "llm": True}
+    if model:
+        llm_run["llm_model"] = model
+    history = {"runs": [_run(llm=False), llm_run]}
+    assert expected in rsa.readme_block_top(history)
+    spec = rsa.readme_block_specimens(history)
+    assert f"Latest run — {expected[:-2]}: mumei-agent" in spec
+    assert "no LLM: mumei-agent" in spec
+
+
+# --- with-LLM output directory --------------------------------------------------
+
+LLM_META = {**RESCORE_META, "llm_configured": True, "llm_model": "m/x", "llm_endpoint": "openrouter.ai"}
+
+
+@pytest.mark.parametrize("llm,rel", [(False, "audit"), (True, "audit/with-llm")])
+def test_audit_dir(tmp_path, llm, rel):
+    assert rsa.audit_dir(tmp_path, llm) == tmp_path / rel
+
+
+def _add_llm_audit(d, meta=LLM_META):
+    out = rsa.audit_dir(d, True)
+    out.mkdir(parents=True)
+    (out / "audit.json").write_text(json.dumps({"file_results": [{
+        "source_file": "specimens/python/py-01-x/app.py",
+        "verification_violations": ["Python function `g` overflows"]}]}))
+    (out / "coverage.json").write_text(json.dumps(
+        {"meta": meta, "audit_exit_code": 0, "audit_markdown_exit_code": 0}))
+    _git_track(d.parent.parent.parent)
+
+
+def test_audit_specimen_with_llm_writes_to_its_own_dir(tmp_path, monkeypatch):
+    d = _git_specimen(tmp_path, monkeypatch, MINI_FIX)
+    monkeypatch.setattr(rsa, "run_audit", _fake_run_audit([]))
+    rsa.audit_specimen(d, tmp_path, "mumei", 5, LLM_META)
+    assert (d / "audit" / "with-llm" / "coverage.json").is_file()
+    assert (d / "audit" / "with-llm" / "fixed" / "audit.json").is_file()
+    assert not (d / "audit" / "audit.json").exists()
+    cov = json.loads((d / "audit" / "with-llm" / "coverage.json").read_text())
+    assert cov["meta"]["llm_model"] == "m/x"
+
+
+def test_write_coverage_routes_by_mode(tmp_path):
+    rsa.write_coverage(tmp_path, {"meta": {"llm_configured": False}, "x": 1})
+    rsa.write_coverage(tmp_path, {"meta": {"llm": True, "llm_configured": True}, "x": 2})
+    assert json.loads((tmp_path / "audit" / "coverage.json").read_text())["x"] == 1
+    assert json.loads((tmp_path / "audit" / "with-llm" / "coverage.json").read_text())["x"] == 2
+
+
+def test_rescore_specimen_reads_the_mode_dir(tmp_path, monkeypatch):
+    _, d = _rescore_tree(tmp_path, monkeypatch)
+    _add_llm_audit(d)
+    assert rsa.rescore_specimen(d, [], [], llm=False)["finding_counts"]["total"] == 2
+    cov = rsa.rescore_specimen(d, [], [], llm=True)
+    assert cov["finding_counts"]["total"] == 1 and cov["meta"] == LLM_META
+
+
+def test_rescore_specimen_with_llm_names_missing_fixed_output(tmp_path, monkeypatch):
+    _, d = _rescore_tree(tmp_path, monkeypatch)
+    _add_llm_audit(d)
+    (d / "fixed.patch").write_text(MINI_FIX)
+    _git_track(tmp_path)
+    with pytest.raises(SystemExit, match="audit/with-llm/fixed/audit.json"):
+        rsa.rescore_specimen(d, [], [], llm=True)
+
+
+def test_main_rescore_both_modes(tmp_path, monkeypatch):
+    specimens, d = _rescore_tree(tmp_path, monkeypatch)
+    _add_llm_audit(d)
+    assert rsa.main(_rescore_args(tmp_path)) == 0
+    runs = json.loads((specimens / "scoreboard" / "history.json").read_text())["runs"]
+    assert [rsa.entry_llm(r) for r in runs] == [False, True]
+    assert runs[1]["llm_model"] == "m/x" and runs[0]["rescored_at"] == runs[1]["rescored_at"]
+    assert [r["findings"]["total"] for r in runs] == [2, 1]
+    # rescoring again replaces both entries instead of appending
+    assert rsa.main(_rescore_args(tmp_path)) == 0
+    assert len(json.loads((specimens / "scoreboard" / "history.json").read_text())["runs"]) == 2
+    top = (tmp_path / "README.md").read_text()
+    assert "no LLM: 0/" in top and "with LLM (`m/x`): " in top
+
+
+def test_main_rescore_without_llm_output_keeps_one_mode(tmp_path, monkeypatch):
+    specimens, _ = _rescore_tree(tmp_path, monkeypatch)
+    assert rsa.main(_rescore_args(tmp_path)) == 0
+    runs = json.loads((specimens / "scoreboard" / "history.json").read_text())["runs"]
+    assert [rsa.entry_llm(r) for r in runs] == [False]
+
+
+def test_main_rescore_refuses_partial_llm_output(tmp_path, monkeypatch):
+    specimens, d = _rescore_tree(tmp_path, monkeypatch)
+    other = specimens / "python" / "py-02-y"
+    shutil.copytree(d, other)
+    doc = json.loads((other / "DEFECTS.json").read_text())
+    doc["specimen"] = "py-02-y"
+    (other / "DEFECTS.json").write_text(json.dumps(doc))
+    _add_llm_audit(d)
+    with pytest.raises(SystemExit, match="only some specimens"):
+        rsa.main(_rescore_args(tmp_path))
+
+
+def test_main_rescore_refuses_mixed_llm_runs(tmp_path, monkeypatch):
+    specimens, d = _rescore_tree(tmp_path, monkeypatch)
+    other = specimens / "python" / "py-02-y"
+    shutil.copytree(d, other)
+    doc = json.loads((other / "DEFECTS.json").read_text())
+    doc["specimen"] = "py-02-y"
+    (other / "DEFECTS.json").write_text(json.dumps(doc))
+    _add_llm_audit(d)
+    _add_llm_audit(other, {**LLM_META, "llm_model": "m/y"})
+    with pytest.raises(SystemExit, match="different runs"):
+        rsa.main(_rescore_args(tmp_path))
