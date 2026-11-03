@@ -695,6 +695,7 @@ def test_blind_notes_rewrite_wording_about_either_implementation(notes, expected
     ("GO01-D04", "`has_sku`"),
     ("PY03-D01", "`distinct_open` stands for"),
     ("GO02-D03", "A negative -top is rejected"),
+    ("SOL02-D11", "entries are passed in and returned. `same_bidder`"),
 ])
 def test_blind_notes_keep_the_modelling_conventions(case_id, kept):
     cases, _ = cb.load_cases()
@@ -714,6 +715,12 @@ def test_prompt_hash_covers_the_blind_note_rewrites(monkeypatch):
     before = cb.prompt_hash("llm-contract")
     monkeypatch.setattr(cb, "BLIND_NOTE_REWRITES", cb.BLIND_NOTE_REWRITES + (("x", "y"),))
     assert cb.prompt_hash("llm-contract") != before
+
+
+def test_blind_notes_do_not_mention_a_refund_call():
+    cases, _ = cb.load_cases()
+    (case,) = [c for c in cases if c["id"] == "SOL02-D11"]
+    assert "refund call" not in cb.blind_notes(case["notes"])
 
 
 def test_committed_notes_leak_nothing_to_the_blind_arm():

@@ -345,7 +345,7 @@ BLIND_NOTE_REWRITES = (
     ("the fixed version's closed/same-account check", "the check that both accounts are open and different"),
     (" In the original, the allowance comes from the wrapping remaining_daily_allowance, so an overspent account "
      "never hits the limit check; the fixed version also subtracts already queued amounts.", ""),
-    ("the direct refund call of the original", "the direct refund call"),
+    ("; the direct refund call of the original is assumed to succeed", ""),
     ("the fixed version's checked subtraction reverts (ok == false)", "a revert is ok == false"),
 )
 
