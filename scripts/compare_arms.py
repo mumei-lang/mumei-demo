@@ -130,6 +130,7 @@ def summarize(arms: dict[str, dict | None], history: dict, total: int,
             "detected_in_any_run": len(set().union(*(r["detected"] for r in runs))),
             "detected_in_every_run": len(set.intersection(*(r["detected"] for r in runs))),
             "findings": _spread([r["findings"]["total"] for r in runs]),
+            "unreviewed": _spread([r["findings"]["unreviewed"] for r in runs]),
             "precision": [list(p) if p else None for p in precision],
             "fixed_false_alarms": _spread(fixed),
             "fixed_specimens": arm["fixed_specimens"],
@@ -191,9 +192,12 @@ def _fmt_cost(entry: dict) -> str:
     return f"${cost:.2f}" if cost >= 0.01 or cost == 0 else f"${cost:.4f}"
 
 
-def _fmt_seconds(entry: dict) -> str:
+def _fmt_seconds(entry: dict, model_time: bool = False) -> str:
     s = entry.get("seconds")
-    return "—" if s is None else f"{s / 60:.0f} min" if s >= 120 else f"{s:.0f} s"
+    if s is None:
+        return "—"
+    text = f"{s / 60:.0f} min" if s >= 120 else f"{s:.0f} s"
+    return text + (" model time" if model_time else " wall")
 
 
 def table_lines(summary: dict) -> list[str]:
@@ -212,7 +216,7 @@ def table_lines(summary: dict) -> list[str]:
         lines.append(
             f"| {label} | {_fmt_spread(e['detected'], n, total)} | "
             f"{_fmt_spread(e['detected_or_flagged'], n, total)} | {_fmt_precision_runs(e['precision'])} | "
-            f"{_fmt_spread(e['fixed_false_alarms'], n)} | {_fmt_cost(e)} | {_fmt_seconds(e)} |")
+            f"{_fmt_spread(e['fixed_false_alarms'], n)} | {_fmt_cost(e)} | {_fmt_seconds(e, name == 'llm')} |")
     return lines
 
 
@@ -249,8 +253,14 @@ def readme_block(summary: dict) -> str:
         "",
         f"Same {summary['defects']} planted defects and the same scoring for every row"
         + (f"; the model is `{model}` for both LLM rows." if model else "."),
-        "Details, complementarity and per-language numbers: [specimens/COMPARISON.md](specimens/COMPARISON.md).",
     ]
+    pending = [f"{ARM_LABEL[n]} {summary['arms'][n]['unreviewed']['median']:g}" for n in ARMS
+               if summary["arms"].get(n) and summary["arms"][n].get("unreviewed", {}).get("median")]
+    if pending:
+        lines.append("Precision is a range while findings are unreviewed (median unreviewed per run: "
+                     + ", ".join(pending) + ").")
+    lines.append("Details, complementarity and per-language numbers: "
+                 "[specimens/COMPARISON.md](specimens/COMPARISON.md).")
     return "\n".join(lines)
 
 
@@ -313,7 +323,7 @@ def svg(summary: dict) -> str:
     if not present:
         return rsa.svg_placeholder("No comparison yet")
     total = summary["defects"]
-    W, label_w, bar_w, bar_h = 720, 150, 440, 18
+    W, label_w, bar_w, bar_h = 720, 150, 400, 18
     panels = [("Detected", "detected", total), ("Detected or flagged", "detected_or_flagged", total),
               ("False alarms on fixed code", "fixed_false_alarms", None)]
     fa_max = max(summary["arms"][n]["fixed_false_alarms"]["max"] for n in present) or 1

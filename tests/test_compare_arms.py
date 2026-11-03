@@ -246,9 +246,20 @@ def test_fmt_cost(cost, expected):
     assert ca._fmt_cost({"cost_usd": cost}) == expected
 
 
-@pytest.mark.parametrize("secs,expected", [(None, "—"), (45.2, "45 s"), (600, "10 min")])
-def test_fmt_seconds(secs, expected):
-    assert ca._fmt_seconds({"seconds": secs}) == expected
+@pytest.mark.parametrize("secs,model_time,expected", [
+    (None, False, "—"), (None, True, "—"), (45.2, False, "45 s wall"), (600, False, "10 min wall"),
+    (1800, True, "30 min model time"),
+])
+def test_fmt_seconds(secs, model_time, expected):
+    assert ca._fmt_seconds({"seconds": secs}, model_time) == expected
+
+
+def test_readme_block_notes_unreviewed(tree):
+    root = _full(tree)
+    s = ca.build(root, MODEL)
+    assert "Precision is a range" not in ca.readme_block(s)
+    s["arms"]["llm"]["unreviewed"] = {"min": 3, "median": 4, "max": 5}
+    assert "median unreviewed per run: LLM only 4" in ca.readme_block(s)
 
 
 def test_table_and_report(tree):
