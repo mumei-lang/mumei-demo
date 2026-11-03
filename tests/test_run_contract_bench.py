@@ -481,3 +481,11 @@ def test_markdown_lists_wrong_answers_per_case():
 def test_markdown_omits_wrong_answer_section_when_all_right():
     llm = {"arm": "llm", "model": "m", "runs": [[rec("A", "go", "refuted", "proven")]]}
     assert "Wrong answers by case" not in cb.render_markdown(cb.arm_rows([llm]), [llm], [])
+
+
+def test_markdown_shows_llm_witness_for_fixed_rejections():
+    r = rec("A", "go", "refuted", "refuted")
+    r["fixed"]["reply"] = {"verdict": "violated", "witness": "epoch =\n max i64", "reason": "x"}
+    llm = {"arm": "llm", "model": "m", "runs": [[r]]}
+    text = cb.render_markdown(cb.arm_rows([llm]), [llm], [])
+    assert "`A` fixed rejected, witness: epoch = max i64" in text

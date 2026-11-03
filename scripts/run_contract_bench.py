@@ -453,7 +453,10 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             "and mumei decides.", "",
             "A buggy function whose LLM port mumei proves is a translation problem: the reference port of the "
             "same function under the same contract is refuted, so the LLM port does not keep the defect. "
-            "mumei's verdict is only as faithful as the port it checks.", ""]
+            "mumei's verdict is only as faithful as the port it checks.", "",
+            "A proof covers the model in the port, not native behaviour the model leaves out, such as "
+            "fixed-width overflow, nil pointers or exceptions from library calls. Some LLM-only rejections "
+            "of a fixed function point at exactly that kind of behaviour; their witnesses are listed below.", ""]
     ref = next((d for d in results if d["arm"] == "mumei"), None)
     if ref:
         run = ref["runs"][0]
@@ -479,9 +482,16 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
                     if r[v]["outcome"] == bad:
                         counts[(r["id"], v)] = counts.get((r["id"], v), 0) + 1
         if counts:
+            witnesses = {}
+            for run in d["runs"]:
+                for r in run:
+                    w = ((r["fixed"].get("reply") or {}).get("witness") or "") if r["fixed"]["outcome"] == "refuted" else ""
+                    if w and isinstance(w, str):
+                        witnesses.setdefault(r["id"], " ".join(w.split())[:140])
             wrong.append(f"- {ARM_LABEL.get(d['arm'], d['arm'])}: " + ", ".join(
                 f"`{i}` {'buggy accepted' if v == 'buggy' else 'fixed rejected'} ({n}/{len(d['runs'])})"
                 for (i, v), n in sorted(counts.items())))
+            wrong += [f"  - `{i}` fixed rejected, witness: {w}" for i, w in sorted(witnesses.items())]
     if wrong:
         out += ["## Wrong answers by case (runs out of total)", ""] + wrong + [""]
     out += ["## By language (cases with both answers right)", "",
