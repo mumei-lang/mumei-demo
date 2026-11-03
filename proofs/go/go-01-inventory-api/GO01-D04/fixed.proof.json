@@ -1,0 +1,120 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-03T15:21:50Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "itemHandler",
+      "z3_check_result": "unsat",
+      "content_hash": "80d12f22f5c2e17c354cf6e7b5ad27d50920593d56053c7bffeffd1ab91c13c4",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "7b51e7b50e6c3093cc6a4a0cb0fbe0eae66295cfd97aa7f31dfc9ed63faa5c64",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "a90a1715348a4aadbb6805aa41ba8f3624020128fa20064d300b1b35526ce3a0",
+      "dependencies": [
+        "len"
+      ],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "len(parts) == n && n >= 3",
+      "ensures": "has_sku == false => result == 0",
+      "forall_constraints": [],
+      "body_expr": "{ if has_sku { sku } else { 0 } }",
+      "body_summary": "{ if has_sku { sku } else { 0 } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "has_sku": "has_sku",
+        "n": "n",
+        "parts": "parts",
+        "result": "result",
+        "sku": "sku"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "parts",
+            "lean_name": "parts",
+            "mumei_type": "[i64]",
+            "lean_type": "List Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "n",
+            "lean_name": "n",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "sku",
+            "lean_name": "sku",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "has_sku",
+            "lean_name": "has_sku",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(len(parts) == n && n >= 3) -> (has_sku == false => result == 0)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "a97bbdf4477fd77886fe771ee39e01d805f8844b5c4a3956f604d17ca13cb747",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:50Z"
+      }
+    }
+  ],
+  "certificate_hash": "44c8f892f9b1c53a1e31501311e0987f2656736d4139cca50bcfa4ce47633660",
+  "all_verified": true
+}

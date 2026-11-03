@@ -1,0 +1,106 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-03T15:21:51Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "parse_row",
+      "z3_check_result": "unsat",
+      "content_hash": "1c94af2dd471674e306dcd68af0f8bd3abfab93952551e9da6e304fdf82dad00",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "0f7e8b407615d217999abd2016651c3c679dff1a0632f35e83f2ed07cc737baf",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 2,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 2,
+        "diagnostics": []
+      },
+      "proof_hash": "a0c336ad490dad7440e2f36ce0f7ec54a557a5671c6d64e06cf52d3003bf7a76",
+      "dependencies": [
+        "len"
+      ],
+      "dependency_hashes": {
+        "struct:Parsed": "ffa9ae0fb4242dd7bb12d4c4b06a4cfa5daa999929a01520f04a091934983712"
+      },
+      "effects": [],
+      "requires": "len(row) == n && n >= 0",
+      "ensures": "(result.ok => n >= 4) &&(n >= 4 => result.ok)",
+      "forall_constraints": [],
+      "body_expr": "{ if n < 4 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: row[3] } } }",
+      "body_summary": "{ if n < 4 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: row[3] } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "n": "n",
+        "result": "result",
+        "row": "row"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "row",
+            "lean_name": "row",
+            "mumei_type": "[i64]",
+            "lean_type": "List Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "n",
+            "lean_name": "n",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Parsed",
+            "lean_type": "Parsed",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(len(row) == n && n >= 0) -> ((result.ok => n >= 4) &&(n >= 4 => result.ok))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "43d4273ca9818d1505db0a649c6471ad75a31f8cc8b4fe9d2407b58defadb29a",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:51Z"
+      }
+    }
+  ],
+  "certificate_hash": "a26b32da15555460a273033c8aed52f0fb074bae40e821a4944e426e532d05b1",
+  "all_verified": true
+}

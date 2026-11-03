@@ -1,0 +1,185 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-03T15:21:55Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "deref",
+      "z3_check_result": "unsat",
+      "content_hash": "6fde762ab2c9d6ca52bd2059d4e190540c1bca37853ecd06ecd0a36cc8606bd7",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "1aef4f222018f6cc53878a4730114da4f65a6b68d0f44f112b27a6fb9ff6507d",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "9eecf854886b5a634bda2aa3d68641c7cd58004cfd9f907eb21a977f9de04b3e",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "present",
+      "ensures": "result",
+      "forall_constraints": [],
+      "body_expr": "{ true }",
+      "body_summary": "{ true }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "present": "present",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "present",
+            "lean_name": "present",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(present) -> (result)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "742bb157683a662413e1b81205a7412d4deb11cc05a5076fafac17a9842388b9",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:55Z"
+      }
+    },
+    {
+      "name": "moveTask",
+      "z3_check_result": "unsat",
+      "content_hash": "51e10e7a0ca08b8689edf6eda02a6962cf3909d5d95f8117e2fe7b5d9794d0d8",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "0f3c0c2625113fc2f00279c8e7d1d28dbb741b2c6fa4c2c6cc8e137f4bdf9e70",
+        "traceability_coverage": 0.5,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "484266e027c18f08403ffc25da45482d01f0ecfc7672c121ffda7fd54d8327ce",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "true",
+      "ensures": "found == false => result == false",
+      "forall_constraints": [],
+      "body_expr": "{ if found { can_move } else { false } }",
+      "body_summary": "{ if found { can_move } else { false } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "can_move": "can_move",
+        "found": "found",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "found",
+            "lean_name": "found",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "can_move",
+            "lean_name": "can_move",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(true) -> (found == false => result == false)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "4efe7ad57212862e3f8dba900efb540aed7afac79161e58f4d749c877ae94b6d",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:55Z"
+      }
+    }
+  ],
+  "certificate_hash": "620bdb785ab6df2a41c6f9006c463a2dddcb0cbdfc68533d4fa1893fdb08c8fe",
+  "all_verified": true
+}

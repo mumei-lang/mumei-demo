@@ -1,0 +1,104 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-03T15:21:52Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "parse_duration",
+      "z3_check_result": "unsat",
+      "content_hash": "e8d1821c5e75b040ea15386658578fd7c2aaffc9cf9eb44d2ce1f2fff802e6ad",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "059b5c4f971ec717c4884fbe0be1572228f240eeaf137bb2840752f8840a0780",
+        "traceability_coverage": 0.5,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "f92caa12426b762c41e8497fe684dcd1f91ef614229bd4a4a5c74b2f56062186",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Parsed": "ffa9ae0fb4242dd7bb12d4c4b06a4cfa5daa999929a01520f04a091934983712"
+      },
+      "effects": [],
+      "requires": "true",
+      "ensures": "result.ok => result.value > 0",
+      "forall_constraints": [],
+      "body_expr": "{ if hours < 0 || minutes < 0 { Parsed { ok: false, value: 0 } } else { if hours * 60 + minutes <= 0 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: hours * 60 + minutes } } } }",
+      "body_summary": "{ if hours < 0 || minutes < 0 { Parsed { ok: false, value: 0 } } else { if hours * 60 + minutes <= 0 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: hours * 60 + minutes } } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "hours": "hours",
+        "minutes": "minutes",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "hours",
+            "lean_name": "hours",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "minutes",
+            "lean_name": "minutes",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Parsed",
+            "lean_type": "Parsed",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(true) -> (result.ok => result.value > 0)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "6e7de43878a0a429b10dcbcf8998932ffc98fc7a214eea4e64fe3d1f6e6a02a7",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-03T15:21:52Z"
+      }
+    }
+  ],
+  "certificate_hash": "bc825d2eb43220f07c4efb328075fa874ae1f5fdf92031d90b2b191b360124f2",
+  "all_verified": true
+}
