@@ -59,7 +59,7 @@ README_START, README_END = "<!-- contract-bench:start -->", "<!-- contract-bench
 LANGUAGES = ("python", "go", "rust", "typescript", "solidity")
 VARIANTS = ("buggy", "fixed")
 EXPECTED = {"buggy": "refuted", "fixed": "proven"}
-PROMPT_VERSION = 1
+PROMPT_VERSION = 2
 ARMS = ("mumei", "llm", "mumei-llm")
 RATE_LIMIT_RETRIES = 8
 TRANSPORT_ERROR = "LLM request failed"
@@ -72,8 +72,11 @@ FUNC_PATTERNS = {
 }
 
 LLM_SYSTEM = (
-    "You review one function against a written requirement. Consider every input and state "
-    "the function can receive in its program. Reply with JSON only: "
+    "You review one function against a written requirement and the formal contract that states it. "
+    "The contract is written in Mumei over a model of the function's inputs and state; the modelling notes "
+    "say how the model maps to the code. Its `requires` clauses are the assumptions you may make about "
+    "inputs and state, and its `ensures` clauses are what must hold. Consider every input and state that "
+    "satisfies the assumptions. Reply with JSON only: "
     '{"verdict": "holds" | "violated", "witness": "<an input or state that breaks the requirement, or empty>", '
     '"reason": "<one or two sentences>"}.'
 )
@@ -268,7 +271,9 @@ def run_mumei_case(case: dict, mumei_bin: str, timeout: int) -> dict:
 
 def llm_prompt(case: dict, variant: str) -> list[dict]:
     user = (f"Language: {case['language']}\nFile: {case['file']}\nFunction: {case['function']}\n"
-            f"Requirement: {case['requirement']}\n\nDoes `{case['function']}` meet the requirement?\n\n"
+            f"Requirement: {case['requirement']}\nModelling notes: {case['notes'] or '(none)'}\n\n"
+            f"Contract:\n```\n{case['header'].rstrip()}\n```\n\n"
+            f"Does `{case['function']}` meet the requirement under these assumptions?\n\n"
             f"```\n{case['native'][variant]}\n```")
     return [{"role": "system", "content": LLM_SYSTEM}, {"role": "user", "content": user}]
 
@@ -441,8 +446,14 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
                 ", ".join(f"{r['arm']} {fmt(r, 'errors')}" for r in failed) + ".", ""]
     out += ["The reference ports were written by hand with knowledge of the defects, so the first row shows "
             "that the contracts can express each requirement and that the checker tells the two versions apart. "
-            "It is not a detection result. The LLM rows are the comparison: the model sees only the product "
-            "source file and the requirement.", ""]
+            "It is not a detection result. The LLM rows are the comparison. Both LLM arms see the product "
+            "source file, the requirement, the modelling notes and the contract header, never the defect list "
+            "or the reference ports. LLM only answers holds/violated itself; a \"holds\" is the model's "
+            "opinion, not a proof. mumei + LLM asks the model only for the `.mm` body under the pinned header, "
+            "and mumei decides.", "",
+            "A buggy function whose LLM port mumei proves is a translation problem: the reference port of the "
+            "same function under the same contract is refuted, so the LLM port does not keep the defect. "
+            "mumei's verdict is only as faithful as the port it checks.", ""]
     ref = next((d for d in results if d["arm"] == "mumei"), None)
     if ref:
         run = ref["runs"][0]
@@ -457,6 +468,22 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
                 out.append(f"- `{r['id']}` ({r['language']}, `{r['function']}`): buggy {r['buggy']['outcome']}, "
                            f"fixed {r['fixed']['outcome']} — {msg.splitlines()[0][:160]}")
             out.append("")
+    wrong = []
+    for d in results:
+        if d["arm"] == "mumei":
+            continue
+        counts: dict[tuple[str, str], int] = {}
+        for run in d["runs"]:
+            for r in run:
+                for v, bad in (("buggy", "proven"), ("fixed", "refuted")):
+                    if r[v]["outcome"] == bad:
+                        counts[(r["id"], v)] = counts.get((r["id"], v), 0) + 1
+        if counts:
+            wrong.append(f"- {ARM_LABEL.get(d['arm'], d['arm'])}: " + ", ".join(
+                f"`{i}` {'buggy accepted' if v == 'buggy' else 'fixed rejected'} ({n}/{len(d['runs'])})"
+                for (i, v), n in sorted(counts.items())))
+    if wrong:
+        out += ["## Wrong answers by case (runs out of total)", ""] + wrong + [""]
     out += ["## By language (cases with both answers right)", "",
             "| Arm | Model | " + " | ".join(LANGUAGES) + " |", "|---|---|" + "---:|" * len(LANGUAGES)]
     for r in rows:

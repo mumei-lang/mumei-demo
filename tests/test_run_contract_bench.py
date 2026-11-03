@@ -257,7 +257,8 @@ def test_llm_prompt_has_no_ground_truth_or_ports(repo):
     (case,) = cb.load_cases()[0]
     for v in cb.VARIANTS:
         text = json.dumps(cb.llm_prompt(case, v))
-        assert "division-by-zero" not in text and "DEFECTS" not in text and "ensures" not in text
+        assert "division-by-zero" not in text and "DEFECTS" not in text and "if days <= 0 { 0 }" not in text
+        assert HEADER.rstrip() in json.loads(text)[1]["content"]
         assert case["requirement"] in text and case["native"][v].split("\n")[1] in json.loads(text)[1]["content"]
 
 
@@ -464,3 +465,19 @@ def test_committed_cases_cover_every_target_defect():
     assert errors == []
     assert {c["id"] for c in cases} == {d["id"] for _, _, d in cb.target_defects()}
     assert all(c["functions"]["buggy"] and c["functions"]["fixed"] for c in cases)
+
+
+def test_markdown_lists_wrong_answers_per_case():
+    llm = {"arm": "mumei-llm", "model": "m", "runs": [
+        [rec("A", "go", "proven", "proven"), rec("B", "go", "refuted", "refuted")],
+        [rec("A", "go", "proven", "proven"), rec("B", "go", "refuted", "proven")],
+    ]}
+    rows = cb.arm_rows([llm])
+    text = cb.render_markdown(rows, [llm], [])
+    assert "`A` buggy accepted (2/2)" in text and "`B` fixed rejected (1/2)" in text
+    assert "translation problem" in text
+
+
+def test_markdown_omits_wrong_answer_section_when_all_right():
+    llm = {"arm": "llm", "model": "m", "runs": [[rec("A", "go", "refuted", "proven")]]}
+    assert "Wrong answers by case" not in cb.render_markdown(cb.arm_rows([llm]), [llm], [])
