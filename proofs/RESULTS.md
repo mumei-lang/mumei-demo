@@ -11,6 +11,8 @@ Each of the 71 specimen defects in a category Mumei targets has a requirement an
 | mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 62 (59–62) / 71 | 67 / 71 | 58 (55–58) | 8 (7–10) | 2 (2–3) | 3 (3–4) | $0.14 |
 | mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 3 | 62 (62–63) / 71 | 47 (45–48) / 71 | 45 (45–46) | 2 (0–2) | 7 (7–11) | 22 (20–28) | $0.06 |
 
+[REPLAY.md](REPLAY.md) replays concrete inputs, the LLM witnesses and the LLM ports on the native code (`scripts/run_native_replay.py`).
+
 The reference ports were written by hand with knowledge of the defects, so the first row shows that the contracts can express each requirement and how often the checker tells the two versions apart. It is not a detection result. The LLM rows are the comparison. LLM only and mumei + LLM see the product source file, the requirement, the modelling notes and the contract header, never the defect list or the reference ports. LLM only answers holds/violated itself; a "holds" is the model's opinion, not a proof. mumei + LLM asks the model only for the `.mm` body under the pinned header, and mumei decides.
 
 mumei + LLM contract removes the hand-written contract instead: the model gets the requirement, the modelling notes, the prelude and the atom signature, but no code and not the reference requires/ensures. Its one contract is put on both reference bodies, so a wrong answer here is a contract-writing error: a buggy body accepted means the contract is too weak to catch the defect, a fixed body rejected means it asks for more than the requirement does. The same vacuity control as for the reference applies.

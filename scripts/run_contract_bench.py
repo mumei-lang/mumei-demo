@@ -540,7 +540,9 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
            "(requires/ensures) that the buggy and the fixed function are both checked against. "
            "The right answer is: buggy version refuted, fixed version proven. "
            "Values are medians over runs, with the range in brackets.", "",
-           render_table(rows), ""]
+           render_table(rows), "",
+           "[REPLAY.md](REPLAY.md) replays concrete inputs, the LLM witnesses and the LLM ports on the native "
+           "code (`scripts/run_native_replay.py`).", ""]
     failed = [r for r in rows if r["errors"]]
     if failed:
         out += ["Requests that failed (rate limits, timeouts) are not counted as answers: " +
