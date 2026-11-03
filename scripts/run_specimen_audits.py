@@ -7,7 +7,7 @@ For each specimen directory (specimens/<language>/<id>/) this writes:
   audit/audit.md       the same audit rendered with --format markdown
   audit/coverage.json  each planted defect mapped to the audit findings
 
-and specimens/AUDIT_SUMMARY.md with the aggregate.
+and specimens/AUDIT_SUMMARY.md (AUDIT_SUMMARY_WITH_LLM.md for a with-LLM run) with the aggregate.
 
 Only git-tracked files are audited: they are copied to a scratch directory
 first, so build output (target/, out/, node_modules/) never leaks into the
@@ -1454,7 +1454,8 @@ def readme_block_specimens(history: dict) -> str:
             )
         lines.append("")
     lines += [
-        "Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md).",
+        "Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md) (no LLM) and",
+        "[AUDIT_SUMMARY_WITH_LLM.md](AUDIT_SUMMARY_WITH_LLM.md) (with LLM).",
         "",
         "Re-run:",
         "",
@@ -1574,13 +1575,19 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def summary_path(base: Path, llm: bool) -> Path:
+    """AUDIT_SUMMARY.md for the no-LLM audit, AUDIT_SUMMARY_WITH_LLM.md next to
+    it for the with-LLM audit, so one mode never overwrites the other."""
+    return base.with_name(f"{base.stem}_WITH_LLM{base.suffix}") if llm else base
+
+
 def finish_run(coverages: list[dict], meta: dict, finding_reviews: list[dict],
                args: argparse.Namespace) -> None:
     stale = stale_reviews(coverages, finding_reviews)
     for r in stale:
         print(f"warning: stale finding review (matched nothing): {r['specimen']}/{r['file']}: "
               f"{r['finding_contains'][:80]!r}", file=sys.stderr)
-    write_summary(coverages, meta, Path(args.summary), stale)
+    write_summary(coverages, meta, summary_path(Path(args.summary), entry_llm(meta)), stale)
     scoreboard_dir = Path(args.scoreboard_dir)
     record_run(scoreboard_dir / "history.json",
                history_entry(coverages, meta, corpus_info(SPECIMENS_ROOT),

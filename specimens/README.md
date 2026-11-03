@@ -239,7 +239,8 @@ Recent runs:
 | 2026-11-01 | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 4 / 7 specimens |
 | 2026-10-31 (rescored 2026-11-01) | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% | 32% | — |
 
-Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md).
+Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md) (no LLM) and
+[AUDIT_SUMMARY_WITH_LLM.md](AUDIT_SUMMARY_WITH_LLM.md) (with LLM).
 
 Re-run:
 

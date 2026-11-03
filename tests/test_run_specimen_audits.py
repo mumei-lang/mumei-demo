@@ -1831,3 +1831,31 @@ def test_main_rescore_refuses_mixed_llm_runs(tmp_path, monkeypatch):
     _add_llm_audit(other, {**LLM_META, "llm_model": "m/y"})
     with pytest.raises(SystemExit, match="different runs"):
         rsa.main(_rescore_args(tmp_path))
+
+
+@pytest.mark.parametrize("name,llm,expected", [
+    ("AUDIT_SUMMARY.md", False, "AUDIT_SUMMARY.md"),
+    ("AUDIT_SUMMARY.md", True, "AUDIT_SUMMARY_WITH_LLM.md"),
+    ("summary.txt", True, "summary_WITH_LLM.txt"),
+    ("noext", True, "noext_WITH_LLM"),
+])
+def test_summary_path(tmp_path, name, llm, expected):
+    got = rsa.summary_path(tmp_path / "sub" / name, llm)
+    assert got == tmp_path / "sub" / expected
+
+
+def test_main_rescore_both_modes_keeps_separate_summaries(tmp_path, monkeypatch):
+    _, d = _rescore_tree(tmp_path, monkeypatch)
+    _add_llm_audit(d)
+    assert rsa.main(_rescore_args(tmp_path)) == 0
+    no_llm = (tmp_path / "AUDIT_SUMMARY.md").read_text()
+    with_llm = (tmp_path / "AUDIT_SUMMARY_WITH_LLM.md").read_text()
+    assert "- Mode: no LLM" in no_llm and "m/x" not in no_llm
+    assert "- Mode: with LLM" in with_llm and "`m/x`" in with_llm
+
+
+def test_main_rescore_no_llm_only_writes_no_with_llm_summary(tmp_path, monkeypatch):
+    _rescore_tree(tmp_path, monkeypatch)
+    assert rsa.main(_rescore_args(tmp_path)) == 0
+    assert (tmp_path / "AUDIT_SUMMARY.md").is_file()
+    assert not (tmp_path / "AUDIT_SUMMARY_WITH_LLM.md").exists()
