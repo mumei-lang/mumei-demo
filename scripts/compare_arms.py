@@ -325,7 +325,10 @@ def _spec_note(summary: dict) -> str | None:
     other = total - fixed.get(VERIFIER_KIND, 0)
     if not other:
         return None
-    return (f"Of the {total} mumei + LLM findings on fixed code, {other} are spec diagnostics "
+    false_alarms = (arm.get("fixed_false_alarms") or {}).get("median")
+    real = total - false_alarms if false_alarms is not None and false_alarms < total else 0
+    counted = f" ({false_alarms} false alarms, {real} reviewed as real)" if real else ""
+    return (f"Of the {total} mumei + LLM findings on fixed code{counted}, {other} are spec diagnostics "
             f"(cross-check gaps and spec health issues) rather than verifier violations.")
 
 

@@ -68,7 +68,7 @@ Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreb
 
 Same 171 planted defects and the same scoring for every row; the model is `openai/gpt-6-luna` for both LLM rows.
 Precision is a range while findings are unreviewed (median unreviewed per run: mumei + LLM 154, LLM only 65).
-Of the 212 mumei + LLM findings on fixed code, 183 are spec diagnostics (cross-check gaps and spec health issues) rather than verifier violations.
+Of the 212 mumei + LLM findings on fixed code (211 false alarms, 1 reviewed as real), 183 are spec diagnostics (cross-check gaps and spec health issues) rather than verifier violations.
 Details, complementarity, findings by kind and per-language numbers: [specimens/COMPARISON.md](specimens/COMPARISON.md).
 <!-- comparison:end -->
 

@@ -634,3 +634,19 @@ def test_audit_kinds_skip_specimens_without_fixed_patch(tree):
     (rsa.audit_dir(b, True) / "fixed" / "audit.json").unlink()
     kinds = ca.load_audit_arm(rsa.discover(root), llm=True)["kinds"]
     assert kinds["fixed"] == {"cross_validation_gaps": 2, "verification_violations": 1}
+
+
+@pytest.mark.parametrize("false_alarms,expected", [
+    (None, "Of the 4 mumei + LLM findings on fixed code, 3 are"),
+    (4, "Of the 4 mumei + LLM findings on fixed code, 3 are"),
+    (3, "Of the 4 mumei + LLM findings on fixed code (3 false alarms, 1 reviewed as real), 3 are"),
+    (0, "Of the 4 mumei + LLM findings on fixed code (0 false alarms, 4 reviewed as real), 3 are"),
+])
+def test_spec_note_separates_findings_reviewed_as_real(tree, false_alarms, expected):
+    summary = _summary(_kinds_tree(tree))
+    arm = summary["arms"]["mumei+llm"]
+    if false_alarms is None:
+        arm.pop("fixed_false_alarms", None)
+    else:
+        arm["fixed_false_alarms"] = {"min": false_alarms, "median": false_alarms, "max": false_alarms}
+    assert ca._spec_note(summary).startswith(expected)

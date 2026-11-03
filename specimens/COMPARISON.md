@@ -40,7 +40,7 @@ Findings of the two audit rows by the audit section they come from, on the buggy
 | Spec vs code cross-check gaps | 0 | 0 | 105 | 151 |
 | Spec health issues | 1 | 1 | 56 | 32 |
 
-Of the 212 mumei + LLM findings on fixed code, 183 are spec diagnostics (cross-check gaps and spec health issues) rather than verifier violations.
+Of the 212 mumei + LLM findings on fixed code (211 false alarms, 1 reviewed as real), 183 are spec diagnostics (cross-check gaps and spec health issues) rather than verifier violations.
 
 ## Detected by language
 
