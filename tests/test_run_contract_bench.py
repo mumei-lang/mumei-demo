@@ -689,3 +689,14 @@ def test_only_refuses_a_result_from_another_build(repo, monkeypatch):
     monkeypatch.setattr(cb, "verifier_identity", lambda _bin: {**VERIFIER, "commit": "1" * 40})
     with pytest.raises(SystemExit, match="another mumei build"):
         cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--only", "PY09-D01"])
+
+
+def test_only_merges_into_a_result_without_a_verifier_and_keeps_it_unrecorded(repo, monkeypatch):
+    run_reference(repo, monkeypatch)
+    (case,) = cb.load_cases()[0]
+    prov = StubProvider(lambda m, s: "no port here")
+    r = cb.run_llm_case(case, prov, "mumei-llm", 0, "mumei", 5)
+    cb.write_result("mumei-llm", prov.model, [[r]])
+    assert cb.main(["--arm", "mumei-llm", "--runs", "1", "--mumei-bin", "mumei", "--only", "PY09-D01"],
+                   provider=prov) == 0
+    assert "verifier" not in json.loads(cb.result_path("mumei-llm", prov.model).read_text())

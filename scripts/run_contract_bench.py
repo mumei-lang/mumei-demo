@@ -563,13 +563,20 @@ def merge_runs(arm: str, model: str | None, runs: list[list[dict]], verifier: di
     old = json.loads(path.read_text())
     if len(old["runs"]) != len(runs) or (arm != "mumei" and old.get("prompt_hash") != prompt_hash()):
         raise SystemExit(f"{path.relative_to(REPO_ROOT)} has another prompt or run count; rerun without --only")
-    if verifier is not None and old.get("verifier") != verifier:
+    if verifier is not None and "verifier" in old and old["verifier"] != verifier:
         raise SystemExit(f"{path.relative_to(REPO_ROOT)} was recorded with another mumei build; rerun without --only")
     merged = []
     for o, n in zip(old["runs"], runs):
         new = {r["id"]: r for r in n}
         merged.append([new.pop(r["id"], r) for r in o] + list(new.values()))
     return merged
+
+
+def recording_bin(arm: str, model: str | None, args) -> str | None:
+    """The binary to record as verifier; none when --only merges into a result that predates the record."""
+    if args.only and "verifier" not in json.loads(result_path(arm, model).read_text()):
+        return None
+    return args.mumei_bin
 
 
 def verifier_identity(mumei_bin: str) -> dict:
@@ -665,7 +672,7 @@ def main(argv: list[str], provider=None) -> int:
                 run = list(pool.map(lambda c: run_mumei_case(c, args.mumei_bin, args.timeout), cases))
             runs = [run]
             merged = merge_runs(arm, None, runs, verifier_identity(args.mumei_bin)) if args.only else runs
-            path = write_result(arm, None, merged, args.mumei_bin)
+            path = write_result(arm, None, merged, recording_bin(arm, None, args))
         else:
             prov = provider or llm_only.provider_from_env(timeout=600)
             prov.retries = max(getattr(prov, "retries", 0), RATE_LIMIT_RETRIES)
@@ -675,7 +682,7 @@ def main(argv: list[str], provider=None) -> int:
                     runs.append(list(pool.map(lambda c: run_llm_case(c, prov, arm, seed, args.mumei_bin, args.timeout), cases)))
             verifier = verifier_identity(args.mumei_bin) if arm != "llm" else None
             merged = merge_runs(arm, prov.model, runs, verifier) if args.only else runs
-            path = write_result(arm, prov.model, merged, args.mumei_bin)
+            path = write_result(arm, prov.model, merged, recording_bin(arm, prov.model, args))
         if arm != "mumei" and any(score(run)["errors"] for run in json.loads(path.read_text())["runs"]):
             print(f"warning: {arm} has requests that failed; rerun before publishing", file=sys.stderr)
         print(f"{arm}: {score(json.loads(path.read_text())['runs'][0])} -> {path.relative_to(REPO_ROOT)}")
