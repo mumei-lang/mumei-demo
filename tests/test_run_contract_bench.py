@@ -548,15 +548,28 @@ def test_only_refuses_to_merge_other_run_count(repo, monkeypatch):
         cb.main(["--arm", "llm", "--runs", "1", "--only", "PY09-D01"], provider=prov)
 
 
-@pytest.mark.parametrize("message,vacuity", [
-    ("Verification Error: Spec contradiction in atom 'f': ensures clause 1 is inconsistent with requires", "ok"),
-    ("Verification Error: Unknown function: %", "inconclusive"),
+CONTRADICTION = "Verification Error: Spec contradiction in atom 'f': ensures clause 1 is inconsistent with requires"
+
+
+@pytest.mark.parametrize("message,buggy,vacuity", [
+    (CONTRADICTION, "refuted", "ok"),
+    (CONTRADICTION, "proven", "inconclusive"),
+    ("Verification Error: Unknown function: %", "refuted", "inconclusive"),
 ])
-def test_vacuity_control_accepts_spec_contradiction(repo, message, vacuity, monkeypatch):
+def test_vacuity_control_accepts_spec_contradiction_only_with_a_refuted_buggy_port(repo, message, buggy, vacuity, monkeypatch):
     def verify(_bin, text, _timeout):
         if "ensures: false" in text:
             return {"outcome": "inconclusive", "status": "failed", "diagnostics": [{"message": message}]}
-        return {"outcome": "proven", "status": "success", "diagnostics": []}
+        outcome = buggy if "total / days\n" in text else "proven"
+        return {"outcome": outcome, "status": outcome, "diagnostics": []}
     monkeypatch.setattr(cb, "verify_text", verify)
     (case,) = cb.load_cases()[0]
     assert cb.run_mumei_case(case, "mumei", 5)["vacuity"] == vacuity
+
+
+def test_check_reports_duplicate_case_in_a_run(repo, monkeypatch):
+    run_reference(repo, monkeypatch)
+    doc = json.loads((repo / "proofs/results/mumei.json").read_text())
+    doc["runs"][0] *= 2
+    (repo / "proofs/results/mumei.json").write_text(json.dumps(doc))
+    assert "mumei (reference): PY09-D01 appears more than once in run 1" in cb.stale_records(cb.load_cases()[0], cb.load_results())

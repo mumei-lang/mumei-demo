@@ -273,9 +273,11 @@ def run_mumei_case(case: dict, mumei_bin: str, timeout: int) -> dict:
     for v in VARIANTS:
         out[v] = verify_text(mumei_bin, case["ports"][v], timeout)
     control = verify_text(mumei_bin, vacuity_text(case), timeout)
-    # `ensures: false` may also be rejected up front as contradicting `requires`; either way it does not hold.
-    rejected = control["outcome"] == "refuted" or (control["status"] == "failed" and control["diagnostics"] and all(
-        "Spec contradiction" in d["message"] or REFUTATION.search(d["message"]) for d in control["diagnostics"]))
+    # mumei may reject `ensures: false` up front as contradicting `requires`. That alone would also pass an
+    # unsatisfiable `requires`, so it only counts when the buggy port was refuted, i.e. some input meets `requires`.
+    contradiction = control["status"] == "failed" and control["diagnostics"] and all(
+        "Spec contradiction" in d["message"] or REFUTATION.search(d["message"]) for d in control["diagnostics"])
+    rejected = control["outcome"] == "refuted" or (contradiction and out["buggy"]["outcome"] == "refuted")
     out["vacuity"] = "ok" if rejected else ("vacuous" if control["outcome"] == "proven" else "inconclusive")
     return out
 
@@ -390,8 +392,11 @@ def stale_records(cases: list[dict], results: list[dict]) -> list[str]:
                 c = by_id.get(r["id"])
                 if c is None or c["case_hash"] != r["case_hash"] or c["source_hash"] != r["source_hash"]:
                     out.append(f"{label}: {r['id']} is stale")
-            for missing in sorted(set(by_id) - {r["id"] for r in run}):
+            ids = [r["id"] for r in run]
+            for missing in sorted(set(by_id) - set(ids)):
                 out.append(f"{label}: {missing} has no result in run {n}")
+            for dup in sorted({i for i in ids if ids.count(i) > 1}):
+                out.append(f"{label}: {dup} appears more than once in run {n}")
     return out
 
 
@@ -558,7 +563,11 @@ def merge_runs(arm: str, model: str | None, runs: list[list[dict]]) -> list[list
     old = json.loads(path.read_text())
     if len(old["runs"]) != len(runs) or (arm != "mumei" and old.get("prompt_hash") != prompt_hash()):
         raise SystemExit(f"{path.relative_to(REPO_ROOT)} has another prompt or run count; rerun without --only")
-    return [[r for r in o if r["id"] not in {x["id"] for x in n}] + n for o, n in zip(old["runs"], runs)]
+    merged = []
+    for o, n in zip(old["runs"], runs):
+        new = {r["id"]: r for r in n}
+        merged.append([new.pop(r["id"], r) for r in o] + list(new.values()))
+    return merged
 
 
 def write_result(arm: str, model: str | None, runs: list[list[dict]]) -> Path:
