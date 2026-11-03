@@ -133,7 +133,7 @@ def test_prompt_hash_is_stable_and_tracks_the_prompt(monkeypatch):
 @pytest.mark.parametrize("rel,expected", [
     ("app.py", True), ("src/lib.rs", True), ("timesheets.csv", True), ("Cargo.toml", True),
     ("package.json", True), ("go.mod", True), ("src/Vault.sol", True), ("contest.py", True),
-    ("DEFECTS.json", False), ("README.md", False), ("repro.sh", False), ("run.sh", False),
+    ("DEFECTS.json", False), (".gitignore", False), ("README.md", False), ("repro.sh", False), ("run.sh", False),
     ("race_test.go", False), ("timing_test.go", False), ("test/Repro.t.sol", False),
     ("test/HappyPath.t.sol", False), ("test_app.py", False), ("app_test.py", False),
     ("board.test.ts", False), ("board.spec.ts", False), ("tests/it.rs", False),

@@ -61,7 +61,7 @@ PROMPT_VERSION = 2
 # The model sees what mumei-agent's audit sees: product code and its data,
 # not the ground truth, the docs or the run/repro harness (which spells the
 # defects out). Test files follow mumei-agent's default test-file rule.
-EXCLUDED_NAMES = frozenset({"DEFECTS.json"})
+EXCLUDED_NAMES = frozenset({"DEFECTS.json", ".gitignore"})
 EXCLUDED_SUFFIXES = (".md", ".sh")
 TEST_SUFFIXES = (
     "_test.go", ".test.ts", ".test.tsx", ".test.js", ".test.jsx", ".spec.ts", ".spec.tsx",
