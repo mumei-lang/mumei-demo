@@ -53,7 +53,11 @@ def load_audit_arm(specimens: list[Path], llm: bool) -> dict | None:
         path = rsa.audit_dir(d, llm) / "coverage.json"
         if not path.is_file():
             return None
-        covs.append(json.loads(path.read_text(encoding="utf-8")))
+        cov = json.loads(path.read_text(encoding="utf-8"))
+        if cov.get("source_hash") is not None and cov["source_hash"] != rsa.specimen_hash(d):
+            raise SystemExit(f"{d.name}: specimen changed since the {'with-LLM' if llm else 'no-LLM'} "
+                             "audit; run scripts/run_specimen_audits.py again")
+        covs.append(cov)
     metas = {json.dumps(c["meta"], sort_keys=True) for c in covs}
     if len(metas) != 1:
         raise SystemExit(f"{'with-LLM' if llm else 'no-LLM'} audit output comes from different runs")
@@ -83,10 +87,13 @@ def _kind_counts(findings) -> dict[str, int]:
 
 def _audit_kinds(specimens: list[Path], covs: list[dict], llm: bool) -> dict:
     """Findings per audit finding kind on the buggy code and, when every
-    specimen kept its fixed-variant audit.json, on the fixed code."""
+    specimen with a fixed.patch kept its fixed-variant audit.json, on the fixed code."""
     buggy = _kind_counts(f for c in covs for f in c.get("findings") or [])
+    with_patch = [d for d in specimens if (d / rsa.FIXED_PATCH).is_file()]
+    if not with_patch:
+        return {"buggy": buggy, "fixed": None}
     fixed_findings = []
-    for d in specimens:
+    for d in with_patch:
         path = rsa.audit_dir(d, llm) / "fixed" / "audit.json"
         if not path.is_file():
             return {"buggy": buggy, "fixed": None}
@@ -102,7 +109,11 @@ def load_llm_arm(specimens: list[Path], model: str) -> dict | None:
         path = rlo.record_path(d, model)
         if not path.is_file():
             return None
-        recs.append(json.loads(path.read_text(encoding="utf-8")))
+        rec = json.loads(path.read_text(encoding="utf-8"))
+        if rec.get("source_hash") is not None and rec["source_hash"] != rlo.rb.baseline_hash(d):
+            raise SystemExit(f"{d.name}: specimen changed since the LLM-only review; "
+                             "run scripts/run_llm_only.py again")
+        recs.append(rec)
     numbers = sorted({r["run"] for rec in recs for r in rec["runs"]})
     runs, usage = [], []
     for n in numbers:
@@ -173,7 +184,7 @@ def summarize(arms: dict[str, dict | None], history: dict, total: int,
             entry["seconds"] = round(sum(u["seconds"] for u in arm["usage"]) / len(arm["usage"]), 1)
             entry["cost_unknown_calls"] = sum(u["cost_unknown_calls"] for u in arm["usage"])
         else:
-            run = latest[name == "mumei+llm"] or {}
+            run = _history_run(history, latest, name == "mumei+llm", arm["meta"])
             entry["cost_usd"] = run.get("llm_cost_usd", 0.0 if name == "mumei" else None)
             entry["seconds"] = run.get("audit_seconds")
             entry["findings_by_kind"] = arm["kinds"]
@@ -182,6 +193,17 @@ def summarize(arms: dict[str, dict | None], history: dict, total: int,
             for name in ARMS}
     out["overlap"] = overlap(sets)
     return out
+
+
+def _history_run(history: dict, latest: dict, llm: bool, meta: dict) -> dict:
+    """The history entry of the audit run the coverage files come from, or {}
+    when history has no such run. Older coverage without a timestamp falls back
+    to the newest run of the same mode."""
+    stamp = meta.get("generated_at")
+    if stamp is None:
+        return latest[llm] or {}
+    return next((r for r in reversed(history.get("runs") or [])
+                 if rsa.entry_llm(r) == llm and r.get("generated_at") == stamp), {})
 
 
 def overlap(sets: dict[str, set | None]) -> list[dict]:
@@ -219,9 +241,10 @@ def _fmt_precision_runs(ranges: list[list[float] | None]) -> str:
 
 def _fmt_cost(entry: dict) -> str:
     cost = entry.get("cost_usd")
-    if cost is None:
+    if cost is None or (entry.get("cost_unknown_calls") and not cost):
         return "unknown"
-    return f"${cost:.2f}" if cost >= 0.01 or cost == 0 else f"${cost:.4f}"
+    text = f"${cost:.2f}" if cost >= 0.01 or cost == 0 else f"${cost:.4f}"
+    return f"≥ {text}" if entry.get("cost_unknown_calls") else text
 
 
 def _fmt_seconds(entry: dict, model_time: bool = False) -> str:
@@ -476,6 +499,10 @@ def build(root: Path, model: str) -> dict:
     for lang in lang_of.values():
         by_language_totals[lang] = by_language_totals.get(lang, 0) + 1
     lang_sets = {lang: {k for k, v in lang_of.items() if v == lang} for lang in by_language_totals}
+    audit_model = (arms["mumei+llm"] or {}).get("meta", {}).get("llm_model")
+    if arms["llm"] is not None and audit_model and audit_model != model:
+        raise SystemExit(f"the mumei + LLM audit used {audit_model} but --model is {model}; "
+                         "compare LLM-only records of the same model")
     for arm in arms.values():
         if arm is not None:
             arm["_lang"] = lang_sets

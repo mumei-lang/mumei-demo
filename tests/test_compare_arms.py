@@ -362,6 +362,7 @@ def _with_findings(d, llm, buggy, fixed_files=None):
     cov["findings"] = [{"kind": k, "text": t} for k, t in buggy]
     (out / "coverage.json").write_text(json.dumps(cov))
     if fixed_files is not None:
+        (d / rsa.FIXED_PATCH).write_text("")
         label = str(d.relative_to(rsa.REPO_ROOT))
         audit = {"file_results": [dict({"source_file": f"{label}/{name}"}, **kinds)
                                   for name, kinds in fixed_files.items()]}
@@ -493,3 +494,143 @@ def test_report_omits_kind_section_without_audits(tree):
     _llm_record(b, [["detected", "missed"]])
     s = _summary(root)
     assert "findings by kind" not in ca.report(s)
+
+
+# --- staleness and consistency checks ---------------------------------------------
+
+
+def _set(path, **fields):
+    doc = json.loads(path.read_text())
+    doc.update(fields)
+    path.write_text(json.dumps(doc))
+
+
+@pytest.mark.parametrize("llm", [False, True])
+def test_audit_arm_rejects_changed_specimen(tree, monkeypatch, llm):
+    root = _full(tree)
+    _, a, _ = tree
+    monkeypatch.setattr(rsa, "specimen_hash", lambda d: "now")
+    _set(rsa.audit_dir(a, llm) / "coverage.json", source_hash="then")
+    with pytest.raises(SystemExit, match="py-01-a: specimen changed"):
+        ca.load_audit_arm(rsa.discover(root), llm)
+
+
+def test_audit_arm_accepts_matching_hash(tree, monkeypatch):
+    root = _full(tree)
+    _, a, b = tree
+    monkeypatch.setattr(rsa, "specimen_hash", lambda d: "h-" + d.name)
+    for d in (a, b):
+        _set(rsa.audit_dir(d, False) / "coverage.json", source_hash="h-" + d.name)
+    assert ca.load_audit_arm(rsa.discover(root), False) is not None
+
+
+def test_llm_arm_rejects_changed_specimen(tree, monkeypatch):
+    root = _full(tree)
+    _, _, b = tree
+    monkeypatch.setattr(rlo.rb, "baseline_hash", lambda d: "now")
+    _set(rlo.record_path(b, MODEL), source_hash="then")
+    with pytest.raises(SystemExit, match="go-01-b: specimen changed since the LLM-only review"):
+        ca.load_llm_arm(rsa.discover(root), MODEL)
+
+
+def test_llm_arm_accepts_matching_hash(tree, monkeypatch):
+    root = _full(tree)
+    _, a, b = tree
+    monkeypatch.setattr(rlo.rb, "baseline_hash", lambda d: "same")
+    for d in (a, b):
+        _set(rlo.record_path(d, MODEL), source_hash="same")
+    assert ca.load_llm_arm(rsa.discover(root), MODEL)["runs"]
+
+
+def test_build_rejects_model_mismatch(tree):
+    root = _full(tree)
+    _, a, b = tree
+    for d in (a, b):
+        _set(rsa.audit_dir(d, True) / "coverage.json",
+             meta={"llm_configured": True, "llm": True, "llm_model": "other/model"})
+    with pytest.raises(SystemExit, match="used other/model but --model is openai/test-model"):
+        ca.build(root, MODEL)
+
+
+def test_build_model_mismatch_ignored_without_llm_records(tree):
+    root, a, b = tree
+    _coverage(a, ["missed"] * 3)
+    _coverage(b, ["missed"] * 2)
+    for d in (a, b):
+        _coverage(d, ["missed"] * (3 if d is a else 2), llm=True,
+                  meta={"llm_configured": True, "llm": True, "llm_model": "other/model"})
+    assert ca.build(root, MODEL)["arms"]["llm"] is None
+
+
+def _history(root, runs):
+    (root / "scoreboard").mkdir(exist_ok=True)
+    (root / "scoreboard" / "history.json").write_text(json.dumps({"runs": runs}))
+
+
+def _stamp(tree, llm, stamp):
+    _, a, b = tree
+    meta = {"llm_configured": llm, "llm": llm, "generated_at": stamp}
+    if llm:
+        meta["llm_model"] = MODEL
+    for d in (a, b):
+        _set(rsa.audit_dir(d, llm) / "coverage.json", meta=meta)
+
+
+def test_history_run_matched_by_timestamp(tree):
+    root = _full(tree)
+    _stamp(tree, True, "T1")
+    _history(root, [{"llm": True, "generated_at": "T1", "audit_seconds": 900.0, "llm_cost_usd": 0.25},
+                    {"llm": True, "generated_at": "T2", "audit_seconds": 50.0, "llm_cost_usd": 9.0}])
+    m = ca.build(root, MODEL)["arms"]["mumei+llm"]
+    assert (m["seconds"], m["cost_usd"]) == (900.0, 0.25)
+
+
+def test_history_run_missing_gives_unknown_cost_and_time(tree):
+    root = _full(tree)
+    _stamp(tree, True, "T0")
+    _stamp(tree, False, "N0")
+    _history(root, [{"llm": False, "generated_at": "N9", "audit_seconds": 80.0},
+                    {"llm": True, "generated_at": "T9", "audit_seconds": 900.0, "llm_cost_usd": 0.25}])
+    s = ca.build(root, MODEL)
+    assert s["arms"]["mumei+llm"]["seconds"] is None and s["arms"]["mumei+llm"]["cost_usd"] is None
+    assert s["arms"]["mumei"]["seconds"] is None and s["arms"]["mumei"]["cost_usd"] == 0.0
+
+
+def test_history_run_ignores_other_mode_with_same_timestamp(tree):
+    root = _full(tree)
+    _stamp(tree, True, "T1")
+    _history(root, [{"llm": False, "generated_at": "T1", "audit_seconds": 80.0}])
+    assert ca.build(root, MODEL)["arms"]["mumei+llm"]["seconds"] is None
+
+
+@pytest.mark.parametrize("entry,text", [
+    ({"cost_usd": 0.0}, "$0.00"),
+    ({"cost_usd": 0.0612}, "$0.06"),
+    ({"cost_usd": 0.0012}, "$0.0012"),
+    ({"cost_usd": None}, "unknown"),
+    ({"cost_usd": 0.06, "cost_unknown_calls": 2}, "≥ $0.06"),
+    ({"cost_usd": 0.0, "cost_unknown_calls": 3}, "unknown"),
+    ({"cost_usd": 0.06, "cost_unknown_calls": 0}, "$0.06"),
+])
+def test_fmt_cost(entry, text):
+    assert ca._fmt_cost(entry) == text
+
+
+def test_llm_arm_with_unknown_cost_shows_lower_bound(tree):
+    root = _full(tree)
+    _, a, _ = tree
+    rec = json.loads(rlo.record_path(a, MODEL).read_text())
+    rec["runs"][0]["usage"]["cost_usd"] = None
+    rlo.record_path(a, MODEL).write_text(json.dumps(rec))
+    s = ca.build(root, MODEL)
+    assert s["arms"]["llm"]["cost_unknown_calls"] == 1
+    assert "≥ $" in ca.report(s)
+
+
+def test_audit_kinds_skip_specimens_without_fixed_patch(tree):
+    root = _kinds_tree(tree)
+    _, _, b = tree
+    (b / rsa.FIXED_PATCH).unlink()
+    (rsa.audit_dir(b, True) / "fixed" / "audit.json").unlink()
+    kinds = ca.load_audit_arm(rsa.discover(root), llm=True)["kinds"]
+    assert kinds["fixed"] == {"cross_validation_gaps": 2, "verification_violations": 1}
