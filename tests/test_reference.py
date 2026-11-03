@@ -191,6 +191,8 @@ def test_parser_option_strings_match_golden_lists() -> None:
         ],
         "scripts/compare_arms.py": ["--model", "--check"],
         "scripts/run_contract_bench.py": ["--arm", "--only", "--runs", "--jobs", "--timeout", "--mumei-bin", "--lean-bridge", "--check", "--render-only"],
+        "scripts/run_native_replay.py": ["--check", "--mumei-bin", "--jobs", "--timeout"],
+        "scripts/run_mutation_control.py": ["--only", "--jobs", "--timeout", "--mumei-bin", "--check", "--render-only"],
         "scripts/record_scenario.py": ["--variant", "--output"],
         "scripts/record_model_evidence.py": ["--repo", "--output"],
         "scripts/check_specimens.py": ["--root", "--run-fixed"],

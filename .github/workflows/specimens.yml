@@ -19,6 +19,10 @@ on:
       - "proofs/**"
       - "scripts/run_contract_bench.py"
       - "tests/test_run_contract_bench.py"
+      - "scripts/run_native_replay.py"
+      - "tests/test_run_native_replay.py"
+      - "scripts/run_mutation_control.py"
+      - "tests/test_run_mutation_control.py"
       - ".github/workflows/specimens.yml"
   workflow_dispatch:
 
@@ -50,3 +54,11 @@ jobs:
         run: python3 -m pytest tests/test_run_contract_bench.py -q
       - name: Check contract-benchmark cases and results (offline)
         run: python3 scripts/run_contract_bench.py --check
+      - name: Run native-replay tests
+        run: python3 -m pytest tests/test_run_native_replay.py -q
+      - name: Check native-replay results (offline)
+        run: python3 scripts/run_native_replay.py --check
+      - name: Run mutation-control tests
+        run: python3 -m pytest tests/test_run_mutation_control.py -q
+      - name: Check the mutation-control result (offline)
+        run: python3 scripts/run_mutation_control.py --check

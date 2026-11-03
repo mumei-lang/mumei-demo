@@ -1,0 +1,133 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+// Native replay checks, copied into a scratch copy of the specimen as test/zz_ReplayChecks.sol.
+// Each check_<case> runs one input and reverts with "violated: ..." when the requirement breaks
+// or "unexpressible: ..." when the input cannot be set up natively.
+
+import "./TestBase.sol";
+import "../src/VaultToken.sol";
+import "../src/RewardVault.sol";
+
+contract ReplayShareProbe {
+    RewardVault vault;
+    bool armed;
+    bool public called;
+    uint256 public seen;
+
+    constructor(RewardVault v) { vault = v; }
+    function join() external payable { vault.deposit{value: msg.value}(); }
+    function pull(uint256 shares) external { armed = true; vault.withdraw(shares); armed = false; }
+    receive() external payable {
+        if (armed && !called) { called = true; seen = vault.sharesOf(address(this)); }
+    }
+}
+
+contract ReplayRejecter {
+    receive() external payable { revert("rejected"); }
+}
+
+abstract contract ReplayChecks is SpecTest {
+    // Deposits are counted in gwei: the fixed vault rejects a first deposit under 1 gwei.
+    uint256 constant UNIT = 1 gwei;
+    address constant ALICE = address(0xA11CE);
+
+    function violated(string memory why) internal pure { revert(string.concat("violated: ", why)); }
+    function unexpressible(string memory why) internal pure { revert(string.concat("unexpressible: ", why)); }
+
+    function asOwner() internal { vm.prank(address(this), address(this)); }
+
+    function check_SOL01_D01(uint256 sharesBefore, uint256 shares) internal {
+        if (sharesBefore == 0) unexpressible("an empty position cannot withdraw");
+        RewardVault vault = new RewardVault();
+        ReplayShareProbe probe = new ReplayShareProbe(vault);
+        vm.deal(address(this), sharesBefore * UNIT);
+        probe.join{value: sharesBefore * UNIT}();
+        uint256 before = vault.sharesOf(address(probe));
+        uint256 out = before * shares / sharesBefore;
+        try probe.pull(out) {} catch {}
+        if (probe.called() && probe.seen() != before - out) violated("the payout call saw the withdrawn shares still recorded");
+    }
+
+    function check_SOL01_D02(uint256 allowed, uint256 amount) internal {
+        VaultToken token = new VaultToken();
+        token.mint(ALICE, amount);
+        vm.prank(ALICE);
+        token.approve(address(this), allowed);
+        try token.transferFrom(ALICE, address(0xB0B), amount) {
+            if (amount > allowed || token.allowance(ALICE, address(this)) != allowed - amount) {
+                violated("transferFrom went through without enough allowance");
+            }
+        } catch {}
+    }
+
+    function check_SOL01_D03(uint256 totalAssets, uint256 totalShares) internal {
+        if (totalShares != 0) unexpressible("only an empty vault is covered natively");
+        RewardVault vault = new RewardVault();
+        vm.deal(address(vault), totalAssets);
+        try vault.sharePrice() returns (uint256 price) {
+            if (price != 1e18) violated("share price before any deposit is not 1e18");
+        } catch {
+            violated("sharePrice reverted before any deposit");
+        }
+    }
+
+    function check_SOL01_D05(bool isOwner, uint256 who, uint256 current) internal {
+        RewardVault vault = new RewardVault();
+        asOwner();
+        vault.setFeeRecipient(address(uint160(current)));
+        vm.prank(isOwner ? address(this) : address(0xBAD));
+        try vault.setFeeRecipient(address(uint160(who))) {} catch {}
+        if (!isOwner && vault.feeRecipient() != address(uint160(current))) violated("a non-owner changed the fee recipient");
+    }
+
+    function check_SOL01_D06(bool senderIsOwner, bool originIsOwner, uint256 bps, uint256 maxFee, uint256 current) internal {
+        maxFee;
+        RewardVault vault = new RewardVault();
+        if (current > vault.MAX_FEE_BPS()) unexpressible("current fee is above MAX_FEE_BPS");
+        asOwner();
+        vault.setWithdrawFeeBps(current);
+        address other = address(0xBAD);
+        vm.prank(senderIsOwner ? address(this) : other, originIsOwner ? address(this) : other);
+        try vault.setWithdrawFeeBps(bps) {} catch {}
+        if (!senderIsOwner && vault.withdrawFeeBps() != current) violated("a call not sent by the owner changed the fee");
+    }
+
+    function check_SOL01_D07(bool feePaid, uint256 fee) internal {
+        RewardVault vault = new RewardVault();
+        asOwner();
+        vault.setWithdrawFeeBps(fee == 0 ? 0 : 1_000);
+        address recipient = feePaid ? address(0xFEE) : address(new ReplayRejecter());
+        asOwner();
+        vault.setFeeRecipient(recipient);
+        uint256 assets = (fee == 0 ? 1 : fee) * 10 * UNIT;
+        vm.deal(ALICE, assets);
+        vm.prank(ALICE);
+        vault.deposit{value: assets}();
+        uint256 shares = vault.sharesOf(ALICE);
+        uint256 before = recipient.balance;
+        vm.prank(ALICE);
+        try vault.withdraw(shares) {
+            if (fee > 0 && recipient.balance == before) violated("the withdrawal completed without paying the fee");
+        } catch {}
+    }
+
+    function check_SOL01_D08(uint256 posShares, uint256 shares, uint256 cap) internal {
+        // `cap` stands for type(uint128).max: move the input by the same distance so the overflow boundary is kept.
+        uint256 offset = uint256(type(uint128).max) - cap;
+        uint256 pos = posShares == 0 ? 0 : posShares + offset;
+        uint256 amount = posShares == 0 ? shares + offset : shares;
+        RewardVault vault = new RewardVault();
+        if (pos > 0) {
+            vm.deal(ALICE, pos);
+            vm.prank(ALICE);
+            try vault.deposit{value: pos}() {} catch { unexpressible("the starting position cannot be deposited"); }
+        }
+        uint256 before = vault.sharesOf(ALICE);
+        vm.deal(ALICE, amount);
+        vm.prank(ALICE);
+        try vault.deposit{value: amount}() {
+            if (vault.sharesOf(ALICE) < before + amount) violated("the deposit recorded a truncated share amount");
+        } catch {}
+    }
+}

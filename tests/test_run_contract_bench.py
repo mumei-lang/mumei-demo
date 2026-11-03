@@ -668,6 +668,281 @@ def test_check_requires_the_reference_verifier_commit(repo, monkeypatch, capsys,
     assert "does not record the mumei commit" in capsys.readouterr().err
 
 
+# --- llm-contract arm --------------------------------------------------------
+
+BLIND_REQUIRES = "total >= 0 && days >= (0 - 5)"
+BLIND_ENSURES = "(days <= 0 => result == 0) && (days > 0 => result == total / days)"
+BLIND_REPLY = json.dumps({"requires": BLIND_REQUIRES, "ensures": BLIND_ENSURES})
+
+
+def test_contract_prompt_hides_code_and_reference_contract(repo):
+    (case,) = cb.load_cases()[0]
+    text = "\n".join(m["content"] for m in cb.contract_prompt(case))
+    assert cb.signature(case) == "atom average(total: i64, days: i64) -> i64"
+    assert cb.signature(case) in text and case["requirement"] in text
+    for hidden in ("requires: total >= 0", "result == total / days", "total // days", "if days <= 0", "body:"):
+        assert hidden not in text
+
+
+@pytest.mark.parametrize("notes, expected", [
+    ("", ""),
+    ("Err is ok == false.", "Err is ok == false."),
+    ("`unchecked` uint256 wrap-around is modelled as the exact difference going below 0; "
+     "the fixed version's checked subtraction reverts (ok == false).",
+     "`unchecked` uint256 wrap-around is modelled as the exact difference going below 0; a revert is ok == false."),
+    ("Raising is ok == false. `distinct_open` stands for the fixed version's closed/same-account check.",
+     "Raising is ok == false. `distinct_open` stands for the check that both accounts are open and different."),
+    ("Account state is passed in; Err is ok == false. In the original, the allowance comes from the wrapping "
+     "remaining_daily_allowance, so an overspent account never hits the limit check; the fixed version also "
+     "subtracts already queued amounts. Same-account and closed checks are outside the ported part.",
+     "Account state is passed in; Err is ok == false. Same-account and closed checks are outside the ported part."),
+])
+def test_blind_notes_rewrite_wording_about_either_implementation(notes, expected):
+    assert cb.blind_notes(notes) == expected
+
+
+@pytest.mark.parametrize("case_id, kept", [
+    ("SOL03-D02", "ok == false"),
+    ("GO01-D04", "`has_sku`"),
+    ("PY03-D01", "`distinct_open` stands for"),
+    ("GO02-D03", "A negative -top is rejected"),
+])
+def test_blind_notes_keep_the_modelling_conventions(case_id, kept):
+    cases, _ = cb.load_cases()
+    (case,) = [c for c in cases if c["id"] == case_id]
+    assert kept in cb.blind_notes(case["notes"])
+
+
+def test_contract_prompt_uses_the_blind_notes(repo, monkeypatch):
+    (case,) = cb.load_cases()[0]
+    monkeypatch.setattr(cb, "BLIND_NOTE_REWRITES", (("the fixed version returns 0", "a zero result is 0"),))
+    case = {**case, "notes": "Days are whole; the fixed version returns 0."}
+    text = "\n".join(m["content"] for m in cb.contract_prompt(case))
+    assert "Modelling notes: Days are whole; a zero result is 0.\n" in text and "fixed version" not in text
+
+
+def test_prompt_hash_covers_the_blind_note_rewrites(monkeypatch):
+    before = cb.prompt_hash("llm-contract")
+    monkeypatch.setattr(cb, "BLIND_NOTE_REWRITES", cb.BLIND_NOTE_REWRITES + (("x", "y"),))
+    assert cb.prompt_hash("llm-contract") != before
+
+
+def test_committed_notes_leak_nothing_to_the_blind_arm():
+    cases, _ = cb.load_cases()
+    leaks = [c["id"] for c in cases if cb.BLIND_NOTE_LEAK.search(cb.blind_notes(c["notes"]))]
+    assert leaks == []
+
+
+@pytest.mark.parametrize("error", ["LLM request failed: HTTP 500", "LLM response has no message content"])
+def test_contract_request_failure_is_one_error(repo, error):
+    class Failing(StubProvider):
+        def complete(self, messages, seed):
+            raise RuntimeError(error)
+    (case,) = cb.load_cases()[0]
+    r = cb.run_contract_case(case, Failing(None), 0, "mumei", 5)
+    assert all(r[v]["status"].startswith(cb.TRANSPORT_ERROR) for v in cb.VARIANTS)
+    s = cb.score([r])
+    assert s["errors"] == 1 and s["inconclusive"] == 0
+
+
+def test_contract_header_replaces_only_the_clauses(repo):
+    (case,) = cb.load_cases()[0]
+    header = cb.contract_header(case, "a > 0", "result == a")
+    assert header == "atom average(total: i64, days: i64) -> i64\n    requires: a > 0;\n    ensures: result == a;\n    "
+    assert cb.header_ensures(header) == "result == a"
+
+
+@pytest.mark.parametrize("reply, expected", [
+    ({"requires": "true", "ensures": "result >= 0"}, ("true", "result >= 0")),
+    ({"requires": "a > 0;", "ensures": "result == a ;"}, ("a > 0", "result == a")),
+    ({"requires": "a > 0\n  && b > 0", "ensures": "result\t== a"}, ("a > 0 && b > 0", "result == a")),
+    ({"requires": "!found", "ensures": "!result.ok"}, ("!found", "!result.ok")),
+    ({"requires": "true"}, None),
+    ({"ensures": "true"}, None),
+    ({"requires": 1, "ensures": "true"}, None),
+    ({"requires": "true", "ensures": ["result"]}, None),
+    ({"requires": "", "ensures": "true"}, None),
+    ({"requires": "true", "ensures": " ; "}, None),
+    ({"requires": "true", "ensures": "a; ensures: true"}, None),
+    ({"requires": "true", "ensures": "true body: { 0 }"}, None),
+    ({"requires": "true", "ensures": "true\natom evil() -> i64"}, None),
+    ({"requires": "trusted", "ensures": "true"}, None),
+    ({"requires": "requires: true", "ensures": "true"}, None),
+    ({"requires": "true", "ensures": "x" * 2001}, None),
+    (None, None),
+])
+def test_contract_clauses_accept_only_single_expressions(reply, expected):
+    assert cb.contract_clauses(reply) == expected
+
+
+def test_contract_clauses_keep_names_that_contain_keywords():
+    assert cb.contract_clauses({"requires": "atomic > 0 && bodyless", "ensures": "result == ensures_count"}) == \
+        ("atomic > 0 && bodyless", "result == ensures_count")
+
+
+def recording_verify(seen):
+    inner = fake_verify(REFERENCE)
+
+    def verify(b, text, t):
+        seen.append(text)
+        return inner(b, text, t)
+    return verify
+
+
+def test_contract_case_checks_both_reference_bodies_under_one_contract(repo, monkeypatch):
+    seen = []
+    monkeypatch.setattr(cb, "verify_text", recording_verify(seen))
+    (case,) = cb.load_cases()[0]
+    r = cb.run_contract_case(case, StubProvider(lambda m, s: BLIND_REPLY), 0, "mumei", 5)
+    assert r["contract"] == {"requires": BLIND_REQUIRES, "ensures": BLIND_ENSURES}
+    assert (r["buggy"]["outcome"], r["fixed"]["outcome"], r["vacuity"]) == ("refuted", "proven", "ok")
+    assert len(seen) == 3
+    for text in seen:
+        assert f"requires: {BLIND_REQUIRES};" in text and "requires: total >= 0;" not in text
+    assert "total / days\n" in seen[0] and "if days <= 0" in seen[1] and "ensures: false;" in seen[2]
+    assert r["usage"]["cost_usd"] == 0.001 and cb.usage_total([r])["calls"] == 1
+
+
+@pytest.mark.parametrize("outcomes, expected", [
+    ([("ensures: false", "refuted"), ("body", "proven")], ("proven", "proven", "ok")),
+    ([("ensures: false", "refuted"), ("body", "refuted")], ("refuted", "refuted", "ok")),
+    ([("ensures: false", "proven"), ("body", "proven")], ("proven", "proven", "vacuous")),
+    ([("body", "inconclusive")], ("inconclusive", "inconclusive", "inconclusive")),
+])
+def test_contract_case_scores_weak_strong_and_vacuous_contracts(repo, monkeypatch, outcomes, expected):
+    monkeypatch.setattr(cb, "verify_text", fake_verify(outcomes))
+    (case,) = cb.load_cases()[0]
+    r = cb.run_contract_case(case, StubProvider(lambda m, s: BLIND_REPLY), 0, "mumei", 5)
+    assert (r["buggy"]["outcome"], r["fixed"]["outcome"], r["vacuity"]) == expected
+
+
+@pytest.mark.parametrize("reply", ["not json", '{"requires": "true"}', '{"requires": "true", "ensures": "a; b"}', "[]"])
+def test_contract_case_without_a_usable_contract_is_inconclusive(repo, monkeypatch, reply):
+    monkeypatch.setattr(cb, "verify_text", lambda *a: pytest.fail("must not verify"))
+    (case,) = cb.load_cases()[0]
+    r = cb.run_contract_case(case, StubProvider(lambda m, s: reply), 0, "mumei", 5)
+    assert r["buggy"] == r["fixed"] == {"outcome": "inconclusive", "status": "no-contract"}
+    assert "contract" not in r and r["reply"] == reply
+    s = cb.score([r])
+    assert (s["inconclusive"], s["errors"], s["both"]) == (2, 0, 0)
+
+
+def test_contract_case_transport_error_counts_as_error(repo, monkeypatch):
+    monkeypatch.setattr(cb, "verify_text", lambda *a: pytest.fail("must not verify"))
+    (case,) = cb.load_cases()[0]
+
+    def boom(m, s):
+        raise RuntimeError("LLM request failed: HTTP 429")
+    r = cb.run_contract_case(case, StubProvider(boom), 0, "mumei", 5)
+    assert r["usage"] is None and cb.score([r])["errors"] == 1
+
+
+def test_prompt_hash_is_per_arm():
+    assert cb.prompt_hash() == cb.prompt_hash("llm") == cb.prompt_hash("mumei-llm")
+    assert cb.prompt_hash("llm-contract") != cb.prompt_hash()
+
+
+def test_contract_prompt_change_marks_only_that_arm_stale(repo, monkeypatch):
+    llm_hash = cb.prompt_hash()
+    before = cb.prompt_hash("llm-contract")
+    monkeypatch.setattr(cb, "CONTRACT_SYSTEM", cb.CONTRACT_SYSTEM + " ")
+    assert cb.prompt_hash("llm-contract") != before and cb.prompt_hash() == llm_hash
+
+
+def run_blind(repo, monkeypatch, runs=1):
+    run_reference(repo, monkeypatch)
+    assert cb.main(["--arm", "llm-contract", "--runs", str(runs), "--jobs", "1", "--mumei-bin", "mumei"],
+                   provider=StubProvider(lambda m, s: BLIND_REPLY)) == 0
+    return json.loads((repo / "proofs" / "results" / "llm-contract-stub__model-1.json").read_text())
+
+
+def test_main_runs_the_contract_arm_and_check_passes(repo, monkeypatch, capsys):
+    doc = run_blind(repo, monkeypatch, runs=2)
+    assert doc["prompt_hash"] == cb.prompt_hash("llm-contract") and doc["verifier"] == VERIFIER
+    assert len(doc["runs"]) == 2 and doc["runs"][0][0]["contract"]["ensures"] == BLIND_ENSURES
+    md = (repo / "proofs" / "RESULTS.md").read_text()
+    assert cb.ARM_LABEL["llm-contract"] in md and cb.ARM_LABEL["llm-contract"] in (repo / "README.md").read_text()
+    capsys.readouterr()
+    assert cb.main(["--check"]) == 0, capsys.readouterr().err
+
+
+def test_check_flags_a_contract_arm_verified_by_another_build(repo, monkeypatch, capsys):
+    run_blind(repo, monkeypatch)
+    path = repo / "proofs" / "results" / "llm-contract-stub__model-1.json"
+    doc = json.loads(path.read_text())
+    doc["verifier"] = {**VERIFIER, "commit": "1" * 40}
+    path.write_text(json.dumps(doc))
+    capsys.readouterr()
+    assert cb.main(["--check"]) == 1
+    assert "llm-contract" in capsys.readouterr().err
+
+
+def test_check_flags_a_contract_arm_with_another_prompt(repo, monkeypatch, capsys):
+    run_blind(repo, monkeypatch)
+    monkeypatch.setattr(cb, "CONTRACT_SYSTEM", cb.CONTRACT_SYSTEM + " changed")
+    assert cb.main(["--check"]) == 1
+    err = capsys.readouterr().err
+    assert "llm-contract (stub/model-1): prompt changed" in err and "llm (" not in err
+
+
+def test_only_merges_into_the_contract_arm_result(repo, monkeypatch):
+    run_blind(repo, monkeypatch)
+    assert cb.main(["--arm", "llm-contract", "--only", "PY09-D01", "--jobs", "1", "--mumei-bin", "mumei"],
+                   provider=StubProvider(lambda m, s: BLIND_REPLY)) == 0
+
+
+def test_contract_arm_needs_mumei(repo):
+    with pytest.raises(SystemExit, match="mumei binary not found"):
+        cb.main(["--arm", "llm-contract", "--mumei-bin", ""])
+
+
+def test_wrong_contract_answers_are_listed(repo, monkeypatch):
+    run_reference(repo, monkeypatch)
+    monkeypatch.setattr(cb, "verify_text", fake_verify([("ensures: false", "refuted"), ("body", "proven")]))
+    assert cb.main(["--arm", "llm-contract", "--jobs", "1", "--mumei-bin", "mumei"],
+                   provider=StubProvider(lambda m, s: BLIND_REPLY)) == 0
+    md = (repo / "proofs" / "RESULTS.md").read_text()
+    assert "`PY09-D01` buggy accepted (1/1)" in md
+    assert f"`PY09-D01` model's ensures (from a wrong run): `{BLIND_ENSURES}`" in md
+    assert "vacuity control not passed" not in md
+    assert "per run: 1 / 1 pass" in md
+    assert "contract-writing error" in md
+
+
+def _contract_rec(i, b, f, ensures, vac="ok"):
+    r = rec(i, "go", b, f, vac=vac)
+    r["contract"] = {"requires": "true", "ensures": ensures}
+    r["usage"] = {"cost_usd": 0.0, "seconds": 1.0}
+    return r
+
+
+def test_wrong_answer_contract_comes_from_a_wrong_run():
+    runs = [[_contract_rec("A", "refuted", "proven", "right")],
+            [_contract_rec("A", "refuted", "refuted", "too strong", vac="inconclusive")]]
+    md = cb.render_markdown([], [{"arm": "llm-contract", "model": "m", "runs": runs}], [])
+    assert "`A` fixed rejected (1/2)" in md
+    assert "`A` model's ensures (from a wrong run): `too strong` — vacuity control not passed in that run" in md
+    assert "`right`" not in md
+    assert "per run: 1 / 1, 0 / 1 pass" in md
+
+
+def test_score_counts_a_failed_contract_request_once():
+    r = rec("a", "go", "inconclusive", "inconclusive")
+    r["usage"] = None
+    for v in cb.VARIANTS:
+        r[v]["status"] = "LLM request failed: HTTP 429"
+    assert (cb.score([r])["errors"], cb.score([r])["inconclusive"]) == (1, 0)
+
+
+def test_score_counts_a_missing_contract_per_variant():
+    r = rec("a", "go", "inconclusive", "inconclusive")
+    r["usage"] = {"cost_usd": 0.0}
+    for v in cb.VARIANTS:
+        r[v]["status"] = "no-contract"
+    assert (cb.score([r])["errors"], cb.score([r])["inconclusive"]) == (0, 2)
+
+
+
 def _checkout(tmp_path):
     checkout = tmp_path / "mumei"
     (checkout / "target" / "debug").mkdir(parents=True)
