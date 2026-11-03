@@ -1,0 +1,63 @@
+    use crate::bank::*;
+
+    impl ReplayOutcome for &Account {
+        fn replay(self) -> (bool, Option<i64>, String) { (true, None, format!("account {}", self.name)) }
+    }
+
+    fn ledger(balance: i64, limit: u64, spent: u64, queued: i64) -> Ledger {
+        let mut book = Ledger::default();
+        book.open_account("a", balance, limit);
+        book.open_account("b", 0, 0);
+        book.get_mut("a").unwrap().spent_today_cents = spent;
+        for _ in 0..queued {
+            book.pending.push(PendingTransfer { from: "a".into(), to: "b".into(), amount_cents: 1 });
+        }
+        book
+    }
+
+    fn check(case: &str, v: &Values) -> Option<(bool, String)> {
+        Some(match case {
+            "RS01-D02" => {
+                let (limit, spent) = (int(v, "limit_cents"), int(v, "spent_cents"));
+                let r = remaining_daily_allowance(limit as u64, spent as u64);
+                let want = if spent > limit { 0 } else { (limit - spent) as u64 };
+                (r != want, format!("remaining_daily_allowance -> {r}"))
+            }
+            "RS01-D03" | "RS01-D06" => {
+                let spent = int(v, "spent") as u64;
+                let mut book = ledger(int(v, "balance"), int(v, "limit") as u64, spent, int(v, "queued"));
+                let amount = int(v, "amount");
+                let r = book.request_transfer("a", "b", amount);
+                let after = book.get_mut("a").unwrap().spent_today_cents;
+                let observed = format!("request_transfer({amount}) -> {:?}, spent today {after}", r);
+                if case == "RS01-D03" { (r.is_ok() && amount <= 0, observed) } else { (r.is_err() && after != spent, observed) }
+            }
+            "RS01-D04" => {
+                let n = int(v, "recipients") as usize;
+                let (ok, _, shown) = split_payment(int(v, "amount_cents"), &vec![String::from("r"); n]).replay();
+                (ok && n == 0, format!("split_payment -> {shown}"))
+            }
+            "RS01-D05" => {
+                let mut book = Ledger::default();
+                for i in 0..int(v, "accounts") { book.open_account(&format!("a{i}"), 0, 0); }
+                let index = int(v, "index");
+                let (ok, _, shown) = book.account_at(index as usize).replay();
+                (ok && index >= int(v, "accounts"), format!("account_at({index}) -> {shown}"))
+            }
+            "RS01-D07" => {
+                let queued = int(v, "queued");
+                let mut book = ledger(0, 0, 0, queued);
+                let r = book.close_account("a");
+                (r.is_ok() && queued > 0, format!("close_account with {queued} queued -> {:?}", r))
+            }
+            "RS01-D12" => {
+                let balance = int(v, "balance");
+                let mut book = ledger(balance, 0, 0, 0);
+                let r = book.charge_fee("a", int(v, "cents"));
+                let after = book.get_mut("a").unwrap().balance_cents;
+                (r.is_ok() && after >= balance, format!("charge_fee -> {:?}, balance {after}", r))
+            }
+            _ => return None,
+        })
+    }
+}

@@ -1,0 +1,46 @@
+
+    impl ReplayOutcome for Matrix {
+        fn replay(self) -> (bool, Option<i64>, String) {
+            let first = self.data.first().map(|x| *x as i64);
+            (true, first, format!("{}x{} matrix {:?}", self.rows, self.cols, &self.data[..self.data.len().min(4)]))
+        }
+    }
+
+    fn matrix(rows: usize, cols: usize, data: Vec<i32>) -> Matrix { Matrix { rows, cols, data } }
+
+    fn check(case: &str, v: &Values) -> Option<(bool, String)> {
+        Some(match case {
+            "RS03-D01" => {
+                let (rows, cols) = (int(v, "rows") as usize, int(v, "cols") as usize);
+                let m = matrix(rows, cols, (0..(rows * cols) as i32).collect());
+                let (row, col) = (int(v, "row") as usize, int(v, "col") as usize);
+                let r = m.at(row, col);
+                (r as usize != row * cols + col, format!("at({row}, {col}) -> cell {r}"))
+            }
+            "RS03-D02" => {
+                let cells = int(v, "cells") as usize;
+                let mut data = vec![0; cells];
+                if cells > 0 { data[0] = int(v, "sum") as i32; }
+                let (ok, _, shown) = matrix(cells, 1, data).mean().replay();
+                (ok && cells == 0, format!("mean of {cells} cells -> {shown}"))
+            }
+            "RS03-D03" => {
+                let (a, b, c, d) = (int(v, "a"), int(v, "b"), int(v, "c"), int(v, "d"));
+                let m = matrix(2, 2, vec![a as i32, b as i32, c as i32, d as i32]);
+                let (ok, _, shown) = invert2x2(&m).replay();
+                (ok && a * d - b * c == 0, format!("invert2x2 -> {shown}"))
+            }
+            "RS03-D04" => {
+                let (x, factor) = (int(v, "v"), int(v, "factor"));
+                let (ok, value, shown) = matrix(1, 1, vec![x as i32]).scale(factor as i32).replay();
+                (ok && value != Some(x * factor), format!("scale({x}, {factor}) -> {shown}"))
+            }
+            "RS03-D08" => {
+                let (rows, cols) = (int(v, "rows") as usize, int(v, "cols") as usize);
+                let t = matrix(rows, cols, vec![0; rows * cols]).transpose();
+                (t.rows != cols || t.cols != rows, format!("transpose {rows}x{cols} -> {}x{}", t.rows, t.cols))
+            }
+            _ => return None,
+        })
+    }
+}

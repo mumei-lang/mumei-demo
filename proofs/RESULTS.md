@@ -10,6 +10,8 @@ Each of the 71 specimen defects in a category Mumei targets has a requirement an
 | LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | $0.11 |
 | mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 62 (59–62) / 71 | 67 / 71 | 58 (55–58) | 8 (7–10) | 2 (2–3) | 3 (3–4) | $0.14 |
 
+[REPLAY.md](REPLAY.md) replays concrete inputs, the LLM witnesses and the LLM ports on the native code (`scripts/run_native_replay.py`).
+
 The reference ports were written by hand with knowledge of the defects, so the first row shows that the contracts can express each requirement and how often the checker tells the two versions apart. It is not a detection result. The LLM rows are the comparison. Both LLM arms see the product source file, the requirement, the modelling notes and the contract header, never the defect list or the reference ports. LLM only answers holds/violated itself; a "holds" is the model's opinion, not a proof. mumei + LLM asks the model only for the `.mm` body under the pinned header, and mumei decides.
 
 A buggy function whose LLM port mumei proves is a translation problem: the reference port of the same function under the same contract is refuted, so the LLM port does not keep the defect. mumei's verdict is only as faithful as the port it checks.

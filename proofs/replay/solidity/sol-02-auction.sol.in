@@ -1,0 +1,117 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+// Native replay checks, copied into a scratch copy of the specimen as test/zz_ReplayChecks.sol.
+// Each check_<case> runs one input and reverts with "violated: ..." when the requirement breaks
+// or "unexpressible: ..." when the input cannot be set up natively.
+
+import "./TestBase.sol";
+import "../src/EnglishAuction.sol";
+
+contract ReplayBidder {
+    EnglishAuction auction;
+    bool armed;
+    bool public called;
+    uint256 public seen;
+
+    constructor(EnglishAuction a) { auction = a; }
+    function bid() external payable { auction.bid{value: msg.value}(); }
+    function cancel() external { auction.cancelBid(); }
+    function pull() external { armed = true; auction.withdraw(); armed = false; }
+    receive() external payable {
+        if (armed && !called) { called = true; seen = auction.pendingReturns(address(this)); }
+    }
+}
+
+abstract contract ReplayChecks is SpecTest {
+    address constant ALICE = address(0xA11CE);
+    address constant BOB = address(0xB0B);
+    address constant SELLER = address(0x5E11E7);
+    uint256 constant MAX_DURATION = 365 days;
+
+    function violated(string memory why) internal pure { revert(string.concat("violated: ", why)); }
+    function unexpressible(string memory why) internal pure { revert(string.concat("unexpressible: ", why)); }
+
+    function fresh() internal returns (EnglishAuction a) {
+        a = new EnglishAuction();
+        a.init(SELLER, 0, 1 days, 100);
+    }
+
+    function bidAs(EnglishAuction a, address who, uint256 amount) internal {
+        vm.deal(who, amount);
+        vm.prank(who);
+        a.bid{value: amount}();
+    }
+
+    function check_SOL02_D02(uint256 pending) internal {
+        EnglishAuction a = fresh();
+        ReplayBidder bidder = new ReplayBidder(a);
+        vm.deal(address(this), pending);
+        bidder.bid{value: pending}();
+        bidAs(a, BOB, a.minNextBid() > pending ? a.minNextBid() : pending);
+        try bidder.cancel() {} catch {}
+        if (a.pendingReturns(address(bidder)) != pending) unexpressible("could not build the pending return");
+        try bidder.pull() {} catch {}
+        if (bidder.called() && bidder.seen() != 0) violated("the refund call saw the pending return still recorded");
+    }
+
+    function check_SOL02_D03(bool finalized) internal {
+        EnglishAuction a = fresh();
+        bidAs(a, ALICE, 1 ether);
+        vm.deal(address(this), 2 ether);
+        a.fundBonus{value: 2 ether}();
+        vm.warp(block.timestamp + 2 days);
+        vm.roll(block.number + 1 days);
+        if (!finalized) return;
+        a.finalize();
+        try a.finalize() { violated("finalize succeeded a second time"); } catch {}
+    }
+
+    function check_SOL02_D06(bool isHighest, uint256 amount) internal {
+        EnglishAuction a = fresh();
+        bidAs(a, ALICE, amount);
+        if (!isHighest) bidAs(a, BOB, a.minNextBid() > amount ? a.minNextBid() : amount);
+        vm.prank(ALICE);
+        try a.cancelBid() {
+            if (isHighest) violated("the highest bidder cancelled their bid");
+        } catch {}
+    }
+
+    function check_SOL02_D07(bool senderIsDeployer, bool initialized) internal {
+        EnglishAuction a = new EnglishAuction();
+        if (initialized) a.init(SELLER, 0, 1 days, 100);
+        vm.prank(senderIsDeployer ? address(this) : address(0xBAD));
+        try a.init(SELLER, 0, 1 days, 100) {
+            if (!senderIsDeployer) violated("someone other than the deployer initialized the auction");
+        } catch {}
+    }
+
+    function check_SOL02_D08(uint256 start, uint256 duration, uint256 maxDuration, uint256 cap) internal {
+        // `cap` stands for type(uint64).max and `max_duration` for MAX_DURATION (365 days in the fixed version).
+        // Shift the start and the duration so both boundaries (duration cap and uint64 overflow) are kept.
+        uint256 shifted = start + (uint256(type(uint64).max) - cap) + maxDuration;
+        if (shifted < MAX_DURATION || duration + MAX_DURATION < maxDuration) unexpressible("input does not map onto the native bounds");
+        uint256 nativeDuration = duration + MAX_DURATION - maxDuration;
+        vm.warp(shifted - MAX_DURATION);
+        EnglishAuction a = new EnglishAuction();
+        try a.init(SELLER, 0, nativeDuration, 100) {
+            if (uint256(a.endTime()) != block.timestamp + nativeDuration) violated("the end time wrapped instead of fitting uint64");
+        } catch {}
+    }
+
+    function check_SOL02_D11(bool hasPrevious, bool sameBidder, uint256 prevBidOf, uint256 prevPending, uint256 newBid) internal {
+        if (!hasPrevious || sameBidder) return;
+        if (prevPending != 0) unexpressible("a pending return for the current top bidder needs a history outside the input");
+        EnglishAuction a = fresh();
+        bidAs(a, ALICE, prevBidOf);
+        // The minimum increment is outside the ported function, so the new bid is raised to it when needed.
+        uint256 amount = newBid < a.minNextBid() ? a.minNextBid() : newBid;
+        vm.deal(BOB, amount);
+        vm.prank(BOB);
+        try a.bid{value: amount}() {
+            if (a.bidOf(ALICE) != 0 || a.pendingReturns(ALICE) != prevPending + prevBidOf) {
+                violated("the outbid bidder still holds a live bid record");
+            }
+        } catch {}
+    }
+}

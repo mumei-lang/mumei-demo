@@ -1,0 +1,28 @@
+
+func replayCheck(id string, v map[string]any) (bool, string, bool) {
+	switch id {
+	case "GO03-D06":
+		e, n := replayInt(v, "epoch"), replayInt(v, "sessions")
+		epoch = e
+		sessions = map[string]string{"replay-admin": "admin"}
+		for i := int64(0); i < n; i++ {
+			sessions[fmt.Sprintf("replay-%d", i)] = "alice"
+		}
+		rec := replayRequest(rotateHandler, "POST", "/rotate", nil, map[string]string{"Authorization": "Bearer replay-admin"})
+		// int64 wrap-around counts as a broken increment.
+		return len(sessions) != 0 || epoch != e+1 || epoch < e, fmt.Sprintf("rotate -> %d, %d sessions left, epoch %d", rec.Code, len(sessions), epoch), true
+	case "GO03-D07":
+		limits = make(map[string]loginLimit)
+		name, password := "mallory", "wrong"
+		if replayBool(v, "known") {
+			name = "alice"
+		}
+		if replayBool(v, "password_matches") {
+			password = "bluebird42"
+		}
+		rec := replayRequest(loginHandler, "POST", "/login", map[string]any{"user": name, "password": password}, nil)
+		ok := rec.Code == 200 || rec.Code == 302
+		return !replayBool(v, "known") && ok, fmt.Sprintf("login %s -> %d", name, rec.Code), true
+	}
+	return false, "", false
+}

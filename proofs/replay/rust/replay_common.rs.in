@@ -1,0 +1,76 @@
+// Native replay driver, appended to a scratch copy of the specimen's src/main.rs.
+// REPLAY_IN holds one `case|name=value|...` line per input; one
+// {"case", "violates", "observed"} JSON line per input is written to REPLAY_OUT.
+// A panic counts as a violation of the requirement.
+#[cfg(test)]
+mod native_replay {
+    #![allow(unused_imports, dead_code)]
+    use super::*;
+    use std::collections::HashMap as ReplayMap;
+    use std::io::Write as ReplayWrite;
+
+    type Values = ReplayMap<String, String>;
+
+    /// (accepted, numeric value if any, rendering) of whatever the native function returned.
+    trait ReplayOutcome {
+        fn replay(self) -> (bool, Option<i64>, String);
+    }
+    impl ReplayOutcome for i64 {
+        fn replay(self) -> (bool, Option<i64>, String) { (true, Some(self), self.to_string()) }
+    }
+    impl ReplayOutcome for i32 {
+        fn replay(self) -> (bool, Option<i64>, String) { (true, Some(self as i64), self.to_string()) }
+    }
+    impl ReplayOutcome for () {
+        fn replay(self) -> (bool, Option<i64>, String) { (true, None, "()".into()) }
+    }
+    impl ReplayOutcome for Vec<f64> {
+        fn replay(self) -> (bool, Option<i64>, String) { (true, None, format!("{:?}", self)) }
+    }
+    impl<T: ReplayOutcome, E: std::fmt::Debug> ReplayOutcome for Result<T, E> {
+        fn replay(self) -> (bool, Option<i64>, String) {
+            match self { Ok(t) => t.replay(), Err(e) => (false, None, format!("Err({:?})", e)) }
+        }
+    }
+    impl<T: ReplayOutcome> ReplayOutcome for Option<T> {
+        fn replay(self) -> (bool, Option<i64>, String) {
+            match self { Some(t) => t.replay(), None => (false, None, "None".into()) }
+        }
+    }
+
+    fn int(v: &Values, key: &str) -> i64 { v[key].parse().expect("integer input") }
+    fn flag(v: &Values, key: &str) -> bool { v[key] == "true" }
+
+    fn escape(text: &str) -> String {
+        text.chars().take(300).flat_map(|c| match c {
+            '"' => "\\\"".chars().collect::<Vec<_>>(),
+            '\\' => "\\\\".chars().collect(),
+            c if (c as u32) < 0x20 => format!("\\u{:04x}", c as u32).chars().collect(),
+            c => vec![c],
+        }).collect()
+    }
+
+    #[test]
+    fn native_replay() {
+        let input = std::fs::read_to_string(std::env::var("REPLAY_IN").expect("REPLAY_IN")).unwrap();
+        let mut out = std::fs::File::create(std::env::var("REPLAY_OUT").expect("REPLAY_OUT")).unwrap();
+        for line in input.lines().filter(|l| !l.trim().is_empty()) {
+            let mut fields = line.split('|');
+            let case = fields.next().unwrap().to_string();
+            let values: Values = fields.filter_map(|f| f.split_once('='))
+                .map(|(k, v)| (k.to_string(), v.to_string())).collect();
+            let outcome = std::panic::catch_unwind(|| check(&case, &values));
+            let (violates, observed) = match outcome {
+                Ok(Some(found)) => found,
+                Ok(None) => panic!("unknown case {case}"),
+                Err(payload) => {
+                    let msg = payload.downcast_ref::<String>().cloned()
+                        .or_else(|| payload.downcast_ref::<&str>().map(|s| s.to_string()))
+                        .unwrap_or_default();
+                    (true, format!("panic: {msg}"))
+                }
+            };
+            writeln!(out, "{{\"case\": \"{}\", \"violates\": {}, \"observed\": \"{}\"}}",
+                     case, violates, escape(&observed)).unwrap();
+        }
+    }
