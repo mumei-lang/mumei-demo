@@ -7,16 +7,16 @@ Each of the 71 specimen defects in a category Mumei targets has a requirement an
 | Arm | Model | Runs | Buggy refuted | Fixed proven | Both right | Buggy accepted | Fixed rejected | Inconclusive | Cost |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
 | mumei (reference ports) | — | 1 | 71 / 71 | 69 / 71 | 69 | 0 | 2 | 0 | — |
-| LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 65 (65–66) / 71 | 65 | 0 (0–1) | 6 (5–6) | 0 | $0.11 |
-| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 62 (59–63) / 71 | 67 / 71 | 58 (55–59) | 8 (7–10) | 2 (2–3) | 3 (2–4) | $0.14 |
+| LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | $0.11 |
+| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 62 (59–62) / 71 | 67 / 71 | 58 (55–58) | 8 (7–10) | 2 (2–3) | 3 (3–4) | $0.14 |
 
-The reference ports were written by hand with knowledge of the defects, so the first row shows that the contracts can express each requirement and that the checker tells the two versions apart. It is not a detection result. The LLM rows are the comparison. Both LLM arms see the product source file, the requirement, the modelling notes and the contract header, never the defect list or the reference ports. LLM only answers holds/violated itself; a "holds" is the model's opinion, not a proof. mumei + LLM asks the model only for the `.mm` body under the pinned header, and mumei decides.
+The reference ports were written by hand with knowledge of the defects, so the first row shows that the contracts can express each requirement and how often the checker tells the two versions apart. It is not a detection result. The LLM rows are the comparison. Both LLM arms see the product source file, the requirement, the modelling notes and the contract header, never the defect list or the reference ports. LLM only answers holds/violated itself; a "holds" is the model's opinion, not a proof. mumei + LLM asks the model only for the `.mm` body under the pinned header, and mumei decides.
 
 A buggy function whose LLM port mumei proves is a translation problem: the reference port of the same function under the same contract is refuted, so the LLM port does not keep the defect. mumei's verdict is only as faithful as the port it checks.
 
 A proof covers the model in the port, not native behaviour the model leaves out, such as fixed-width overflow, nil pointers or exceptions from library calls. Some LLM-only rejections of a fixed function point at exactly that kind of behaviour; their witnesses are listed below.
 
-Vacuity control (fixed port re-checked with `ensures: false`, must fail): 71 / 71 pass.
+Vacuity control (fixed port re-checked with `ensures: false`, must fail): 70 / 71 pass; not passing: SOL02-D11.
 
 Reference cases where mumei did not give the right answer:
 
@@ -25,14 +25,13 @@ Reference cases where mumei did not give the right answer:
 
 ## Wrong answers by case (runs out of total)
 
-- LLM only (judges the source): `GO01-D05` fixed rejected (3/3), `GO02-D03` fixed rejected (2/3), `GO03-D06` fixed rejected (1/3), `GO03-D07` fixed rejected (1/3), `PY02-D04` fixed rejected (3/3), `PY03-D05` buggy accepted (1/3), `RS03-D08` fixed rejected (2/3), `SOL02-D11` fixed rejected (3/3), `TS01-D12` fixed rejected (2/3)
+- LLM only (judges the source): `GO01-D05` fixed rejected (3/3), `GO02-D03` fixed rejected (2/3), `GO03-D06` fixed rejected (1/3), `GO03-D07` fixed rejected (1/3), `PY02-D04` fixed rejected (3/3), `PY03-D05` buggy accepted (1/3), `RS03-D08` fixed rejected (2/3), `TS01-D12` fixed rejected (2/3)
   - `GO01-D05` fixed rejected, witness: total = 2, locations has length 4294967294 (on a 64-bit system)
   - `GO02-D03` fixed rejected, witness: n_paths = 0, top = -1, counts = {}
   - `GO03-D06` fixed rejected, witness: epoch = 9223372036854775807, sessions = 1
   - `GO03-D07` fixed rejected, witness: known=false (the user is missing) and dummyAccount=nil
   - `PY02-D04` fixed rejected, witness: A four-column row such as ["worker", "not-a-date", "project", "60"].
   - `RS03-D08` fixed rejected, witness: rows = 9223372036854775807, cols = 2
-  - `SOL02-D11` fixed rejected, witness: has_previous=true, prev_bid_of=1, prev_pending=0; the new bidder is also the previous highest bidder and submits a valid bid of 2 (with high
   - `TS01-D12` fixed rejected, witness: n = 9007199254740994, page = 9007199254740994, size = 1
 - mumei + LLM (LLM ports, mumei checks): `GO01-D04` buggy accepted (3/3), `GO02-D02` buggy accepted (2/3), `GO02-D03` buggy accepted (3/3), `PY01-D08` fixed rejected (3/3), `PY02-D04` fixed rejected (3/3), `PY02-D05` fixed rejected (1/3), `PY03-D05` buggy accepted (2/3), `RS03-D02` buggy accepted (3/3), `RS03-D04` buggy accepted (3/3), `SOL01-D03` buggy accepted (3/3), `SOL01-D08` buggy accepted (1/3), `TS01-D03` buggy accepted (3/3), `TS01-D07` buggy accepted (1/3), `TS03-D09` buggy accepted (1/3)
 
@@ -41,5 +40,5 @@ Reference cases where mumei did not give the right answer:
 | Arm | Model | python | go | rust | typescript | solidity |
 |---|---|---:|---:|---:|---:|---:|
 | mumei (reference ports) | — | 13 / 15 | 11 / 11 | 14 / 14 | 12 / 12 | 19 / 19 |
-| LLM only (judges the source) | openai/gpt-6-luna | 14 / 15 | 9 / 11 | 13 / 14 | 11 / 12 | 18 / 19 |
-| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 11 / 15 | 8 / 11 | 11 / 14 | 11 / 12 | 18 / 19 |
+| LLM only (judges the source) | openai/gpt-6-luna | 14 / 15 | 9 / 11 | 13 / 14 | 11 / 12 | 19 / 19 |
+| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 11 / 15 | 8 / 11 | 11 / 14 | 11 / 12 | 17 / 19 |

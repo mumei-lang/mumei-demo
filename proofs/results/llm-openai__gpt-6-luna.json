@@ -1,8 +1,8 @@
 {
   "arm": "llm",
   "model": "openai/gpt-6-luna",
-  "prompt_hash": "922d91f08b7f7a63",
-  "recorded_at": "2026-11-03T11:56:17+00:00",
+  "prompt_hash": "25086e50e3857bea",
+  "recorded_at": "2026-11-03T12:27:10+00:00",
   "runs": [
     [
       {
@@ -2143,37 +2143,37 @@
         "specimen": "sol-02-auction",
         "category": "invariant-violation",
         "function": "bid",
-        "case_hash": "4d89f4b464b3ddc39211eec6d0ca57533d981d108208eebc48534f72fc0daa5b",
+        "case_hash": "85c1f095827183a13ffa2c271aa09c56c1cc3609f8a4b5aa6ed120f3ce00068e",
         "source_hash": "fec90a5af9f6bacc7d6436bd60afa2146ace8be3072247b5ee8037fe69882122",
         "buggy": {
           "outcome": "refuted",
           "status": "violated",
           "reply": {
             "verdict": "violated",
-            "witness": "has_previous=true, prev_bid_of=1, prev_pending=0; the new bidder is different from the previous bidder",
-            "reason": "The refund sends the previous highestBid directly but never clears that bidder’s bidOf entry or credits pendingReturns. Thus the previous bidder can retain a live bid record after being outbid."
+            "witness": "has_previous=true, same_bidder=false, prev_bid_of=1, prev_pending=0, new_bid=2",
+            "reason": "The previous bidder is refunded directly, but `bid` never clears their `bidOf` entry or adds an amount to `pendingReturns`. Their `bid_of` therefore remains 1, violating the ensure that it equals 0."
           },
           "usage": {
-            "prompt_tokens": 1474,
-            "completion_tokens": 288,
-            "cost_usd": 0.000328175,
-            "seconds": 3.38,
+            "prompt_tokens": 1532,
+            "completion_tokens": 527,
+            "cost_usd": 0.000454925,
+            "seconds": 8.37,
             "attempts": 1
           }
         },
         "fixed": {
-          "outcome": "refuted",
-          "status": "violated",
+          "outcome": "proven",
+          "status": "holds",
           "reply": {
-            "verdict": "violated",
-            "witness": "has_previous=true, prev_bid_of=1, prev_pending=0; the new bidder is also the previous highest bidder and submits a valid bid of 2 (with highestBid=1 and minIncrementBps=10000).",
-            "reason": "The function first clears the previous bidder's bidOf, then assigns msg.value to bidOf[msg.sender]. When msg.sender is the previous bidder, that assignment restores a nonzero live bid record, so result.bid_of is not 0."
+            "verdict": "holds",
+            "witness": "",
+            "reason": "When a previous bidder exists and the new bidder is different, the function adds the previous bidder’s bid to pendingReturns and sets their bidOf entry to zero. The new bid is then recorded for a distinct address, so the previous bidder’s bidOf remains zero."
           },
           "usage": {
-            "prompt_tokens": 1588,
-            "completion_tokens": 594,
-            "cost_usd": 0.000495425,
-            "seconds": 6.34,
+            "prompt_tokens": 1646,
+            "completion_tokens": 296,
+            "cost_usd": 0.000353675,
+            "seconds": 4.79,
             "attempts": 1
           }
         }
@@ -5056,37 +5056,37 @@
         "specimen": "sol-02-auction",
         "category": "invariant-violation",
         "function": "bid",
-        "case_hash": "4d89f4b464b3ddc39211eec6d0ca57533d981d108208eebc48534f72fc0daa5b",
+        "case_hash": "85c1f095827183a13ffa2c271aa09c56c1cc3609f8a4b5aa6ed120f3ce00068e",
         "source_hash": "fec90a5af9f6bacc7d6436bd60afa2146ace8be3072247b5ee8037fe69882122",
         "buggy": {
           "outcome": "refuted",
           "status": "violated",
           "reply": {
             "verdict": "violated",
-            "witness": "has_previous=true, prev_bid_of=1, prev_pending=0; the new bidder is distinct from the previous highest bidder",
-            "reason": "The successful refund transfers the previous bid but never clears that bidder’s bidOf entry or adds the amount to pendingReturns. Their bidOf therefore remains 1, violating the postcondition that it be 0."
+            "witness": "has_previous=true, same_bidder=false, prev_bid_of=1, prev_pending=0, new_bid=2",
+            "reason": "When a different bidder outbids the previous bidder, `bid` refunds the previous bid but never clears that bidder’s `bidOf` entry or adds the funds to `pendingReturns`. Thus the previous bidder’s `bid_of` remains 1, violating the ensure clause."
           },
           "usage": {
-            "prompt_tokens": 1474,
-            "completion_tokens": 427,
-            "cost_usd": 0.00022851,
-            "seconds": 4.95,
+            "prompt_tokens": 1532,
+            "completion_tokens": 333,
+            "cost_usd": 0.00018209,
+            "seconds": 4.27,
             "attempts": 1
           }
         },
         "fixed": {
-          "outcome": "refuted",
-          "status": "violated",
+          "outcome": "proven",
+          "status": "holds",
           "reply": {
-            "verdict": "violated",
-            "witness": "has_previous=true; the previous highest bidder is also msg.sender; prev_bid_of=1, prev_pending=0; submit a valid bid of 2",
-            "reason": "The function moves the previous bid into pendingReturns and clears bidOf, but then sets bidOf[msg.sender] to the new bid. When the previous bidder bids again, the returned bidOf is nonzero, violating the contract’s ensure clause."
+            "verdict": "holds",
+            "witness": "",
+            "reason": "When there is a previous bidder distinct from the caller, `bid` adds their `bidOf` amount to `pendingReturns` and sets their `bidOf` to zero. The caller’s new bid is stored under a different address, so it does not restore the previous bidder’s record."
           },
           "usage": {
-            "prompt_tokens": 1588,
-            "completion_tokens": 619,
-            "cost_usd": 0.00032565,
-            "seconds": 6.54,
+            "prompt_tokens": 1646,
+            "completion_tokens": 239,
+            "cost_usd": 0.00013623,
+            "seconds": 3.55,
             "attempts": 1
           }
         }
@@ -7969,37 +7969,37 @@
         "specimen": "sol-02-auction",
         "category": "invariant-violation",
         "function": "bid",
-        "case_hash": "4d89f4b464b3ddc39211eec6d0ca57533d981d108208eebc48534f72fc0daa5b",
+        "case_hash": "85c1f095827183a13ffa2c271aa09c56c1cc3609f8a4b5aa6ed120f3ce00068e",
         "source_hash": "fec90a5af9f6bacc7d6436bd60afa2146ace8be3072247b5ee8037fe69882122",
         "buggy": {
           "outcome": "refuted",
           "status": "violated",
           "reply": {
             "verdict": "violated",
-            "witness": "has_previous=true, prev_bid_of=10, prev_pending=0; the new bidder is a different address",
-            "reason": "The successful refund does not clear `bidOf` for the previous highest bidder. Since the new bidder is different, the old bidder's `bidOf` remains 10, violating the postcondition that it be zero."
+            "witness": "has_previous=true, same_bidder=false, prev_bid_of=1, prev_pending=0, new_bid=2",
+            "reason": "When a different bidder outbids the previous highest bidder, `bid` refunds `highestBid` but never clears the previous bidder’s `bidOf` entry or adds funds to `pendingReturns`. Thus the previous bidder’s returned `bid_of` remains 1, violating the contract’s required value of 0."
           },
           "usage": {
-            "prompt_tokens": 1474,
-            "completion_tokens": 416,
-            "cost_usd": 0.00022301,
-            "seconds": 4.87,
+            "prompt_tokens": 1532,
+            "completion_tokens": 365,
+            "cost_usd": 0.00019809,
+            "seconds": 5.15,
             "attempts": 1
           }
         },
         "fixed": {
-          "outcome": "refuted",
-          "status": "violated",
+          "outcome": "proven",
+          "status": "holds",
           "reply": {
-            "verdict": "violated",
-            "witness": "has_previous=true, prev_bid_of=10, prev_pending=0; the previous highest bidder submits a valid new bid of 11",
-            "reason": "The function moves the old bid to pendingReturns and clears bidOf, but then assigns msg.value to bidOf[msg.sender]. If the new bidder is also the previous highest bidder, their returned bidOf is 11, not 0."
+            "verdict": "holds",
+            "witness": "",
+            "reason": "When a previous bidder exists and is not the caller, `bid` adds their recorded bid to `pendingReturns` and sets their `bidOf` to zero. The caller’s new bid cannot restore that entry because the caller is a different bidder."
           },
           "usage": {
-            "prompt_tokens": 1588,
-            "completion_tokens": 595,
-            "cost_usd": 0.00031365,
-            "seconds": 6.94,
+            "prompt_tokens": 1646,
+            "completion_tokens": 297,
+            "cost_usd": 0.00016523,
+            "seconds": 4.44,
             "attempts": 1
           }
         }

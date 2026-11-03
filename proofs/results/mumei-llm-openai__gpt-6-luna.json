@@ -1,8 +1,8 @@
 {
   "arm": "mumei-llm",
   "model": "openai/gpt-6-luna",
-  "prompt_hash": "922d91f08b7f7a63",
-  "recorded_at": "2026-11-03T12:21:17+00:00",
+  "prompt_hash": "25086e50e3857bea",
+  "recorded_at": "2026-11-03T12:28:12+00:00",
   "runs": [
     [
       {
@@ -1888,7 +1888,7 @@
         "case_hash": "fdebb0cfde5f51dd467b8c3aeb4f23b2a02fe3239588cacc2e14765b9ddfa87c",
         "source_hash": "be5095ff76f3d6cd375e3d3a931af401d779ec1a6cf74b1cb5b1f528da2efdbc",
         "buggy": {
-          "outcome": "refuted",
+          "outcome": "inconclusive",
           "status": "failed",
           "diagnostics": [
             {
@@ -2131,7 +2131,7 @@
         "specimen": "sol-02-auction",
         "category": "invariant-violation",
         "function": "bid",
-        "case_hash": "4d89f4b464b3ddc39211eec6d0ca57533d981d108208eebc48534f72fc0daa5b",
+        "case_hash": "85c1f095827183a13ffa2c271aa09c56c1cc3609f8a4b5aa6ed120f3ce00068e",
         "source_hash": "fec90a5af9f6bacc7d6436bd60afa2146ace8be3072247b5ee8037fe69882122",
         "buggy": {
           "outcome": "refuted",
@@ -2143,12 +2143,12 @@
               "message": "Verification Error: Postcondition (ensures) is not satisfied."
             }
           ],
-          "body": "Outbid { bid_of: prev_bid_of, pending: prev_pending }",
+          "body": "if has_previous { if same_bidder { Outbid { bid_of: new_bid, pending: prev_pending } } else { Outbid { bid_of: prev_bid_of, pending: prev_pending } } } else { Outbid { bid_of: new_bid, pending: prev_pending } }",
           "usage": {
-            "prompt_tokens": 1514,
-            "completion_tokens": 581,
-            "cost_usd": 0.000479675,
-            "seconds": 7.79,
+            "prompt_tokens": 1572,
+            "completion_tokens": 983,
+            "cost_usd": 0.000687925,
+            "seconds": 10.25,
             "attempts": 1
           }
         },
@@ -2156,12 +2156,12 @@
           "outcome": "proven",
           "status": "success",
           "diagnostics": [],
-          "body": "if has_previous { Outbid { bid_of: 0, pending: prev_pending + prev_bid_of } } else { Outbid { bid_of: prev_bid_of, pending: prev_pending } }",
+          "body": "let pending = if has_previous { prev_pending + prev_bid_of } else { prev_pending };\nlet bid_of = if has_previous && !same_bidder { 0 } else { new_bid };\nOutbid { bid_of: bid_of, pending: pending }",
           "usage": {
-            "prompt_tokens": 1628,
-            "completion_tokens": 361,
-            "cost_usd": 0.000383925,
-            "seconds": 5.49,
+            "prompt_tokens": 1686,
+            "completion_tokens": 1010,
+            "cost_usd": 0.000715675,
+            "seconds": 11.13,
             "attempts": 1
           }
         }
@@ -5020,7 +5020,7 @@
         "specimen": "sol-02-auction",
         "category": "invariant-violation",
         "function": "bid",
-        "case_hash": "4d89f4b464b3ddc39211eec6d0ca57533d981d108208eebc48534f72fc0daa5b",
+        "case_hash": "85c1f095827183a13ffa2c271aa09c56c1cc3609f8a4b5aa6ed120f3ce00068e",
         "source_hash": "fec90a5af9f6bacc7d6436bd60afa2146ace8be3072247b5ee8037fe69882122",
         "buggy": {
           "outcome": "refuted",
@@ -5032,12 +5032,12 @@
               "message": "Verification Error: Postcondition (ensures) is not satisfied."
             }
           ],
-          "body": "Outbid { bid_of: prev_bid_of, pending: prev_pending }",
+          "body": "if same_bidder { Outbid { bid_of: new_bid, pending: prev_pending } } else { Outbid { bid_of: prev_bid_of, pending: prev_pending } }",
           "usage": {
-            "prompt_tokens": 1514,
-            "completion_tokens": 882,
-            "cost_usd": 0.00045641,
-            "seconds": 10.47,
+            "prompt_tokens": 1572,
+            "completion_tokens": 1245,
+            "cost_usd": 0.00063849,
+            "seconds": 12.63,
             "attempts": 1
           }
         },
@@ -5045,12 +5045,12 @@
           "outcome": "proven",
           "status": "success",
           "diagnostics": [],
-          "body": "let next_bid_of = if has_previous { 0 } else { prev_bid_of };\nlet next_pending = if has_previous { prev_pending + prev_bid_of } else { prev_pending };\nOutbid { bid_of: next_bid_of, pending: next_pending }",
+          "body": "let next_pending = if has_previous { prev_pending + prev_bid_of } else { prev_pending };\nlet next_bid_of = if has_previous && !same_bidder { 0 } else { new_bid };\nOutbid { bid_of: next_bid_of, pending: next_pending }",
           "usage": {
-            "prompt_tokens": 1628,
-            "completion_tokens": 372,
-            "cost_usd": 0.00020255,
-            "seconds": 5.11,
+            "prompt_tokens": 1686,
+            "completion_tokens": 816,
+            "cost_usd": 0.00042513,
+            "seconds": 9.98,
             "attempts": 1
           }
         }
@@ -7897,7 +7897,7 @@
         "specimen": "sol-02-auction",
         "category": "invariant-violation",
         "function": "bid",
-        "case_hash": "4d89f4b464b3ddc39211eec6d0ca57533d981d108208eebc48534f72fc0daa5b",
+        "case_hash": "85c1f095827183a13ffa2c271aa09c56c1cc3609f8a4b5aa6ed120f3ce00068e",
         "source_hash": "fec90a5af9f6bacc7d6436bd60afa2146ace8be3072247b5ee8037fe69882122",
         "buggy": {
           "outcome": "refuted",
@@ -7909,12 +7909,12 @@
               "message": "Verification Error: Postcondition (ensures) is not satisfied."
             }
           ],
-          "body": "Outbid { bid_of: prev_bid_of, pending: prev_pending }",
+          "body": "let bid_of = if has_previous && same_bidder { new_bid } else { prev_bid_of };\nlet pending = prev_pending;\nOutbid { bid_of: bid_of, pending: pending }",
           "usage": {
-            "prompt_tokens": 1514,
-            "completion_tokens": 250,
-            "cost_usd": 0.00014041,
-            "seconds": 3.68,
+            "prompt_tokens": 1572,
+            "completion_tokens": 868,
+            "cost_usd": 0.00044999,
+            "seconds": 9.52,
             "attempts": 1
           }
         },
@@ -7922,12 +7922,12 @@
           "outcome": "proven",
           "status": "success",
           "diagnostics": [],
-          "body": "if has_previous { Outbid { bid_of: 0, pending: prev_pending + prev_bid_of } } else { Outbid { bid_of: prev_bid_of, pending: prev_pending } }",
+          "body": "if has_previous { if same_bidder { Outbid { bid_of: new_bid, pending: prev_pending + prev_bid_of } } else { Outbid { bid_of: 0, pending: prev_pending + prev_bid_of } } } else { Outbid { bid_of: new_bid, pending: prev_pending } }",
           "usage": {
-            "prompt_tokens": 1628,
-            "completion_tokens": 411,
-            "cost_usd": 0.00022205,
-            "seconds": 5.02,
+            "prompt_tokens": 1686,
+            "completion_tokens": 580,
+            "cost_usd": 0.00030713,
+            "seconds": 7.63,
             "attempts": 1
           }
         }

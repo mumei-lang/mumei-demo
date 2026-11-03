@@ -64,8 +64,8 @@ The specimen benchmark measures finding bugs in existing code. This one measures
 | Arm | Model | Runs | Buggy refuted | Fixed proven | Both right | Buggy accepted | Fixed rejected | Inconclusive | Cost |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
 | mumei (reference ports) | — | 1 | 71 / 71 | 69 / 71 | 69 | 0 | 2 | 0 | — |
-| LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 65 (65–66) / 71 | 65 | 0 (0–1) | 6 (5–6) | 0 | $0.11 |
-| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 62 (59–63) / 71 | 67 / 71 | 58 (55–59) | 8 (7–10) | 2 (2–3) | 3 (2–4) | $0.14 |
+| LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | $0.11 |
+| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 62 (59–62) / 71 | 67 / 71 | 58 (55–58) | 8 (7–10) | 2 (2–3) | 3 (3–4) | $0.14 |
 
 Details, per-language results and caveats: [proofs/RESULTS.md](proofs/RESULTS.md).
 
