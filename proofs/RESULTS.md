@@ -6,7 +6,7 @@ Each of the 71 specimen defects in a category Mumei targets has a requirement an
 
 | Arm | Model | Runs | Buggy refuted | Fixed proven | Both right | Buggy accepted | Fixed rejected | Inconclusive | Cost |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| mumei (reference ports) | — | 1 | 71 / 71 | 69 / 71 | 69 | 0 | 2 | 0 | — |
+| mumei (reference ports) | — | 1 | 71 / 71 | 71 / 71 | 71 | 0 | 0 | 0 | — |
 | LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | $0.11 |
 | mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 62 (59–62) / 71 | 67 / 71 | 58 (55–58) | 8 (7–10) | 2 (2–3) | 3 (3–4) | $0.14 |
 
@@ -17,11 +17,6 @@ A buggy function whose LLM port mumei proves is a translation problem: the refer
 A proof covers the model in the port, not native behaviour the model leaves out, such as fixed-width overflow, nil pointers or exceptions from library calls. Some LLM-only rejections of a fixed function point at exactly that kind of behaviour; their witnesses are listed below.
 
 Vacuity control (fixed port re-checked with `ensures: false`, must fail): 71 / 71 pass.
-
-Reference cases where mumei did not give the right answer:
-
-- `PY01-D08` (python, `subcategory`): buggy refuted, fixed refuted — Verification Error: Potential Out-of-Bounds on 'parts' (index may be < 0 or >= len_parts)
-- `PY02-D04` (python, `parse_row`): buggy refuted, fixed refuted — Verification Error: Potential Out-of-Bounds on 'row' (index may be < 0 or >= len_row)
 
 ## Wrong answers by case (runs out of total)
 
@@ -39,6 +34,6 @@ Reference cases where mumei did not give the right answer:
 
 | Arm | Model | python | go | rust | typescript | solidity |
 |---|---|---:|---:|---:|---:|---:|
-| mumei (reference ports) | — | 13 / 15 | 11 / 11 | 14 / 14 | 12 / 12 | 19 / 19 |
+| mumei (reference ports) | — | 15 / 15 | 11 / 11 | 14 / 14 | 12 / 12 | 19 / 19 |
 | LLM only (judges the source) | openai/gpt-6-luna | 14 / 15 | 9 / 11 | 13 / 14 | 11 / 12 | 19 / 19 |
 | mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 11 / 15 | 8 / 11 | 11 / 14 | 11 / 12 | 17 / 19 |

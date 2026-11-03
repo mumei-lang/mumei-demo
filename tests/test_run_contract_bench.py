@@ -366,8 +366,12 @@ def test_render_table_shows_ranges_and_cost():
 
 # --- staleness, offline check, rendering --------------------------------------
 
+VERIFIER = {"version": "mumei 0.0.0", "commit": "0" * 40, "dirty": False}
+
+
 def run_reference(repo, monkeypatch):
     monkeypatch.setattr(cb, "verify_text", fake_verify(REFERENCE))
+    monkeypatch.setattr(cb, "verifier_identity", lambda _bin: dict(VERIFIER))
     assert cb.main(["--arm", "mumei", "--mumei-bin", "mumei"]) == 0
 
 
@@ -581,3 +585,118 @@ def test_only_needs_a_committed_result(repo, monkeypatch):
     monkeypatch.setattr(cb, "verify_text", fake_verify(REFERENCE))
     with pytest.raises(SystemExit, match="run every case before using --only"):
         cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--only", "PY09-D01"])
+
+
+def _git(cwd, *args):
+    import subprocess
+    subprocess.run(["git", "-C", str(cwd), *args], check=True, capture_output=True)
+
+
+def _fake_mumei(directory):
+    binary = directory / "mumei"
+    binary.write_text("#!/bin/sh\necho 'mumei 9.9.9'\n")
+    binary.chmod(0o755)
+    return binary
+
+
+def test_reference_result_records_the_verifier(repo, monkeypatch):
+    run_reference(repo, monkeypatch)
+    doc = json.loads((repo / "proofs" / "results" / "mumei.json").read_text())
+    assert doc["verifier"] == VERIFIER
+    assert list(doc)[-1] == "runs"
+
+
+@pytest.mark.parametrize("dirty", [False, True])
+def test_verifier_identity_reads_the_checkout_commit(tmp_path, dirty):
+    checkout = tmp_path / "mumei"
+    (checkout / "target" / "debug").mkdir(parents=True)
+    (checkout / "src.rs").write_text("fn main() {}\n")
+    _git(checkout, "init", "-q")
+    _git(checkout, "add", "src.rs")
+    _git(checkout, "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-qm", "init")
+    if dirty:
+        (checkout / "src.rs").write_text("fn main() { println!(); }\n")
+    binary = _fake_mumei(checkout / "target" / "debug")
+    got = cb.verifier_identity(str(binary))
+    assert got["version"] == "mumei 9.9.9"
+    assert got["commit"] is not None and len(got["commit"]) == 40
+    assert got["dirty"] is dirty
+
+
+def test_verifier_identity_outside_a_checkout(tmp_path):
+    binary = _fake_mumei(tmp_path)
+    got = cb.verifier_identity(str(binary))
+    assert got == {"version": "mumei 9.9.9", "commit": None, "dirty": None}
+
+
+@pytest.mark.parametrize("binary", ["/nonexistent/mumei", "definitely-not-a-mumei-binary"])
+def test_verifier_identity_without_a_binary(binary):
+    got = cb.verifier_identity(binary)
+    assert got["version"] is None and got["commit"] is None
+
+
+def test_llm_result_has_no_verifier(repo, monkeypatch):
+    run_reference(repo, monkeypatch)
+    (case,) = cb.load_cases()[0]
+    r = cb.run_llm_case(case, StubProvider(lambda m, s: '{"verdict": "holds"}'), "llm", 0, None, 5)
+    path = cb.write_result("llm", "stub/model-1", [[r]], "mumei")
+    assert "verifier" not in json.loads(path.read_text())
+
+
+@pytest.mark.parametrize("verifier", [None, {}, {"version": "mumei 0.6.23", "commit": None, "dirty": None}])
+def test_check_requires_the_reference_verifier_commit(repo, monkeypatch, capsys, verifier):
+    run_reference(repo, monkeypatch)
+    path = repo / "proofs" / "results" / "mumei.json"
+    doc = json.loads(path.read_text())
+    if verifier is None:
+        del doc["verifier"]
+    else:
+        doc["verifier"] = verifier
+    path.write_text(json.dumps(doc))
+    assert cb.main(["--check"]) == 1
+    assert "does not record the mumei commit" in capsys.readouterr().err
+
+
+def _checkout(tmp_path):
+    checkout = tmp_path / "mumei"
+    (checkout / "target" / "debug").mkdir(parents=True)
+    (checkout / "src.rs").write_text("fn main() {}\n")
+    _git(checkout, "init", "-q")
+    _git(checkout, "add", "src.rs")
+    _git(checkout, "-c", "user.name=t", "-c", "user.email=t@example.invalid", "commit", "-qm", "init")
+    return checkout
+
+
+def test_verifier_identity_ignores_a_binary_outside_target(tmp_path):
+    checkout = _checkout(tmp_path)
+    (checkout / "bin").mkdir()
+    got = cb.verifier_identity(str(_fake_mumei(checkout / "bin")))
+    assert got == {"version": "mumei 9.9.9", "commit": None, "dirty": None}
+
+
+def test_verifier_identity_ignores_a_binary_older_than_the_checkout(tmp_path):
+    import os
+    checkout = _checkout(tmp_path)
+    binary = _fake_mumei(checkout / "target" / "debug")
+    os.utime(binary, (1_000_000_000, 1_000_000_000))
+    got = cb.verifier_identity(str(binary))
+    assert got["version"] == "mumei 9.9.9" and got["commit"] is None
+
+
+def test_only_refuses_a_result_from_another_build(repo, monkeypatch):
+    run_reference(repo, monkeypatch)
+    monkeypatch.setattr(cb, "verify_text", fake_verify(REFERENCE))
+    monkeypatch.setattr(cb, "verifier_identity", lambda _bin: {**VERIFIER, "commit": "1" * 40})
+    with pytest.raises(SystemExit, match="another mumei build"):
+        cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--only", "PY09-D01"])
+
+
+def test_only_merges_into_a_result_without_a_verifier_and_keeps_it_unrecorded(repo, monkeypatch):
+    run_reference(repo, monkeypatch)
+    (case,) = cb.load_cases()[0]
+    prov = StubProvider(lambda m, s: "no port here")
+    r = cb.run_llm_case(case, prov, "mumei-llm", 0, "mumei", 5)
+    cb.write_result("mumei-llm", prov.model, [[r]])
+    assert cb.main(["--arm", "mumei-llm", "--runs", "1", "--mumei-bin", "mumei", "--only", "PY09-D01"],
+                   provider=prov) == 0
+    assert "verifier" not in json.loads(cb.result_path("mumei-llm", prov.model).read_text())

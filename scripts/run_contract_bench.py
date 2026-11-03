@@ -555,7 +555,7 @@ def render_all(cases: list[dict], write: bool) -> list[str]:
     return outdated
 
 
-def merge_runs(arm: str, model: str | None, runs: list[list[dict]]) -> list[list[dict]]:
+def merge_runs(arm: str, model: str | None, runs: list[list[dict]], verifier: dict | None = None) -> list[list[dict]]:
     """Replace the given cases in the committed result, so that --only reruns a few cases."""
     path = result_path(arm, model)
     if not path.is_file():
@@ -563,6 +563,8 @@ def merge_runs(arm: str, model: str | None, runs: list[list[dict]]) -> list[list
     old = json.loads(path.read_text())
     if len(old["runs"]) != len(runs) or (arm != "mumei" and old.get("prompt_hash") != prompt_hash()):
         raise SystemExit(f"{path.relative_to(REPO_ROOT)} has another prompt or run count; rerun without --only")
+    if verifier is not None and "verifier" in old and old["verifier"] != verifier:
+        raise SystemExit(f"{path.relative_to(REPO_ROOT)} was recorded with another mumei build; rerun without --only")
     merged = []
     for o, n in zip(old["runs"], runs):
         new = {r["id"]: r for r in n}
@@ -570,11 +572,52 @@ def merge_runs(arm: str, model: str | None, runs: list[list[dict]]) -> list[list
     return merged
 
 
-def write_result(arm: str, model: str | None, runs: list[list[dict]]) -> Path:
+def recording_bin(arm: str, model: str | None, args) -> str | None:
+    """The binary to record as verifier; none when --only merges into a result that predates the record."""
+    if args.only and "verifier" not in json.loads(result_path(arm, model).read_text()):
+        return None
+    return args.mumei_bin
+
+
+def verifier_identity(mumei_bin: str) -> dict:
+    """The mumei version, plus the source commit when the binary was built in a git checkout.
+
+    The commit is only recorded for a binary under the checkout's `target/` directory that is
+    newer than the last time HEAD moved; otherwise HEAD need not be what the binary was built from.
+    """
+    try:
+        version = subprocess.run([mumei_bin, "--version"], capture_output=True, text=True,
+                                 timeout=30).stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        version = ""
+    unknown = {"version": version or None, "commit": None, "dirty": None}
+    resolved = shutil.which(mumei_bin)
+    if resolved is None:
+        return unknown
+    binary = Path(resolved).resolve()
+
+    def git(*args: str) -> str | None:
+        res = subprocess.run(["git", "-C", str(binary.parent), *args], capture_output=True, text=True)
+        return res.stdout.strip() if res.returncode == 0 else None
+
+    top = git("rev-parse", "--show-toplevel")
+    if not top or not binary.is_relative_to(Path(top).resolve() / "target"):
+        return unknown
+    moved = git("log", "-g", "-1", "--format=%ct", "HEAD") or git("log", "-1", "--format=%ct", "HEAD")
+    if not moved or binary.stat().st_mtime < int(moved):
+        return unknown
+    commit = git("rev-parse", "HEAD")
+    dirty = git("status", "--porcelain", "--untracked-files=no")
+    return {"version": version or None, "commit": commit, "dirty": bool(dirty) if commit else None}
+
+
+def write_result(arm: str, model: str | None, runs: list[list[dict]], mumei_bin: str | None = None) -> Path:
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     doc = {"arm": arm, "model": model, "prompt_hash": None if arm == "mumei" else prompt_hash(),
-           "recorded_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
-           "runs": [sorted(run, key=lambda r: r["id"]) for run in runs]}
+           "recorded_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat()}
+    if mumei_bin and arm != "llm":
+        doc["verifier"] = verifier_identity(mumei_bin)
+    doc["runs"] = [sorted(run, key=lambda r: r["id"]) for run in runs]
     path = result_path(arm, model)
     path.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
     return path
@@ -601,8 +644,12 @@ def main(argv: list[str], provider=None) -> int:
     if args.check:
         results = load_results()
         problems = errors + stale_records(cases, results)
-        if not any(d["arm"] == "mumei" for d in results):
+        ref = next((d for d in results if d["arm"] == "mumei"), None)
+        if ref is None:
             problems.append("no reference result (proofs/results/mumei.json); run --arm mumei")
+        elif not (ref.get("verifier") or {}).get("commit"):
+            problems.append("the reference result does not record the mumei commit it was verified with; "
+                            "rerun --arm mumei with a mumei built from a git checkout")
         problems += [f"{f} is out of date; run --render-only" for f in render_all(cases, write=False)]
         for msg in problems:
             print(f"error: {msg}", file=sys.stderr)
@@ -624,7 +671,8 @@ def main(argv: list[str], provider=None) -> int:
             with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
                 run = list(pool.map(lambda c: run_mumei_case(c, args.mumei_bin, args.timeout), cases))
             runs = [run]
-            path = write_result(arm, None, merge_runs(arm, None, runs) if args.only else runs)
+            merged = merge_runs(arm, None, runs, verifier_identity(args.mumei_bin)) if args.only else runs
+            path = write_result(arm, None, merged, recording_bin(arm, None, args))
         else:
             prov = provider or llm_only.provider_from_env(timeout=600)
             prov.retries = max(getattr(prov, "retries", 0), RATE_LIMIT_RETRIES)
@@ -632,7 +680,9 @@ def main(argv: list[str], provider=None) -> int:
             for seed in range(args.runs):
                 with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
                     runs.append(list(pool.map(lambda c: run_llm_case(c, prov, arm, seed, args.mumei_bin, args.timeout), cases)))
-            path = write_result(arm, prov.model, merge_runs(arm, prov.model, runs) if args.only else runs)
+            verifier = verifier_identity(args.mumei_bin) if arm != "llm" else None
+            merged = merge_runs(arm, prov.model, runs, verifier) if args.only else runs
+            path = write_result(arm, prov.model, merged, recording_bin(arm, prov.model, args))
         if arm != "mumei" and any(score(run)["errors"] for run in json.loads(path.read_text())["runs"]):
             print(f"warning: {arm} has requests that failed; rerun before publishing", file=sys.stderr)
         print(f"{arm}: {score(json.loads(path.read_text())['runs'][0])} -> {path.relative_to(REPO_ROOT)}")
