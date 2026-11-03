@@ -201,3 +201,17 @@ def test_only_needs_a_committed_result(results):
 def test_needs_mumei(results):
     with pytest.raises(SystemExit, match="mumei binary not found"):
         mc.main(["--mumei-bin", ""])
+
+
+def test_context_shows_the_whole_short_line():
+    body = "x\n  if a < b { 1 }\ny"
+    (m,) = [m for m in mc.mutants(body) if m["from"] == "<"]
+    assert mc.context(body, m) == "if a <= b { 1 }"
+
+
+def test_context_trims_long_lines_around_the_change():
+    body = "p " * 40 + "a < b" + " q" * 40
+    (m,) = [m for m in mc.mutants(body) if m["from"] == "<"]
+    got = mc.context(body, m)
+    assert got.startswith("… p") and got.endswith("q …") and "a <= b" in got
+    assert len(got) < 120

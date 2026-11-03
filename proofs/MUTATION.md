@@ -26,91 +26,91 @@ A survivor is either a behaviour the contract does not pin down or an equivalent
 ## Surviving mutants
 
 - `GO01-D02` (go, `restockHandler`): 5 of 9
-  - relational `<=` → `<` at 25 — `if packs < 0 || per_pack <= 0 { Stock { ok: false, stock: stock, reserved: reserved } }`
-  - constant `0` → `1` at 28 — `if packs <= 1 || per_pack <= 0 { Stock { ok: false, stock: stock, reserved: reserved } }`
-  - relational `<=` → `<` at 42 — `if packs <= 0 || per_pack < 0 { Stock { ok: false, stock: stock, reserved: reserved } }`
-  - constant `0` → `1` at 45 — `if packs <= 0 || per_pack <= 1 { Stock { ok: false, stock: stock, reserved: reserved } }`
-  - relational `>` → `>=` at 148 — `else { if stock + packs * per_pack >= 2147483647 { Stock { ok: false, stock: stock, reserved: reserved } }`
+  - relational `<=` → `<` at 25 — `if packs < 0 || per_pack <= 0 { Stock { ok: false, stock: st …`
+  - constant `0` → `1` at 28 — `if packs <= 1 || per_pack <= 0 { Stock { ok: false, stock: stoc …`
+  - relational `<=` → `<` at 42 — `if packs <= 0 || per_pack < 0 { Stock { ok: false, stock: stock, reserved: re …`
+  - constant `0` → `1` at 45 — `if packs <= 0 || per_pack <= 1 { Stock { ok: false, stock: stock, reserved: rese …`
+  - relational `>` → `>=` at 148 — `else { if stock + packs * per_pack >= 2147483647 { Stock { ok: false, stock: stock, res …`
 - `GO01-D03` (go, `releaseHandler`): 5 of 5
-  - relational `<=` → `<` at 23 — `if qty < 0 { Stock { ok: false, stock: stock, reserved: reserved } }`
-  - constant `0` → `1` at 26 — `if qty <= 1 { Stock { ok: false, stock: stock, reserved: reserved } }`
-  - relational `<` → `<=` at 113 — `else { if reserved <= qty { Stock { ok: false, stock: stock, reserved: reserved } }`
+  - relational `<=` → `<` at 23 — `if qty < 0 { Stock { ok: false, stock: stock, reserved: re …`
+  - constant `0` → `1` at 26 — `if qty <= 1 { Stock { ok: false, stock: stock, reserved: rese …`
+  - relational `<` → `<=` at 113 — `else { if reserved <= qty { Stock { ok: false, stock: stock, reserved: …`
   - arithmetic `+` → `-` at 223 — `else { Stock { ok: true, stock: stock - qty, reserved: reserved - qty } } }`
-  - arithmetic `-` → `+` at 249 — `else { Stock { ok: true, stock: stock + qty, reserved: reserved + qty } } }`
+  - arithmetic `-` → `+` at 249 — `… ok: true, stock: stock + qty, reserved: reserved + qty } } }`
 - `GO01-D07` (go, `reportHandler`): 5 of 5
   - logical `&&` → `||` at 29 — `if has_limit || limit < 0 { Parsed { ok: false, value: 0 } }`
   - relational `<` → `<=` at 38 — `if has_limit && limit <= 0 { Parsed { ok: false, value: 0 } }`
   - constant `0` → `1` at 40 — `if has_limit && limit < 1 { Parsed { ok: false, value: 0 } }`
-  - constant `0` → `1` at 71 — `if has_limit && limit < 0 { Parsed { ok: false, value: 1 } }`
-  - relational `<` → `<=` at 154 — `else { Parsed { ok: true, value: slice_to(n, if has_limit { if limit <= n { limit } else { n } } else { n }) } }`
+  - constant `0` → `1` at 71 — `… s_limit && limit < 0 { Parsed { ok: false, value: 1 } }`
+  - relational `<` → `<=` at 154 — `… true, value: slice_to(n, if has_limit { if limit <= n { limit } else { n } } else { n }) } }`
 - `GO02-D01` (go, `percentileAt`): 15 of 26
-  - arithmetic `+` → `-` at 59 — `if n == 0 { 0 } else { pick(n, if (n * pct - 99) / 100 - 1 < 0 { 0 } else { if (n * pct + 99) / 100 - 1 > n - 1 { n - 1 `
-  - constant `100` → `101` at 67 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 101 - 1 < 0 { 0 } else { if (n * pct + 99) / 100 - 1 > n - 1 { n - 1 `
-  - constant `1` → `2` at 73 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 2 < 0 { 0 } else { if (n * pct + 99) / 100 - 1 > n - 1 { n - 1 `
-  - relational `<` → `<=` at 75 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 1 <= 0 { 0 } else { if (n * pct + 99) / 100 - 1 > n - 1 { n - 1`
-  - constant `0` → `1` at 77 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 1 < 1 { 0 } else { if (n * pct + 99) / 100 - 1 > n - 1 { n - 1 `
-  - arithmetic `+` → `-` at 104 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 1 < 0 { 0 } else { if (n * pct - 99) / 100 - 1 > n - 1 { n - 1 `
-  - constant `99` → `100` at 106 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 1 < 0 { 0 } else { if (n * pct + 100) / 100 - 1 > n - 1 { n - 1`
-  - constant `100` → `101` at 112 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 1 < 0 { 0 } else { if (n * pct + 99) / 101 - 1 > n - 1 { n - 1 `
-  - arithmetic `-` → `+` at 116 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 1 < 0 { 0 } else { if (n * pct + 99) / 100 + 1 > n - 1 { n - 1 `
-  - constant `1` → `2` at 118 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 1 < 0 { 0 } else { if (n * pct + 99) / 100 - 2 > n - 1 { n - 1 `
-  - relational `>` → `>=` at 120 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 1 < 0 { 0 } else { if (n * pct + 99) / 100 - 1 >= n - 1 { n - 1`
-  - arithmetic `-` → `+` at 124 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 1 < 0 { 0 } else { if (n * pct + 99) / 100 - 1 > n + 1 { n - 1 `
-  - constant `1` → `2` at 126 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 1 < 0 { 0 } else { if (n * pct + 99) / 100 - 1 > n - 2 { n - 1 `
-  - arithmetic `-` → `+` at 132 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 1 < 0 { 0 } else { if (n * pct + 99) / 100 - 1 > n - 1 { n + 1 `
-  - constant `1` → `2` at 134 — `if n == 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 1 < 0 { 0 } else { if (n * pct + 99) / 100 - 1 > n - 1 { n - 2 `
+  - arithmetic `+` → `-` at 59 — `… if n == 0 { 0 } else { pick(n, if (n * pct - 99) / 100 - 1 < 0 { 0 } else { if (n * pct + 99) …`
+  - constant `100` → `101` at 67 — `… f n == 0 { 0 } else { pick(n, if (n * pct + 99) / 101 - 1 < 0 { 0 } else { if (n * pct + 99) / 100 - 1 …`
+  - constant `1` → `2` at 73 — `… 0 { 0 } else { pick(n, if (n * pct + 99) / 100 - 2 < 0 { 0 } else { if (n * pct + 99) / 100 - 1 > n …`
+  - relational `<` → `<=` at 75 — `… { 0 } else { pick(n, if (n * pct + 99) / 100 - 1 <= 0 { 0 } else { if (n * pct + 99) / 100 - 1 > n - …`
+  - constant `0` → `1` at 77 — `… 0 } else { pick(n, if (n * pct + 99) / 100 - 1 < 1 { 0 } else { if (n * pct + 99) / 100 - 1 > n - 1 …`
+  - arithmetic `+` → `-` at 104 — `… pct + 99) / 100 - 1 < 0 { 0 } else { if (n * pct - 99) / 100 - 1 > n - 1 { n - 1 } else { (n * pct + …`
+  - constant `99` → `100` at 106 — `… ct + 99) / 100 - 1 < 0 { 0 } else { if (n * pct + 100) / 100 - 1 > n - 1 { n - 1 } else { (n * pct + 99 …`
+  - constant `100` → `101` at 112 — `… 9) / 100 - 1 < 0 { 0 } else { if (n * pct + 99) / 101 - 1 > n - 1 { n - 1 } else { (n * pct + 99) / 100 …`
+  - arithmetic `-` → `+` at 116 — `… 100 - 1 < 0 { 0 } else { if (n * pct + 99) / 100 + 1 > n - 1 { n - 1 } else { (n * pct + 99) / 100 - …`
+  - constant `1` → `2` at 118 — `… 00 - 1 < 0 { 0 } else { if (n * pct + 99) / 100 - 2 > n - 1 { n - 1 } else { (n * pct + 99) / 100 - 1 …`
+  - relational `>` → `>=` at 120 — `… - 1 < 0 { 0 } else { if (n * pct + 99) / 100 - 1 >= n - 1 { n - 1 } else { (n * pct + 99) / 100 - 1 } …`
+  - arithmetic `-` → `+` at 124 — `… < 0 { 0 } else { if (n * pct + 99) / 100 - 1 > n + 1 { n - 1 } else { (n * pct + 99) / 100 - 1 } }) …`
+  - constant `1` → `2` at 126 — `… 0 { 0 } else { if (n * pct + 99) / 100 - 1 > n - 2 { n - 1 } else { (n * pct + 99) / 100 - 1 } }) }`
+  - arithmetic `-` → `+` at 132 — `… } else { if (n * pct + 99) / 100 - 1 > n - 1 { n + 1 } else { (n * pct + 99) / 100 - 1 } }) }`
+  - constant `1` → `2` at 134 — `… else { if (n * pct + 99) / 100 - 1 > n - 1 { n - 2 } else { (n * pct + 99) / 100 - 1 } }) }`
 - `GO02-D03` (go, `formatSummary`): 4 of 4
   - relational `<` → `<=` at 23 — `if top <= 0 { Parsed { ok: false, value: 0 } }`
   - constant `0` → `1` at 25 — `if top < 1 { Parsed { ok: false, value: 0 } }`
   - constant `0` → `1` at 56 — `if top < 0 { Parsed { ok: false, value: 1 } }`
-  - relational `<` → `<=` at 128 — `else { Parsed { ok: true, value: slice_to(n_paths, if top <= n_paths { top } else { n_paths }) } }`
+  - relational `<` → `<=` at 128 — `… arsed { ok: true, value: slice_to(n_paths, if top <= n_paths { top } else { n_paths }) } }`
 - `PY01-D08` (python, `subcategory`): 2 of 3
   - relational `>=` → `>` at 21 — `if n > 2 { parts[1] } else { label }`
   - constant `2` → `3` at 24 — `if n >= 3 { parts[1] } else { label }`
 - `PY01-D10` (python, `parse_amount`): 1 of 3
-  - constant `0` → `1` at 59 — `if value <= 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: value } }`
+  - constant `0` → `1` at 59 — `… if value <= 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: value } }`
 - `PY02-D04` (python, `parse_row`): 1 of 4
   - constant `0` → `1` at 54 — `if n < 4 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: row[3] } }`
 - `PY02-D05` (python, `overtime_minutes`): 4 of 26
   - constant `0` → `1` at 28 — `let extra = 1;`
-  - relational `>` → `>=` at 144 — `invariant: i >= 0 && i <= n && extra >= 0 && ((i >= 1 && daily[0] >= threshold) => extra >= daily[0] - threshold)`
+  - relational `>` → `>=` at 144 — `… 0 && i <= n && extra >= 0 && ((i >= 1 && daily[0] >= threshold) => extra >= daily[0] - threshold)`
   - relational `>` → `>=` at 267 — `extra = extra + (if daily[i] >= threshold { daily[i] - threshold } else { 0 });`
-  - constant `0` → `1` at 311 — `extra = extra + (if daily[i] > threshold { daily[i] - threshold } else { 1 });`
+  - constant `0` → `1` at 311 — `… ly[i] > threshold { daily[i] - threshold } else { 1 });`
 - `PY02-D08` (python, `parse_duration`): 11 of 13
-  - relational `<` → `<=` at 25 — `if hours <= 0 || minutes < 0 { Parsed { ok: false, value: 0 } } else { if hours * 60 + minutes <= 0 { Parsed { ok: false`
-  - constant `0` → `1` at 27 — `if hours < 1 || minutes < 0 { Parsed { ok: false, value: 0 } } else { if hours * 60 + minutes <= 0 { Parsed { ok: false,`
-  - logical `||` → `&&` at 29 — `if hours < 0 && minutes < 0 { Parsed { ok: false, value: 0 } } else { if hours * 60 + minutes <= 0 { Parsed { ok: false,`
-  - relational `<` → `<=` at 40 — `if hours < 0 || minutes <= 0 { Parsed { ok: false, value: 0 } } else { if hours * 60 + minutes <= 0 { Parsed { ok: false`
-  - constant `0` → `1` at 42 — `if hours < 0 || minutes < 1 { Parsed { ok: false, value: 0 } } else { if hours * 60 + minutes <= 0 { Parsed { ok: false,`
-  - constant `0` → `1` at 73 — `if hours < 0 || minutes < 0 { Parsed { ok: false, value: 1 } } else { if hours * 60 + minutes <= 0 { Parsed { ok: false,`
-  - constant `60` → `61` at 97 — `if hours < 0 || minutes < 0 { Parsed { ok: false, value: 0 } } else { if hours * 61 + minutes <= 0 { Parsed { ok: false,`
-  - arithmetic `+` → `-` at 100 — `if hours < 0 || minutes < 0 { Parsed { ok: false, value: 0 } } else { if hours * 60 - minutes <= 0 { Parsed { ok: false,`
-  - constant `0` → `1` at 113 — `if hours < 0 || minutes < 0 { Parsed { ok: false, value: 0 } } else { if hours * 60 + minutes <= 1 { Parsed { ok: false,`
-  - constant `0` → `1` at 144 — `if hours < 0 || minutes < 0 { Parsed { ok: false, value: 0 } } else { if hours * 60 + minutes <= 0 { Parsed { ok: false,`
-  - constant `60` → `61` at 191 — `if hours < 0 || minutes < 0 { Parsed { ok: false, value: 0 } } else { if hours * 60 + minutes <= 0 { Parsed { ok: false,`
+  - relational `<` → `<=` at 25 — `if hours <= 0 || minutes < 0 { Parsed { ok: false, value: 0 } …`
+  - constant `0` → `1` at 27 — `if hours < 1 || minutes < 0 { Parsed { ok: false, value: 0 } } …`
+  - logical `||` → `&&` at 29 — `if hours < 0 && minutes < 0 { Parsed { ok: false, value: 0 } } el …`
+  - relational `<` → `<=` at 40 — `if hours < 0 || minutes <= 0 { Parsed { ok: false, value: 0 } } else { if ho …`
+  - constant `0` → `1` at 42 — `if hours < 0 || minutes < 1 { Parsed { ok: false, value: 0 } } else { if hour …`
+  - constant `0` → `1` at 73 — `… s < 0 || minutes < 0 { Parsed { ok: false, value: 1 } } else { if hours * 60 + minutes <= 0 { Parsed …`
+  - constant `60` → `61` at 97 — `… arsed { ok: false, value: 0 } } else { if hours * 61 + minutes <= 0 { Parsed { ok: false, value: 0 } } …`
+  - arithmetic `+` → `-` at 100 — `… ed { ok: false, value: 0 } } else { if hours * 60 - minutes <= 0 { Parsed { ok: false, value: 0 } } e …`
+  - constant `0` → `1` at 113 — `… e, value: 0 } } else { if hours * 60 + minutes <= 1 { Parsed { ok: false, value: 0 } } else { Parsed …`
+  - constant `0` → `1` at 144 — `… * 60 + minutes <= 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: hours * 60 + …`
+  - constant `60` → `61` at 191 — `… e: 0 } } else { Parsed { ok: true, value: hours * 61 + minutes } } }`
 - `PY03-D01` (python, `transfer`): 11 of 12
-  - constant `0` → `1` at 29 — `if amount <= 1 { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - logical `||` → `&&` at 122 — `else { if !dst_exists && !distinct_open { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - relational `>=` → `>` at 225 — `else { if !(src > amount + 25) { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - arithmetic `+` → `-` at 235 — `else { if !(src >= amount - 25) { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - constant `25` → `26` at 237 — `else { if !(src >= amount + 26) { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - arithmetic `-` → `+` at 347 — `else { Transfer { ok: true, src: src + amount - 25, dst: dst + amount, house: house + 25 } } } }`
-  - arithmetic `-` → `+` at 356 — `else { Transfer { ok: true, src: src - amount + 25, dst: dst + amount, house: house + 25 } } } }`
-  - constant `25` → `26` at 358 — `else { Transfer { ok: true, src: src - amount - 26, dst: dst + amount, house: house + 25 } } } }`
-  - arithmetic `+` → `-` at 371 — `else { Transfer { ok: true, src: src - amount - 25, dst: dst - amount, house: house + 25 } } } }`
-  - arithmetic `+` → `-` at 394 — `else { Transfer { ok: true, src: src - amount - 25, dst: dst + amount, house: house - 25 } } } }`
-  - constant `25` → `26` at 396 — `else { Transfer { ok: true, src: src - amount - 25, dst: dst + amount, house: house + 26 } } } }`
+  - constant `0` → `1` at 29 — `if amount <= 1 { Transfer { ok: false, src: src, dst: dst, house …`
+  - logical `||` → `&&` at 122 — `else { if !dst_exists && !distinct_open { Transfer { ok: false, src: src, …`
+  - relational `>=` → `>` at 225 — `else { if !(src > amount + 25) { Transfer { ok: false, src: src, ds …`
+  - arithmetic `+` → `-` at 235 — `else { if !(src >= amount - 25) { Transfer { ok: false, src: src, dst: dst, h …`
+  - constant `25` → `26` at 237 — `else { if !(src >= amount + 26) { Transfer { ok: false, src: src, dst: dst, hous …`
+  - arithmetic `-` → `+` at 347 — `else { Transfer { ok: true, src: src + amount - 25, dst: dst + amount, house: house + 25 …`
+  - arithmetic `-` → `+` at 356 — `… else { Transfer { ok: true, src: src - amount + 25, dst: dst + amount, house: house + 25 } } } }`
+  - constant `25` → `26` at 358 — `… else { Transfer { ok: true, src: src - amount - 26, dst: dst + amount, house: house + 25 } } } }`
+  - arithmetic `+` → `-` at 371 — `… sfer { ok: true, src: src - amount - 25, dst: dst - amount, house: house + 25 } } } }`
+  - arithmetic `+` → `-` at 394 — `… rc - amount - 25, dst: dst + amount, house: house - 25 } } } }`
+  - constant `25` → `26` at 396 — `… - amount - 25, dst: dst + amount, house: house + 26 } } } }`
 - `PY03-D02` (python, `transfer`): 10 of 12
-  - relational `<=` → `<` at 26 — `if amount < 0 { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - constant `0` → `1` at 29 — `if amount <= 1 { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - logical `||` → `&&` at 122 — `else { if !dst_exists && !distinct_open { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - relational `>=` → `>` at 225 — `else { if !(src > amount + 25) { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - constant `25` → `26` at 237 — `else { if !(src >= amount + 26) { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - arithmetic `-` → `+` at 347 — `else { Transfer { ok: true, src: src + amount - 25, dst: dst + amount, house: house + 25 } } } }`
-  - arithmetic `-` → `+` at 356 — `else { Transfer { ok: true, src: src - amount + 25, dst: dst + amount, house: house + 25 } } } }`
-  - arithmetic `+` → `-` at 371 — `else { Transfer { ok: true, src: src - amount - 25, dst: dst - amount, house: house + 25 } } } }`
-  - arithmetic `+` → `-` at 394 — `else { Transfer { ok: true, src: src - amount - 25, dst: dst + amount, house: house - 25 } } } }`
-  - constant `25` → `26` at 396 — `else { Transfer { ok: true, src: src - amount - 25, dst: dst + amount, house: house + 26 } } } }`
+  - relational `<=` → `<` at 26 — `if amount < 0 { Transfer { ok: false, src: src, dst: dst, hou …`
+  - constant `0` → `1` at 29 — `if amount <= 1 { Transfer { ok: false, src: src, dst: dst, house …`
+  - logical `||` → `&&` at 122 — `else { if !dst_exists && !distinct_open { Transfer { ok: false, src: src, …`
+  - relational `>=` → `>` at 225 — `else { if !(src > amount + 25) { Transfer { ok: false, src: src, ds …`
+  - constant `25` → `26` at 237 — `else { if !(src >= amount + 26) { Transfer { ok: false, src: src, dst: dst, hous …`
+  - arithmetic `-` → `+` at 347 — `else { Transfer { ok: true, src: src + amount - 25, dst: dst + amount, house: house + 25 …`
+  - arithmetic `-` → `+` at 356 — `… else { Transfer { ok: true, src: src - amount + 25, dst: dst + amount, house: house + 25 } } } }`
+  - arithmetic `+` → `-` at 371 — `… sfer { ok: true, src: src - amount - 25, dst: dst - amount, house: house + 25 } } } }`
+  - arithmetic `+` → `-` at 394 — `… rc - amount - 25, dst: dst + amount, house: house - 25 } } } }`
+  - constant `25` → `26` at 396 — `… - amount - 25, dst: dst + amount, house: house + 26 } } } }`
 - `PY03-D03` (python, `close_account`): 1 of 1
   - constant `0` → `1` at 54 — `if closed { Close { ok: false, moved: 1 } } else { Close { ok: true, moved: balance } }`
 - `PY03-D05` (python, `page`): 6 of 7
@@ -118,148 +118,148 @@ A survivor is either a behaviour the contract does not pin down or an equivalent
   - constant `0` → `1` at 28 — `if offset < 1 || limit < 0 { Window { ok: false, start: 0 } }`
   - relational `<` → `<=` at 39 — `if offset < 0 || limit <= 0 { Window { ok: false, start: 0 } }`
   - constant `0` → `1` at 41 — `if offset < 0 || limit < 1 { Window { ok: false, start: 0 } }`
-  - constant `0` → `1` at 72 — `if offset < 0 || limit < 0 { Window { ok: false, start: 1 } }`
-  - relational `>` → `>=` at 130 — `else { Window { ok: true, start: (if offset >= n { n } else { offset }) } }`
+  - constant `0` → `1` at 72 — `… set < 0 || limit < 0 { Window { ok: false, start: 1 } }`
+  - relational `>` → `>=` at 130 — `… else { Window { ok: true, start: (if offset >= n { n } else { offset }) } }`
 - `PY03-D06` (python, `transfer`): 12 of 12
-  - relational `<=` → `<` at 26 — `if amount < 0 { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - constant `0` → `1` at 29 — `if amount <= 1 { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - logical `||` → `&&` at 122 — `else { if !dst_exists && !distinct_open { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - relational `>=` → `>` at 225 — `else { if !(src > amount + 25) { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - arithmetic `+` → `-` at 235 — `else { if !(src >= amount - 25) { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - constant `25` → `26` at 237 — `else { if !(src >= amount + 26) { Transfer { ok: false, src: src, dst: dst, house: house } }`
-  - arithmetic `-` → `+` at 347 — `else { Transfer { ok: true, src: src + amount - 25, dst: dst + amount, house: house + 25 } } } }`
-  - arithmetic `-` → `+` at 356 — `else { Transfer { ok: true, src: src - amount + 25, dst: dst + amount, house: house + 25 } } } }`
-  - constant `25` → `26` at 358 — `else { Transfer { ok: true, src: src - amount - 26, dst: dst + amount, house: house + 25 } } } }`
-  - arithmetic `+` → `-` at 371 — `else { Transfer { ok: true, src: src - amount - 25, dst: dst - amount, house: house + 25 } } } }`
-  - arithmetic `+` → `-` at 394 — `else { Transfer { ok: true, src: src - amount - 25, dst: dst + amount, house: house - 25 } } } }`
-  - constant `25` → `26` at 396 — `else { Transfer { ok: true, src: src - amount - 25, dst: dst + amount, house: house + 26 } } } }`
+  - relational `<=` → `<` at 26 — `if amount < 0 { Transfer { ok: false, src: src, dst: dst, hou …`
+  - constant `0` → `1` at 29 — `if amount <= 1 { Transfer { ok: false, src: src, dst: dst, house …`
+  - logical `||` → `&&` at 122 — `else { if !dst_exists && !distinct_open { Transfer { ok: false, src: src, …`
+  - relational `>=` → `>` at 225 — `else { if !(src > amount + 25) { Transfer { ok: false, src: src, ds …`
+  - arithmetic `+` → `-` at 235 — `else { if !(src >= amount - 25) { Transfer { ok: false, src: src, dst: dst, h …`
+  - constant `25` → `26` at 237 — `else { if !(src >= amount + 26) { Transfer { ok: false, src: src, dst: dst, hous …`
+  - arithmetic `-` → `+` at 347 — `else { Transfer { ok: true, src: src + amount - 25, dst: dst + amount, house: house + 25 …`
+  - arithmetic `-` → `+` at 356 — `… else { Transfer { ok: true, src: src - amount + 25, dst: dst + amount, house: house + 25 } } } }`
+  - constant `25` → `26` at 358 — `… else { Transfer { ok: true, src: src - amount - 26, dst: dst + amount, house: house + 25 } } } }`
+  - arithmetic `+` → `-` at 371 — `… sfer { ok: true, src: src - amount - 25, dst: dst - amount, house: house + 25 } } } }`
+  - arithmetic `+` → `-` at 394 — `… rc - amount - 25, dst: dst + amount, house: house - 25 } } } }`
+  - constant `25` → `26` at 396 — `… - amount - 25, dst: dst + amount, house: house + 26 } } } }`
 - `PY04-D10` (python, `share_expiry`): 2 of 4
-  - constant `0` → `1` at 34 — `if ttl_seconds <= 1 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: now + ttl_seconds } }`
-  - constant `0` → `1` at 65 — `if ttl_seconds <= 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: now + ttl_seconds } }`
+  - constant `0` → `1` at 34 — `if ttl_seconds <= 1 { Parsed { ok: false, value: 0 } } else { Parsed …`
+  - constant `0` → `1` at 65 — `… if ttl_seconds <= 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: now + ttl_se …`
 - `RS01-D02` (rust, `remaining_daily_allowance`): 2 of 3
-  - relational `>` → `>=` at 31 — `if spent_cents >= limit_cents { 0 } else { limit_cents - spent_cents }`
+  - relational `>` → `>=` at 31 — `if spent_cents >= limit_cents { 0 } else { limit_cents - spent_cent …`
   - constant `0` → `1` at 47 — `if spent_cents > limit_cents { 1 } else { limit_cents - spent_cents }`
 - `RS01-D03` (rust, `request_transfer`): 8 of 9
   - constant `0` → `1` at 29 — `if amount <= 1 { Queued { ok: false, spent: spent } }`
-  - arithmetic `-` → `+` at 96 — `else { if balance + queued < amount { Queued { ok: false, spent: spent } }`
+  - arithmetic `-` → `+` at 96 — `else { if balance + queued < amount { Queued { ok: false, spent: spen …`
   - relational `<` → `<=` at 105 — `else { if balance - queued <= amount { Queued { ok: false, spent: spent } }`
-  - relational `>` → `>=` at 178 — `else { if amount >= (if spent > limit { 0 } else { limit - spent }) { Queued { ok: false, spent: spent } }`
-  - relational `>` → `>=` at 190 — `else { if amount > (if spent >= limit { 0 } else { limit - spent }) { Queued { ok: false, spent: spent } }`
-  - constant `0` → `1` at 200 — `else { if amount > (if spent > limit { 1 } else { limit - spent }) { Queued { ok: false, spent: spent } }`
-  - arithmetic `-` → `+` at 217 — `else { if amount > (if spent > limit { 0 } else { limit + spent }) { Queued { ok: false, spent: spent } }`
+  - relational `>` → `>=` at 178 — `else { if amount >= (if spent > limit { 0 } else { limit - spent }) { …`
+  - relational `>` → `>=` at 190 — `else { if amount > (if spent >= limit { 0 } else { limit - spent }) { Queued { ok …`
+  - constant `0` → `1` at 200 — `else { if amount > (if spent > limit { 1 } else { limit - spent }) { Queued { ok: false, s …`
+  - arithmetic `-` → `+` at 217 — `… if amount > (if spent > limit { 0 } else { limit + spent }) { Queued { ok: false, spent: spent } }`
   - arithmetic `+` → `-` at 314 — `else { Queued { ok: true, spent: spent - amount } } } }`
 - `RS01-D04` (rust, `split_payment`): 1 of 3
-  - constant `0` → `1` at 64 — `if recipients == 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: amount_cents / recipients } }`
+  - constant `0` → `1` at 64 — `… if recipients == 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: amount_cents …`
 - `RS01-D05` (rust, `account_at`): 1 of 2
-  - constant `0` → `1` at 124 — `if index < accounts { Parsed { ok: true, value: pick(accounts, index) } } else { Parsed { ok: false, value: 1 } }`
+  - constant `0` → `1` at 124 — `… nts, index) } } else { Parsed { ok: false, value: 1 } }`
 - `RS01-D06` (rust, `request_transfer`): 9 of 9
   - relational `<=` → `<` at 26 — `if amount < 0 { Queued { ok: false, spent: spent } }`
   - constant `0` → `1` at 29 — `if amount <= 1 { Queued { ok: false, spent: spent } }`
-  - arithmetic `-` → `+` at 96 — `else { if balance + queued < amount { Queued { ok: false, spent: spent } }`
+  - arithmetic `-` → `+` at 96 — `else { if balance + queued < amount { Queued { ok: false, spent: spen …`
   - relational `<` → `<=` at 105 — `else { if balance - queued <= amount { Queued { ok: false, spent: spent } }`
-  - relational `>` → `>=` at 178 — `else { if amount >= (if spent > limit { 0 } else { limit - spent }) { Queued { ok: false, spent: spent } }`
-  - relational `>` → `>=` at 190 — `else { if amount > (if spent >= limit { 0 } else { limit - spent }) { Queued { ok: false, spent: spent } }`
-  - constant `0` → `1` at 200 — `else { if amount > (if spent > limit { 1 } else { limit - spent }) { Queued { ok: false, spent: spent } }`
-  - arithmetic `-` → `+` at 217 — `else { if amount > (if spent > limit { 0 } else { limit + spent }) { Queued { ok: false, spent: spent } }`
+  - relational `>` → `>=` at 178 — `else { if amount >= (if spent > limit { 0 } else { limit - spent }) { …`
+  - relational `>` → `>=` at 190 — `else { if amount > (if spent >= limit { 0 } else { limit - spent }) { Queued { ok …`
+  - constant `0` → `1` at 200 — `else { if amount > (if spent > limit { 1 } else { limit - spent }) { Queued { ok: false, s …`
+  - arithmetic `-` → `+` at 217 — `… if amount > (if spent > limit { 0 } else { limit + spent }) { Queued { ok: false, spent: spent } }`
   - arithmetic `+` → `-` at 314 — `else { Queued { ok: true, spent: spent - amount } } } }`
 - `RS01-D07` (rust, `close_account`): 1 of 2
   - relational `>` → `>=` at 26 — `if queued >= 0 { false } else { true }`
 - `RS01-D12` (rust, `charge_fee`): 1 of 3
-  - constant `0` → `1` at 28 — `if cents <= 1 { Fee { ok: false, balance: balance } } else { Fee { ok: true, balance: balance - cents } }`
+  - constant `0` → `1` at 28 — `if cents <= 1 { Fee { ok: false, balance: balance } } else { Fe …`
 - `RS02-D01` (rust, `read_request`): 4 of 5
-  - relational `<` → `<=` at 25 — `if words <= 2 { Parsed { ok: false, value: 0 } } else { let method = pick(words, 0); Parsed { ok: true, value: pick(word`
-  - constant `2` → `3` at 27 — `if words < 3 { Parsed { ok: false, value: 0 } } else { let method = pick(words, 0); Parsed { ok: true, value: pick(words`
-  - constant `0` → `1` at 58 — `if words < 2 { Parsed { ok: false, value: 1 } } else { let method = pick(words, 0); Parsed { ok: true, value: pick(words`
-  - constant `0` → `1` at 96 — `if words < 2 { Parsed { ok: false, value: 0 } } else { let method = pick(words, 1); Parsed { ok: true, value: pick(words`
+  - relational `<` → `<=` at 25 — `if words <= 2 { Parsed { ok: false, value: 0 } } else { let m …`
+  - constant `2` → `3` at 27 — `if words < 3 { Parsed { ok: false, value: 0 } } else { let met …`
+  - constant `0` → `1` at 58 — `if words < 2 { Parsed { ok: false, value: 1 } } else { let method = pick(words, 0); Parsed { …`
+  - constant `0` → `1` at 96 — `… lse, value: 0 } } else { let method = pick(words, 1); Parsed { ok: true, value: pick(words, 1) } }`
 - `RS02-D05` (rust, `incr`): 5 of 11
-  - relational `>` → `>=` at 35 — `if current + delta >= 2147483647 || current + delta < (0 - 2147483648) { Parsed { ok: false, value: 0 } } else { Parsed `
-  - relational `<` → `<=` at 67 — `if current + delta > 2147483647 || current + delta <= (0 - 2147483648) { Parsed { ok: false, value: 0 } } else { Parsed `
-  - constant `0` → `1` at 70 — `if current + delta > 2147483647 || current + delta < (1 - 2147483648) { Parsed { ok: false, value: 0 } } else { Parsed {`
-  - arithmetic `-` → `+` at 72 — `if current + delta > 2147483647 || current + delta < (0 + 2147483648) { Parsed { ok: false, value: 0 } } else { Parsed {`
-  - constant `0` → `1` at 115 — `if current + delta > 2147483647 || current + delta < (0 - 2147483648) { Parsed { ok: false, value: 1 } } else { Parsed {`
+  - relational `>` → `>=` at 35 — `if current + delta >= 2147483647 || current + delta < (0 - 2147483648) …`
+  - relational `<` → `<=` at 67 — `… f current + delta > 2147483647 || current + delta <= (0 - 2147483648) { Parsed { ok: false, value: 0 } …`
+  - constant `0` → `1` at 70 — `… urrent + delta > 2147483647 || current + delta < (1 - 2147483648) { Parsed { ok: false, value: 0 } } …`
+  - arithmetic `-` → `+` at 72 — `… rent + delta > 2147483647 || current + delta < (0 + 2147483648) { Parsed { ok: false, value: 0 } } el …`
+  - constant `0` → `1` at 115 — `… a < (0 - 2147483648) { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: current + de …`
 - `RS03-D02` (rust, `mean`): 1 of 3
-  - constant `0` → `1` at 59 — `if cells == 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: sum / cells } }`
+  - constant `0` → `1` at 59 — `… if cells == 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: sum / cells …`
 - `RS03-D03` (rust, `invert2x2`): 1 of 5
-  - constant `0` → `1` at 67 — `if a * d - b * c == 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: d / (a * d - b * c) } }`
+  - constant `0` → `1` at 67 — `… f a * d - b * c == 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: d / (a * d - …`
 - `RS03-D04` (rust, `scale`): 5 of 8
-  - relational `>` → `>=` at 30 — `if v * factor >= 2147483647 || v * factor < (0 - 2147483648) { Parsed { ok: false, value: 0 } } else { Parsed { ok: true`
-  - relational `<` → `<=` at 57 — `if v * factor > 2147483647 || v * factor <= (0 - 2147483648) { Parsed { ok: false, value: 0 } } else { Parsed { ok: true`
-  - constant `0` → `1` at 60 — `if v * factor > 2147483647 || v * factor < (1 - 2147483648) { Parsed { ok: false, value: 0 } } else { Parsed { ok: true,`
-  - arithmetic `-` → `+` at 62 — `if v * factor > 2147483647 || v * factor < (0 + 2147483648) { Parsed { ok: false, value: 0 } } else { Parsed { ok: true,`
-  - constant `0` → `1` at 105 — `if v * factor > 2147483647 || v * factor < (0 - 2147483648) { Parsed { ok: false, value: 1 } } else { Parsed { ok: true,`
+  - relational `>` → `>=` at 30 — `if v * factor >= 2147483647 || v * factor < (0 - 2147483648) { Par …`
+  - relational `<` → `<=` at 57 — `if v * factor > 2147483647 || v * factor <= (0 - 2147483648) { Parsed { ok: false, value: 0 } …`
+  - constant `0` → `1` at 60 — `… if v * factor > 2147483647 || v * factor < (1 - 2147483648) { Parsed { ok: false, value: 0 } } …`
+  - arithmetic `-` → `+` at 62 — `… if v * factor > 2147483647 || v * factor < (0 + 2147483648) { Parsed { ok: false, value: 0 } } el …`
+  - constant `0` → `1` at 105 — `… r < (0 - 2147483648) { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: v * factor } …`
 - `SOL01-D02` (solidity, `transferFrom`): 2 of 3
-  - relational `>=` → `>` at 27 — `if allowed > amount { Parsed { ok: true, value: allowed - amount } } else { Parsed { ok: false, value: 0 } }`
-  - constant `0` → `1` at 120 — `if allowed >= amount { Parsed { ok: true, value: allowed - amount } } else { Parsed { ok: false, value: 1 } }`
+  - relational `>=` → `>` at 27 — `if allowed > amount { Parsed { ok: true, value: allowed - amou …`
+  - constant `0` → `1` at 120 — `… ed - amount } } else { Parsed { ok: false, value: 1 } }`
 - `SOL01-D03` (solidity, `sharePrice`): 1 of 4
-  - constant `1000000000000000000` → `1000000000000000001` at 83 — `if total_shares == 0 { 1000000000000000000 } else { total_assets * 1000000000000000001 / total_shares }`
+  - constant `1000000000000000000` → `1000000000000000001` at 83 — `… = 0 { 1000000000000000000 } else { total_assets * 1000000000000000001 / total_shares }`
 - `SOL01-D05` (solidity, `setFeeRecipient`): 2 of 3
-  - relational `==` → `!=` at 63 — `if is_owner == false { current } else { if who != 0 { current } else { who } }`
-  - constant `0` → `1` at 66 — `if is_owner == false { current } else { if who == 1 { current } else { who } }`
+  - relational `==` → `!=` at 63 — `… if is_owner == false { current } else { if who != 0 { current } else { who } }`
+  - constant `0` → `1` at 66 — `… if is_owner == false { current } else { if who == 1 { current } else { who } }`
 - `SOL01-D06` (solidity, `setWithdrawFeeBps`): 1 of 2
   - relational `<=` → `<` at 42 — `if sender_is_owner && bps < max_fee { bps } else { current }`
 - `SOL01-D07` (solidity, `_payFee`): 2 of 4
-  - constant `0` → `1` at 55 — `if fee == 0 { Payout { ok: true, owed: 1 } } else { if fee_paid { Payout { ok: true, owed: 0 } } else { Payout { ok: fal`
-  - constant `0` → `1` at 107 — `if fee == 0 { Payout { ok: true, owed: 0 } } else { if fee_paid { Payout { ok: true, owed: 1 } } else { Payout { ok: fal`
+  - constant `0` → `1` at 55 — `if fee == 0 { Payout { ok: true, owed: 1 } } else { if fee_paid { Payout { ok: true, owed: …`
+  - constant `0` → `1` at 107 — `… } } else { if fee_paid { Payout { ok: true, owed: 1 } } else { Payout { ok: false, owed: fee } } }`
 - `SOL01-D08` (solidity, `deposit`): 4 of 6
-  - relational `>` → `>=` at 26 — `if shares >= cap { Parsed { ok: false, value: 0 } } else { if pos_shares + shares > cap { Parsed { ok: false, value: 0 }`
-  - constant `0` → `1` at 61 — `if shares > cap { Parsed { ok: false, value: 1 } } else { if pos_shares + shares > cap { Parsed { ok: false, value: 0 } `
-  - relational `>` → `>=` at 97 — `if shares > cap { Parsed { ok: false, value: 0 } } else { if pos_shares + shares >= cap { Parsed { ok: false, value: 0 }`
-  - constant `0` → `1` at 132 — `if shares > cap { Parsed { ok: false, value: 0 } } else { if pos_shares + shares > cap { Parsed { ok: false, value: 1 } `
+  - relational `>` → `>=` at 26 — `if shares >= cap { Parsed { ok: false, value: 0 } } else { if …`
+  - constant `0` → `1` at 61 — `… if shares > cap { Parsed { ok: false, value: 1 } } else { if pos_shares + shares > cap { Parsed …`
+  - relational `>` → `>=` at 97 — `… false, value: 0 } } else { if pos_shares + shares >= cap { Parsed { ok: false, value: 0 } } else { Par …`
+  - constant `0` → `1` at 132 — `… hares + shares > cap { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: pos_shares + …`
 - `SOL02-D06` (solidity, `cancelBid`): 2 of 2
   - relational `>` → `>=` at 54 — `if is_highest { false } else { amount >= 0 }`
   - constant `0` → `1` at 56 — `if is_highest { false } else { amount > 1 }`
 - `SOL02-D07` (solidity, `init`): 1 of 2
-  - relational `==` → `!=` at 76 — `if sender_is_deployer == false { false } else { initialized != false }`
+  - relational `==` → `!=` at 76 — `… is_deployer == false { false } else { initialized != false }`
 - `SOL02-D08` (solidity, `init`): 4 of 6
-  - relational `>` → `>=` at 28 — `if duration >= 0 && duration <= max_duration { Parsed { ok: true, value: now + duration } } else { Parsed { ok: false, v`
-  - constant `0` → `1` at 30 — `if duration > 1 && duration <= max_duration { Parsed { ok: true, value: now + duration } } else { Parsed { ok: false, va`
-  - relational `<=` → `<` at 44 — `if duration > 0 && duration < max_duration { Parsed { ok: true, value: now + duration } } else { Parsed { ok: false, val`
-  - constant `0` → `1` at 141 — `if duration > 0 && duration <= max_duration { Parsed { ok: true, value: now + duration } } else { Parsed { ok: false, va`
+  - relational `>` → `>=` at 28 — `if duration >= 0 && duration <= max_duration { Parsed { ok: true …`
+  - constant `0` → `1` at 30 — `if duration > 1 && duration <= max_duration { Parsed { ok: true, …`
+  - relational `<=` → `<` at 44 — `if duration > 0 && duration < max_duration { Parsed { ok: true, value: now + du …`
+  - constant `0` → `1` at 141 — `… + duration } } else { Parsed { ok: false, value: 1 } }`
 - `SOL02-D11` (solidity, `bid`): 2 of 3
-  - arithmetic `+` → `-` at 111 — `if same_bidder { Outbid { bid_of: new_bid, pending: prev_pending - prev_bid_of } }`
-  - arithmetic `+` → `-` at 190 — `else { Outbid { bid_of: 0, pending: prev_pending - prev_bid_of } }`
+  - arithmetic `+` → `-` at 111 — `… { Outbid { bid_of: new_bid, pending: prev_pending - prev_bid_of } }`
+  - arithmetic `+` → `-` at 190 — `… else { Outbid { bid_of: 0, pending: prev_pending - prev_bid_of } }`
 - `SOL03-D01` (solidity, `rewardPerToken`): 4 of 7
-  - relational `==` → `!=` at 24 — `if rate != 0 || supply == 0 { stored } else { stored + dt * rate * 1000000000000000000 / supply }`
-  - constant `0` → `1` at 27 — `if rate == 1 || supply == 0 { stored } else { stored + dt * rate * 1000000000000000000 / supply }`
-  - arithmetic `+` → `-` at 69 — `if rate == 0 || supply == 0 { stored } else { stored - dt * rate * 1000000000000000000 / supply }`
-  - constant `1000000000000000000` → `1000000000000000001` at 83 — `if rate == 0 || supply == 0 { stored } else { stored + dt * rate * 1000000000000000001 / supply }`
+  - relational `==` → `!=` at 24 — `if rate != 0 || supply == 0 { stored } else { stored + dt * …`
+  - constant `0` → `1` at 27 — `if rate == 1 || supply == 0 { stored } else { stored + dt * ra …`
+  - arithmetic `+` → `-` at 69 — `… rate == 0 || supply == 0 { stored } else { stored - dt * rate * 1000000000000000000 / supply }`
+  - constant `1000000000000000000` → `1000000000000000001` at 83 — `… upply == 0 { stored } else { stored + dt * rate * 1000000000000000001 / supply }`
 - `SOL03-D02` (solidity, `earned`): 4 of 5
-  - relational `<` → `<=` at 23 — `if rpt <= paid { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: rewards + bal * (rpt - paid) / 100000`
-  - constant `0` → `1` at 59 — `if rpt < paid { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: rewards + bal * (rpt - paid) / 1000000`
-  - arithmetic `-` → `+` at 119 — `if rpt < paid { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: rewards + bal * (rpt + paid) / 1000000`
-  - constant `1000000000000000000` → `1000000000000000001` at 129 — `if rpt < paid { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: rewards + bal * (rpt - paid) / 1000000`
+  - relational `<` → `<=` at 23 — `if rpt <= paid { Parsed { ok: false, value: 0 } } else { Pa …`
+  - constant `0` → `1` at 59 — `… if rpt < paid { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: rewards + ba …`
+  - arithmetic `-` → `+` at 119 — `… { Parsed { ok: true, value: rewards + bal * (rpt + paid) / 1000000000000000000 } }`
+  - constant `1000000000000000000` → `1000000000000000001` at 129 — `… { ok: true, value: rewards + bal * (rpt - paid) / 1000000000000000001 } }`
 - `SOL03-D03` (solidity, `notifyRewardAmount`): 2 of 3
-  - relational `>` → `>=` at 63 — `if is_owner == false { false } else { duration >= 0 }`
-  - constant `0` → `1` at 65 — `if is_owner == false { false } else { duration > 1 }`
+  - relational `>` → `>=` at 63 — `… if is_owner == false { false } else { duration >= 0 }`
+  - constant `0` → `1` at 65 — `… if is_owner == false { false } else { duration > 1 }`
 - `SOL03-D08` (solidity, `getReward`): 1 of 1
   - constant `0` → `1` at 58 — `if transfer_ok { Payout { ok: true, owed: 1 } } else { Payout { ok: false, owed: amount } }`
 - `TS01-D07` (typescript, `parsePriority`): 5 of 8
   - constant `3` → `4` at 55 — `if missing { Parsed { ok: true, value: 4 } }`
-  - relational `<` → `<=` at 97 — `else { if !numeric || value <= 1 || value > 5 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: value `
-  - constant `1` → `2` at 99 — `else { if !numeric || value < 2 || value > 5 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: value }`
-  - relational `>` → `>=` at 110 — `else { if !numeric || value < 1 || value >= 5 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: value `
-  - constant `0` → `1` at 143 — `else { if !numeric || value < 1 || value > 5 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: value }`
+  - relational `<` → `<=` at 97 — `else { if !numeric || value <= 1 || value > 5 { Parsed { ok: false, value: 0 } } …`
+  - constant `1` → `2` at 99 — `else { if !numeric || value < 2 || value > 5 { Parsed { ok: false, value: 0 } } e …`
+  - relational `>` → `>=` at 110 — `else { if !numeric || value < 1 || value >= 5 { Parsed { ok: false, value: 0 } } else { Parse …`
+  - constant `0` → `1` at 143 — `… lue < 1 || value > 5 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: value } } }`
 - `TS01-D12` (typescript, `paginate`): 3 of 6
   - constant `1` → `2` at 36 — `let start = (page - 2) * size;`
-  - relational `>` → `>=` at 95 — `(if end >= n { n } else { end }) - (if start > n { n } else { start })`
-  - relational `>` → `>=` at 131 — `(if end > n { n } else { end }) - (if start >= n { n } else { start })`
+  - relational `>` → `>=` at 95 — `(if end >= n { n } else { end }) - (if start > n { n } else …`
+  - relational `>` → `>=` at 131 — `… (if end > n { n } else { end }) - (if start >= n { n } else { start })`
 - `TS02-D05` (typescript, `clicksPerDay`): 4 of 7
   - constant `86400` → `86401` at 50 — `clicks / (if (now - created_at) / 86401 < 1 { 1 } else { (now - created_at) / 86400 })`
   - relational `<` → `<=` at 56 — `clicks / (if (now - created_at) / 86400 <= 1 { 1 } else { (now - created_at) / 86400 })`
   - constant `1` → `2` at 58 — `clicks / (if (now - created_at) / 86400 < 2 { 1 } else { (now - created_at) / 86400 })`
-  - constant `1` → `2` at 62 — `clicks / (if (now - created_at) / 86400 < 1 { 2 } else { (now - created_at) / 86400 })`
+  - constant `1` → `2` at 62 — `… clicks / (if (now - created_at) / 86400 < 1 { 2 } else { (now - created_at) / 86400 })`
 - `TS02-D11` (typescript, `linkStats`): 1 of 1
-  - constant `0` → `1` at 98 — `if found { Parsed { ok: true, value: clicks } } else { Parsed { ok: false, value: 1 } }`
+  - constant `0` → `1` at 98 — `… lue: clicks } } else { Parsed { ok: false, value: 1 } }`
 - `TS03-D03` (typescript, `effectiveTaxRate`): 1 of 4
   - constant `100` → `101` at 47 — `if net == 0 { 0 } else { tax * 101 / net }`
 - `TS03-D04` (typescript, `parseItem`): 2 of 3
-  - constant `0` → `1` at 31 — `if quantity <= 1 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: quantity } }`
-  - constant `0` → `1` at 62 — `if quantity <= 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: quantity } }`
+  - constant `0` → `1` at 31 — `if quantity <= 1 { Parsed { ok: false, value: 0 } } else { Parsed …`
+  - constant `0` → `1` at 62 — `… if quantity <= 0 { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: quantity } }`
 - `TS03-D05` (typescript, `pageFooters`): 1 of 5
   - relational `<` → `<=` at 101 — `pick(n, (if page * per_page + per_page <= n { page * per_page + per_page } else { n }) - 1)`
 - `TS03-D09` (typescript, `applyDiscount`): 5 of 8
-  - relational `>=` → `>` at 29 — `if !(percent > 0 && percent <= 100) { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: amount - amount `
-  - constant `0` → `1` at 32 — `if !(percent >= 1 && percent <= 100) { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: amount - amount`
-  - relational `<=` → `<` at 45 — `if !(percent >= 0 && percent < 100) { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: amount - amount `
-  - constant `0` → `1` at 82 — `if !(percent >= 0 && percent <= 100) { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: amount - amount`
-  - constant `100` → `101` at 149 — `if !(percent >= 0 && percent <= 100) { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: amount - amount`
+  - relational `>=` → `>` at 29 — `if !(percent > 0 && percent <= 100) { Parsed { ok: false, value: …`
+  - constant `0` → `1` at 32 — `if !(percent >= 1 && percent <= 100) { Parsed { ok: false, value: 0 …`
+  - relational `<=` → `<` at 45 — `if !(percent >= 0 && percent < 100) { Parsed { ok: false, value: 0 } } else { Pa …`
+  - constant `0` → `1` at 82 — `… 0 && percent <= 100) { Parsed { ok: false, value: 1 } } else { Parsed { ok: true, value: amount - amo …`
+  - constant `100` → `101` at 149 — `… ed { ok: true, value: amount - amount * percent / 101 } }`

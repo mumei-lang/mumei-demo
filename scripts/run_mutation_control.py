@@ -79,13 +79,16 @@ def split_fixed(case: dict) -> tuple[str, str]:
     return prelude + header, body
 
 
-def context(body: str, mutant: dict, width: int = 30) -> str:
-    """The mutated line, trimmed, for the report."""
-    at = mutant["at"]
-    start = body.rfind("\n", 0, at) + 1
-    end = body.find("\n", at)
-    line = apply(body, mutant)[start:(end if end >= 0 else len(body)) + len(mutant["to"]) - len(mutant["from"])]
-    return " ".join(line.split())[:120]
+def context(body: str, mutant: dict, width: int = 50) -> str:
+    """The mutated line around the change, trimmed, for the report."""
+    text = apply(body, mutant)
+    at, stop = mutant["at"], mutant["at"] + len(mutant["to"])
+    line_start = text.rfind("\n", 0, at) + 1
+    line_end = text.find("\n", stop)
+    line_end = len(text) if line_end < 0 else line_end
+    lo, hi = max(line_start, at - width), min(line_end, stop + width)
+    snippet = " ".join(text[lo:hi].split())
+    return ("… " if lo > line_start else "") + snippet + (" …" if hi < line_end else "")
 
 
 def run_case(case: dict, mumei_bin: str, timeout: int) -> dict:
