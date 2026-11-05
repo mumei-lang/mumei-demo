@@ -39,8 +39,6 @@ Vacuity control for mumei + LLM contract (LLM writes the contract, reference por
 
 Proof certificates for mumei + LLM (LLM ports, mumei checks) (openai/gpt-6-luna), per run: 71 / 71, 71 / 71, 70 / 70 proven fixed ports have one, emitted and re-checked like the reference ones and committed as `mumei-llm/<model>-run<n>.fixed.proof.json` next to the case. Trust: Z3 212.
 
-Proof certificates for mumei + LLM (LLM ports, mumei checks) (openai/gpt-6-luna), per run: 0 / 67, 0 / 67, 0 / 67 proven fixed ports have one, emitted and re-checked like the reference ones and committed as `mumei-llm/<model>-run<n>.fixed.proof.json` next to the case. Trust: none 201.
-
 ## Wrong answers by case (runs out of total)
 
 - mumei + LLM contract (LLM writes the contract, reference ports): `GO02-D01` fixed rejected (1/3), `GO02-D02` fixed rejected (1/3), `PY02-D04` fixed rejected (3/3), `PY03-D05` buggy accepted (2/3), `RS01-D05` fixed rejected (1/3), `RS02-D05` fixed rejected (1/3), `SOL01-D05` fixed rejected (3/3), `SOL01-D06` fixed rejected (3/3), `SOL01-D08` fixed rejected (2/3), `SOL02-D06` fixed rejected (1/3), `SOL02-D08` fixed rejected (3/3), `SOL02-D11` fixed rejected (2/3), `SOL03-D02` fixed rejected (1/3), `SOL03-D07` fixed rejected (3/3), `TS01-D04` fixed rejected (3/3), `TS03-D05` buggy accepted (1/3), `TS03-D09` buggy accepted (3/3)

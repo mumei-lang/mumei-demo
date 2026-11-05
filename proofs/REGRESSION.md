@@ -7,7 +7,7 @@ The 71 contract-benchmark cases read as a pull-request gate. The contract was pi
 | Gate | Model | Runs | Regressions blocked | Regressions let through | Regressions unresolved | Good changes blocked | Good changes unresolved | Flaky cases | Model cost per gate pass |
 |---|---|---|---|---|---|---|---|---|---|
 | mumei (hand-written ports) | — | 1 | 71 | 0 | 0 | 0 | 0 | — | $0 (no model) |
-| mumei + LLM port | openai/gpt-6-luna | 3 | 62 (59–62) | 8 (7–10) | 2 (1–2) | 2 (2–3) | 2 (1–2) | 10 | $0.05 |
+| mumei + LLM port | openai/gpt-6-luna | 3 | 63 (60–63) | 8 (8–10) | 0 (0–1) | 0 | 0 (0–1) | 8 | $0.05 |
 | LLM review | openai/gpt-6-luna | 3 | 71 (70–71) | 0 (0–1) | 0 | 5 (4–5) | 0 | 6 | $0.04 |
 
 How to read it:
@@ -16,7 +16,7 @@ How to read it:
 - **mumei + LLM port** is the gate without hand-written ports. The LLM only writes the `.mm` body of the changed function; mumei decides. A regression let through here is a translation that dropped the defect, a flaky case is a port that differs between runs.
 - **LLM review** answers holds/violated itself. A pass is the model's opinion, not a proof, and the same change can get a different answer on another run.
 
-Flaky under mumei + LLM port: `GO01-D02`, `GO02-D02`, `PY02-D05`, `PY03-D05`, `RS01-D03`, `RS01-D06`, `RS01-D12`, `SOL01-D08`, `TS01-D07`, `TS03-D09`.
+Flaky under mumei + LLM port: `PY02-D05`, `PY04-D11`, `RS01-D12`, `SOL01-D03`, `SOL03-D07`, `TS01-D03`, `TS01-D07`, `TS02-D11`.
 
 Flaky under LLM review: `GO02-D03`, `GO03-D06`, `GO03-D07`, `PY03-D05`, `RS03-D08`, `TS01-D12`.
 
