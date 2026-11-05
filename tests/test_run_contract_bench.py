@@ -1283,6 +1283,17 @@ def test_proven_mumei_llm_port_commits_a_certificate_per_run(repo, monkeypatch, 
     assert cb.main(["--check"]) == 0, capsys.readouterr().err
 
 
+def test_refused_mumei_llm_only_rerun_touches_no_certificate(repo, monkeypatch):
+    path = run_mumei_llm(repo, monkeypatch)
+    certs = {p: p.read_text() for p in repo.rglob("*.fixed.proof.json")}
+    result = path.read_text()
+    prov = StubProvider(lambda m, s: json.dumps({"body": "        total / days"}))
+    with pytest.raises(SystemExit, match="run count"):
+        cb.main(["--arm", "mumei-llm", "--runs", "2", "--mumei-bin", "mumei", "--only", "PY09-D01"], provider=prov)
+    assert {p: p.read_text() for p in repo.rglob("*.fixed.proof.json")} == certs
+    assert path.read_text() == result
+
+
 def test_unproven_mumei_llm_port_has_no_certificate(repo, monkeypatch, capsys):
     run_mumei_llm(repo, monkeypatch)
     path = run_mumei_llm(repo, monkeypatch, body="        total / days")
@@ -1327,5 +1338,10 @@ def test_lean_bridge_without_lake_fails_before_verifying(repo, tmp_path, monkeyp
     monkeypatch.setattr(cb, "lake_on_path", lambda: False)
     monkeypatch.setattr(cb, "verify_text", fake_verify(REFERENCE))
     monkeypatch.setattr(cb, "verifier_identity", lambda _bin: dict(VERIFIER))
+    assert cb.main(["--arm", "mumei", "--mumei-bin", "mumei"]) == 0
+    certs = list(repo.rglob(cb.CERT_FILE))
+    for p in certs:
+        p.write_text("sentinel")
     with pytest.raises(SystemExit, match="needs `lake` on PATH"):
         cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--lean-bridge", str(tmp_path)])
+    assert certs and all(p.read_text() == "sentinel" for p in certs)

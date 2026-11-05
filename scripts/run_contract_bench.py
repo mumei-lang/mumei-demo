@@ -902,19 +902,25 @@ def render_all(cases: list[dict], write: bool) -> list[str]:
 
 def merge_runs(arm: str, model: str | None, runs: list[list[dict]], verifier: dict | None = None) -> list[list[dict]]:
     """Replace the given cases in the committed result, so that --only reruns a few cases."""
-    path = result_path(arm, model)
-    if not path.is_file():
-        raise SystemExit(f"{path.relative_to(REPO_ROOT)} does not exist yet; run every case before using --only")
-    old = json.loads(path.read_text())
-    if len(old["runs"]) != len(runs) or (arm != "mumei" and old.get("prompt_hash") != prompt_hash(arm)):
-        raise SystemExit(f"{path.relative_to(REPO_ROOT)} has another prompt or run count; rerun without --only")
-    if verifier is not None and "verifier" in old and old["verifier"] != verifier:
-        raise SystemExit(f"{path.relative_to(REPO_ROOT)} was recorded with another mumei build; rerun without --only")
+    old = check_mergeable(arm, model, len(runs), verifier)
     merged = []
     for o, n in zip(old["runs"], runs):
         new = {r["id"]: r for r in n}
         merged.append([new.pop(r["id"], r) for r in o] + list(new.values()))
     return merged
+
+
+def check_mergeable(arm: str, model: str | None, run_count: int, verifier: dict | None = None) -> dict:
+    """The committed result an --only rerun merges into; exits before any case runs or writes a certificate."""
+    path = result_path(arm, model)
+    if not path.is_file():
+        raise SystemExit(f"{path.relative_to(REPO_ROOT)} does not exist yet; run every case before using --only")
+    old = json.loads(path.read_text())
+    if len(old["runs"]) != run_count or (arm != "mumei" and old.get("prompt_hash") != prompt_hash(arm)):
+        raise SystemExit(f"{path.relative_to(REPO_ROOT)} has another prompt or run count; rerun without --only")
+    if verifier is not None and "verifier" in old and old["verifier"] != verifier:
+        raise SystemExit(f"{path.relative_to(REPO_ROOT)} was recorded with another mumei build; rerun without --only")
+    return old
 
 
 def recording_bin(arm: str, model: str | None, args) -> str | None:
@@ -1030,12 +1036,14 @@ def main(argv: list[str], provider=None) -> int:
                 if args.lean_bridge and old.get("lean_bridge") != git_identity(args.lean_bridge):
                     raise SystemExit(f"{result_path(arm, None).relative_to(REPO_ROOT)} was checked with another "
                                      "mumei-lean commit; rerun every case with --lean-bridge instead of using --only")
+            if args.only:
+                check_mergeable(arm, None, 1, verifier_identity(args.mumei_bin))
+            if args.lean_bridge and not lake_on_path():
+                raise SystemExit("--lean-bridge needs `lake` on PATH (elan's ~/.elan/bin)")
             with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
                 run = list(pool.map(lambda c: run_mumei_case(c, args.mumei_bin, args.timeout), cases))
             lean = None
             if args.lean_bridge:
-                if not lake_on_path():
-                    raise SystemExit("--lean-bridge needs `lake` on PATH (elan's ~/.elan/bin)")
                 lean = git_identity(args.lean_bridge)
                 by_id = {c["id"]: c for c in cases}
                 for r in run:
@@ -1051,6 +1059,9 @@ def main(argv: list[str], provider=None) -> int:
         else:
             prov = provider or llm_only.provider_from_env(timeout=600)
             prov.retries = max(getattr(prov, "retries", 0), RATE_LIMIT_RETRIES)
+            verifier = verifier_identity(args.mumei_bin) if arm != "llm" else None
+            if args.only:
+                check_mergeable(arm, prov.model, args.runs, verifier)
             runs = []
             for seed in range(args.runs):
                 with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
@@ -1060,7 +1071,6 @@ def main(argv: list[str], provider=None) -> int:
                     else:
                         runs.append(list(pool.map(
                             lambda c: run_llm_case(c, prov, arm, seed, args.mumei_bin, args.timeout), cases)))
-            verifier = verifier_identity(args.mumei_bin) if arm != "llm" else None
             merged = merge_runs(arm, prov.model, runs, verifier) if args.only else runs
             path = write_result(arm, prov.model, merged, recording_bin(arm, prov.model, args))
         if arm != "mumei" and any(score(run)["errors"] for run in json.loads(path.read_text())["runs"]):
