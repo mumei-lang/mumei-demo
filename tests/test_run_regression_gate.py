@@ -53,6 +53,12 @@ def test_other_arms_are_left_out_of_the_gate():
     assert "llm-contract" not in text and "| LLM review" not in text
 
 
+def test_every_model_of_an_arm_gets_its_own_row():
+    docs = [{**doc("llm", [[rec("A", "refuted", "proven")]]), "model": m} for m in ("m-1", "m-2")]
+    text = rg.render(docs, None)
+    assert "| m-1 |" in text and "| m-2 |" in text
+
+
 def test_flaky_cases_are_listed_by_id():
     runs = [[rec("X1", "refuted", "proven")], [rec("X1", "inconclusive", "proven")]]
     assert "Flaky under mumei + LLM port: `X1`." in rg.render([doc("mumei-llm", runs)], None)
