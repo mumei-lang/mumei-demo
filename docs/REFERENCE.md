@@ -69,6 +69,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/run_contract_bench.py` | 9 | Contract benchmark: can a defect be refuted and its fix be proven against one fixed contract? |
 | `scripts/run_native_replay.py` | 4 | Replay concrete inputs on the native code and on the .mm ports of the contract benchmark. |
 | `scripts/run_mutation_control.py` | 6 | Mutation control for the contract benchmark: does each contract reject small changes to the fixed port? |
+| `scripts/run_regression_gate.py` | 1 | Regression gate: once a contract is pinned, does a later change that breaks it get blocked? |
 | `scripts/record_scenario.py` | 2 | Finite record-operation checks and intentionally broken host variants. |
 | `scripts/record_model_evidence.py` | 2 | Collect independent Lean model evidence; never promote a Python operation. |
 | `scripts/check_specimens.py` | 2 | Validate specimen directories. |
@@ -194,6 +195,14 @@ Mutation control for the contract benchmark: does each contract reject small cha
 | `--mumei-bin` | `<MUMEI_BIN>` | no | — | mumei binary (default: $MUMEI_BIN, then mumei on PATH) |
 | `--check` | — | no | `false` | validate the committed result offline |
 | `--render-only` | — | no | `false` | re-render MUTATION.md |
+
+### `scripts/run_regression_gate.py`
+
+Regression gate: once a contract is pinned, does a later change that breaks it get blocked?
+
+| Option | Value | Required | Default | Description |
+|---|---|---|---|---|
+| `--check` | — | no | `false` | fail when proofs/REGRESSION.md is out of date |
 
 ### `scripts/record_scenario.py`
 
