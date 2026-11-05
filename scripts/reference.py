@@ -22,6 +22,7 @@ CLI_SCRIPTS = (
     ("scripts/run_contract_bench.py", "run_contract_bench"),
     ("scripts/run_native_replay.py", "run_native_replay"),
     ("scripts/run_mutation_control.py", "run_mutation_control"),
+    ("scripts/run_regression_gate.py", "run_regression_gate"),
     ("scripts/record_scenario.py", "record_scenario"),
     ("scripts/record_model_evidence.py", "record_model_evidence"),
     ("scripts/check_specimens.py", "check_specimens"),
