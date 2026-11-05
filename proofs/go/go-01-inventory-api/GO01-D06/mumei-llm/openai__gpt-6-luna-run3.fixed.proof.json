@@ -1,0 +1,189 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:15:13Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "deref",
+      "z3_check_result": "unsat",
+      "content_hash": "6fde762ab2c9d6ca52bd2059d4e190540c1bca37853ecd06ecd0a36cc8606bd7",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "1aef4f222018f6cc53878a4730114da4f65a6b68d0f44f112b27a6fb9ff6507d",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "9eecf854886b5a634bda2aa3d68641c7cd58004cfd9f907eb21a977f9de04b3e",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "present",
+      "ensures": "result",
+      "forall_constraints": [],
+      "body_expr": "{ true }",
+      "body_summary": "{ true }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "present": "present",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "present",
+            "lean_name": "present",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(present) -> (result)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "742bb157683a662413e1b81205a7412d4deb11cc05a5076fafac17a9842388b9",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:15:13Z"
+      }
+    },
+    {
+      "name": "viewItem",
+      "z3_check_result": "unsat",
+      "content_hash": "040cef731f4a5c73ef45a45060437a40d830df32a2a5c1d52107ce44c5153a9b",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "39ef0919b20b0398d992745d8a77c99337b3a8a53a986f1591d056eb17863990",
+        "traceability_coverage": 0.5,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "76aefb4df3e0d413d2e1b1b5eac9f33291a9309b38f0c1f1b6ca7ec7aa677b6a",
+      "dependencies": [
+        "deref"
+      ],
+      "dependency_hashes": {
+        "atom:deref": "81444e38ccada4761ea60368f6b68b5ef51dee46520f013b00e519fb544ca578"
+      },
+      "effects": [],
+      "requires": "true",
+      "ensures": "has_supplier == false => result == 0",
+      "forall_constraints": [],
+      "body_expr": "{ if has_supplier { let accessed = deref(has_supplier); supplier_name } else { 0 } }",
+      "body_summary": "{ if has_supplier { let accessed = deref(has_supplier); supplier_name } else { 0 } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "has_supplier": "has_supplier",
+        "result": "result",
+        "supplier_name": "supplier_name"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "has_supplier",
+            "lean_name": "has_supplier",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "supplier_name",
+            "lean_name": "supplier_name",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(true) -> (has_supplier == false => result == 0)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "3fbd4436a89e65419a9fa883515dd6cf494fea96c77a9e4196199b2755abb5cd",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:15:13Z"
+      }
+    }
+  ],
+  "certificate_hash": "acb27ee8e9f17f1bf8c91bb36325ff9c30156affcfde5ccd63b708495ca26317",
+  "all_verified": true
+}

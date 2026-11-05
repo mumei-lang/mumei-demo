@@ -1,0 +1,112 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:03:11Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "deposit",
+      "z3_check_result": "unsat",
+      "content_hash": "6fee63e92a49f249eaeb31f5b7a7f4e7e0d714688414da4628b1d21825070247",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "0604718580890c0c28515be0eb6348cd2b81339d45c0d28c0e7d2f9058190cf7",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "42e3e79897e1af2208e7cb71c0eb6a3fe75690d82a18b7f6b51d750525e272b2",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Parsed": "ffa9ae0fb4242dd7bb12d4c4b06a4cfa5daa999929a01520f04a091934983712"
+      },
+      "effects": [],
+      "requires": "cap > 0 && pos_shares >= 0 && pos_shares <= cap && shares >= 0",
+      "ensures": "result.ok =>(result.value == pos_shares + shares && result.value <= cap)",
+      "forall_constraints": [],
+      "body_expr": "{ let new_shares = pos_shares + shares; if new_shares <= cap { Parsed { ok: true, value: new_shares } } else { Parsed { ok: false, value: 0 } } }",
+      "body_summary": "{ let new_shares = pos_shares + shares; if new_shares <= cap { Parsed { ok: true, value: new_shares } } else { Parsed { ok: false, value: 0 } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "cap": "cap",
+        "pos_shares": "pos_shares",
+        "result": "result",
+        "shares": "shares"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "pos_shares",
+            "lean_name": "pos_shares",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "shares",
+            "lean_name": "shares",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "cap",
+            "lean_name": "cap",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Parsed",
+            "lean_type": "Parsed",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(cap > 0 && pos_shares >= 0 && pos_shares <= cap && shares >= 0) -> (result.ok =>(result.value == pos_shares + shares && result.value <= cap))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "4a52e13b0783e9e2bf2b5b606bd724074bef85aae9fcc72bff89296eea7efcf5",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:03:11Z"
+      }
+    }
+  ],
+  "certificate_hash": "611e6f75da3ab7abe01fbd2a461bbe7cee2dafeb2ef35128b63aa696ec4c1b32",
+  "all_verified": true
+}

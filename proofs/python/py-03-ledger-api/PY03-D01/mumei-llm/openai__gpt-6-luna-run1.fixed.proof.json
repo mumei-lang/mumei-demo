@@ -1,0 +1,136 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:00:10Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "transfer",
+      "z3_check_result": "unsat",
+      "content_hash": "5a57f1925ccbf128511991f1af0933ef30f100d2fb1270d0a6859b8f541058c0",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "7b08c0016ea40259b09b6209e0273834ac31bf6d1e5e433d36b011af9634579f",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "9f517572e981c600d19ecf2e5b4fd89dc02a83c5708adceb8ffd82430beafc7c",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Transfer": "91a9ff5395986c9501efc0f0fb4a3fc6b5b28735afd6593cc78659434439335a"
+      },
+      "effects": [],
+      "requires": "src >= 0",
+      "ensures": "result.ok => amount > 0",
+      "forall_constraints": [],
+      "body_expr": "{ if amount <= 0 { Transfer { ok: false, src: src, dst: dst, house: house } } else { if dst_exists == false { Transfer { ok: false, src: src, dst: dst, house: house } } else { if distinct_open == false { Transfer { ok: false, src: src, dst: dst, house: house } } else { if src < amount + 25 { Transfer { ok: false, src: src, dst: dst, house: house } } else { Transfer { ok: true, src: src - amount - 25, dst: dst + amount, house: house + 25 } } } } } }",
+      "body_summary": "{ if amount <= 0 { Transfer { ok: false, src: src, dst: dst, house: house } } else { if dst_exists == false { Transfer { ok: false, src: src, dst: dst, house: house } } else { if distinct_open == false { Transfer { ok: false, src: src, dst: dst, house: house } } else { if src < amount + 25 { Transfer { ok: false, src: src, dst: dst, house: house } } else { Transfer { ok: true, src: src - amount - 25, dst: dst + amount, house: house + 25 } } } } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "amount": "amount",
+        "distinct_open": "distinct_open",
+        "dst": "dst",
+        "dst_exists": "dst_exists",
+        "house": "house",
+        "result": "result",
+        "src": "src"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "src",
+            "lean_name": "src",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "dst",
+            "lean_name": "dst",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "house",
+            "lean_name": "house",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "dst_exists",
+            "lean_name": "dst_exists",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "distinct_open",
+            "lean_name": "distinct_open",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "amount",
+            "lean_name": "amount",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Transfer",
+            "lean_type": "Transfer",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(src >= 0) -> (result.ok => amount > 0)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 8,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "2bceb70eff9019fd1a5d8779486402e2c6db861a6d4db53239a755e958809bc2",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:00:10Z"
+      }
+    }
+  ],
+  "certificate_hash": "3442109fbf7c6c5f131c42efbbb046435227b664addf9c57edf617a26ebc2316",
+  "all_verified": true
+}

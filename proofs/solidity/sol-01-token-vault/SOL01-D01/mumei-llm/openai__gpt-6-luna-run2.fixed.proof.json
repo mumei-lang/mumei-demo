@@ -1,0 +1,102 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:10:35Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "withdraw",
+      "z3_check_result": "unsat",
+      "content_hash": "6d407741eb5753d7aeab6388ada0f1fc0dafab3d14f3787499472c90854b6cd0",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "06d64794bfb56e4d004cedc592036e6b73aeac63727ba695f6838037707d83ca",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "aad5aee6771cd90f4be3a24c19fac8191dad4e1e49b70ed8d5c5333626208505",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "shares >= 0 && shares_before >= shares",
+      "ensures": "result == shares_before - shares",
+      "forall_constraints": [],
+      "body_expr": "{ let shares_at_payout = shares_before - shares; shares_at_payout }",
+      "body_summary": "{ let shares_at_payout = shares_before - shares; shares_at_payout }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "result": "result",
+        "shares": "shares",
+        "shares_before": "shares_before"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "shares_before",
+            "lean_name": "shares_before",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "shares",
+            "lean_name": "shares",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(shares >= 0 && shares_before >= shares) -> (result == shares_before - shares)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "459fcc96caaf8f99f50070de58d72af8cbb72555d9a0ca195a5737e194aab295",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:10:35Z"
+      }
+    }
+  ],
+  "certificate_hash": "6ad17e09a72f27bc1f0c0f42b4dcd453fcb59be771626e40499e42c9d94178b1",
+  "all_verified": true
+}

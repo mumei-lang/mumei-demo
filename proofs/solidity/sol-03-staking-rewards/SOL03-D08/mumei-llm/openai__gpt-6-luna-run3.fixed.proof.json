@@ -1,0 +1,104 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:21:48Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "getReward",
+      "z3_check_result": "unsat",
+      "content_hash": "8aa750900710a9cb16084e27b08604417e6fd23d5dce443a764cd7e2343076ee",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "85fdb957c3bf4a8474a7a956fc5714028771ded6be32ff4788daaead85589694",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "3fa221cb85c478eef862eaa2fece01cda41fb6a92d452c68d82cb81527cedc4f",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Payout": "e5d78df08776b2bae65b6a2acbc32fc50ae03e9b963a1cc85665e5d4799c29e9"
+      },
+      "effects": [],
+      "requires": "amount >= 0",
+      "ensures": "result.ok => transfer_ok",
+      "forall_constraints": [],
+      "body_expr": "{ Payout { ok: transfer_ok, owed: amount } }",
+      "body_summary": "{ Payout { ok: transfer_ok, owed: amount } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "amount": "amount",
+        "result": "result",
+        "transfer_ok": "transfer_ok"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "transfer_ok",
+            "lean_name": "transfer_ok",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "amount",
+            "lean_name": "amount",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Payout",
+            "lean_type": "Payout",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(amount >= 0) -> (result.ok => transfer_ok)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "6909eb63ad7ebb6ba1174eed60d737bb9eabb9ff3dfd6741e143f5112ed756ef",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:21:48Z"
+      }
+    }
+  ],
+  "certificate_hash": "a55cdcc2fc49fcb99727253eafb3119994507b3fb95305c21c33e7b23c4902fb",
+  "all_verified": true
+}

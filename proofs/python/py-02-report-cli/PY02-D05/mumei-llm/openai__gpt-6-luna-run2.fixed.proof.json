@@ -1,0 +1,115 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:08:00Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "overtime_minutes",
+      "z3_check_result": "unsat",
+      "content_hash": "9836cb9b2dac72d8279bdebcdc36d26df37b31db4739463868703de7508bf1b7",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "21d77a2787d025913b3ba9d3c99902dc79ec914bb9b16900762099b9380b4967",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 2,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 2,
+        "diagnostics": []
+      },
+      "proof_hash": "cadd7ea4fe3769ad22ae38d6c07c34588a0d9c74b6d189a225068a82df14f8af",
+      "dependencies": [
+        "len"
+      ],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "len(daily) == n && n >= 1",
+      "ensures": "result >= 0 &&(daily[0] > threshold => result >= daily[0] - threshold)",
+      "forall_constraints": [],
+      "body_expr": "{ let i = 0; let extra = 0; while i < n invariant: i >= 0 && i <= n && extra >= 0 &&(i > 0 && daily[0] > threshold => extra >= daily[0] - threshold) decreases: n - i { let contribution = if daily[i] > threshold { daily[i] - threshold } else { 0 }; extra = extra + contribution; i = i + 1; }; extra }",
+      "body_summary": "{ let i = 0; let extra = 0; while i < n invariant: i >= 0 && i <= n && extra >= 0 &&(i > 0 && daily[0] > threshold => extra >= daily[0] - threshold) decreases: n - i { let contribution = if daily[i] > threshold { daily[i] - threshold } else { 0 }; extra = extra + contribution; i = i + 1; }; extra }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "temporal_state",
+      "logic_fragment_tags": [
+        "recursive_invariant"
+      ],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "daily": "daily",
+        "n": "n",
+        "result": "result",
+        "threshold": "threshold"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "loop_invariant",
+        "binders": [
+          {
+            "mumei_name": "daily",
+            "lean_name": "daily",
+            "mumei_type": "[i64]",
+            "lean_type": "List Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "n",
+            "lean_name": "n",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "threshold",
+            "lean_name": "threshold",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(len(daily) == n && n >= 1) -> (result >= 0 &&(daily[0] > threshold => result >= daily[0] - threshold))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "loop_invariant_recursion",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "50b8f0af17fc70d4fae0d23ccf2dbafe37645c6ac44e8182c688a3e784482113",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:08:00Z"
+      }
+    }
+  ],
+  "certificate_hash": "a0abe5d18ec18820602322051d26848f48f14bb8c289af5e9970202fc80899f7",
+  "all_verified": true
+}

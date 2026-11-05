@@ -1,0 +1,112 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:14:40Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "releaseHandler",
+      "z3_check_result": "unsat",
+      "content_hash": "7af28433f55a37da36b49b3c38bcc67dc38145b143e6feaf8475fc0f2dc0c7e6",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "5177adf81ecf0978817ce20056e284b2ecf245eb6a5afb4ce49ca0710c681ec2",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "5079de5693bf66c569e99c90ef9bd29f93807c9af54c0eebd3977c6c3e60b7c3",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Stock": "0d32baf726963dfb5890fb3c56ba463b77b0a7d1633f64ac373f83d9463fbd97"
+      },
+      "effects": [],
+      "requires": "stock >= 0 && reserved >= 0",
+      "ensures": "result.ok => result.reserved >= 0",
+      "forall_constraints": [],
+      "body_expr": "{ if qty <= 0 { Stock { ok: false, stock: stock, reserved: reserved } } else if reserved < qty { Stock { ok: false, stock: stock, reserved: reserved } } else { Stock { ok: true, stock: stock + qty, reserved: reserved - qty } } }",
+      "body_summary": "{ if qty <= 0 { Stock { ok: false, stock: stock, reserved: reserved } } else if reserved < qty { Stock { ok: false, stock: stock, reserved: reserved } } else { Stock { ok: true, stock: stock + qty, reserved: reserved - qty } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "qty": "qty",
+        "reserved": "reserved",
+        "result": "result",
+        "stock": "stock"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "stock",
+            "lean_name": "stock",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "reserved",
+            "lean_name": "reserved",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "qty",
+            "lean_name": "qty",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Stock",
+            "lean_type": "Stock",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(stock >= 0 && reserved >= 0) -> (result.ok => result.reserved >= 0)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 7,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "3bb45df7131feefd197d91bab6a8d731fb347a7d1849edab71684c31ec75a3b5",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:14:40Z"
+      }
+    }
+  ],
+  "certificate_hash": "86247a9478cd6bdbd2ade3babeb595838e79ab66ac305616f49dacf4f8dbc5a6",
+  "all_verified": true
+}

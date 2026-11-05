@@ -1,0 +1,126 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:02:50Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "setWithdrawFeeBps",
+      "z3_check_result": "unsat",
+      "content_hash": "17ec2b48a3b399bc8b2370af86dec22c8a52b380a796f34ef5210d4de1f2b139",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "0b5aeef09b3faa93ebdbf1260b69af18963b258060e856b1c7a3c364a1af579a",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "bb59f1086301c972e690bcafedc242e55af29e287a22000816fe2d50f7774da4",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "max_fee >= 0",
+      "ensures": "sender_is_owner == false => result == current",
+      "forall_constraints": [],
+      "body_expr": "{ if sender_is_owner { if bps <= max_fee { bps } else { current } } else { current } }",
+      "body_summary": "{ if sender_is_owner { if bps <= max_fee { bps } else { current } } else { current } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "bps": "bps",
+        "current": "current",
+        "max_fee": "max_fee",
+        "origin_is_owner": "origin_is_owner",
+        "result": "result",
+        "sender_is_owner": "sender_is_owner"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "sender_is_owner",
+            "lean_name": "sender_is_owner",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "origin_is_owner",
+            "lean_name": "origin_is_owner",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "bps",
+            "lean_name": "bps",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "max_fee",
+            "lean_name": "max_fee",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "current",
+            "lean_name": "current",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(max_fee >= 0) -> (sender_is_owner == false => result == current)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "89ed533f602f3ac54de8e19cd2519077015ce66ef00377d1f31855b74c57ae9f",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:02:50Z"
+      }
+    }
+  ],
+  "certificate_hash": "e616411322bd04a8c3f58dddf10340616597c5d51a439dc0048f55a52018c64c",
+  "all_verified": true
+}

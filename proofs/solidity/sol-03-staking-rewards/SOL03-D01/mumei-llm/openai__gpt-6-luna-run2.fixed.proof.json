@@ -1,0 +1,130 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:12:12Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "rewardPerToken",
+      "z3_check_result": "unsat",
+      "content_hash": "976a3e6a3c188459a3de18819d6ef16400557129641b31c166880fc6be51fc0e",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "8ab470e758bead6f9007fc4d301442cc7c38614ec2fd49601e186a41c6d62318",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "6c063e31064d22e8accd1f06013b1087e86d2d9719d09e898b3a5c2c6e8ebcc4",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "rate >= 0 && supply >= 0 && stored >= 0 && dt >= 0",
+      "ensures": "supply == 0 => result == stored",
+      "forall_constraints": [],
+      "body_expr": "{ if rate == 0 || supply == 0 { stored } else { stored + dt * rate * 1000000000000000000 / supply } }",
+      "body_summary": "{ if rate == 0 || supply == 0 { stored } else { stored + dt * rate * 1000000000000000000 / supply } }",
+      "z3_result_class": "unsat",
+      "escalation_reason": "nonlinear_arithmetic",
+      "logic_fragment_tag": "nonlinear_arithmetic",
+      "logic_fragment_tags": [
+        "nonlinear_arithmetic"
+      ],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "dt": "dt",
+        "rate": "rate",
+        "result": "result",
+        "stored": "stored",
+        "supply": "supply"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "rate",
+            "lean_name": "rate",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "supply",
+            "lean_name": "supply",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "stored",
+            "lean_name": "stored",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "dt",
+            "lean_name": "dt",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(rate >= 0 && supply >= 0 && stored >= 0 && dt >= 0) -> (supply == 0 => result == stored)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "integer_overflow_bridge",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [
+          "integer_overflow_bridge: Mumei uses 2's complement wrap semantics, Lean 4 Int is unbounded. Bridge lemma required for overflow behavior."
+        ],
+        "proof_trace_hints": [
+          "assert mumei_i64_in_range hypotheses before applying arithmetic lemmas"
+        ],
+        "requires_bridge_lemmas": [
+          "mumei_i64_overflow_bridge",
+          "mumei_i64_add_overflow_bridge",
+          "mumei_div_by_zero_bridge"
+        ]
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "9c515a2e6e2785ad6585d37112d374cf749e28420de4b576027747cadc0929cf",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:12:12Z"
+      }
+    }
+  ],
+  "certificate_hash": "d79a3ac547d76679c509503b7fab48a43877f1ce5edacffa9de8b7997934e9ad",
+  "all_verified": true
+}

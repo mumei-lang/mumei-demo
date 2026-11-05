@@ -1,0 +1,128 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:19:13Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "request_transfer",
+      "z3_check_result": "unsat",
+      "content_hash": "e97f35cfbc044a97b067a39cf60cdac0e49d19445a159d1277308e7e91d40ada",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "44bc1f0c4c05c062af8aee13f28b6bfed9af055ee57fa51c46e0285cb037c6b4",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "86fc56c88b58b8fa29dece84e46adfbb1b00b310e6791c5c838bdd65ba102f96",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Queued": "cfec534646e16591eabfb67915949b0f1c1269284a697228d37a5d5014a65211"
+      },
+      "effects": [],
+      "requires": "limit >= 0 && spent >= 0 && queued >= 0",
+      "ensures": "result.ok == false => result.spent == spent",
+      "forall_constraints": [],
+      "body_expr": "{ if amount <= 0 { Queued { ok: false, spent: spent } } else if balance - queued < amount { Queued { ok: false, spent: spent } } else { let allowance = if limit > spent { limit - spent } else { 0 }; if amount > allowance { Queued { ok: false, spent: spent } } else { Queued { ok: true, spent: spent + amount } } } }",
+      "body_summary": "{ if amount <= 0 { Queued { ok: false, spent: spent } } else if balance - queued < amount { Queued { ok: false, spent: spent } } else { let allowance = if limit > spent { limit - spent } else { 0 }; if amount > allowance { Queued { ok: false, spent: spent } } else { Queued { ok: true, spent: spent + amount } } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "amount": "amount",
+        "balance": "balance",
+        "limit": "limit",
+        "queued": "queued",
+        "result": "result",
+        "spent": "spent"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "balance",
+            "lean_name": "balance",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "queued",
+            "lean_name": "queued",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "limit",
+            "lean_name": "limit",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "spent",
+            "lean_name": "spent",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "amount",
+            "lean_name": "amount",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Queued",
+            "lean_type": "Queued",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(limit >= 0 && spent >= 0 && queued >= 0) -> (result.ok == false => result.spent == spent)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "cd3de0ea127648254a204d74610987417482383d88b287061a52fb4e3e36ab0b",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:19:13Z"
+      }
+    }
+  ],
+  "certificate_hash": "fdfeeae1fc208f2c6fda0b5241695c4b28a8ae2081b932a3bcc5479d275a66f9",
+  "all_verified": true
+}

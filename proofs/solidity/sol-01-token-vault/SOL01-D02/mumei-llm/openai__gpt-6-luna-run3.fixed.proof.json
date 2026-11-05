@@ -1,0 +1,104 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:19:50Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "transferFrom",
+      "z3_check_result": "unsat",
+      "content_hash": "e17cbb3d26b71e6f5ee032882d0919743d2b3040e113d4906234b9957a869e6e",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "1ad7599003fec32d73ed3c646a8975f4ab7b499e67264a64409addf75422b7f2",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "c592a9b853db9beb10ff65135f15000e63addd3b8731458021ce0909ff840095",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Parsed": "ffa9ae0fb4242dd7bb12d4c4b06a4cfa5daa999929a01520f04a091934983712"
+      },
+      "effects": [],
+      "requires": "allowed >= 0 && amount >= 0",
+      "ensures": "result.ok =>(result.value >= 0 && result.value == allowed - amount)",
+      "forall_constraints": [],
+      "body_expr": "{ if allowed >= amount { Parsed { ok: true, value: allowed - amount } } else { Parsed { ok: false, value: 0 } } }",
+      "body_summary": "{ if allowed >= amount { Parsed { ok: true, value: allowed - amount } } else { Parsed { ok: false, value: 0 } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "allowed": "allowed",
+        "amount": "amount",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "allowed",
+            "lean_name": "allowed",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "amount",
+            "lean_name": "amount",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Parsed",
+            "lean_type": "Parsed",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(allowed >= 0 && amount >= 0) -> (result.ok =>(result.value >= 0 && result.value == allowed - amount))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "4ad21673ea5249a73e46ce7cb179dd9f01385f30b0c9c2d61d874c9298567593",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:19:50Z"
+      }
+    }
+  ],
+  "certificate_hash": "ad882a68ee105e1fd9e9e112103242995f0262bf7b58d7908cfa949d21bccfc1",
+  "all_verified": true
+}

@@ -1,0 +1,114 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:06:16Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "reorderPoint",
+      "z3_check_result": "unsat",
+      "content_hash": "eebf13791678cc503e7aabd4952fc124118883235bb569d3294f6bdbc8281f61",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "f3e06ed7d968f0c7b828285a1aefb20a8903015674e37e66abaaee47fc22cf58",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 2,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 2,
+        "diagnostics": []
+      },
+      "proof_hash": "30d8ee83236e0b3889def2cdc5b29575b7592a66f67bee225b6558384790a8c0",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "total >= 0 && locations >= 0",
+      "ensures": "(locations == 0 => result == 0) &&(locations > 0 => result == total / locations)",
+      "forall_constraints": [],
+      "body_expr": "{ if locations == 0 { 0 } else { total / locations } }",
+      "body_summary": "{ if locations == 0 { 0 } else { total / locations } }",
+      "z3_result_class": "unsat",
+      "escalation_reason": "nonlinear_arithmetic",
+      "logic_fragment_tag": "nonlinear_arithmetic",
+      "logic_fragment_tags": [
+        "nonlinear_arithmetic"
+      ],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "locations": "locations",
+        "result": "result",
+        "total": "total"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "total",
+            "lean_name": "total",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "locations",
+            "lean_name": "locations",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(total >= 0 && locations >= 0) -> ((locations == 0 => result == 0) &&(locations > 0 => result == total / locations))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "integer_overflow_bridge",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [
+          "integer_overflow_bridge: Mumei uses 2's complement wrap semantics, Lean 4 Int is unbounded. Bridge lemma required for overflow behavior."
+        ],
+        "proof_trace_hints": [
+          "assert mumei_i64_in_range hypotheses before applying arithmetic lemmas"
+        ],
+        "requires_bridge_lemmas": [
+          "mumei_i64_overflow_bridge",
+          "mumei_i64_add_overflow_bridge",
+          "mumei_div_by_zero_bridge"
+        ]
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "db389723f923ff38bb55b156fecbcfc18a8b8279a6269e3d306a9090d7aa92fd",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:06:16Z"
+      }
+    }
+  ],
+  "certificate_hash": "82812123c6a8a296c2af3ae91aed172a52d275ce00a1ddd46d8cba79c391d53a",
+  "all_verified": true
+}

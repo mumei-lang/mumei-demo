@@ -1,0 +1,112 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:20:40Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "deposit",
+      "z3_check_result": "unsat",
+      "content_hash": "4cdf89ca8a782af1f8e3a855c9764375d9a1235d36026f26c1b47993ee8dd53d",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "0604718580890c0c28515be0eb6348cd2b81339d45c0d28c0e7d2f9058190cf7",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "a13b1b3a058fb75f2d3f4b87a883a38cbb091d5704f3cffb66392839b1921f8a",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Parsed": "ffa9ae0fb4242dd7bb12d4c4b06a4cfa5daa999929a01520f04a091934983712"
+      },
+      "effects": [],
+      "requires": "cap > 0 && pos_shares >= 0 && pos_shares <= cap && shares >= 0",
+      "ensures": "result.ok =>(result.value == pos_shares + shares && result.value <= cap)",
+      "forall_constraints": [],
+      "body_expr": "{ if shares > cap { Parsed { ok: false, value: 0 } } else { let new_shares = pos_shares + shares; if new_shares > cap { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: new_shares } } } }",
+      "body_summary": "{ if shares > cap { Parsed { ok: false, value: 0 } } else { let new_shares = pos_shares + shares; if new_shares > cap { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: new_shares } } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "cap": "cap",
+        "pos_shares": "pos_shares",
+        "result": "result",
+        "shares": "shares"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "pos_shares",
+            "lean_name": "pos_shares",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "shares",
+            "lean_name": "shares",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "cap",
+            "lean_name": "cap",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Parsed",
+            "lean_type": "Parsed",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(cap > 0 && pos_shares >= 0 && pos_shares <= cap && shares >= 0) -> (result.ok =>(result.value == pos_shares + shares && result.value <= cap))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "fcd8f3be912a61045b047b5d40547eac7cec482bd7f5888b8095be38b72cbf6a",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:20:41Z"
+      }
+    }
+  ],
+  "certificate_hash": "77f309df2ddf9f86c9fc7efc110ae852e878739c574a9d631134b2d534385336",
+  "all_verified": true
+}

@@ -1,0 +1,102 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:02:31Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "withdraw",
+      "z3_check_result": "unsat",
+      "content_hash": "174a8a87610b5c01f94667dd782e8267b6645471a8fd60cded2ba89710d2b363",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "06d64794bfb56e4d004cedc592036e6b73aeac63727ba695f6838037707d83ca",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "d431e243d260eaac14bc032d0763475d061c56143058dfbde03b37065125eb26",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "shares >= 0 && shares_before >= shares",
+      "ensures": "result == shares_before - shares",
+      "forall_constraints": [],
+      "body_expr": "{ shares_before - shares }",
+      "body_summary": "{ shares_before - shares }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "result": "result",
+        "shares": "shares",
+        "shares_before": "shares_before"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "shares_before",
+            "lean_name": "shares_before",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "shares",
+            "lean_name": "shares",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(shares >= 0 && shares_before >= shares) -> (result == shares_before - shares)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "1354ef9f2c7e56d5038b1614e6aae145bcb9e39af2a181d5666cfc6298770011",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:02:31Z"
+      }
+    }
+  ],
+  "certificate_hash": "9104367dded3543314e2201881758d9cfc0e754aac55c20def39ca47f9271e61",
+  "all_verified": true
+}
