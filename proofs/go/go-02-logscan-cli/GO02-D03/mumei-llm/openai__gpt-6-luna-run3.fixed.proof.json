@@ -1,0 +1,198 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:15:52Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "slice_to",
+      "z3_check_result": "unsat",
+      "content_hash": "75e49724c32a955c06bfd64eb998cd909d2b62735e43e185d57031848e6bc3e7",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "8ffd1cdf3cb938ffbe489c97506aef4a216e049b6a31c10a2579686881e02ae4",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "f3c8a335961d07080c9cfbb34755b17a644dea592061f1e041b947f673dbbb95",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "0 <= end && end <= n",
+      "ensures": "result == end",
+      "forall_constraints": [],
+      "body_expr": "{ end }",
+      "body_summary": "{ end }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "end": "end_binder",
+        "n": "n",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "n",
+            "lean_name": "n",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "end",
+            "lean_name": "end_binder",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(0 <= end && end <= n) -> (result == end)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "c96dde33989a016b42be4b078b397523c3669d5847bab351632366255c6e9ff6",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:15:52Z"
+      }
+    },
+    {
+      "name": "formatSummary",
+      "z3_check_result": "unsat",
+      "content_hash": "71f9ec49ae141bb33cce103a842f6eec8ec3e9962be856e9ffab04a7c3785d49",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "ced5ea7d00c970787e4610baa2bed2899bd1b84f1e4b68a1d028e68eeff62229",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "d0454818caa3bb8cd5561645f4701c9cfac13c94a020b7a11f39cd8e713ccaf9",
+      "dependencies": [
+        "slice_to"
+      ],
+      "dependency_hashes": {
+        "atom:slice_to": "a15263b0042be7683a01b5dfc64f2c7affe2cf7a51b46319b7d3ae11118be514",
+        "struct:Parsed": "ffa9ae0fb4242dd7bb12d4c4b06a4cfa5daa999929a01520f04a091934983712"
+      },
+      "effects": [],
+      "requires": "n_paths >= 0",
+      "ensures": "result.ok =>(result.value >= 0 && result.value <= n_paths)",
+      "forall_constraints": [],
+      "body_expr": "{ if top < 0 { Parsed { ok: false, value: 0 } } else { let end = if top < n_paths { top } else { n_paths }; let sliced = slice_to(n_paths, end); Parsed { ok: true, value: sliced } } }",
+      "body_summary": "{ if top < 0 { Parsed { ok: false, value: 0 } } else { let end = if top < n_paths { top } else { n_paths }; let sliced = slice_to(n_paths, end); Parsed { ok: true, value: sliced } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "n_paths": "n_paths",
+        "result": "result",
+        "top": "top"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "n_paths",
+            "lean_name": "n_paths",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "top",
+            "lean_name": "top",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Parsed",
+            "lean_type": "Parsed",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(n_paths >= 0) -> (result.ok =>(result.value >= 0 && result.value <= n_paths))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 11,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "dd6f1c7aa23024c6ce3d74693d9202218f16db50eef1c118366700b49d3d4f9c",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:15:52Z"
+      }
+    }
+  ],
+  "certificate_hash": "e881f9c90c79d16fbbe89dbe5fb31172e8f88597eb020014c7620d0c155cad3b",
+  "all_verified": true
+}

@@ -1,0 +1,114 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:20:05Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "sharePrice",
+      "z3_check_result": "unsat",
+      "content_hash": "4568d24e9876b576c412e11caaa90c206181dac689529d189f42013eed6702af",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "d1ba9f9815f29de4639033cf81a0300d439e004b69e1a3693d0acf702f5138dd",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "3168064d420a8e6fd1199cfdd254ce802d61d90b64e9f5cb1c6673ba9e3ec8a1",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "total_assets >= 0 && total_shares >= 0",
+      "ensures": "total_shares == 0 => result == 1000000000000000000",
+      "forall_constraints": [],
+      "body_expr": "{ if total_shares == 0 { 1000000000000000000 } else { total_assets * 1000000000000000000 / total_shares } }",
+      "body_summary": "{ if total_shares == 0 { 1000000000000000000 } else { total_assets * 1000000000000000000 / total_shares } }",
+      "z3_result_class": "unsat",
+      "escalation_reason": "nonlinear_arithmetic",
+      "logic_fragment_tag": "nonlinear_arithmetic",
+      "logic_fragment_tags": [
+        "nonlinear_arithmetic"
+      ],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "result": "result",
+        "total_assets": "total_assets",
+        "total_shares": "total_shares"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "total_assets",
+            "lean_name": "total_assets",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "total_shares",
+            "lean_name": "total_shares",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(total_assets >= 0 && total_shares >= 0) -> (total_shares == 0 => result == 1000000000000000000)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "integer_overflow_bridge",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [
+          "integer_overflow_bridge: Mumei uses 2's complement wrap semantics, Lean 4 Int is unbounded. Bridge lemma required for overflow behavior."
+        ],
+        "proof_trace_hints": [
+          "assert mumei_i64_in_range hypotheses before applying arithmetic lemmas"
+        ],
+        "requires_bridge_lemmas": [
+          "mumei_i64_overflow_bridge",
+          "mumei_i64_add_overflow_bridge",
+          "mumei_div_by_zero_bridge"
+        ]
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "b767525457cfcb0fb3e4ba4ecb24f3f4fecdd891beca844a7f54cb2acd914a34",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:20:05Z"
+      }
+    }
+  ],
+  "certificate_hash": "1340a8f2406df8bdd9ead175223346b7a5aad465423cfb0dfef8d510ab6af7c4",
+  "all_verified": true
+}

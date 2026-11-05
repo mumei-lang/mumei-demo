@@ -1,0 +1,128 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:12:06Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "bid",
+      "z3_check_result": "unsat",
+      "content_hash": "082404cb100604dcb2f2229ba7c8db07b81221d18f480cb6fa80d0e4312fae63",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "3735dfeeb1f534b5bdb19797b856b12d55f60e281db23412e52dfa53175a4a17",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "0890b059467ff497438176f47e247b0273f4bab168512fbf5acc56a91fdabc4b",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Outbid": "fb0a611ec17bc294e6989d4a35f6bc115afb65fe2dd152f118dfc2112787d831"
+      },
+      "effects": [],
+      "requires": "prev_bid_of >= 0 && prev_pending >= 0 && new_bid > 0",
+      "ensures": "(has_previous && same_bidder == false) => result.bid_of == 0",
+      "forall_constraints": [],
+      "body_expr": "{ let bid_of = if has_previous { if same_bidder { new_bid } else { 0 } } else { new_bid }; let pending = if has_previous { prev_pending + prev_bid_of } else { prev_pending }; Outbid { bid_of: bid_of, pending: pending } }",
+      "body_summary": "{ let bid_of = if has_previous { if same_bidder { new_bid } else { 0 } } else { new_bid }; let pending = if has_previous { prev_pending + prev_bid_of } else { prev_pending }; Outbid { bid_of: bid_of, pending: pending } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "has_previous": "has_previous",
+        "new_bid": "new_bid",
+        "prev_bid_of": "prev_bid_of",
+        "prev_pending": "prev_pending",
+        "result": "result",
+        "same_bidder": "same_bidder"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "has_previous",
+            "lean_name": "has_previous",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "same_bidder",
+            "lean_name": "same_bidder",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "prev_bid_of",
+            "lean_name": "prev_bid_of",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "prev_pending",
+            "lean_name": "prev_pending",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "new_bid",
+            "lean_name": "new_bid",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Outbid",
+            "lean_type": "Outbid",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(prev_bid_of >= 0 && prev_pending >= 0 && new_bid > 0) -> ((has_previous && same_bidder == false) => result.bid_of == 0)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "6c1acde74f3e7d833ebfef2cfb659da29b0532755347c04d337eb3bdf5ea7178",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:12:06Z"
+      }
+    }
+  ],
+  "certificate_hash": "8f130a49ab710ad031e5f3231c24158e3bf35b882d4fca436bbf6ef08b6ba866",
+  "all_verified": true
+}

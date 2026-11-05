@@ -60,6 +60,7 @@ def repo(tmp_path, monkeypatch):
         monkeypatch.setattr(cb, name, value)
     monkeypatch.setattr(cb, "real_certify", cb.certify, raising=False)
     monkeypatch.setattr(cb, "certify", fake_certify)
+    monkeypatch.setattr(cb, "lake_on_path", lambda: True)
     return tmp_path
 
 
@@ -67,9 +68,9 @@ def fake_cert(atom="bad", result="unsat", all_verified=True):
     return json.dumps({"all_verified": all_verified, "atoms": [{"name": atom, "z3_check_result": result}]})
 
 
-def fake_certify(_bin, case, _timeout):
+def fake_certify(_bin, case, _timeout, port=None, file=cb.CERT_FILE):
     text = fake_cert(case["atom"])
-    return {**cb.cert_summary(text, case), "verify_cert": "ok"}, text
+    return {**cb.cert_summary(text, case, port, file), "verify_cert": "ok"}, text
 
 
 def fake_verify(outcomes):
@@ -1252,3 +1253,95 @@ def test_git_identity(tmp_path, monkeypatch):
     assert cb.git_identity(str(tmp_path)) == {"commit": "c" * 40, "dirty": True}
     monkeypatch.setattr(cb.subprocess, "run", lambda cmd, **k: FakeProc(128))
     assert cb.git_identity(str(tmp_path)) == {"commit": None, "dirty": None}
+
+
+# --- mumei-llm certificates -----------------------------------------------------
+
+LLM_FIXED_BODY = "        if days <= 0 { 0 } else { total / days }"
+LLM_CERT = "proofs/python/py-09-x/PY09-D01/mumei-llm/stub__model-1-run{n}.fixed.proof.json"
+
+
+def run_mumei_llm(repo, monkeypatch, runs=1, body=LLM_FIXED_BODY):
+    run_reference(repo, monkeypatch)
+    prov = StubProvider(lambda m, s: json.dumps({"body": body}))
+    assert cb.main(["--arm", "mumei-llm", "--runs", str(runs), "--mumei-bin", "mumei"], provider=prov) == 0
+    return cb.result_path("mumei-llm", prov.model)
+
+
+def test_proven_mumei_llm_port_commits_a_certificate_per_run(repo, monkeypatch, capsys):
+    path = run_mumei_llm(repo, monkeypatch, runs=2)
+    doc = json.loads(path.read_text())
+    for n, run in enumerate(doc["runs"], 1):
+        cert = run[0]["fixed"]["certificate"]
+        port = cb.assemble(case(repo), LLM_FIXED_BODY)
+        assert cert["file"] == f"mumei-llm/stub__model-1-run{n}.fixed.proof.json"
+        assert cert["port_sha256"] == cb.sha256(port)
+        assert cb.sha256((repo / LLM_CERT.format(n=n)).read_text()) == cert["sha256"]
+    assert "certificate" not in doc["runs"][0][0]["buggy"]
+    md = (repo / "proofs/RESULTS.md").read_text()
+    assert "Proof certificates for mumei + LLM" in md and "per run: 1 / 1, 1 / 1 proven" in md
+    assert cb.main(["--check"]) == 0, capsys.readouterr().err
+
+
+def test_refused_mumei_llm_only_rerun_touches_no_certificate(repo, monkeypatch):
+    path = run_mumei_llm(repo, monkeypatch)
+    certs = {p: p.read_text() for p in repo.rglob("*.fixed.proof.json")}
+    result = path.read_text()
+    prov = StubProvider(lambda m, s: json.dumps({"body": "        total / days"}))
+    with pytest.raises(SystemExit, match="run count"):
+        cb.main(["--arm", "mumei-llm", "--runs", "2", "--mumei-bin", "mumei", "--only", "PY09-D01"], provider=prov)
+    assert {p: p.read_text() for p in repo.rglob("*.fixed.proof.json")} == certs
+    assert path.read_text() == result
+
+
+def test_unproven_mumei_llm_port_has_no_certificate(repo, monkeypatch, capsys):
+    run_mumei_llm(repo, monkeypatch)
+    path = run_mumei_llm(repo, monkeypatch, body="        total / days")
+    assert "certificate" not in json.loads(path.read_text())["runs"][0][0]["fixed"]
+    assert not (repo / LLM_CERT.format(n=1)).exists()
+    assert cb.main(["--check"]) == 0, capsys.readouterr().err
+
+
+def edit_llm_body(repo):
+    path = cb.result_path("mumei-llm", StubProvider.model)
+    doc = json.loads(path.read_text())
+    doc["runs"][0][0]["fixed"]["body"] = "  " + doc["runs"][0][0]["fixed"]["body"]
+    path.write_text(json.dumps(doc))
+
+
+def write_orphan(repo):
+    (repo / LLM_CERT.format(n=2)).write_text("old")
+
+
+@pytest.mark.parametrize("mutate,message", [
+    (lambda r: (r / LLM_CERT.format(n=1)).unlink(), "run1.fixed.proof.json is missing"),
+    (edit_llm_body, "is stale: the port changed after it was certified"),
+    (write_orphan, "run2.fixed.proof.json belongs to no recorded mumei-llm run"),
+])
+def test_check_rejects_bad_mumei_llm_certificates(repo, monkeypatch, capsys, mutate, message):
+    run_mumei_llm(repo, monkeypatch)
+    mutate(repo)
+    assert cb.main(["--check"]) == 1
+    assert message in capsys.readouterr().err
+
+
+def test_check_rejects_a_mumei_llm_result_from_another_build(repo, monkeypatch, capsys):
+    path = run_mumei_llm(repo, monkeypatch)
+    doc = json.loads(path.read_text())
+    doc["verifier"] = {**VERIFIER, "commit": "1" * 40}
+    path.write_text(json.dumps(doc))
+    assert cb.main(["--check"]) == 1
+    assert "was verified with another mumei build than the reference result" in capsys.readouterr().err
+
+
+def test_lean_bridge_without_lake_fails_before_verifying(repo, tmp_path, monkeypatch):
+    monkeypatch.setattr(cb, "lake_on_path", lambda: False)
+    monkeypatch.setattr(cb, "verify_text", fake_verify(REFERENCE))
+    monkeypatch.setattr(cb, "verifier_identity", lambda _bin: dict(VERIFIER))
+    assert cb.main(["--arm", "mumei", "--mumei-bin", "mumei"]) == 0
+    certs = list(repo.rglob(cb.CERT_FILE))
+    for p in certs:
+        p.write_text("sentinel")
+    with pytest.raises(SystemExit, match="needs `lake` on PATH"):
+        cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--lean-bridge", str(tmp_path)])
+    assert certs and all(p.read_text() == "sentinel" for p in certs)

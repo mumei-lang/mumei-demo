@@ -1,0 +1,102 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:21:54Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "canMove",
+      "z3_check_result": "unsat",
+      "content_hash": "d30871482cf0492e153f9de02517b2edf342d2e5943fad69f5fcb0f92dd16790",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "a8e1d914456dcb23177b6004266ff2a6a2df5b3726362e4af8bba1cc5c64c2e3",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "9962b8de3b6bc2a1bc9f0660a54300708258a1c383b5d5ae5b1cb5a1e691e7b4",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "from >= 0 && from <= 4 && to >= 0 && to <= 4",
+      "ensures": "result ==((from == 0 && to == 1) ||(from == 1 &&(to == 2 || to == 0)) ||(from == 2 &&(to == 3 || to == 1)) ||(from == 3 && to == 4))",
+      "forall_constraints": [],
+      "body_expr": "{(from == 0 && to == 1) ||(from == 1 &&(to == 2 || to == 0)) ||(from == 2 &&(to == 3 || to == 1)) ||(from == 3 && to == 4) }",
+      "body_summary": "{(from == 0 && to == 1) ||(from == 1 &&(to == 2 || to == 0)) ||(from == 2 &&(to == 3 || to == 1)) ||(from == 3 && to == 4) }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "from": "from",
+        "result": "result",
+        "to": "to"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "from",
+            "lean_name": "from",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "to",
+            "lean_name": "to",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(from >= 0 && from <= 4 && to >= 0 && to <= 4) -> (result ==((from == 0 && to == 1) ||(from == 1 &&(to == 2 || to == 0)) ||(from == 2 &&(to == 3 || to == 1)) ||(from == 3 && to == 4)))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "b69daf91b90ddfc226ea0e7f1df12ea4587590ba3fcb5d3facaf153958d2e0fa",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:21:54Z"
+      }
+    }
+  ],
+  "certificate_hash": "b88bdf6055ddb11f8d2262d030429fef4cf8477163f52b6a621fc54ecb18e831",
+  "all_verified": true
+}

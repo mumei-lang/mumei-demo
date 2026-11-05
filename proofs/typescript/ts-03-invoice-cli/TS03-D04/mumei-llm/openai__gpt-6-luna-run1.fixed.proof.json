@@ -1,0 +1,96 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:05:35Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "parseItem",
+      "z3_check_result": "unsat",
+      "content_hash": "f57cbe29172e98762331704d88e5cee36df3bcb8ad6cffdb9af1d51c0c0f79a7",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "059b5c4f971ec717c4884fbe0be1572228f240eeaf137bb2840752f8840a0780",
+        "traceability_coverage": 0.5,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "8405dca77f00be4d9fc3535810b72c2547975154f005bf18d3249c3d300b4f46",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Parsed": "ffa9ae0fb4242dd7bb12d4c4b06a4cfa5daa999929a01520f04a091934983712"
+      },
+      "effects": [],
+      "requires": "true",
+      "ensures": "result.ok => result.value > 0",
+      "forall_constraints": [],
+      "body_expr": "{ if quantity <= 0 { Parsed { ok: false, value: quantity } } else { Parsed { ok: true, value: quantity } } }",
+      "body_summary": "{ if quantity <= 0 { Parsed { ok: false, value: quantity } } else { Parsed { ok: true, value: quantity } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "quantity": "quantity",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "quantity",
+            "lean_name": "quantity",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Parsed",
+            "lean_type": "Parsed",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(true) -> (result.ok => result.value > 0)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "06a12723aed98562c05f2a7170f8ab081c31e60a35ab18f32fc216a04abba70b",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:05:35Z"
+      }
+    }
+  ],
+  "certificate_hash": "411d632d3dcaabaf0ba7fa8ff971794c8c6322819929553a5d91370b6920c95f",
+  "all_verified": true
+}

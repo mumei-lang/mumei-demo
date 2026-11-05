@@ -1,0 +1,116 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:00:59Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "split_payment",
+      "z3_check_result": "unsat",
+      "content_hash": "e9c790fd02f8b9db5eb1db21c4bc21f603cd1c4148ea65e9b8df57fa26f3c580",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "1b93de67bdd11e6f6c493b29748c03fabc4a02a1da5392195b0fc22af5a24fa8",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "97d53b6712483acf66001b0f8bb407c1347d18b5a5b1678355e1cc5da85e32a2",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Parsed": "ffa9ae0fb4242dd7bb12d4c4b06a4cfa5daa999929a01520f04a091934983712"
+      },
+      "effects": [],
+      "requires": "recipients >= 0",
+      "ensures": "result.ok => recipients > 0",
+      "forall_constraints": [],
+      "body_expr": "{ if recipients == 0 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: amount_cents / recipients } } }",
+      "body_summary": "{ if recipients == 0 { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: amount_cents / recipients } } }",
+      "z3_result_class": "unsat",
+      "escalation_reason": "nonlinear_arithmetic",
+      "logic_fragment_tag": "nonlinear_arithmetic",
+      "logic_fragment_tags": [
+        "nonlinear_arithmetic"
+      ],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "amount_cents": "amount_cents",
+        "recipients": "recipients",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "amount_cents",
+            "lean_name": "amount_cents",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "recipients",
+            "lean_name": "recipients",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Parsed",
+            "lean_type": "Parsed",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(recipients >= 0) -> (result.ok => recipients > 0)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "integer_overflow_bridge",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [
+          "integer_overflow_bridge: Mumei uses 2's complement wrap semantics, Lean 4 Int is unbounded. Bridge lemma required for overflow behavior."
+        ],
+        "proof_trace_hints": [
+          "assert mumei_i64_in_range hypotheses before applying arithmetic lemmas"
+        ],
+        "requires_bridge_lemmas": [
+          "mumei_i64_overflow_bridge",
+          "mumei_i64_add_overflow_bridge",
+          "mumei_div_by_zero_bridge"
+        ]
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "b6d96befcf8f97e594fefd6257a2fedbef6f68952f6fc9d5f491fa521275dfa7",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:00:59Z"
+      }
+    }
+  ],
+  "certificate_hash": "87173de9422ab665f5799b75fdfd5b2c2c4347a0d5b83014449c57173b6c89cc",
+  "all_verified": true
+}

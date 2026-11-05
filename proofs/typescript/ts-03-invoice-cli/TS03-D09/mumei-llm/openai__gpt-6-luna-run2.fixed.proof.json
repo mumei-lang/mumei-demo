@@ -1,0 +1,116 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:14:25Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "applyDiscount",
+      "z3_check_result": "unsat",
+      "content_hash": "1a17d379dd649389b2c397e5fc8c0f9a0cfa9259ccb581bee06dffc7bf715a13",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "5068a70dcd2a99fe989e1a969e84b1633a6f970bb3575a7b7dfdc94429bf7cec",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "4aff70f9ba0dea41f8fe304f48ea30bf3e0933a4250d7b435ddee42266b6cebd",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Parsed": "ffa9ae0fb4242dd7bb12d4c4b06a4cfa5daa999929a01520f04a091934983712"
+      },
+      "effects": [],
+      "requires": "amount >= 0",
+      "ensures": "result.ok =>(result.value >= 0 && result.value <= amount)",
+      "forall_constraints": [],
+      "body_expr": "{ if !(percent >= 0 && percent <= 100) { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: amount -(amount * percent / 100) } } }",
+      "body_summary": "{ if !(percent >= 0 && percent <= 100) { Parsed { ok: false, value: 0 } } else { Parsed { ok: true, value: amount -(amount * percent / 100) } } }",
+      "z3_result_class": "unsat",
+      "escalation_reason": "nonlinear_arithmetic",
+      "logic_fragment_tag": "nonlinear_arithmetic",
+      "logic_fragment_tags": [
+        "nonlinear_arithmetic"
+      ],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "amount": "amount",
+        "percent": "percent",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "amount",
+            "lean_name": "amount",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "percent",
+            "lean_name": "percent",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Parsed",
+            "lean_type": "Parsed",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(amount >= 0) -> (result.ok =>(result.value >= 0 && result.value <= amount))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "integer_overflow_bridge",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [
+          "integer_overflow_bridge: Mumei uses 2's complement wrap semantics, Lean 4 Int is unbounded. Bridge lemma required for overflow behavior."
+        ],
+        "proof_trace_hints": [
+          "assert mumei_i64_in_range hypotheses before applying arithmetic lemmas"
+        ],
+        "requires_bridge_lemmas": [
+          "mumei_i64_overflow_bridge",
+          "mumei_i64_add_overflow_bridge",
+          "mumei_div_by_zero_bridge"
+        ]
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "5db2acda6efae9453f184a238b0a40c4cf281e843d21a3844897f342bc717cf3",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:14:25Z"
+      }
+    }
+  ],
+  "certificate_hash": "3881031b8ad1f9194cd3240a345ee434aa8761236970a6e9b74e9439b236fb18",
+  "all_verified": true
+}

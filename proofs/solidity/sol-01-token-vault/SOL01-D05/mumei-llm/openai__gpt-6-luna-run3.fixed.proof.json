@@ -1,0 +1,110 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:19:57Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "setFeeRecipient",
+      "z3_check_result": "unsat",
+      "content_hash": "6a05e674a01587473cdb76087accda7438e5df7c2cbcce21055901e260fb125f",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "ddb29888fbb3812e6bea93162d5d9f015df54c273c91c494cf01234115a456f0",
+        "traceability_coverage": 0.5,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "176da48bf48bb9924d5b784c44e5b9105688ef8fb8b8dbf759e41c5d04ac5be2",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "true",
+      "ensures": "is_owner == false => result == current",
+      "forall_constraints": [],
+      "body_expr": "{ if is_owner { if who != 0 { who } else { current } } else { current } }",
+      "body_summary": "{ if is_owner { if who != 0 { who } else { current } } else { current } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "current": "current",
+        "is_owner": "is_owner",
+        "result": "result",
+        "who": "who"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "is_owner",
+            "lean_name": "is_owner",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "who",
+            "lean_name": "who",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "current",
+            "lean_name": "current",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(true) -> (is_owner == false => result == current)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "c6ad5d2336fc320b23c6fd8e639f1432d4e39eff162aa7721b87d79e64458095",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:19:57Z"
+      }
+    }
+  ],
+  "certificate_hash": "c40fb4891f547b2ce9aa7eb0a6ac6aad6a325c709b6c0903e2f29c2628a9f651",
+  "all_verified": true
+}

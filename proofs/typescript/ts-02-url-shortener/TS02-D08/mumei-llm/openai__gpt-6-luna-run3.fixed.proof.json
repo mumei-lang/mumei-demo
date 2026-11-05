@@ -1,0 +1,94 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:22:24Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "normalizeAlias",
+      "z3_check_result": "unsat",
+      "content_hash": "a919d1541013e083461edc3647e80e3cf78040ad4e2848f510c3508bb32c3a84",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "a50fa63b58b07ef4cab4911338dfcd3070b856dcedaae26e8decf99749696b3c",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "3a933887e8d6ec1015e5d38883b052d4c932624105c86695b181f6b04f09ac29",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "n >= 1 && n <= 8",
+      "ensures": "result == n",
+      "forall_constraints": [],
+      "body_expr": "{ n }",
+      "body_summary": "{ n }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "n": "n",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "n",
+            "lean_name": "n",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(n >= 1 && n <= 8) -> (result == n)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "0128540059fdcb51b5c54a34364c2c4501b0201234b9d1fdcd5dddcd9d7c0063",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:22:24Z"
+      }
+    }
+  ],
+  "certificate_hash": "3a56d152498fcaac975422023f0a2fb5b838e2f52d2971b2cd66c53f1c965498",
+  "all_verified": true
+}

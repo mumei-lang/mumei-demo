@@ -1,0 +1,116 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:19:42Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "scale",
+      "z3_check_result": "unsat",
+      "content_hash": "c1709cc85804db89a4669477edd85fa5c4e3c001a6c584d426cb019c6662a420",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "4cda06d77e054e70408e08c9664d60177c5df4aad2c1a98079a0c049f34bd6b2",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "ee666319e3390ccd8f1a63ac411dad532ace14e3466e83bd0b134c2a4381a869",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Parsed": "ffa9ae0fb4242dd7bb12d4c4b06a4cfa5daa999929a01520f04a091934983712"
+      },
+      "effects": [],
+      "requires": "v >=(0 - 2147483648) && v <= 2147483647 && factor >=(0 - 2147483648) && factor <= 2147483647",
+      "ensures": "result.ok =>(result.value >=(0 - 2147483648) && result.value <= 2147483647)",
+      "forall_constraints": [],
+      "body_expr": "{ let product = v * factor; if product >=(0 - 2147483648) && product <= 2147483647 { Parsed { ok: true, value: product } } else { Parsed { ok: false, value: 0 } } }",
+      "body_summary": "{ let product = v * factor; if product >=(0 - 2147483648) && product <= 2147483647 { Parsed { ok: true, value: product } } else { Parsed { ok: false, value: 0 } } }",
+      "z3_result_class": "unsat",
+      "escalation_reason": "nonlinear_arithmetic",
+      "logic_fragment_tag": "nonlinear_arithmetic",
+      "logic_fragment_tags": [
+        "nonlinear_arithmetic"
+      ],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "factor": "factor",
+        "result": "result",
+        "v": "v"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "v",
+            "lean_name": "v",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "factor",
+            "lean_name": "factor",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Parsed",
+            "lean_type": "Parsed",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(v >=(0 - 2147483648) && v <= 2147483647 && factor >=(0 - 2147483648) && factor <= 2147483647) -> (result.ok =>(result.value >=(0 - 2147483648) && result.value <= 2147483647))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "integer_overflow_bridge",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [
+          "integer_overflow_bridge: Mumei uses 2's complement wrap semantics, Lean 4 Int is unbounded. Bridge lemma required for overflow behavior."
+        ],
+        "proof_trace_hints": [
+          "assert mumei_i64_in_range hypotheses before applying arithmetic lemmas"
+        ],
+        "requires_bridge_lemmas": [
+          "mumei_i64_overflow_bridge",
+          "mumei_i64_add_overflow_bridge",
+          "mumei_div_by_zero_bridge"
+        ]
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "898324744f40ddce8d60c351719b6a09094a0d058bfb06fda344d865b8902f8a",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:19:42Z"
+      }
+    }
+  ],
+  "certificate_hash": "a9df9ae132f90f4d7d43d7805854f7f30971164f74d9271e988a2c527f1d5627",
+  "all_verified": true
+}

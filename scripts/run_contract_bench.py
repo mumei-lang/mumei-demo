@@ -301,8 +301,11 @@ TRUST_LABEL = {"z3": "Z3", "lean": "Lean", "unproven": "not proven"}
 LAKE_ERROR = re.compile(r"^error: \S*?\.lean:\d+:\d+: (.*)$", re.MULTILINE)
 
 
-def cert_summary(text: str, case: dict) -> dict:
-    """What a proof certificate says about the case's atom, and the hashes that pin it to the fixed port."""
+def cert_summary(text: str, case: dict, port: str | None = None, file: str = CERT_FILE) -> dict:
+    """What a proof certificate says about the case's atom, and the hashes that pin it to the fixed port.
+
+    `port` is the certified text when it is not the reference fixed port (a mumei-llm port).
+    """
     try:
         doc = json.loads(text)
     except json.JSONDecodeError:
@@ -310,15 +313,16 @@ def cert_summary(text: str, case: dict) -> dict:
     atoms = doc.get("atoms") if isinstance(doc, dict) else None
     atom = next((a for a in atoms or [] if isinstance(a, dict) and a.get("name") == case["atom"]), None)
     result = atom.get("z3_check_result") if atom else None
-    return {"status": "recorded", "file": CERT_FILE, "sha256": sha256(text),
-            "port_sha256": sha256(case["ports"]["fixed"]), "all_verified": isinstance(doc, dict) and doc.get("all_verified") is True,
+    return {"status": "recorded", "file": file, "sha256": sha256(text),
+            "port_sha256": sha256(case["ports"]["fixed"] if port is None else port), "all_verified": isinstance(doc, dict) and doc.get("all_verified") is True,
             "z3_check_result": result, "trust": TRUST.get(result, "unproven")}
 
 
-def certify(mumei_bin: str, case: dict, timeout: int) -> tuple[dict, str | None]:
-    """Emit a proof certificate for the fixed port and re-check it: (summary, certificate text)."""
+def certify(mumei_bin: str, case: dict, timeout: int, port: str | None = None,
+            file: str = CERT_FILE) -> tuple[dict, str | None]:
+    """Emit a proof certificate for the fixed port (or `port`) and re-check it: (summary, certificate text)."""
     with tempfile.TemporaryDirectory(prefix="contract-bench-") as tmp:
-        (Path(tmp) / "fixed.mm").write_text(case["ports"]["fixed"])
+        (Path(tmp) / "fixed.mm").write_text(case["ports"]["fixed"] if port is None else port)
         try:
             subprocess.run([mumei_bin, "verify", "--json", "--proof-cert", "--output", CERT_FILE, "fixed.mm"],
                            cwd=tmp, capture_output=True, text=True, timeout=timeout, check=False)
@@ -330,7 +334,12 @@ def certify(mumei_bin: str, case: dict, timeout: int) -> tuple[dict, str | None]
         except subprocess.TimeoutExpired:
             return {"status": "timeout"}, None
         text = cert.read_text()
-    return {**cert_summary(text, case), "verify_cert": "ok" if check.returncode == 0 else "failed"}, text
+    return {**cert_summary(text, case, port, file), "verify_cert": "ok" if check.returncode == 0 else "failed"}, text
+
+
+def llm_cert_file(model: str, seed: int) -> str:
+    """Where a proven mumei-llm fixed port's certificate lives, relative to the case directory."""
+    return f"mumei-llm/{llm_only.model_slug(model)}-run{seed + 1}.{CERT_FILE}"
 
 
 def lean_dual_check(lean_dir: str, case: dict, cert_text: str, timeout: int) -> dict:
@@ -369,6 +378,10 @@ def lean_dual_check(lean_dir: str, case: dict, cert_text: str, timeout: int) -> 
     return result
 
 
+def lake_on_path() -> bool:
+    return shutil.which("lake") is not None
+
+
 def git_identity(path: str) -> dict:
     def git(*args: str) -> str | None:
         res = subprocess.run(["git", "-C", path, *args], capture_output=True, text=True, check=False)
@@ -401,33 +414,59 @@ def run_mumei_case(case: dict, mumei_bin: str, timeout: int) -> dict:
     return out
 
 
+def cert_problems(rel: str, fixed: dict, case: dict, port: str | None, label: str) -> list[str]:
+    """Offline checks of one committed certificate against its record and the port it certifies."""
+    path, cert = REPO_ROOT / rel, fixed.get("certificate")
+    if fixed["outcome"] != "proven":
+        return [f"{rel}: the fixed port is not proven, so it has no certificate to keep"] if path.is_file() else []
+    if not cert or cert.get("status") != "recorded":
+        return [f"{label}: the proven fixed port has no proof certificate"]
+    if not path.is_file():
+        return [f"{rel} is missing"]
+    text = path.read_text()
+    if sha256(text) != cert.get("sha256"):
+        return [f"{rel} does not match its recorded hash"]
+    if cert.get("port_sha256") != sha256(case["ports"]["fixed"] if port is None else port):
+        what = "fixed.mm" if port is None else "the port"
+        return [f"{rel} is stale: {what} changed after it was certified"]
+    file = rel.rsplit(f"{case['dir']}/", 1)[-1]
+    if {**cert_summary(text, case, port, file), "verify_cert": cert.get("verify_cert")} != cert:
+        return [f"{rel} does not say what its record says"]
+    if cert["verify_cert"] != "ok" or cert["trust"] == "unproven" or not cert["all_verified"]:
+        return [f"{rel} does not prove {case['atom']} (trust {cert['trust']}, verify-cert {cert['verify_cert']})"]
+    return []
+
+
 def certificate_problems(cases: list[dict], results: list[dict]) -> list[str]:
-    """Offline: every proven reference fixed port has a committed certificate that matches its record and port."""
-    ref = next((d for d in results if d["arm"] == "mumei"), None)
-    if ref is None or not ref["runs"]:
-        return []
+    """Offline: every proven fixed port (reference and mumei-llm) has a committed certificate that matches
+    its record and port, and no certificate is left over from another run."""
     by_id, out = {c["id"]: c for c in cases}, []
-    for r in ref["runs"][0]:
-        c = by_id.get(r["id"])
-        if c is None:
+    ref = next((d for d in results if d["arm"] == "mumei"), None)
+    if ref is not None and ref["runs"]:
+        for r in ref["runs"][0]:
+            c = by_id.get(r["id"])
+            if c is not None:
+                out += cert_problems(f"{c['dir']}/{CERT_FILE}", r["fixed"], c, None, r["id"])
+    expected = set()
+    for d in results:
+        if d["arm"] != "mumei-llm":
             continue
-        rel = f"{c['dir']}/{CERT_FILE}"
-        path, cert = REPO_ROOT / rel, r["fixed"].get("certificate")
-        if r["fixed"]["outcome"] != "proven":
-            if path.is_file():
-                out.append(f"{rel}: the fixed port is not proven, so it has no certificate to keep")
-        elif not cert or cert.get("status") != "recorded":
-            out.append(f"{r['id']}: the proven fixed port has no proof certificate")
-        elif not path.is_file():
-            out.append(f"{rel} is missing")
-        elif sha256(path.read_text()) != cert.get("sha256"):
-            out.append(f"{rel} does not match its recorded hash")
-        elif cert.get("port_sha256") != sha256(c["ports"]["fixed"]):
-            out.append(f"{rel} is stale: fixed.mm changed after it was certified")
-        elif {**cert_summary(path.read_text(), c), "verify_cert": cert.get("verify_cert")} != cert:
-            out.append(f"{rel} does not say what its record says")
-        elif cert["verify_cert"] != "ok" or cert["trust"] == "unproven" or not cert["all_verified"]:
-            out.append(f"{rel} does not prove {c['atom']} (trust {cert['trust']}, verify-cert {cert['verify_cert']})")
+        for seed, run in enumerate(d["runs"]):
+            for r in run:
+                c = by_id.get(r["id"])
+                if c is None:
+                    continue
+                rel = f"{c['dir']}/{llm_cert_file(d['model'], seed)}"
+                expected.add(rel)
+                port = assemble(c, r["fixed"]["body"]) if isinstance(r["fixed"].get("body"), str) else None
+                if r["fixed"]["outcome"] == "proven" and port is None:
+                    out.append(f"{d['arm']} ({d['model']}) run {seed + 1}: {r['id']} is proven without a body")
+                    continue
+                out += cert_problems(rel, r["fixed"], c, port or "", f"{d['arm']} run {seed + 1}: {r['id']}")
+    for path in sorted(PROOFS_ROOT.glob(f"*/*/*/mumei-llm/*.{CERT_FILE}")):
+        rel = str(path.relative_to(REPO_ROOT))
+        if rel not in expected:
+            out.append(f"{rel} belongs to no recorded mumei-llm run")
     return out
 
 
@@ -565,6 +604,15 @@ def run_llm_case(case: dict, provider, arm: str, seed: int, mumei_bin: str | Non
                 continue
             result = verify_text(mumei_bin, assemble(case, body), timeout)
             out[v] = {**result, "body": body, "usage": usage}
+    if arm == "mumei-llm":
+        file = llm_cert_file(provider.model, seed)
+        path = REPO_ROOT / case["dir"] / file
+        path.unlink(missing_ok=True)
+        if out["fixed"]["outcome"] == "proven":
+            out["fixed"]["certificate"], text = certify(mumei_bin, case, timeout, assemble(case, out["fixed"]["body"]), file)
+            if text is not None:
+                path.parent.mkdir(exist_ok=True)
+                path.write_text(text)
     return out
 
 
@@ -727,6 +775,8 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             out.append("")
         out += certificate_lines(ref)
     for d in results:
+        if d["arm"] == "mumei-llm":
+            out += llm_certificate_lines(d)
         if d["arm"] == "llm-contract":
             passes = [f"{sum(r.get('vacuity') == 'ok' for r in run)} / {len(run)}" for run in d["runs"]]
             out += [f"Vacuity control for {ARM_LABEL['llm-contract']} ({d['model']}), per run: {', '.join(passes)} pass. "
@@ -817,6 +867,18 @@ def certificate_lines(ref: dict) -> list[str]:
     return out
 
 
+def llm_certificate_lines(doc: dict) -> list[str]:
+    per_run, trust = [], Counter()
+    for run in doc["runs"]:
+        certs = [r["fixed"].get("certificate") or {} for r in run if r["fixed"]["outcome"] == "proven"]
+        per_run.append(f"{sum(c.get('verify_cert') == 'ok' for c in certs)} / {len(certs)}")
+        trust.update(c.get("trust", "none") for c in certs)
+    return [f"Proof certificates for {ARM_LABEL['mumei-llm']} ({doc['model']}), per run: {', '.join(per_run)} proven "
+            "fixed ports have one, emitted and re-checked like the reference ones and committed as "
+            f"`mumei-llm/<model>-run<n>.{CERT_FILE}` next to the case. Trust: "
+            + ", ".join(f"{TRUST_LABEL.get(k, k)} {v}" for k, v in sorted(trust.items())) + ".", ""]
+
+
 def render_all(cases: list[dict], write: bool) -> list[str]:
     """Render RESULTS.md and the README block; with write=False return the files that are out of date."""
     results = load_results()
@@ -840,19 +902,25 @@ def render_all(cases: list[dict], write: bool) -> list[str]:
 
 def merge_runs(arm: str, model: str | None, runs: list[list[dict]], verifier: dict | None = None) -> list[list[dict]]:
     """Replace the given cases in the committed result, so that --only reruns a few cases."""
-    path = result_path(arm, model)
-    if not path.is_file():
-        raise SystemExit(f"{path.relative_to(REPO_ROOT)} does not exist yet; run every case before using --only")
-    old = json.loads(path.read_text())
-    if len(old["runs"]) != len(runs) or (arm != "mumei" and old.get("prompt_hash") != prompt_hash(arm)):
-        raise SystemExit(f"{path.relative_to(REPO_ROOT)} has another prompt or run count; rerun without --only")
-    if verifier is not None and "verifier" in old and old["verifier"] != verifier:
-        raise SystemExit(f"{path.relative_to(REPO_ROOT)} was recorded with another mumei build; rerun without --only")
+    old = check_mergeable(arm, model, len(runs), verifier)
     merged = []
     for o, n in zip(old["runs"], runs):
         new = {r["id"]: r for r in n}
         merged.append([new.pop(r["id"], r) for r in o] + list(new.values()))
     return merged
+
+
+def check_mergeable(arm: str, model: str | None, run_count: int, verifier: dict | None = None) -> dict:
+    """The committed result an --only rerun merges into; exits before any case runs or writes a certificate."""
+    path = result_path(arm, model)
+    if not path.is_file():
+        raise SystemExit(f"{path.relative_to(REPO_ROOT)} does not exist yet; run every case before using --only")
+    old = json.loads(path.read_text())
+    if len(old["runs"]) != run_count or (arm != "mumei" and old.get("prompt_hash") != prompt_hash(arm)):
+        raise SystemExit(f"{path.relative_to(REPO_ROOT)} has another prompt or run count; rerun without --only")
+    if verifier is not None and "verifier" in old and old["verifier"] != verifier:
+        raise SystemExit(f"{path.relative_to(REPO_ROOT)} was recorded with another mumei build; rerun without --only")
+    return old
 
 
 def recording_bin(arm: str, model: str | None, args) -> str | None:
@@ -941,7 +1009,7 @@ def main(argv: list[str], provider=None) -> int:
         else:
             problems += [f"{result_path(d['arm'], d.get('model')).relative_to(REPO_ROOT)} was verified with another "
                          f"mumei build than the reference result; rerun it with the reference build"
-                         for d in results if d["arm"] == "llm-contract" and d.get("verifier") != ref["verifier"]]
+                         for d in results if d["arm"] in ("llm-contract", "mumei-llm") and d.get("verifier") != ref["verifier"]]
         problems += [f"{f} is out of date; run --render-only" for f in render_all(cases, write=False)]
         for msg in problems:
             print(f"error: {msg}", file=sys.stderr)
@@ -968,6 +1036,10 @@ def main(argv: list[str], provider=None) -> int:
                 if args.lean_bridge and old.get("lean_bridge") != git_identity(args.lean_bridge):
                     raise SystemExit(f"{result_path(arm, None).relative_to(REPO_ROOT)} was checked with another "
                                      "mumei-lean commit; rerun every case with --lean-bridge instead of using --only")
+            if args.only:
+                check_mergeable(arm, None, 1, verifier_identity(args.mumei_bin))
+            if args.lean_bridge and not lake_on_path():
+                raise SystemExit("--lean-bridge needs `lake` on PATH (elan's ~/.elan/bin)")
             with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
                 run = list(pool.map(lambda c: run_mumei_case(c, args.mumei_bin, args.timeout), cases))
             lean = None
@@ -987,6 +1059,9 @@ def main(argv: list[str], provider=None) -> int:
         else:
             prov = provider or llm_only.provider_from_env(timeout=600)
             prov.retries = max(getattr(prov, "retries", 0), RATE_LIMIT_RETRIES)
+            verifier = verifier_identity(args.mumei_bin) if arm != "llm" else None
+            if args.only:
+                check_mergeable(arm, prov.model, args.runs, verifier)
             runs = []
             for seed in range(args.runs):
                 with concurrent.futures.ThreadPoolExecutor(args.jobs) as pool:
@@ -996,7 +1071,6 @@ def main(argv: list[str], provider=None) -> int:
                     else:
                         runs.append(list(pool.map(
                             lambda c: run_llm_case(c, prov, arm, seed, args.mumei_bin, args.timeout), cases)))
-            verifier = verifier_identity(args.mumei_bin) if arm != "llm" else None
             merged = merge_runs(arm, prov.model, runs, verifier) if args.only else runs
             path = write_result(arm, prov.model, merged, recording_bin(arm, prov.model, args))
         if arm != "mumei" and any(score(run)["errors"] for run in json.loads(path.read_text())["runs"]):

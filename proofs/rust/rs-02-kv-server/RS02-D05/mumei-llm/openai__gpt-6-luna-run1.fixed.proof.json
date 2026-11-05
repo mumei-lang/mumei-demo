@@ -1,0 +1,104 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:01:55Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "incr",
+      "z3_check_result": "unsat",
+      "content_hash": "dc4434ff2c2a3085c88ad11646c4940caaf680dab4c7167b8d7edffcc70574fe",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "8e0105561145354f8ab01f0fedb097457d3f762ea121b66f6c9d2b3444d2283e",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "b794ebe478720998152ea94142faa53f7f26dbb40001e11c0799a4e0e38a4b98",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Parsed": "ffa9ae0fb4242dd7bb12d4c4b06a4cfa5daa999929a01520f04a091934983712"
+      },
+      "effects": [],
+      "requires": "current >=(0 - 2147483648) && current <= 2147483647 && delta >=(0 - 2147483648) && delta <= 2147483647",
+      "ensures": "result.ok =>(result.value >=(0 - 2147483648) && result.value <= 2147483647)",
+      "forall_constraints": [],
+      "body_expr": "{ let next = current + delta; if next >=(0 - 2147483648) && next <= 2147483647 { Parsed { ok: true, value: next } } else { Parsed { ok: false, value: 0 } } }",
+      "body_summary": "{ let next = current + delta; if next >=(0 - 2147483648) && next <= 2147483647 { Parsed { ok: true, value: next } } else { Parsed { ok: false, value: 0 } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "current": "current",
+        "delta": "delta",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "current",
+            "lean_name": "current",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "delta",
+            "lean_name": "delta",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Parsed",
+            "lean_type": "Parsed",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(current >=(0 - 2147483648) && current <= 2147483647 && delta >=(0 - 2147483648) && delta <= 2147483647) -> (result.ok =>(result.value >=(0 - 2147483648) && result.value <= 2147483647))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 6,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "19111b99273853f8f988efcbcbac5a190dea850e6bdbc69ee501c0d389d0ad90",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:01:55Z"
+      }
+    }
+  ],
+  "certificate_hash": "2f78bb0191630319815543c226b6e3039f19f2f10d094aef00a71c73a09af79c",
+  "all_verified": true
+}

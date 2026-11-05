@@ -1,0 +1,136 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:17:58Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "transfer",
+      "z3_check_result": "unsat",
+      "content_hash": "22621b50dad27dfbe06e6961df630aacf4f89683ac4c40f6e7cc5eb1fecc1dc7",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "3937d924c64759390cbf310b47762331af25f6bc98c0dae60577fe236ebe5fac",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "5ebd04c6e6678b7fa51153dbbde850a161e9720eb2bc92615a2ab3c86fa6662d",
+      "dependencies": [],
+      "dependency_hashes": {
+        "struct:Transfer": "91a9ff5395986c9501efc0f0fb4a3fc6b5b28735afd6593cc78659434439335a"
+      },
+      "effects": [],
+      "requires": "src >= 0",
+      "ensures": "result.ok == false =>(result.src == src && result.dst == dst && result.house == house)",
+      "forall_constraints": [],
+      "body_expr": "{ if amount <= 0 || ! dst_exists || ! distinct_open || src < amount + 25 { Transfer { ok: false, src: src, dst: dst, house: house } } else { Transfer { ok: true, src: src - amount - 25, dst: dst + amount, house: house + 25 } } }",
+      "body_summary": "{ if amount <= 0 || ! dst_exists || ! distinct_open || src < amount + 25 { Transfer { ok: false, src: src, dst: dst, house: house } } else { Transfer { ok: true, src: src - amount - 25, dst: dst + amount, house: house + 25 } } }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "amount": "amount",
+        "distinct_open": "distinct_open",
+        "dst": "dst",
+        "dst_exists": "dst_exists",
+        "house": "house",
+        "result": "result",
+        "src": "src"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "src",
+            "lean_name": "src",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "dst",
+            "lean_name": "dst",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "house",
+            "lean_name": "house",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "dst_exists",
+            "lean_name": "dst_exists",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "distinct_open",
+            "lean_name": "distinct_open",
+            "mumei_type": "bool",
+            "lean_type": "Bool",
+            "role": "param"
+          },
+          {
+            "mumei_name": "amount",
+            "lean_name": "amount",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "Transfer",
+            "lean_type": "Transfer",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(src >= 0) -> (result.ok == false =>(result.src == src && result.dst == dst && result.house == house))",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 8,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "d0fd2ccf67d18a48dfa5db5028fa2277302c1cccd75647911d80a59a74f1077f",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:17:58Z"
+      }
+    }
+  ],
+  "certificate_hash": "bf48d980f582cf8873b3c7ffb15e5f6bd7931b8a4774c2d14c15cde0eae8ad35",
+  "all_verified": true
+}

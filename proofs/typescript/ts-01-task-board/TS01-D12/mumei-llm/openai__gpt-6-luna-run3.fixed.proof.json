@@ -1,0 +1,122 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:22:11Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "paginate",
+      "z3_check_result": "unsat",
+      "content_hash": "fbe4227b4a9d693926bcf8aeb7313545870c2f654a22d5a064e5667299e26ba1",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "36ad3b1bdabe22d4fbf0300536b24e11e41f355bf1fa48ef17826f75ef7721b9",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "a5614a88a6931aa1a233625c1695f028cfb9d327baa0499c60a25c30b9e48637",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "n >= 0 && page >= 1 && size >= 1",
+      "ensures": "page * size <= n => result == size",
+      "forall_constraints": [],
+      "body_expr": "{ let start =(page - 1) * size; let end = start + size; if start >= n { 0 } else if end > n { n - start } else { size } }",
+      "body_summary": "{ let start =(page - 1) * size; let end = start + size; if start >= n { 0 } else if end > n { n - start } else { size } }",
+      "z3_result_class": "unsat",
+      "escalation_reason": "nonlinear_arithmetic",
+      "logic_fragment_tag": "nonlinear_arithmetic",
+      "logic_fragment_tags": [
+        "nonlinear_arithmetic"
+      ],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "n": "n",
+        "page": "page",
+        "result": "result",
+        "size": "size"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "n",
+            "lean_name": "n",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "page",
+            "lean_name": "page",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "size",
+            "lean_name": "size",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(n >= 0 && page >= 1 && size >= 1) -> (page * size <= n => result == size)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "integer_overflow_bridge",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [
+          "integer_overflow_bridge: Mumei uses 2's complement wrap semantics, Lean 4 Int is unbounded. Bridge lemma required for overflow behavior."
+        ],
+        "proof_trace_hints": [
+          "assert mumei_i64_in_range hypotheses before applying arithmetic lemmas"
+        ],
+        "requires_bridge_lemmas": [
+          "mumei_i64_overflow_bridge",
+          "mumei_i64_add_overflow_bridge",
+          "mumei_div_by_zero_bridge"
+        ]
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "362ca214278a3ec6226acf0f6c6fb08b3ff4ca61de679387ce49c91224ed687d",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:22:11Z"
+      }
+    }
+  ],
+  "certificate_hash": "f942e412d3b7b9b9192e3a272784855545394decaf4e7c268b42bd1bb3aaa9db",
+  "all_verified": true
+}

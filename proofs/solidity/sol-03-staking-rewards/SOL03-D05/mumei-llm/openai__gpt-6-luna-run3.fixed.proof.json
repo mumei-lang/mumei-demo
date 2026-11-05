@@ -1,0 +1,94 @@
+{
+  "version": "1.1",
+  "timestamp": "2026-11-05T16:21:45Z",
+  "mumei_version": "0.6.23",
+  "z3_version": "4.14.1",
+  "file": "fixed.mm",
+  "atoms": [
+    {
+      "name": "emergencyWithdraw",
+      "z3_check_result": "unsat",
+      "content_hash": "40d8680e73a1b4594c2a17f6b02ff8463d494e31946c099f46aac4e77575f205",
+      "status": "verified",
+      "spec_validation_result": {
+        "status": "satisfiable",
+        "is_satisfiable": true,
+        "trace_id": null,
+        "spec_metadata": {
+          "source_file": "fixed.mm"
+        },
+        "traceability_hash": "a13058fb4bb732924564b701218a6cdfb71361968f5eff81329dbb25791ab99c",
+        "traceability_coverage": 0.75,
+        "checked_requires": true,
+        "checked_ensures": 1,
+        "checked_refinements": 0,
+        "ensures_implication_checks": 0,
+        "diagnostics": []
+      },
+      "proof_hash": "1589f776495c59f4ddac85dfd1aa93e0039dbf71c89b7c6f2d75b631b6b98299",
+      "dependencies": [],
+      "dependency_hashes": {},
+      "effects": [],
+      "requires": "balance > 0",
+      "ensures": "result == 0",
+      "forall_constraints": [],
+      "body_expr": "{ let amount = balance; let caller_balance = 0; let transfer_observation = caller_balance; transfer_observation }",
+      "body_summary": "{ let amount = balance; let caller_balance = 0; let transfer_observation = caller_balance; transfer_observation }",
+      "z3_result_class": "unsat",
+      "logic_fragment_tag": "linear_arithmetic",
+      "logic_fragment_tags": [],
+      "translator_version": "mumei-lean-translator-ir-v2",
+      "binder_mapping": {
+        "balance": "balance",
+        "result": "result"
+      },
+      "bridge_lemma_hash": "5716cfdd945d68b4a0d75d75c5ade1934cbd76e0dfe16734a8f3dd723cfdd8e9",
+      "translator_ir": {
+        "sort": "contract_obligation",
+        "binders": [
+          {
+            "mumei_name": "balance",
+            "lean_name": "balance",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "param"
+          },
+          {
+            "mumei_name": "result",
+            "lean_name": "result",
+            "mumei_type": "i64",
+            "lean_type": "Int",
+            "role": "result"
+          }
+        ],
+        "theorem_goal": "(balance > 0) -> (result == 0)",
+        "provenance_span": {
+          "file": "fixed.mm",
+          "line": 1,
+          "col": 1,
+          "len": 4
+        },
+        "lowering_rules": [
+          "contract_lowering",
+          "type_system_mapping"
+        ],
+        "semantic_gap_notes": [],
+        "proof_trace_hints": [],
+        "requires_bridge_lemmas": []
+      },
+      "symbol_provenance": [],
+      "solver_process_metadata": {
+        "task_id": null,
+        "cache_key": "e0247aef4d80948d6ad3cbd02b66a0ccfcdfe693f04d408b1743567645c7c107",
+        "generation_id": "",
+        "solver_config_fingerprint": "4eb8092c0cb08dd4c8d6494173a480c7fae3ce88feef61311d32f80092aad8dc",
+        "timeout_ms": 10000,
+        "cancel_reason": null,
+        "process_start_time": "",
+        "process_end_time": "2026-11-05T16:21:45Z"
+      }
+    }
+  ],
+  "certificate_hash": "5ed5f49d9c9ba23199d2c81236d6eac063073d0c9df7727341e038979c8a12b8",
+  "all_verified": true
+}
