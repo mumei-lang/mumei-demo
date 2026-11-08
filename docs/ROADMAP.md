@@ -1,5 +1,28 @@
 # mumei-demo Roadmap
 
+## Verification-Native assurance regression program
+
+Follow the [canonical implementation order](https://github.com/mumei-lang/mumei/blob/develop/docs/CROSS_PROJECT_ROADMAP.md#verification-native-program-ordered-implementation)
+and [shared architecture contract](https://github.com/mumei-lang/mumei/blob/develop/docs/VERIFICATION_NATIVE.md).
+[C13](https://github.com/mumei-lang/mumei-demo/issues/118) extends the existing
+scenario-evidence, Charter, controls, observations and freshness regressions;
+it does not replace them or add a grade system.
+
+The initial C02 schema/fixture gate lives in Mumei and is explicitly synthetic.
+Later demo slices bind actual producer/consumer evidence, planner decisions
+and native artifacts. They must include fixed-spec buggy/fixed pairs, weak
+specifications, unreachable assumptions, incorrect body ports, stale/replaced
+or missing evidence, adapter incompatibility, explicit selection and denied
+fallback. Track false acceptance, false positives, unsupported/inconclusive
+outcomes and environment errors separately.
+
+[C08](https://github.com/mumei-lang/mumei/issues/788) checks native evidence
+binding; [C09](https://github.com/mumei-lang/mumei/issues/789) checks only the
+declared translation subset; [C10](https://github.com/mumei-lang/mumei/issues/790)
+adds clean-consumer checks. Hash consistency, finite execution and model proof
+remain distinct from semantic correctness, authenticity and runtime authority.
+The current Charter/record examples are not retroactively promoted.
+
 ## Scenario evidence: requirements-to-CI example
 
 The Charter scenario opts into `mumei-demo.scenario-evidence/v1`. Readers
