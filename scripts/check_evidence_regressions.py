@@ -15,6 +15,7 @@ CASES = (
     "unchanged", "missing_source", "missing_certificate", "missing_claim_book",
     "replaced_certificate", "stale_claim", "direct_dependency", "transitive_dependency",
     "missing_required_artifact", "missing_step", "existing_failure",
+    "kind_pinned", "kind_substituted",
 )
 
 
@@ -76,6 +77,15 @@ def mutate(case: str, data: dict, root: Path) -> None:
             layer["steps"] = [s for s in layer["steps"] if s["id"] != requirement["step"]]
     elif case == "existing_failure":
         data["overall_status"] = "FAIL"
+    elif case == "kind_pinned":
+        requirement["evidence_kind"] = "z3"
+    elif case == "kind_substituted":
+        requirement["evidence_kind"] = "z3"
+        book = json.loads(book_path.read_text(encoding="utf-8"))
+        claim = next(c for c in book["claims"] if c["atom"] == requirement["atom"])
+        claim["evidence_kind"] = "replay"
+        write_json(book_path, book)
+        data["evidence_identities"] = capture_identities(data, root)
     elif case != "unchanged":
         raise ValueError(f"unknown regression case: {case}")
 
@@ -108,8 +118,8 @@ def run_suite(result_path: Path, out_dir: Path) -> dict:
             mutate(case, data, target)
             write_json(path, data)
             actual = load_result(path)
-            expected = "PASS" if case == "unchanged" else "FAIL"
-            expected_evidence = "satisfied" if case in {"unchanged", "existing_failure"} else "incomplete"
+            expected = "PASS" if case in {"unchanged", "kind_pinned"} else "FAIL"
+            expected_evidence = "satisfied" if case in {"unchanged", "existing_failure", "kind_pinned"} else "incomplete"
             matched = actual["overall_status"] == expected and actual["evidence_summary"]["status"] == expected_evidence
             if case in {"direct_dependency", "transitive_dependency"}:
                 key = "direct_unresolved_dependencies" if case == "direct_dependency" else "transitive_unresolved_dependencies"

@@ -320,7 +320,7 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
         seen = set()
         for requirement in config["claims"]:
             try:
-                if not isinstance(requirement, dict) or set(requirement) - {"step", "source", "atom", "minimum_grade", "require_complete", "require_discriminating"}:
+                if not isinstance(requirement, dict) or set(requirement) - {"step", "source", "atom", "minimum_grade", "require_complete", "require_discriminating", "evidence_kind"}:
                     raise EvidenceError("invalid required claim selector")
                 if not all(isinstance(requirement.get(key), str) and requirement[key] for key in ("step", "source", "atom")):
                     raise EvidenceError("required claim needs exact step, source, and atom")
@@ -334,6 +334,9 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
                 minimum = requirement.get("minimum_grade")
                 if minimum not in GRADES or not all(isinstance(requirement.get(key, False), bool) for key in ("require_complete", "require_discriminating")):
                     raise EvidenceError("invalid claim gate requirements")
+                required_kind = requirement.get("evidence_kind")
+                if required_kind is not None and not isinstance(required_kind, str):
+                    raise EvidenceError("invalid claim evidence kind requirement")
                 if requirement.get("require_complete", True) is not True:
                     raise EvidenceError("dependency completeness cannot be disabled for required claims")
                 book, claims = _claim_book(data, root, books.get(step_id, {}), source)
@@ -342,6 +345,8 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
                 claim = claims[name]
                 coverage = _coverage(claims, name)
                 problems = []
+                if required_kind is not None and claim["evidence_kind"] != required_kind:
+                    problems.append("evidence kind does not match the requirement")
                 if any(claims[dependency]["freshness"] != "fresh" for dependency in coverage["reachable"]):
                     problems.append("claim or dependency evidence is not fresh")
                 if GRADES.index(claim["effective_grade"]) < GRADES.index(minimum):

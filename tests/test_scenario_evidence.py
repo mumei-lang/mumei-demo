@@ -223,6 +223,20 @@ def test_claim_names_use_exact_not_fuzzy_matching(evidence, name):
     assert "required fully qualified claim was not found" in summary["issues"]
 
 
+def test_evidence_kind_pin_keeps_backend_kinds_distinct(evidence):
+    data, book, snapshot, root = evidence
+    requirement = data["evidence_requirements"]["claims"][0]
+    requirement["evidence_kind"] = "z3"
+    assert aggregate_evidence(data, root)["status"] == "satisfied"
+    book["claims"][0]["evidence_kind"] = "replay"
+    snapshot()
+    summary = aggregate_evidence(data, root)
+    assert summary["status"] == "incomplete"
+    assert "correct.mm::clamp_dose: evidence kind does not match the requirement" in summary["issues"]
+    requirement["evidence_kind"] = 1
+    assert "invalid claim evidence kind requirement" in aggregate_evidence(data, root)["issues"]
+
+
 def test_duplicate_claims_and_duplicate_json_keys_reject(evidence):
     data, book, snapshot, root = evidence
     book["claims"].append(copy.deepcopy(book["claims"][0]))
