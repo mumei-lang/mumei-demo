@@ -26,7 +26,7 @@ def test_matrix_saves_each_negative_reader_result_and_preserves_original(evidenc
     for row in summary["cases"]:
         saved = json.loads((output / row["case"] / "reader_result.json").read_text())
         assert saved["overall_status"] == row["actual_status"]
-        if row["case"] not in {"unchanged", "existing_failure"}:
+        if row["case"] not in {"unchanged", "existing_failure", "kind_pinned"}:
             assert row["issues"]
     assert load_result(root / "result.json")["overall_status"] == "PASS"
     assert {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()} == original

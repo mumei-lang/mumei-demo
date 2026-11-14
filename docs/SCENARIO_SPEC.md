@@ -16,7 +16,8 @@ Grade or compiler DSL. Other result fields retain their existing meanings.
       "atom": "clamp_dose",
       "minimum_grade": "G4",
       "require_complete": true,
-      "require_discriminating": false
+      "require_discriminating": false,
+      "evidence_kind": "z3"
     }],
     "steps": {"verify_correct": "S1_charter_acceptance_verify_correct"},
     "charter_steps": [],
@@ -49,6 +50,13 @@ Grade or compiler DSL. Other result fields retain their existing meanings.
   shown as unavailable; reported contradictions remain failures. Assumed
   clauses and the verifier's trusted base remain visible even on a satisfied
   limited model check.
+- `evidence_kind`, when present, pins the claim's reported evidence kind to an
+  exact value (for example `z3`), so a requirement that intends model proof
+  cannot be satisfied by finite replay or trusted-base evidence with the same
+  grade. The key is optional; leaving it out keeps the claim's kind displayed
+  but unconstrained. A present value must be a non-empty string — `null` or
+  `""` are rejected like other malformed requirement fields, never treated as
+  absent.
 - `artifacts` are additional mandatory inputs/reports (for example the Charter,
   lock, and project configuration). All source/certificate/Claim Book/step-log
   identities are also collected. Paths must stay within the output directory;
