@@ -347,7 +347,10 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
                 claim = claims[name]
                 coverage = _coverage(claims, name)
                 problems = []
-                if required_kind is not None and claim["evidence_kind"] != required_kind:
+                if required_kind is not None and any(
+                    claims[dependency]["evidence_kind"] != required_kind
+                    for dependency in coverage["reachable"]
+                ):
                     problems.append("evidence kind does not match the requirement")
                 if any(claims[dependency]["freshness"] != "fresh" for dependency in coverage["reachable"]):
                     problems.append("claim or dependency evidence is not fresh")

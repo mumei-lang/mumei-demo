@@ -34,12 +34,13 @@ without the evidence configuration keep their existing contract.
 `make demo-charter-regression` connects the existing Charter, negative-control,
 and test-observation scenarios without pretending they prove a single model.
 
-C13 progress: required claims may pin `evidence_kind` (exact match), so a
-requirement written for model proof cannot be satisfied by finite replay or
-another backend's evidence with the same grade — the kinds stay distinct.
-Synthetic regression cases cover both the pinned-match and substituted-kind
-arms. Pinning kinds across producer families and fresh producer/consumer
-bindings remain future slices.
+C13 progress: required claims may pin `evidence_kind` (exact match over the
+claim and its dependency coverage), so a requirement written for model proof
+cannot be satisfied by finite replay or another backend's evidence with the
+same grade — including one reached transitively. Synthetic regression cases
+cover both the pinned-match and substituted-kind arms. Mixed-kind chains
+cannot pin today; fresh producer/consumer bindings and per-kind selectors
+remain future slices.
 
 The real binary checks G4, complete dependencies, and stale-certificate rejection;
 eleven explicitly synthetic reader cases cover missing/replaced evidence,
