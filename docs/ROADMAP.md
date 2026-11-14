@@ -37,13 +37,16 @@ and test-observation scenarios without pretending they prove a single model.
 C13 progress: required claims may pin `evidence_kind` (exact match over the
 claim and its dependency coverage), so a requirement written for model proof
 cannot be satisfied by finite replay or another backend's evidence with the
-same grade — including one reached transitively. Synthetic regression cases
-cover both the pinned-match and substituted-kind arms. Mixed-kind chains
-cannot pin today; fresh producer/consumer bindings and per-kind selectors
-remain future slices.
+same grade — including one reached transitively. `dependency_kinds` extends
+that pin per claim atom, so a mixed-kind chain can pin each claim's own kind
+(the selected claim and any reachable dependency may be named; names outside
+the coverage fail closed). Per-claim pins compose with a uniform
+`evidence_kind` instead of overriding it. Synthetic regression cases cover
+the pinned-match, substituted-kind and per-claim-selector arms. Fresh
+producer/consumer bindings remain a future slice.
 
 The real binary checks G4, complete dependencies, and stale-certificate rejection;
-eleven explicitly synthetic reader cases cover missing/replaced evidence,
+fifteen explicitly synthetic reader cases cover missing/replaced evidence,
 staleness, missing dependencies, required artifact omissions, and failure preservation.
 CI saves diagnostics, current reviewed inputs, and the baseline Git diff.
 The [runbook](../scenarios/charter_gate_demo/README.md) is the executable reference.

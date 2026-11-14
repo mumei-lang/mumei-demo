@@ -320,7 +320,7 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
         seen = set()
         for requirement in config["claims"]:
             try:
-                if not isinstance(requirement, dict) or set(requirement) - {"step", "source", "atom", "minimum_grade", "require_complete", "require_discriminating", "evidence_kind"}:
+                if not isinstance(requirement, dict) or set(requirement) - {"step", "source", "atom", "minimum_grade", "require_complete", "require_discriminating", "evidence_kind", "dependency_kinds"}:
                     raise EvidenceError("invalid required claim selector")
                 if not all(isinstance(requirement.get(key), str) and requirement[key] for key in ("step", "source", "atom")):
                     raise EvidenceError("required claim needs exact step, source, and atom")
@@ -339,6 +339,19 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
                     isinstance(required_kind, str) and required_kind
                 ):
                     raise EvidenceError("invalid claim evidence kind requirement")
+                dependency_kinds = requirement.get("dependency_kinds")
+                if "dependency_kinds" in requirement and not (
+                    isinstance(dependency_kinds, dict)
+                    and all(
+                        isinstance(claim_name, str) and claim_name
+                        for claim_name in dependency_kinds
+                    )
+                    and all(
+                        isinstance(kind, str) and kind
+                        for kind in dependency_kinds.values()
+                    )
+                ):
+                    raise EvidenceError("invalid claim dependency kind requirement")
                 if requirement.get("require_complete", True) is not True:
                     raise EvidenceError("dependency completeness cannot be disabled for required claims")
                 book, claims = _claim_book(data, root, books.get(step_id, {}), source)
@@ -352,6 +365,20 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
                     for dependency in coverage["reachable"]
                 ):
                     problems.append("evidence kind does not match the requirement")
+                if dependency_kinds:
+                    if any(
+                        dependency not in coverage["reachable"]
+                        for dependency in dependency_kinds
+                    ):
+                        problems.append(
+                            "dependency kind requirement names a claim outside the dependency coverage"
+                        )
+                    if any(
+                        dependency in coverage["reachable"]
+                        and claims[dependency]["evidence_kind"] != kind
+                        for dependency, kind in dependency_kinds.items()
+                    ) and "evidence kind does not match the requirement" not in problems:
+                        problems.append("evidence kind does not match the requirement")
                 if any(claims[dependency]["freshness"] != "fresh" for dependency in coverage["reachable"]):
                     problems.append("claim or dependency evidence is not fresh")
                 if GRADES.index(claim["effective_grade"]) < GRADES.index(minimum):
