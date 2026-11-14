@@ -315,6 +315,46 @@ def test_dependency_kinds_compose_with_the_uniform_pin(evidence):
     assert "correct.mm::clamp_dose: evidence kind does not match the requirement" in summary["issues"]
 
 
+def test_hash_pins_bind_the_reviewed_producer_output(evidence):
+    data, book, snapshot, root = evidence
+    requirement = data["evidence_requirements"]["claims"][0]
+    requirement["content_hash"] = "content"
+    requirement["proof_hash"] = "proof"
+    assert aggregate_evidence(data, root)["status"] == "satisfied"
+    # A same-atom claim regenerated with different bytes no longer satisfies.
+    book["claims"][0]["content_hash"] = "different"
+    snapshot()
+    summary = aggregate_evidence(data, root)
+    assert summary["status"] == "incomplete"
+    assert "correct.mm::clamp_dose: claim evidence does not match the pinned producer output" in summary["issues"]
+    book["claims"][0]["content_hash"] = "content"
+    book["claims"][0]["proof_hash"] = "different"
+    snapshot()
+    assert aggregate_evidence(data, root)["status"] == "incomplete"
+
+
+def test_hash_pins_fail_closed_when_the_claim_lacks_the_field(evidence):
+    data, book, snapshot, root = evidence
+    requirement = data["evidence_requirements"]["claims"][0]
+    requirement["content_hash"] = "content"
+    del book["claims"][0]["content_hash"]
+    snapshot()
+    summary = aggregate_evidence(data, root)
+    assert summary["status"] == "incomplete"
+    assert "correct.mm::clamp_dose: claim evidence does not match the pinned producer output" in summary["issues"]
+
+
+@pytest.mark.parametrize("key,invalid", [
+    ("content_hash", ""), ("content_hash", None), ("content_hash", 7),
+    ("proof_hash", ""), ("proof_hash", None),
+])
+def test_hash_pins_validate_their_shape(evidence, key, invalid):
+    data, _, _, root = evidence
+    requirement = data["evidence_requirements"]["claims"][0]
+    requirement[key] = invalid
+    assert "invalid claim evidence hash requirement" in aggregate_evidence(data, root)["issues"]
+
+
 @pytest.mark.parametrize("invalid", ["helper", {"helper": ""}, {"helper": None}, {"helper": 7}, {"": "z3"}])
 def test_dependency_kinds_validate_their_shape(evidence, invalid):
     data, _, _, root = evidence

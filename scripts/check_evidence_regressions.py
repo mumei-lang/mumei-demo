@@ -17,6 +17,7 @@ CASES = (
     "missing_required_artifact", "missing_step", "existing_failure",
     "kind_pinned", "kind_substituted",
     "kind_per_dependency", "kind_per_dependency_outside",
+    "hash_pinned", "hash_substituted",
 )
 
 
@@ -91,6 +92,15 @@ def mutate(case: str, data: dict, root: Path) -> None:
         requirement["dependency_kinds"] = {requirement["atom"]: "z3"}
     elif case == "kind_per_dependency_outside":
         requirement["dependency_kinds"] = {requirement["atom"]: "z3", "__regression_stray_claim": "z3"}
+    elif case in {"hash_pinned", "hash_substituted"}:
+        book = json.loads(book_path.read_text(encoding="utf-8"))
+        claim = next(c for c in book["claims"] if c["atom"] == requirement["atom"])
+        requirement["content_hash"] = claim.get("content_hash", "__regression_missing_content_hash__")
+        requirement["proof_hash"] = claim.get("proof_hash", "__regression_missing_proof_hash__")
+        if case == "hash_substituted":
+            claim["proof_hash"] = "__regression_substituted_proof_hash__"
+            write_json(book_path, book)
+            data["evidence_identities"] = capture_identities(data, root)
     elif case != "unchanged":
         raise ValueError(f"unknown regression case: {case}")
 
@@ -123,8 +133,8 @@ def run_suite(result_path: Path, out_dir: Path) -> dict:
             mutate(case, data, target)
             write_json(path, data)
             actual = load_result(path)
-            expected = "PASS" if case in {"unchanged", "kind_pinned", "kind_per_dependency"} else "FAIL"
-            expected_evidence = "satisfied" if case in {"unchanged", "existing_failure", "kind_pinned", "kind_per_dependency"} else "incomplete"
+            expected = "PASS" if case in {"unchanged", "kind_pinned", "kind_per_dependency", "hash_pinned"} else "FAIL"
+            expected_evidence = "satisfied" if case in {"unchanged", "existing_failure", "kind_pinned", "kind_per_dependency", "hash_pinned"} else "incomplete"
             matched = actual["overall_status"] == expected and actual["evidence_summary"]["status"] == expected_evidence
             if case in {"direct_dependency", "transitive_dependency"}:
                 key = "direct_unresolved_dependencies" if case == "direct_dependency" else "transitive_unresolved_dependencies"

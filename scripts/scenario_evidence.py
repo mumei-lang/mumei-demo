@@ -320,7 +320,7 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
         seen = set()
         for requirement in config["claims"]:
             try:
-                if not isinstance(requirement, dict) or set(requirement) - {"step", "source", "atom", "minimum_grade", "require_complete", "require_discriminating", "evidence_kind", "dependency_kinds"}:
+                if not isinstance(requirement, dict) or set(requirement) - {"step", "source", "atom", "minimum_grade", "require_complete", "require_discriminating", "evidence_kind", "dependency_kinds", "content_hash", "proof_hash"}:
                     raise EvidenceError("invalid required claim selector")
                 if not all(isinstance(requirement.get(key), str) and requirement[key] for key in ("step", "source", "atom")):
                     raise EvidenceError("required claim needs exact step, source, and atom")
@@ -352,6 +352,15 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
                     )
                 ):
                     raise EvidenceError("invalid claim dependency kind requirement")
+                pinned_hashes = {
+                    key: requirement.get(key) for key in ("content_hash", "proof_hash")
+                }
+                if any(
+                    key in requirement
+                    and not (isinstance(requirement[key], str) and requirement[key])
+                    for key in pinned_hashes
+                ):
+                    raise EvidenceError("invalid claim evidence hash requirement")
                 if requirement.get("require_complete", True) is not True:
                     raise EvidenceError("dependency completeness cannot be disabled for required claims")
                 book, claims = _claim_book(data, root, books.get(step_id, {}), source)
@@ -379,6 +388,14 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
                         for dependency, kind in dependency_kinds.items()
                     ) and "evidence kind does not match the requirement" not in problems:
                         problems.append("evidence kind does not match the requirement")
+                if any(
+                    claim.get(key) != value
+                    for key, value in pinned_hashes.items()
+                    if value is not None
+                ):
+                    problems.append(
+                        "claim evidence does not match the pinned producer output"
+                    )
                 if any(claims[dependency]["freshness"] != "fresh" for dependency in coverage["reachable"]):
                     problems.append("claim or dependency evidence is not fresh")
                 if GRADES.index(claim["effective_grade"]) < GRADES.index(minimum):

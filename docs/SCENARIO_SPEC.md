@@ -67,6 +67,13 @@ Grade or compiler DSL. Other result fields retain their existing meanings.
   `evidence_kind`: both keys constrain independently, a per-claim pin never
   overrides the uniform one. Unnamed claims stay unconstrained by the map.
   Values must be non-empty strings.
+- `content_hash` and `proof_hash`, when present, pin the selected claim's
+  reported producer hashes to exact values, binding the requirement to the
+  reviewed bytes rather than the atom name alone — a same-atom claim
+  regenerated with different bytes no longer satisfies it. Each pin applies
+  only to the claim itself; dependency evidence stays gated by grade,
+  freshness and coverage completeness. A claim missing the pinned field
+  fails closed. Values must be non-empty strings.
 - `artifacts` are additional mandatory inputs/reports (for example the Charter,
   lock, and project configuration). All source/certificate/Claim Book/step-log
   identities are also collected. Paths must stay within the output directory;
