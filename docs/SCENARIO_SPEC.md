@@ -49,13 +49,12 @@ Grade or compiler DSL. Other result fields retain their existing meanings.
   controls are displayed without claiming they ran. Missing observations are
   shown as unavailable; reported contradictions remain failures. Assumed
   clauses and the verifier's trusted base remain visible even on a satisfied
-  claim.
+  limited model check.
 - `evidence_kind`, when present, pins the claim's reported evidence kind to an
   exact value (for example `z3`), so a requirement that intends model proof
   cannot be satisfied by finite replay or trusted-base evidence with the same
   grade. The key is optional; leaving it out keeps the claim's kind displayed
   but unconstrained.
-  limited model check.
 - `artifacts` are additional mandatory inputs/reports (for example the Charter,
   lock, and project configuration). All source/certificate/Claim Book/step-log
   identities are also collected. Paths must stay within the output directory;
