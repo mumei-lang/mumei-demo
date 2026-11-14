@@ -50,11 +50,13 @@ Grade or compiler DSL. Other result fields retain their existing meanings.
   shown as unavailable; reported contradictions remain failures. Assumed
   clauses and the verifier's trusted base remain visible even on a satisfied
   limited model check.
-- `evidence_kind`, when present, pins the claim's reported evidence kind to an
-  exact value (for example `z3`), so a requirement that intends model proof
-  cannot be satisfied by finite replay or trusted-base evidence with the same
-  grade. The key is optional; leaving it out keeps the claim's kind displayed
-  but unconstrained. A present value must be a non-empty string — `null` or
+- `evidence_kind`, when present, pins the reported evidence kind of the claim
+  and every claim in its dependency coverage to an exact value (for example
+  `z3`), so a requirement that intends model proof cannot be satisfied by
+  finite replay or trusted-base evidence with the same grade — including one
+  reached transitively. Mixed-kind chains cannot pin a kind today; leave the
+  key out instead. The key is optional; leaving it out keeps the claim's kind
+  displayed but unconstrained. A present value must be a non-empty string — `null` or
   `""` are rejected like other malformed requirement fields, never treated as
   absent.
 - `artifacts` are additional mandatory inputs/reports (for example the Charter,

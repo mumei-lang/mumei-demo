@@ -238,6 +238,21 @@ def test_evidence_kind_pin_keeps_backend_kinds_distinct(evidence):
         assert "invalid claim evidence kind requirement" in aggregate_evidence(data, root)["issues"]
 
 
+def test_evidence_kind_pin_covers_the_dependency_chain(evidence):
+    data, book, snapshot, root = evidence
+    requirement = data["evidence_requirements"]["claims"][0]
+    requirement["evidence_kind"] = "z3"
+    book["claims"][0]["dependencies"] = ["helper"]
+    book["claims"].append(claim("helper", effective_grade="G4"))
+    snapshot()
+    assert aggregate_evidence(data, root)["status"] == "satisfied"
+    book["claims"][1]["evidence_kind"] = "trusted"
+    snapshot()
+    summary = aggregate_evidence(data, root)
+    assert summary["status"] == "incomplete"
+    assert "correct.mm::clamp_dose: evidence kind does not match the requirement" in summary["issues"]
+
+
 def test_duplicate_claims_and_duplicate_json_keys_reject(evidence):
     data, book, snapshot, root = evidence
     book["claims"].append(copy.deepcopy(book["claims"][0]))
