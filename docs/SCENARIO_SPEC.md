@@ -54,11 +54,19 @@ Grade or compiler DSL. Other result fields retain their existing meanings.
   and every claim in its dependency coverage to an exact value (for example
   `z3`), so a requirement that intends model proof cannot be satisfied by
   finite replay or trusted-base evidence with the same grade — including one
-  reached transitively. Mixed-kind chains cannot pin a kind today; leave the
-  key out instead. The key is optional; leaving it out keeps the claim's kind
-  displayed but unconstrained. A present value must be a non-empty string —
-  `null` or `""` are rejected like other malformed requirement fields, never
-  treated as absent.
+  reached transitively. The key is optional; leaving it out keeps the claim's
+  kind displayed but unconstrained. A present value must be a non-empty
+  string — `null` or `""` are rejected like other malformed requirement
+  fields, never treated as absent.
+- `dependency_kinds`, when present, pins the reported evidence kind per claim:
+  a mapping from claim atom to required kind. It may name the selected claim
+  itself or any claim in its dependency coverage, so a mixed-kind chain (for
+  example a `z3` proof over a `replay` helper) can pin each claim's own kind.
+  Every named claim must appear in the coverage — a pin naming a claim
+  outside it fails closed. Named claims keep their pin on top of a uniform
+  `evidence_kind`: both keys constrain independently, a per-claim pin never
+  overrides the uniform one. Unnamed claims stay unconstrained by the map.
+  Values must be non-empty strings.
 - `artifacts` are additional mandatory inputs/reports (for example the Charter,
   lock, and project configuration). All source/certificate/Claim Book/step-log
   identities are also collected. Paths must stay within the output directory;

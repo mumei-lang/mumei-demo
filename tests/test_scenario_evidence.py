@@ -269,6 +269,60 @@ def test_evidence_kind_pin_covers_transitive_dependencies(evidence):
     assert "correct.mm::clamp_dose: evidence kind does not match the requirement" in summary["issues"]
 
 
+def test_dependency_kinds_pin_each_claim_in_a_mixed_chain(evidence):
+    data, book, snapshot, root = evidence
+    requirement = data["evidence_requirements"]["claims"][0]
+    book["claims"][0]["dependencies"] = ["helper"]
+    book["claims"].append(claim("helper", evidence_kind="replay"))
+    snapshot()
+    assert aggregate_evidence(data, root)["status"] == "satisfied"
+    requirement["dependency_kinds"] = {"clamp_dose": "z3", "helper": "replay"}
+    assert aggregate_evidence(data, root)["status"] == "satisfied"
+    book["claims"][1]["evidence_kind"] = "trusted"
+    snapshot()
+    summary = aggregate_evidence(data, root)
+    assert summary["status"] == "incomplete"
+    assert "correct.mm::clamp_dose: evidence kind does not match the requirement" in summary["issues"]
+
+
+def test_dependency_kinds_reject_names_outside_the_coverage(evidence):
+    data, book, snapshot, root = evidence
+    requirement = data["evidence_requirements"]["claims"][0]
+    book["claims"][0]["dependencies"] = ["helper"]
+    book["claims"].append(claim("helper"))
+    snapshot()
+    requirement["dependency_kinds"] = {"clamp_dose": "z3", "stray": "z3"}
+    summary = aggregate_evidence(data, root)
+    assert summary["status"] == "incomplete"
+    assert "correct.mm::clamp_dose: dependency kind requirement names a claim outside the dependency coverage" in summary["issues"]
+
+
+def test_dependency_kinds_compose_with_the_uniform_pin(evidence):
+    data, book, snapshot, root = evidence
+    requirement = data["evidence_requirements"]["claims"][0]
+    requirement["evidence_kind"] = "z3"
+    book["claims"][0]["dependencies"] = ["helper"]
+    book["claims"].append(claim("helper"))
+    snapshot()
+    assert aggregate_evidence(data, root)["status"] == "satisfied"
+    requirement["dependency_kinds"] = {"helper": "z3"}
+    assert aggregate_evidence(data, root)["status"] == "satisfied"
+    # The uniform pin still applies to every reachable claim; a per-claim pin
+    # adds a constraint, it does not override the uniform one.
+    requirement["dependency_kinds"] = {"helper": "replay"}
+    summary = aggregate_evidence(data, root)
+    assert summary["status"] == "incomplete"
+    assert "correct.mm::clamp_dose: evidence kind does not match the requirement" in summary["issues"]
+
+
+@pytest.mark.parametrize("invalid", ["helper", {"helper": ""}, {"helper": None}, {"helper": 7}, {"": "z3"}])
+def test_dependency_kinds_validate_their_shape(evidence, invalid):
+    data, _, _, root = evidence
+    requirement = data["evidence_requirements"]["claims"][0]
+    requirement["dependency_kinds"] = invalid
+    assert "invalid claim dependency kind requirement" in aggregate_evidence(data, root)["issues"]
+
+
 def test_duplicate_claims_and_duplicate_json_keys_reject(evidence):
     data, book, snapshot, root = evidence
     book["claims"].append(copy.deepcopy(book["claims"][0]))

@@ -16,6 +16,7 @@ CASES = (
     "replaced_certificate", "stale_claim", "direct_dependency", "transitive_dependency",
     "missing_required_artifact", "missing_step", "existing_failure",
     "kind_pinned", "kind_substituted",
+    "kind_per_dependency", "kind_per_dependency_outside",
 )
 
 
@@ -86,6 +87,10 @@ def mutate(case: str, data: dict, root: Path) -> None:
         claim["evidence_kind"] = "replay"
         write_json(book_path, book)
         data["evidence_identities"] = capture_identities(data, root)
+    elif case == "kind_per_dependency":
+        requirement["dependency_kinds"] = {requirement["atom"]: "z3"}
+    elif case == "kind_per_dependency_outside":
+        requirement["dependency_kinds"] = {requirement["atom"]: "z3", "__regression_stray_claim": "z3"}
     elif case != "unchanged":
         raise ValueError(f"unknown regression case: {case}")
 
@@ -118,8 +123,8 @@ def run_suite(result_path: Path, out_dir: Path) -> dict:
             mutate(case, data, target)
             write_json(path, data)
             actual = load_result(path)
-            expected = "PASS" if case in {"unchanged", "kind_pinned"} else "FAIL"
-            expected_evidence = "satisfied" if case in {"unchanged", "existing_failure", "kind_pinned"} else "incomplete"
+            expected = "PASS" if case in {"unchanged", "kind_pinned", "kind_per_dependency"} else "FAIL"
+            expected_evidence = "satisfied" if case in {"unchanged", "existing_failure", "kind_pinned", "kind_per_dependency"} else "incomplete"
             matched = actual["overall_status"] == expected and actual["evidence_summary"]["status"] == expected_evidence
             if case in {"direct_dependency", "transitive_dependency"}:
                 key = "direct_unresolved_dependencies" if case == "direct_dependency" else "transitive_unresolved_dependencies"
