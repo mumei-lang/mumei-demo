@@ -335,7 +335,9 @@ def aggregate_evidence(data: dict, root: Path) -> dict:
                 if minimum not in GRADES or not all(isinstance(requirement.get(key, False), bool) for key in ("require_complete", "require_discriminating")):
                     raise EvidenceError("invalid claim gate requirements")
                 required_kind = requirement.get("evidence_kind")
-                if required_kind is not None and not isinstance(required_kind, str):
+                if "evidence_kind" in requirement and not (
+                    isinstance(required_kind, str) and required_kind
+                ):
                     raise EvidenceError("invalid claim evidence kind requirement")
                 if requirement.get("require_complete", True) is not True:
                     raise EvidenceError("dependency completeness cannot be disabled for required claims")
