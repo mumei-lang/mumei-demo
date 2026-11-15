@@ -1,0 +1,186 @@
+{
+  "name": "Translation Validation in Build --emit binary",
+  "version": "1.0.0",
+  "description": "C09 wiring demo: `mumei build --emit binary` validates the merged LLVM snapshot per atom with validate_native_module and writes an advisory <name>.translation-validation.json report; a module outside the bounded profile leaves no report.",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C09 translation-validation wiring end to end: --emit binary binds the host triple and data layout into the staged merged IR, checks every source atom against its same-named module member, and emits a mumei.translation-validation-report/v1 artifact.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/translation_validation/src/add.mm (two atoms) and src/ext.mm (extern block).",
+      "Step 1 asserts the report exists, binds schema mumei.translation-validation-report/v1, and shows both functions equivalent_within_profile.",
+      "Step 2 runs the produced binary and asserts the observed exit code equals main's return value.",
+      "Step 3 shows the advisory boundary: an extern-declaring module links fine but leaves no translation-validation report.",
+      "Generate evidence: build.log, run.log, out_of_profile.log, tv_bin.translation-validation.json, harness_state.json, result.json, and report.md."
+    ],
+    "gate_order": [
+      "l1_z3"
+    ],
+    "notes": [
+      "The check is advisory: Different or UndefinedBehavior warn on stderr and never block the link; modules outside the bounded profile emit no report.",
+      "The report attests the bound IR bytes the object emitter consumed — not object, linking, OS exit-status, or final-executable semantics.",
+      "Every step exits the pipe-and-grep form so a failed build or refused validation cannot pass silently as exit-0 output.",
+      "budget_policy_fingerprint is translation-validation-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "translation-validation",
+      "schema_version",
+      "mumei.translation-validation-report/v1",
+      "equivalent_within_profile",
+      "function_name",
+      "outcome"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "build_binary",
+        "name": "Build: per-atom translation validation report",
+        "repo": "mumei",
+        "command": "{mumei_bin} build {root_dir}/scenarios/translation_validation/src/add.mm --emit binary -o {output_dir}/tv_bin > {output_dir}/build.log 2>&1; rc=$?; cat {output_dir}/build.log; test $rc -eq 0 && grep -q 'Translation validation' {output_dir}/build.log && python3 -c \"import json; r=json.load(open('{output_dir}/tv_bin.translation-validation.json')); assert r['schema_version']=='mumei.translation-validation-report/v1' and r['outcome']=='equivalent_within_profile' and len(r['functions'])==2 and all(f['outcome']=='equivalent_within_profile' for f in r['functions']), r; print('report: both atoms equivalent_within_profile')\"",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "Translation validation",
+          "equivalent_within_profile"
+        ],
+        "artifacts": [
+          "build.log",
+          "tv_bin.translation-validation.json"
+        ],
+        "harness_stage": "S1_z3_acceptance",
+        "artifact_contract": "tv_bin.translation-validation.json must bind schema mumei.translation-validation-report/v1 with outcome equivalent_within_profile and one function entry per atom (add, main).",
+        "verifier_gate": "build exits 0, prints the translation-validation advisory, and writes a report whose per-atom outcomes are all equivalent_within_profile."
+      },
+      {
+        "id": "run_binary",
+        "name": "Run: the validated binary executes",
+        "repo": "mumei",
+        "command": "{output_dir}/tv_bin; rc=$?; echo \"exit=$rc\"; test $rc -eq 10",
+        "depends_on": ["build_binary"],
+        "expected_exit": 0,
+        "expected_patterns": [
+          "exit=10"
+        ],
+        "artifacts": [
+          "run.log"
+        ],
+        "harness_stage": "S2_binary_execution",
+        "artifact_contract": "run.log records the process exit code observed from the validated binary.",
+        "verifier_gate": "The produced binary exits with main's return value (add(3,7) = 10)."
+      },
+      {
+        "id": "out_of_profile",
+        "name": "Advisory boundary: extern module leaves no report",
+        "repo": "mumei",
+        "command": "{mumei_bin} build {root_dir}/scenarios/translation_validation/src/ext.mm --emit binary -o {output_dir}/oob_bin > {output_dir}/out_of_profile.log 2>&1; rc=$?; cat {output_dir}/out_of_profile.log; test $rc -eq 0 && grep -q 'Binary written' {output_dir}/out_of_profile.log && test ! -f {output_dir}/oob_bin.translation-validation.json && echo 'no report: module outside bounded profile'",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "no report"
+        ],
+        "artifacts": [
+          "out_of_profile.log"
+        ],
+        "harness_stage": "S3_advisory_boundary",
+        "artifact_contract": "out_of_profile.log shows the extern module links successfully while no translation-validation report is emitted beside it.",
+        "verifier_gate": "build exits 0 for the extern module and no translation-validation report is left behind."
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Step 1: mumei build --emit binary validates the merged LLVM snapshot per atom and writes an advisory report...",
+      "Step 2: the produced binary runs and exits with main's return value...",
+      "Step 3: a module outside the bounded profile still links, but leaves no report — the check is honest about its coverage..."
+    ],
+    "before": "Binary emission produced an object with no recorded correspondence between source atoms and the generated LLVM snapshot.",
+    "after": "Each build writes tv_bin.translation-validation.json binding schema, hashes and per-atom outcomes; out-of-profile modules leave no report instead of claiming equivalence.",
+    "steps": {
+      "build_binary": {
+        "pass": {
+          "icon": "✅",
+          "headline": "2 function(s) equivalent within profile",
+          "follow_up": [
+            "  The report attests the bound IR bytes the object emitter actually consumed.",
+            "  add and main each carry an equivalent_within_profile outcome.",
+            "",
+            "  Step 2: Running the produced binary..."
+          ]
+        }
+      },
+      "run_binary": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Binary exits with main's return value (10)",
+          "follow_up": [
+            "  The advisory report does not gate the link — the binary is real and runnable.",
+            "",
+            "  Step 3: Checking the advisory boundary on an extern module..."
+          ]
+        }
+      },
+      "out_of_profile": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Extern module links, no report written",
+          "follow_up": [
+            "  Honest coverage: outside the bounded profile, no report claims equivalence.",
+            "",
+            "  Demo complete: translation validation is observable in real builds."
+          ]
+        }
+      }
+    }
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show mumei build --emit binary running per-atom translation validation and writing an advisory report artifact.",
+    "success_criteria": [
+      "build.log shows the Translation validation advisory and tv_bin.translation-validation.json records equivalent_within_profile for both atoms",
+      "run.log shows the binary exiting with code 10",
+      "out_of_profile.log shows the extern module linking with no report file emitted"
+    ]
+  },
+  "success_criteria": [
+    "build.log shows the Translation validation advisory and tv_bin.translation-validation.json records equivalent_within_profile for both atoms",
+    "run.log shows the binary exiting with code 10",
+    "out_of_profile.log shows the extern module linking with no report file emitted"
+  ],
+  "gate_order": [
+    {
+      "gate": "translation_validation",
+      "user_wording": [
+        "The merged snapshot is validated per atom before linking"
+      ]
+    },
+    {
+      "gate": "execution",
+      "user_wording": [
+        "The validated binary runs and returns main's value"
+      ]
+    },
+    {
+      "gate": "advisory_boundary",
+      "user_wording": [
+        "Out-of-profile modules link without a report"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/build.log",
+    "{output_dir}/run.log",
+    "{output_dir}/out_of_profile.log",
+    "{output_dir}/tv_bin.translation-validation.json",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "translation-validation-v1",
+  "result_message": "Result: translation validation observable in --emit binary builds — equivalence reported per atom, honest silence outside the bounded profile."
+}

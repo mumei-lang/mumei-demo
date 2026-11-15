@@ -37,6 +37,7 @@ Generated from the Makefile, argparse definitions, and environment registry.
 | `demo-rust-summaries` | Declared rust-summaries route loop (in-process analyzer, always deterministic). |
 | `demo-sol-summaries` | Declared sol-summaries route loop (in-process analyzer, always deterministic). |
 | `demo-audit-summaries` | Directory audit with declared summaries (helper step fixture-mode unless CI_FIXTURE_MODE=0). |
+| `demo-translation-validation` | Build --emit binary translation-validation advisory (real mumei binary). |
 | `demo-all` | Compatibility alias for the default demo target. |
 | `demo-ci` | Run default scenarios in fixture mode and regenerate reports. |
 | `demo-scale` | Run all large-scale scenarios. |
@@ -57,7 +58,7 @@ Generated from the Makefile, argparse definitions, and environment registry.
 | `MUMEI_AGENT_REPO` | `../mumei-agent` | Default sibling mumei-agent checkout; a Make command-line assignment can override it. |
 | `SCENARIOS` | 18 scenarios: `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`, `nl_to_verified`, `no_mm_audit`, `spec_code_verification_suite`, `mumei_develop_audit`, `smart_contract_audit`, `blockchain_audit`, `medical_device`, `aviation_control`, `merkle_tree_verification`, `defi_invariant`, `arklib_style_audit`, `charter_gate_demo`, `negative_controls_demo`, `test_observation_demo`, `self_correction_demo` | Default sequence used by `demo` and `demo-ci`. |
 | `SCALE_SCENARIOS` | 5 scenarios: `medical_device_scale`, `rtgs_settlement_scale`, `regtech_compliance_scale`, `defi_invariant_scale`, `ownership_transfer_scale` | Large-scale scenarios, separate from the default CI sequence. |
-| `OPTIONAL_SCENARIOS` | 6 scenarios: `record_execution_demo`, `go_summaries`, `ts_summaries`, `rust_summaries`, `sol_summaries`, `audit_summaries` | Optional scenarios kept outside the default sequence. |
+| `OPTIONAL_SCENARIOS` | 7 scenarios: `record_execution_demo`, `go_summaries`, `ts_summaries`, `rust_summaries`, `sol_summaries`, `audit_summaries`, `translation_validation` | Optional scenarios kept outside the default sequence. |
 | `NO_MM_AUDIT_LANGUAGES` | `python`, `rust`, `typescript`, `go` | Languages included by the no-.mm audit target. |
 
 Scenario names and counts reflect the Makefile lists; optional and large-scale scenarios remain outside the default sequence.
@@ -96,7 +97,7 @@ Render a Mumei demo result.
 | `--output` | `<OUTPUT>` | no | `dashboard/summary.md` | Summary markdown output path |
 | `--highlights-output` | `<HIGHLIGHTS_OUTPUT>` | no | `dashboard/highlights.md` | Highlights markdown output path |
 | `--report-output` | `<REPORT_OUTPUT>` | no | — | Scenario markdown output path; defaults to report.md next to result_json |
-| `--scenarios` | `<SCENARIOS>...` | no | `SCENARIO_ORDER` (18 names) | Scenario names to include in summary; defaults exclude optional targets: record_execution_demo, go_summaries, ts_summaries, rust_summaries, sol_summaries, audit_summaries |
+| `--scenarios` | `<SCENARIOS>...` | no | `SCENARIO_ORDER` (18 names) | Scenario names to include in summary; defaults exclude optional targets: record_execution_demo, go_summaries, ts_summaries, rust_summaries, sol_summaries, audit_summaries, translation_validation |
 | `--require-all` | — | no | `false` | Return a non-zero exit code when any requested scenario result is missing |
 
 ### `scripts/run_specimen_audits.py`
