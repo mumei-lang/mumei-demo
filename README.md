@@ -133,6 +133,14 @@ whole-context gate. The analyzer runs in-process on tree-sitter, so no
 toolchain or fixture mode is needed and the default scenario sequence
 stays unchanged.
 
+The optional [`make demo-rust-summaries`](scenarios/rust_summaries/README.md)
+runs the declared `rust-summaries` route family on a sibling `mumei-agent`
+checkout: emit a `mumei.rust-scalar-parameter-deps/v1` manifest, check it
+against a fresh derivation, and accept one function under the strict
+whole-context gate. The analyzer runs in-process on tree-sitter, so no
+toolchain or fixture mode is needed and the default scenario sequence
+stays unchanged.
+
 ## Running scenarios
 
 ```bash
