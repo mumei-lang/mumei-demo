@@ -33,7 +33,7 @@ SCENARIO_ORDER = [
     "test_observation_demo",
     "self_correction_demo",
 ]
-OPTIONAL_SCENARIOS = ["record_execution_demo", "go_summaries", "ts_summaries", "rust_summaries"]
+OPTIONAL_SCENARIOS = ["record_execution_demo", "go_summaries", "ts_summaries", "rust_summaries", "sol_summaries"]
 LAYER_LABELS = {
     "l1_z3": "L1 / Z3",
     "l2_agent": "L2 / Agent",

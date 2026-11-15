@@ -1,0 +1,199 @@
+{
+  "name": "Solidity Interprocedural Summary Manifests",
+  "version": "1.0.0",
+  "description": "C06 declared summary route demo: the in-process Solidity analyzer emits a declared mumei.sol-scalar-parameter-deps/v1 manifest for a one-contract unit, the reuse check partitions functions as reusable, and the strict whole-context accept gate echoes one function's declared summary.",
+  "layers": [
+    "l1_summaries"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_summaries"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the declared sol-summaries route family end to end: emit the summary manifest, verify it against a fresh derivation, and accept one function under the strict whole-context gate.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/sol_summaries/demo_counter.sol and the sibling mumei-agent sol-summaries route commands.",
+      "No toolchain step: the analyzer runs in-process on tree-sitter, so every step is deterministic and none is SKIPPED for a missing external tool.",
+      "Generate evidence: emit_manifest.log, check_manifest.log, accept_summary.log, manifest.json, harness_state.json, result.json, and report.md.",
+      "Gate order: emit -> check -> accept; the check and accept steps consume only the manifest the emit step wrote, never the fresh derivation directly.",
+      "The emitted manifest is declared data: check re-derives summaries and partitions reusable/stale/missing functions, and accept refuses anything but an exact context match."
+    ],
+    "gate_order": [
+      "l1_summaries"
+    ],
+    "notes": [
+      "The Solidity analyzer is source-analysis infrastructure, not a verifier; the demo routes it only through the declared sol-summaries family.",
+      "Every step runs the real route commands — the analyzer needs no provisioned toolchain, so no step fabricates output and no fixture payloads are recorded.",
+      "The accept step names a function (--function add) instead of a contract-qualified binding: manifest keys are DemoCounter.<name>, and a bare name resolves when unambiguous, so editing demo_counter.sol cannot silently desync a recorded payload.",
+      "budget_policy_fingerprint is sol-summaries-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "schema_version",
+      "context_key",
+      "functions",
+      "context_match",
+      "reusable",
+      "stale",
+      "missing",
+      "accepted"
+    ]
+  },
+  "l1_summaries": {
+    "steps": [
+      {
+        "id": "emit_manifest",
+        "name": "Emit: declared summary manifest for demo_counter.sol",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent sol-summaries {root_dir}/scenarios/sol_summaries/demo_counter.sol | tee {output_dir}/manifest.json",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "schema_version",
+          "mumei.sol-scalar-parameter-deps/v1",
+          "context_key",
+          "return_dependencies"
+        ],
+        "artifacts": [
+          "manifest.json"
+        ],
+        "harness_stage": "S1_emit_declared_summary_manifest",
+        "artifact_contract": "emit step must write {output_dir}/manifest.json holding one mumei.sol-scalar-parameter-deps/v1 manifest keyed to the declared unit's context_key.",
+        "verifier_gate": "sol-summaries exits 0, writes manifest.json, and the manifest's schema_version and context_key appear in the step output."
+      },
+      {
+        "id": "check_manifest",
+        "name": "Check: manifest reuse check against a fresh derivation",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent sol-summaries-check {root_dir}/scenarios/sol_summaries/demo_counter.sol --manifest {output_dir}/manifest.json",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "depends_on": ["emit_manifest"],
+        "expected_patterns": [
+          "mumei.sol-summary-check/v1",
+          "context_match",
+          "reusable",
+          "stale",
+          "missing"
+        ],
+        "harness_stage": "S2_check_manifest_reuse",
+        "artifact_contract": "check step must emit mumei.sol-summary-check/v1 partitioning every declared function as reusable, stale or missing against a fresh derivation.",
+        "verifier_gate": "sol-summaries-check exits 0 and reports context_match true with both functions in reusable and empty stale/missing lists."
+      },
+      {
+        "id": "accept_summary",
+        "name": "Accept: strict whole-context gate on one declared summary",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent sol-summaries-accept {root_dir}/scenarios/sol_summaries/demo_counter.sol --manifest {output_dir}/manifest.json --function add",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "depends_on": ["emit_manifest", "check_manifest"],
+        "expected_patterns": [
+          "mumei.sol-summary-accept/v1",
+          "accepted",
+          "summary",
+          "return_dependencies"
+        ],
+        "harness_stage": "S3_accept_declared_summary",
+        "artifact_contract": "accept step must emit mumei.sol-summary-accept/v1 and echo the declared summary only under an exact whole-context match; a stale manifest must refuse.",
+        "verifier_gate": "sol-summaries-accept exits 0, reports accepted true for add, and echoes its declared summary."
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Step 1: sol-summaries emits a declared mumei.sol-scalar-parameter-deps/v1 manifest for demo_counter.sol...",
+      "Step 2: sol-summaries-check re-derives summaries and partitions reusable/stale/missing functions...",
+      "Step 3: sol-summaries-accept echoes one function's declared summary under the strict whole-context gate..."
+    ],
+    "before": "No declared summary manifest exists for the Solidity unit; every function is unassessed and nothing can be reused.",
+    "after": "manifest.json records both function summaries keyed to the unit's context_key, the reuse check confirms both functions reusable, and the strict accept gate echoes add's declared summary.",
+    "steps": {
+      "emit_manifest": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Declared manifest emitted for demo_counter.sol",
+          "follow_up": [
+            "  schema_version mumei.sol-scalar-parameter-deps/v1 pins the manifest shape.",
+            "  context_key binds the declared unit's bytes; each function is keyed as DemoCounter.<name>.",
+            "  add's return_dependencies [0, 1] and next's call into add are recorded as declared data.",
+            "",
+            "  Step 2: Checking the manifest against a fresh derivation..."
+          ]
+        }
+      },
+      "check_manifest": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Reuse check: both functions reusable",
+          "follow_up": [
+            "  context_match true and stale/missing empty — the manifest reproduces verbatim.",
+            "  reusable lists both function names for the host's freshness choice.",
+            "",
+            "  Step 3: Accepting one declared summary under the strict gate..."
+          ]
+        }
+      },
+      "accept_summary": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Strict accept: add's declared summary authorized",
+          "follow_up": [
+            "  accepted true requires the manifest's context_key to match the fresh unit exactly.",
+            "  The echoed summary is identical to the declared record — no forgery channel.",
+            "",
+            "  Demo complete: emit -> check -> accept closes the declared summary loop."
+          ]
+        }
+      }
+    }
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared sol-summaries route family producing, checking and strictly accepting a real summary manifest with the in-process Solidity analyzer.",
+    "success_criteria": [
+      "emit_manifest.log shows mumei.sol-scalar-parameter-deps/v1 with context_key and per-function summaries",
+      "check_manifest.log shows mumei.sol-summary-check/v1 with context_match true and both functions reusable",
+      "accept_summary.log shows mumei.sol-summary-accept/v1 with accepted true and the echoed declared summary",
+      "manifest.json exists under the report directory and is consumed only by the check/accept steps"
+    ]
+  },
+  "success_criteria": [
+    "emit_manifest.log shows mumei.sol-scalar-parameter-deps/v1 with context_key and per-function summaries",
+    "check_manifest.log shows mumei.sol-summary-check/v1 with context_match true and both functions reusable",
+    "accept_summary.log shows mumei.sol-summary-accept/v1 with accepted true and the echoed declared summary",
+    "manifest.json exists under the report directory and is consumed only by the check/accept steps"
+  ],
+  "gate_order": [
+    {
+      "gate": "emit",
+      "user_wording": [
+        "Declared summary manifest is produced before any reuse decision"
+      ]
+    },
+    {
+      "gate": "check",
+      "user_wording": [
+        "Reusable functions are confirmed only against a fresh derivation"
+      ]
+    },
+    {
+      "gate": "accept",
+      "user_wording": [
+        "Strict acceptance requires an exact whole-context match"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/emit_manifest.log",
+    "{output_dir}/check_manifest.log",
+    "{output_dir}/accept_summary.log",
+    "{output_dir}/manifest.json",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "sol-summaries-v1",
+  "result_message": "Result: declared sol-summaries loop closed — manifest emitted, reuse checked, strict accept passed."
+}

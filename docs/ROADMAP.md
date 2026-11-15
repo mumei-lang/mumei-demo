@@ -127,6 +127,21 @@ in-process on tree-sitter. The analyzer remains declared source-analysis
 infrastructure, not a verifier; no audit, MCP or planner wiring is
 implied.
 
+## Optional declared sol-summaries scenario
+
+The optional [sol_summaries scenario](../scenarios/sol_summaries/README.md)
+exercises the `mumei-agent` declared summary route family for Solidity
+end to end: `sol-summaries` emits a
+`mumei.sol-scalar-parameter-deps/v1` manifest for a one-contract fixture
+unit, `sol-summaries-check` partitions reusable/stale/missing functions
+against a fresh in-process derivation, and `sol-summaries-accept` echoes
+one function's declared summary under the strict whole-context gate. It
+stays in `OPTIONAL_SCENARIOS` — the default 18-scenario sequence is
+unchanged and no toolchain or fixture mode is needed because the analyzer
+runs in-process on tree-sitter. The analyzer remains declared
+source-analysis infrastructure, not a verifier; no audit, MCP or planner
+wiring is implied.
+
 ## Cross-project no-.mm scenario contract
 
 `mumei-lang/mumei/docs/CROSS_PROJECT_ROADMAP.md` owns the global V1 order. Demo scenarios that cover the no-`.mm` path must keep the same `audit -> migrate-suggest -> heal` gate order as `mumei-agent audit --auto-migrate --auto-heal` and MCP `scan_and_fix`.
