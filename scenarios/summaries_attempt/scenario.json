@@ -1,0 +1,253 @@
+{
+  "name": "Declared Summary Attempt Routes",
+  "version": "1.0.0",
+  "description": "C06/C11 declared attempt-route demo: each language's produce route runs as one declared attempt through the C11 dispatch lifecycle and emits a mumei.<lang>-summaries-attempt-report/v1 lineage — an exited run's captured stdout is selected only when every declared input byte is unchanged, and a timed-out attempt selects nothing.",
+  "layers": [
+    "l1_attempt"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_attempt"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the declared *-summaries-attempt routes end to end: run the TypeScript, Rust and Solidity produce routes inside the attempt lifecycle, observe an exited run select its captured stdout, and show a timed-out attempt selecting no result.",
+    "artifact_contracts": [
+      "Read inputs: the demo_counter fixtures in scenarios/ts_summaries, scenarios/rust_summaries and scenarios/sol_summaries plus the sibling mumei-agent *-summaries-attempt route commands.",
+      "No toolchain step: the analyzers run in-process on tree-sitter, so every step is deterministic and none is SKIPPED for a missing external tool.",
+      "Generate evidence: ts_attempt.log, rust_attempt.log, sol_attempt.log, timeout_refusal.log, ts_attempt.json, rust_attempt.json, sol_attempt.json, timeout_attempt.json, harness_state.json, result.json, and report.md.",
+      "Gate order: the three language attempts run first; the timeout refusal runs last and asserts only the reported outcome — a refusal emits the report at exit 0 with no candidate.",
+      "Every report is canonical lineage, not an accepted manifest: the candidate descriptor binds the selected output by fingerprint only."
+    ],
+    "gate_order": [
+      "l1_attempt"
+    ],
+    "notes": [
+      "The analyzers are source-analysis infrastructure, not verifiers; the demo routes them only through the declared *-summaries-attempt lifecycle.",
+      "Every step runs the real route commands — the analyzers need no provisioned toolchain, so no step fabricates output and no fixture payloads are recorded.",
+      "The timeout step uses --attempt-timeout 1 so the observed run cannot finish inside the bound; the report still exits 0 and asserts outcome timed_out with no candidate key.",
+      "budget_policy_fingerprint is summaries-attempt-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "schema_version",
+      "sequence",
+      "normalized",
+      "outcome",
+      "exit_code",
+      "selected_result",
+      "candidate"
+    ]
+  },
+  "l1_attempt": {
+    "steps": [
+      {
+        "id": "ts_attempt",
+        "name": "Attempt: ts-summaries produce route under the C11 lifecycle",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent ts-summaries-attempt {root_dir}/scenarios/ts_summaries/demo_counter.ts --attempt-timeout 30000 > {output_dir}/ts_attempt.json 2>&1; rc=$?; cat {output_dir}/ts_attempt.json; test $rc -eq 0 && grep -q '\"outcome\": \"exited\"' {output_dir}/ts_attempt.json && grep -q '\"exit_code\": 0' {output_dir}/ts_attempt.json && grep -q '\"candidate\"' {output_dir}/ts_attempt.json",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "mumei.ts-summaries-attempt-report/v1",
+          "sequence",
+          "normalized",
+          "selected_result",
+          "candidate"
+        ],
+        "artifacts": [
+          "ts_attempt.json"
+        ],
+        "harness_stage": "S1_ts_declared_attempt",
+        "artifact_contract": "ts_attempt step must write {output_dir}/ts_attempt.json holding the mumei.ts-summaries-attempt-report/v1 report with an exited outcome, exit_code 0 and a selected candidate.",
+        "verifier_gate": "ts-summaries-attempt exits 0 (checked via rc after redirecting output so the pipe cannot mask it) and the greps require outcome exited, exit_code 0 and a candidate key, so a failed or unselected run fails the step instead of passing."
+      },
+      {
+        "id": "rust_attempt",
+        "name": "Attempt: rust-summaries produce route under the C11 lifecycle",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent rust-summaries-attempt {root_dir}/scenarios/rust_summaries/demo_counter.rs --attempt-timeout 30000 > {output_dir}/rust_attempt.json 2>&1; rc=$?; cat {output_dir}/rust_attempt.json; test $rc -eq 0 && grep -q '\"outcome\": \"exited\"' {output_dir}/rust_attempt.json && grep -q '\"exit_code\": 0' {output_dir}/rust_attempt.json && grep -q '\"candidate\"' {output_dir}/rust_attempt.json",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "depends_on": [
+          "ts_attempt"
+        ],
+        "expected_patterns": [
+          "mumei.rust-summaries-attempt-report/v1",
+          "sequence",
+          "normalized",
+          "selected_result",
+          "candidate"
+        ],
+        "artifacts": [
+          "rust_attempt.json"
+        ],
+        "harness_stage": "S2_rust_declared_attempt",
+        "artifact_contract": "rust_attempt step must write {output_dir}/rust_attempt.json holding the mumei.rust-summaries-attempt-report/v1 report with an exited outcome, exit_code 0 and a selected candidate.",
+        "verifier_gate": "rust-summaries-attempt exits 0 (checked via rc) and the greps require outcome exited, exit_code 0 and a candidate key, so a failed or unselected run fails the step instead of passing."
+      },
+      {
+        "id": "sol_attempt",
+        "name": "Attempt: sol-summaries produce route under the C11 lifecycle",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent sol-summaries-attempt {root_dir}/scenarios/sol_summaries/demo_counter.sol --attempt-timeout 30000 > {output_dir}/sol_attempt.json 2>&1; rc=$?; cat {output_dir}/sol_attempt.json; test $rc -eq 0 && grep -q '\"outcome\": \"exited\"' {output_dir}/sol_attempt.json && grep -q '\"exit_code\": 0' {output_dir}/sol_attempt.json && grep -q '\"candidate\"' {output_dir}/sol_attempt.json",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "depends_on": [
+          "rust_attempt"
+        ],
+        "expected_patterns": [
+          "mumei.sol-summaries-attempt-report/v1",
+          "sequence",
+          "normalized",
+          "selected_result",
+          "candidate"
+        ],
+        "artifacts": [
+          "sol_attempt.json"
+        ],
+        "harness_stage": "S3_sol_declared_attempt",
+        "artifact_contract": "sol_attempt step must write {output_dir}/sol_attempt.json holding the mumei.sol-summaries-attempt-report/v1 report with an exited outcome, exit_code 0 and a selected candidate.",
+        "verifier_gate": "sol-summaries-attempt exits 0 (checked via rc) and the greps require outcome exited, exit_code 0 and a candidate key, so a failed or unselected run fails the step instead of passing."
+      },
+      {
+        "id": "timeout_refusal",
+        "name": "Refusal: a timed-out attempt selects no result",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent ts-summaries-attempt {root_dir}/scenarios/ts_summaries/demo_counter.ts --attempt-timeout 1 > {output_dir}/timeout_attempt.json 2>&1; rc=$?; cat {output_dir}/timeout_attempt.json; test $rc -eq 0 && grep -q '\"outcome\": \"timed_out\"' {output_dir}/timeout_attempt.json && ! grep -q '\"candidate\"' {output_dir}/timeout_attempt.json",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "depends_on": [
+          "sol_attempt"
+        ],
+        "expected_patterns": [
+          "mumei.ts-summaries-attempt-report/v1",
+          "timed_out"
+        ],
+        "artifacts": [
+          "timeout_attempt.json"
+        ],
+        "harness_stage": "S4_timeout_refusal",
+        "artifact_contract": "timeout_refusal step must write {output_dir}/timeout_attempt.json holding the report with outcome timed_out and no candidate key — a refused attempt claims nothing.",
+        "verifier_gate": "ts-summaries-attempt exits 0 (the report is lineage, not failure) and the greps require outcome timed_out plus the absence of a candidate key, so a run that still selected output fails the step instead of passing."
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Step 1: ts-summaries-attempt runs the TypeScript produce route as one declared attempt...",
+      "Step 2: rust-summaries-attempt runs the Rust produce route the same way...",
+      "Step 3: sol-summaries-attempt runs the Solidity produce route the same way...",
+      "Step 4: a 1ms-bound attempt times out and selects nothing — the report still exits 0 as lineage, claiming no result."
+    ],
+    "before": "No declared attempt lineage exists for the summary produce routes; nothing records which observed run produced a manifest.",
+    "after": "ts_attempt.json, rust_attempt.json and sol_attempt.json record exited runs whose captured stdout was selected into a candidate descriptor, and timeout_attempt.json records a timed-out run that selected nothing.",
+    "steps": {
+      "ts_attempt": {
+        "pass": {
+          "icon": "✅",
+          "headline": "ts-summaries-attempt: exited run selected",
+          "follow_up": [
+            "  schema_version mumei.ts-summaries-attempt-report/v1 pins the report shape.",
+            "  The attempt sequence binds the request fingerprint to the declared source bytes.",
+            "  outcome exited + exit_code 0 means the observed run completed; the candidate binds the selected stdout by fingerprint.",
+            "",
+            "  Step 2: Running the Rust produce route as a declared attempt..."
+          ]
+        }
+      },
+      "rust_attempt": {
+        "pass": {
+          "icon": "✅",
+          "headline": "rust-summaries-attempt: exited run selected",
+          "follow_up": [
+            "  The same lifecycle: request fingerprint, dispatch observation, drift gate, publication.",
+            "  candidate present only because the exited run's declared input bytes were unchanged.",
+            "",
+            "  Step 3: Running the Solidity produce route as a declared attempt..."
+          ]
+        }
+      },
+      "sol_attempt": {
+        "pass": {
+          "icon": "✅",
+          "headline": "sol-summaries-attempt: exited run selected",
+          "follow_up": [
+            "  Three languages, one lineage shape — canonical, never an accepted manifest.",
+            "",
+            "  Step 4: Refusing a timed-out attempt..."
+          ]
+        }
+      },
+      "timeout_refusal": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Timed-out attempt selects no result",
+          "follow_up": [
+            "  outcome timed_out at the 1ms bound — the observed run never finished.",
+            "  No candidate key: a refused attempt claims nothing.",
+            "",
+            "  Demo complete: declared attempt lineage recorded for all three produce routes."
+          ]
+        }
+      }
+    }
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared *-summaries-attempt routes running each language's produce route inside the C11 lifecycle: exited runs select their captured stdout; timed-out runs select nothing.",
+    "success_criteria": [
+      "ts_attempt.json shows mumei.ts-summaries-attempt-report/v1 with outcome exited, exit_code 0 and a candidate",
+      "rust_attempt.json shows mumei.rust-summaries-attempt-report/v1 with outcome exited, exit_code 0 and a candidate",
+      "sol_attempt.json shows mumei.sol-summaries-attempt-report/v1 with outcome exited, exit_code 0 and a candidate",
+      "timeout_attempt.json shows outcome timed_out and no candidate key"
+    ]
+  },
+  "success_criteria": [
+    "ts_attempt.json shows mumei.ts-summaries-attempt-report/v1 with outcome exited, exit_code 0 and a candidate",
+    "rust_attempt.json shows mumei.rust-summaries-attempt-report/v1 with outcome exited, exit_code 0 and a candidate",
+    "sol_attempt.json shows mumei.sol-summaries-attempt-report/v1 with outcome exited, exit_code 0 and a candidate",
+    "timeout_attempt.json shows outcome timed_out and no candidate key"
+  ],
+  "gate_order": [
+    {
+      "gate": "ts_attempt",
+      "user_wording": [
+        "TypeScript produce route runs as a declared attempt before any result is selected"
+      ]
+    },
+    {
+      "gate": "rust_attempt",
+      "user_wording": [
+        "Rust produce route runs under the same lifecycle"
+      ]
+    },
+    {
+      "gate": "sol_attempt",
+      "user_wording": [
+        "Solidity produce route runs under the same lifecycle"
+      ]
+    },
+    {
+      "gate": "timeout_refusal",
+      "user_wording": [
+        "A timed-out attempt selects no result and claims nothing"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/ts_attempt.log",
+    "{output_dir}/rust_attempt.log",
+    "{output_dir}/sol_attempt.log",
+    "{output_dir}/timeout_refusal.log",
+    "{output_dir}/ts_attempt.json",
+    "{output_dir}/rust_attempt.json",
+    "{output_dir}/sol_attempt.json",
+    "{output_dir}/timeout_attempt.json",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "summaries-attempt-v1",
+  "result_message": "Result: declared attempt lineage recorded for ts/rust/sol produce routes — exited runs selected, timed-out run refused."
+}
