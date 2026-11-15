@@ -23,7 +23,7 @@
       "l1_z3"
     ],
     "notes": [
-      "The acceptance evaluation is representation-level only: its checks_not_performed still names all six duties, while the report-level discharged_checks declares the four a selected run discharges for the produced record.",
+      "The acceptance evaluation is representation-level only: its checks_not_performed still names all six duties, while the report-level discharged_checks declares the five a selected run discharges for the produced record.",
       "accepted requires the check record to bind the same candidate the sequence selected and the Core outcome to be valid.",
       "Every step exits the pipe-and-grep form so a failed command cannot pass silently as exit-0 output.",
       "budget_policy_fingerprint is verify-attempt-v1 for deterministic runs."
@@ -46,14 +46,14 @@
         "name": "verify-attempt: established atom accepted",
         "repo": "mumei-agent",
         "cwd": "{mumei_agent_repo}",
-        "command": "{mumei_agent_python} -m agent verify-attempt --core {mumei_bin} --source {root_dir}/scenarios/verify_attempt/src/identity.mm --output {output_dir}/report.json > {output_dir}/attempt.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/attempt.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); a=r['acceptance']; assert r['schema_version']=='mumei.verify-attempt-report/v1' and a['accepted'] is True and a['candidate_match'] is True and r['evidence_check']['schema_version']=='mumei.verifier-evidence-check/v1' and r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1' and r['discharged_checks']==['file_identity','freshness','producer_authenticity','semantic_correspondence'], r; print('verify-attempt: accepted true, candidate bound, four checks discharged')\"",
+        "command": "{mumei_agent_python} -m agent verify-attempt --core {mumei_bin} --source {root_dir}/scenarios/verify_attempt/src/identity.mm --output {output_dir}/report.json > {output_dir}/attempt.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/attempt.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); a=r['acceptance']; assert r['schema_version']=='mumei.verify-attempt-report/v1' and a['accepted'] is True and a['candidate_match'] is True and r['evidence_check']['schema_version']=='mumei.verifier-evidence-check/v1' and r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1' and r['discharged_checks']==['claim_truth','file_identity','freshness','producer_authenticity','semantic_correspondence'], r; print('verify-attempt: accepted true, candidate bound, five checks discharged')\"",
         "expected_exit": 0,
         "artifacts": [
           "attempt.log",
           "report.json"
         ],
         "harness_stage": "S1_declared_attempt",
-        "artifact_contract": "report.json binds schema mumei.verify-attempt-report/v1 with acceptance.accepted true, candidate_match true, a mumei.verifier-evidence-check/v1 check, a mumei.verifier-evidence-candidate/v1 candidate and discharged_checks == ['file_identity', 'freshness', 'producer_authenticity', 'semantic_correspondence'].",
+        "artifact_contract": "report.json binds schema mumei.verify-attempt-report/v1 with acceptance.accepted true, candidate_match true, a mumei.verifier-evidence-check/v1 check, a mumei.verifier-evidence-candidate/v1 candidate and discharged_checks == ['claim_truth', 'file_identity', 'freshness', 'producer_authenticity', 'semantic_correspondence'].",
         "verifier_gate": "verify-attempt exits 0 and reports acceptance accepted:true for the established atom.",
         "expected_patterns": [
           "accepted",
