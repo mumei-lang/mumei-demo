@@ -251,4 +251,6 @@ demo-evidence-check: ## Declared evidence representation check route (real mumei
 		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
 
 demo-summaries-plan: ## Declared summary-route planning (probe boundary + resume).
-	@./scripts/run_scenario.sh summaries_plan
+	@./scripts/run_scenario.sh summaries_plan \
+		--mumei-repo "$(MUMEI_REPO)" \
+		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"

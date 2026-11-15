@@ -124,8 +124,48 @@
     ]
   },
   "narrative": {
-    "title": "Declared summary-route planning, observed end to end",
-    "body": "C11 turns adapter availability into observed evidence: summaries-plan runs each declared adapter's probe_argv through AttemptRunner, reports availability as a bounded adapter-probe-history record, and selects the profile-supporting adapter only when the declared tool-version pin is satisfied. The demo shows a real selection under a declared pin, a persisted history resuming its attempt count across passes, and an honest non-selection when no pin is declared."
+    "intro": [
+      "Step 1: summaries-plan probes each declared adapter and selects the Go adapter under a declared tool-version pin...",
+      "Step 2: rerunning with the persisted probe history resumes its attempt count (1 -> 2)...",
+      "Step 3: rerunning without a declared pin selects nothing — planning stays honest..."
+    ],
+    "before": "Adapter availability was an unassessed declaration: the planner had no observed evidence of which summary route could serve a profile.",
+    "after": "summaries-plan records bounded mumei.adapter-probe-history/v1 observations and selects only the profile-supporting adapter whose declared tool-version pin is satisfied.",
+    "steps": {
+      "plan_selected": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Go summary adapter selected under the declared pin",
+          "follow_up": [
+            "  plan.selected binds agent.go-summaries with observed_tool_version 1.23.0.",
+            "",
+            "  Step 2: Rerunning with the persisted history..."
+          ]
+        }
+      },
+      "plan_resumes_history": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Persisted probe history resumes attempt 1 -> 2",
+          "follow_up": [
+            "  The adapter-probe-history record continues instead of restarting.",
+            "",
+            "  Step 3: Rerunning without a declared pin..."
+          ]
+        }
+      },
+      "plan_unpinned": {
+        "pass": {
+          "icon": "✅",
+          "headline": "No declared pin — no selection",
+          "follow_up": [
+            "  plan.selected stays null with reason tool_version_unknown.",
+            "",
+            "  Demo complete: the probe-driven planning boundary is observable end to end."
+          ]
+        }
+      }
+    }
   },
   "success_criteria": [
     "plan.json carries schema mumei.summaries-plan/v1 with plan.selected.adapter_id agent.go-summaries",
@@ -144,5 +184,6 @@
     "plan2.err",
     "plan3.err"
   ],
-  "budget_policy_fingerprint": "summaries-plan-v1"
+  "budget_policy_fingerprint": "summaries-plan-v1",
+  "result_message": "Result: declared summaries-plan observable end to end — adapter selected under a declared pin, history resumed, unpinned run selects nothing."
 }
