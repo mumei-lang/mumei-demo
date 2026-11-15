@@ -1,7 +1,7 @@
 {
   "name": "Declared Native Consumer Recheck (native-recheck)",
   "version": "1.0.0",
-  "description": "C02/C10 freshness demo: `native-bundle build` produces a real native bundle, the declared `native-recheck` route re-runs `native-bundle recheck-llvm` against it and reports equivalent; a wrong expected build id exits 1 with no claimed outcome.",
+  "description": "C02/C10 freshness demo: `native-bundle build` produces a real native bundle, the declared `native-recheck` route re-runs `native-bundle recheck-llvm` against it, reports equivalent and discharges artifact_semantics; a wrong expected build id exits 1 with no claimed outcome.",
   "layers": [
     "l1_z3"
   ],
@@ -25,7 +25,7 @@
     ],
     "notes": [
       "The route claims an outcome only for unambiguous exit codes: exit 1 conflates Different/UndefinedBehavior with every static failure, so a mismatched build id surfaces as no claimed outcome rather than a different label.",
-      "The produced mumei.native-consumer-evidence/v1 envelope keeps acceptance == not_evaluated: the exit code is the verdict; correspondence, producer authenticity and artifact semantics stay unassessed.",
+      "The produced mumei.native-consumer-evidence/v1 envelope keeps acceptance == not_evaluated: the exit code is the verdict; an equivalent outcome discharges artifact_semantics at representation level while the other five checks stay in checks_not_performed.",
       "native-bundle build requires the first native profile (linux/x86_64 host, atom main() -> i64 requires: true).",
       "Every step exits the pipe-and-grep form so a failed command cannot pass silently as exit-0 output.",
       "budget_policy_fingerprint is native-recheck-v1 for deterministic runs."
@@ -66,7 +66,7 @@
         "name": "native-recheck: bundle equivalent within profile",
         "repo": "mumei-agent",
         "cwd": "{mumei_agent_repo}",
-        "command": "BUILD_ID=$(cat {output_dir}/build_id.txt); {mumei_agent_python} -m agent native-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_recheck/src/main.mm --expected-build-id \"$BUILD_ID\" --output {output_dir}/report.json > {output_dir}/recheck.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/recheck.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['schema_version']=='mumei.native-recheck-report/v1' and r['recheck']=='equivalent' and r['sequence'].get('selected_result') is not None and r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1', r; print('native-recheck: equivalent, candidate bound')\"",
+        "command": "BUILD_ID=$(cat {output_dir}/build_id.txt); {mumei_agent_python} -m agent native-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_recheck/src/main.mm --expected-build-id \"$BUILD_ID\" --output {output_dir}/report.json > {output_dir}/recheck.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/recheck.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['schema_version']=='mumei.native-recheck-report/v1' and r['recheck']=='equivalent' and r['sequence'].get('selected_result') is not None and r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1' and r['discharged_checks']==['artifact_semantics'], r; print('native-recheck: equivalent, candidate bound, artifact_semantics discharged')\"",
         "expected_exit": 0,
         "depends_on": [
           "build_bundle"
@@ -76,8 +76,8 @@
           "report.json"
         ],
         "harness_stage": "S2_declared_recheck",
-        "artifact_contract": "report.json binds schema mumei.native-recheck-report/v1 with recheck == equivalent, a selected_result and a mumei.verifier-evidence-candidate/v1 candidate.",
-        "verifier_gate": "native-recheck exits 0, reports recheck equivalent and selects the candidate handoff.",
+        "artifact_contract": "report.json binds schema mumei.native-recheck-report/v1 with recheck == equivalent, a selected_result, a mumei.verifier-evidence-candidate/v1 candidate and discharged_checks == ['artifact_semantics'].",
+        "verifier_gate": "native-recheck exits 0, reports recheck equivalent, discharges artifact_semantics and selects the candidate handoff.",
         "expected_patterns": [
           "equivalent",
           "mumei.verifier-evidence-candidate/v1"
@@ -88,7 +88,7 @@
         "name": "native-recheck: wrong expected build id claims no outcome",
         "repo": "mumei-agent",
         "cwd": "{mumei_agent_repo}",
-        "command": "BUILD_ID=$(cat {output_dir}/build_id.txt); WRONG=$(python3 -c \"b='$BUILD_ID'; print(('0' if b[0] != '0' else '1') + b[1:])\"); {mumei_agent_python} -m agent native-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_recheck/src/main.mm --expected-build-id \"$WRONG\" --output {output_dir}/wrong_report.json > {output_dir}/wrong_id.log 2>&1; rc=$?; cat {output_dir}/wrong_report.json; cat {output_dir}/wrong_id.log; test $rc -eq 0 && test \"$WRONG\" != \"$BUILD_ID\" && python3 -c \"import json; r=json.load(open('{output_dir}/wrong_report.json')); assert 'recheck' not in r and r['normalized']['exit_code']==1 and r['sequence'].get('selected_result') is None, r; print('native-recheck: mismatched build id exits 1 with no claimed outcome')\"",
+        "command": "BUILD_ID=$(cat {output_dir}/build_id.txt); WRONG=$(python3 -c \"b='$BUILD_ID'; print(('0' if b[0] != '0' else '1') + b[1:])\"); {mumei_agent_python} -m agent native-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_recheck/src/main.mm --expected-build-id \"$WRONG\" --output {output_dir}/wrong_report.json > {output_dir}/wrong_id.log 2>&1; rc=$?; cat {output_dir}/wrong_report.json; cat {output_dir}/wrong_id.log; test $rc -eq 0 && test \"$WRONG\" != \"$BUILD_ID\" && python3 -c \"import json; r=json.load(open('{output_dir}/wrong_report.json')); assert 'recheck' not in r and 'discharged_checks' not in r and r['normalized']['exit_code']==1 and r['sequence'].get('selected_result') is None, r; print('native-recheck: mismatched build id exits 1 with no claimed outcome')\"",
         "expected_exit": 0,
         "depends_on": [
           "build_bundle"
@@ -157,14 +157,14 @@
     "source_intent": "Show the declared native-recheck route rechecking a real native bundle and refusing to claim an outcome for a mismatched expected build id.",
     "success_criteria": [
       "build.log prints a Build ID line and bundle/ holds all four declared members",
-      "report.json carries recheck == equivalent and a selected verifier-evidence-candidate candidate",
-      "wrong_report.json carries no recheck field, normalized exit_code 1 and no selected_result"
+      "report.json carries recheck == equivalent, discharged_checks == ['artifact_semantics'] and a selected verifier-evidence-candidate candidate",
+      "wrong_report.json carries no recheck or discharged_checks field, normalized exit_code 1 and no selected_result"
     ]
   },
   "success_criteria": [
     "build.log prints a Build ID line and bundle/ holds all four declared members",
-    "report.json carries recheck == equivalent and a selected verifier-evidence-candidate candidate",
-    "wrong_report.json carries no recheck field, normalized exit_code 1 and no selected_result"
+    "report.json carries recheck == equivalent, discharged_checks == ['artifact_semantics'] and a selected verifier-evidence-candidate candidate",
+    "wrong_report.json carries no recheck or discharged_checks field, normalized exit_code 1 and no selected_result"
   ],
   "gate_order": [
     {
