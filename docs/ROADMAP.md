@@ -95,6 +95,21 @@ and fixture mode replays recorded payloads for deterministic CI. The
 helper remains declared source-analysis infrastructure, not a verifier;
 no audit, MCP or planner wiring is implied.
 
+## Optional declared ts-summaries scenario
+
+The optional [ts_summaries scenario](../scenarios/ts_summaries/README.md)
+exercises the `mumei-agent` declared summary route family for TypeScript
+end to end: `ts-summaries` emits a
+`mumei.ts-scalar-parameter-deps/v1` manifest for a two-function fixture
+unit, `ts-summaries-check` partitions reusable/stale/missing functions
+against a fresh in-process derivation, and `ts-summaries-accept` echoes
+one function's declared summary under the strict whole-context gate. It
+stays in `OPTIONAL_SCENARIOS` — the default 18-scenario sequence is
+unchanged and no toolchain or fixture mode is needed because the analyzer
+runs in-process on tree-sitter. The analyzer remains declared
+source-analysis infrastructure, not a verifier; no audit, MCP or planner
+wiring is implied.
+
 ## Cross-project no-.mm scenario contract
 
 `mumei-lang/mumei/docs/CROSS_PROJECT_ROADMAP.md` owns the global V1 order. Demo scenarios that cover the no-`.mm` path must keep the same `audit -> migrate-suggest -> heal` gate order as `mumei-agent audit --auto-migrate --auto-heal` and MCP `scan_and_fix`.

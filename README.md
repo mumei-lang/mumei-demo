@@ -125,6 +125,14 @@ helper report, and accept one binding under the strict whole-context gate.
 Fixture mode replays recorded payloads; real mode needs a maintained Go
 toolchain on `PATH` and the default scenario sequence stays unchanged.
 
+The optional [`make demo-ts-summaries`](scenarios/ts_summaries/README.md)
+runs the declared `ts-summaries` route family on a sibling `mumei-agent`
+checkout: emit a `mumei.ts-scalar-parameter-deps/v1` manifest, check it
+against a fresh derivation, and accept one function under the strict
+whole-context gate. The analyzer runs in-process on tree-sitter, so no
+toolchain or fixture mode is needed and the default scenario sequence
+stays unchanged.
+
 ## Running scenarios
 
 ```bash
