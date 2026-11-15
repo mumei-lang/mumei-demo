@@ -1,0 +1,193 @@
+{
+  "name": "Declared Evidence Check (evidence-check)",
+  "version": "1.0.0",
+  "description": "C02 consume demo: `python -m agent evidence-check` feeds a saved Evidence record's bytes to `evidence check --stdin --json` as one declared attempt — a valid record selects representation valid plus a candidate, while corrupt bytes claim nothing.",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the consume-side declared attempt: produce a real mumei.verification-evidence/v1 record with Core, run `python -m agent evidence-check` so the representation check itself carries canonical attempt lineage, then show corrupt bytes bind nothing.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/evidence_check/src/identity.mm (established atom).",
+      "Step 1 produces a real Evidence record via `mumei evidence verify-source --json` and asserts its schema.",
+      "Step 2 runs the declared `evidence-check` route and asserts representation valid, checks_not_performed naming the six semantic duties, a selected_result and a verifier-evidence-candidate.",
+      "Step 3 reruns the route on corrupt bytes and asserts no representation, no candidate and a nonzero normalized exit_code.",
+      "Generate evidence: record.json, check.log, bogus.log, report.json, bogus_report.json, bogus.json, harness_state.json, result.json, and report.md."
+    ],
+    "gate_order": [
+      "l1_z3"
+    ],
+    "notes": [
+      "Selection requires exit 0 AND stdout that parses as exactly the mumei.evidence-representation-check/v1 diagnostic — a rejected record exits 1 with no diagnostic to bind.",
+      "The record bytes are fed to the child on stdin through the runner's bounded feed_bytes (<= 65536 bytes), not a shell redirect — the feed is part of the declared request fingerprint.",
+      "Representation-level only: checks_not_performed still names claim truth, file identity, freshness, producer authenticity, semantic correspondence and artifact semantics.",
+      "Every step exits the pipe-and-grep form so a failed command cannot pass silently as exit-0 output.",
+      "budget_policy_fingerprint is evidence-check-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "evidence-check",
+      "schema_version",
+      "mumei.evidence-check-report/v1",
+      "mumei.evidence-check-request/v1",
+      "representation",
+      "checks_not_performed",
+      "selected_result",
+      "inputs_changed"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_record",
+        "name": "Produce a real Evidence record with Core",
+        "repo": "mumei",
+        "command": "{mumei_bin} evidence verify-source {root_dir}/scenarios/evidence_check/src/identity.mm --json > {output_dir}/record.json 2>{output_dir}/produce.log; rc=$?; cat {output_dir}/record.json; cat {output_dir}/produce.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/record.json')); assert r['schema_version']=='mumei.verification-evidence/v1', r['schema_version']; print('record produced:', r['schema_version'])\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "record.json",
+          "produce.log"
+        ],
+        "harness_stage": "S1_produce_record",
+        "artifact_contract": "record.json holds mumei.verification-evidence/v1 for the established atom.",
+        "verifier_gate": "Core verify-source exits 0 and emits a mumei.verification-evidence/v1 record.",
+        "expected_patterns": [
+          "mumei.verification-evidence/v1"
+        ]
+      },
+      {
+        "id": "check_record",
+        "name": "evidence-check: valid record selects representation valid",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent evidence-check --core {mumei_bin} --evidence {output_dir}/record.json --output {output_dir}/report.json > {output_dir}/check.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/check.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['schema_version']=='mumei.evidence-check-report/v1', r['schema_version']; assert r['representation']=='valid'; assert set(r['checks_not_performed'])=={'claim_truth','file_identity','freshness','producer_authenticity','semantic_correspondence','artifact_semantics'}, r['checks_not_performed']; assert r['sequence'].get('selected_result') is not None; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1'; print('evidence-check: representation valid, candidate bound')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce_record"
+        ],
+        "artifacts": [
+          "check.log",
+          "report.json"
+        ],
+        "harness_stage": "S2_declared_check",
+        "artifact_contract": "report.json binds schema mumei.evidence-check-report/v1 with representation valid, the six-entry checks_not_performed vocabulary, a selected_result and a verifier-evidence-candidate.",
+        "verifier_gate": "evidence-check exits 0; the Core representation diagnostic selects and the report echoes representation valid.",
+        "expected_patterns": [
+          "mumei.evidence-check-report/v1",
+          "representation",
+          "mumei.verifier-evidence-candidate/v1"
+        ]
+      },
+      {
+        "id": "check_bogus",
+        "name": "evidence-check: corrupt bytes claim nothing",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "python3 -c \"open('{output_dir}/bogus.json','w').write('{\\\"schema_version\\\":\\\"bogus\\\"}')\" && {mumei_agent_python} -m agent evidence-check --core {mumei_bin} --evidence {output_dir}/bogus.json --output {output_dir}/bogus_report.json > {output_dir}/bogus.log 2>&1; rc=$?; cat {output_dir}/bogus_report.json; cat {output_dir}/bogus.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/bogus_report.json')); assert r['schema_version']=='mumei.evidence-check-report/v1'; assert 'representation' not in r and 'candidate' not in r; assert r['sequence'].get('selected_result') is None; assert r['normalized'].get('exit_code')==1, r['normalized']; print('evidence-check: corrupt bytes exit 1, no claim')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "check_record"
+        ],
+        "artifacts": [
+          "bogus.json",
+          "bogus.log",
+          "bogus_report.json"
+        ],
+        "harness_stage": "S3_rejection_boundary",
+        "artifact_contract": "bogus_report.json carries the report schema with no representation, no candidate, no selected_result and normalized exit_code 1.",
+        "verifier_gate": "evidence-check exits 0 at the route level while Core rejects the corrupt record with exit 1 and nothing is claimed.",
+        "expected_patterns": [
+          "mumei.evidence-check-report/v1",
+          "exit_code"
+        ]
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Step 1: Core mints a real Evidence record...",
+      "Step 2: the declared evidence-check route feeds the record bytes to the representation check as one attempt...",
+      "Step 3: corrupt bytes claim nothing..."
+    ],
+    "before": "The Core representation check ran as an inline spawn with no attempt lineage — a record arriving by any path had no declared consume boundary.",
+    "after": "evidence-check binds the record bytes into a declared request, runs the check as one canonical attempt, and claims representation valid only when Core emits its recognised diagnostic.",
+    "steps": {
+      "produce_record": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Evidence record produced",
+          "follow_up": [
+            "  Step 2: Checking the saved record through the declared route..."
+          ]
+        }
+      },
+      "check_record": {
+        "pass": {
+          "icon": "✅",
+          "headline": "evidence-check: representation valid, candidate bound",
+          "follow_up": [
+            "  The check itself carries attempt lineage — selection is bound to Core's recognised diagnostic, not exit 0 alone.",
+            "",
+            "  Step 3: Rerunning on corrupt bytes..."
+          ]
+        }
+      },
+      "check_bogus": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Corrupt bytes exit 1, no claim",
+          "follow_up": [
+            "  A rejected record produces no diagnostic to bind — the route claims nothing.",
+            "",
+            "  Demo complete: the consume-side declared attempt is observable end to end."
+          ]
+        }
+      }
+    }
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared evidence-check route feeding a saved record to the Core representation check as one attempt: representation valid plus a candidate for a real record, no claim for corrupt bytes.",
+    "success_criteria": [
+      "report.json carries schema mumei.evidence-check-report/v1 with representation valid, the six-entry checks_not_performed vocabulary, a selected_result and a verifier-evidence-candidate",
+      "bogus_report.json carries no representation, no candidate, no selected_result and normalized exit_code 1"
+    ]
+  },
+  "success_criteria": [
+    "report.json carries schema mumei.evidence-check-report/v1 with representation valid, the six-entry checks_not_performed vocabulary, a selected_result and a verifier-evidence-candidate",
+    "bogus_report.json carries no representation, no candidate, no selected_result and normalized exit_code 1"
+  ],
+  "gate_order": [
+    {
+      "gate": "declared_check",
+      "user_wording": [
+        "The declared attempt runs the Core representation check on a saved record"
+      ]
+    },
+    {
+      "gate": "rejection_boundary",
+      "user_wording": [
+        "Corrupt bytes claim nothing"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/record.json",
+    "{output_dir}/produce.log",
+    "{output_dir}/check.log",
+    "{output_dir}/bogus.log",
+    "{output_dir}/report.json",
+    "{output_dir}/bogus_report.json",
+    "{output_dir}/bogus.json",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "evidence-check-v1",
+  "result_message": "Result: declared evidence check observable end to end — valid records select representation valid; corrupt bytes claim nothing."
+}
