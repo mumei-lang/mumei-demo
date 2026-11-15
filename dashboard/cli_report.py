@@ -142,8 +142,12 @@ def render(data: dict) -> str:
     pct = density.get("percentage", 0)
     verified = density.get("verified", 0)
     total = density.get("total", 0)
-    audit_status = "TRUSTLESS" if data.get("overall_status") == "PASS" else "ATTENTION"
-    if "evidence_summary" in data and data.get("overall_status") == "PASS":
+    declared_only = set(data.get("layers", {})) <= {"l1_summaries"}
+    if declared_only:
+        audit_status = "DECLARED EVIDENCE" if data.get("overall_status") == "PASS" else "ATTENTION"
+    else:
+        audit_status = "TRUSTLESS" if data.get("overall_status") == "PASS" else "ATTENTION"
+    if "evidence_summary" in data and data.get("overall_status") == "PASS" and not declared_only:
         audit_status = "LIMITED MODEL EVIDENCE"
     table.extend([
         "",
@@ -158,9 +162,14 @@ def render(data: dict) -> str:
     table.append(f"  Intent Fidelity:  {intent_fidelity_label(data)}")
     table.append(f"  Claim Book:       {claim_book_label(data)}")
     table.append(f"  Harness State:    {data.get('harness_state_file', 'N/A')}")
+    moment = (
+        "Declared summaries reused"
+        if declared_only
+        else "Proof failure → Bug found"
+    )
     table.extend([
         f"  Audit Status:  {audit_status}",
-        "  Moment:        Proof failure → Bug found",
+        f"  Moment:        {moment}",
     ])
     lines = [title, *table]
     output = box(lines, width=max(68, min(max(map(len, lines)) + 4, 120)))
@@ -192,7 +201,10 @@ def render_all() -> str:
             continue
         data = load_result(path)
         layers = data.get("layers", {})
-        verification = "Z3 + Lean 4" if "l3_lean" in layers else "Z3 Only"
+        if set(layers) <= {"l1_summaries"}:
+            verification = "Declared"
+        else:
+            verification = "Z3 + Lean 4" if "l3_lean" in layers else "Z3 Only"
         density = data.get("proof_density", {})
         pct = density.get("percentage", 0)
         verified = density.get("verified", 0)
