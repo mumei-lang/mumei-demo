@@ -1,0 +1,201 @@
+{
+  "name": "Declared Evidence Recheck (verify-recheck)",
+  "version": "1.0.0",
+  "description": "C02 freshness demo: `evidence verify-source` produces a saved Evidence record, the declared `verify-recheck` route re-runs the same restricted query against it and reports consistent; a tampered record exits 1 with no claimed outcome.",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C02 freshness layer end to end: produce real evidence with the Core, recheck it through the declared attempt route, then show a tampered record cannot claim a consistent outcome.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/verify_recheck/src/identity.mm (one established C03 atom).",
+      "Step 1 saves a real mumei.verification-evidence/v1 record from `evidence verify-source`.",
+      "Step 2 runs `python -m agent verify-recheck` and asserts recheck == consistent plus a selected verifier-evidence-candidate handoff.",
+      "Step 3 flips one hex digit in the record's specification sha256 and asserts the route reports no recheck outcome, no selection, and normalized exit_code 1.",
+      "Generate evidence: produce.log, recheck.log, tamper.log, evidence.json, report.json, tampered.json, tampered_report.json, harness_state.json, result.json, and report.md."
+    ],
+    "gate_order": [
+      "l1_z3"
+    ],
+    "notes": [
+      "The route claims an outcome only for unambiguous exit codes: exit 1 conflates refutation with every static failure including InconsistentSavedEvidence, so tampering surfaces as no claimed outcome rather than a refuted label.",
+      "verify-recheck is a freshness/replay-detection boundary: it does not evaluate evidence acceptance, producer authenticity or correspondence.",
+      "Every step exits the pipe-and-grep form so a failed command cannot pass silently as exit-0 output.",
+      "budget_policy_fingerprint is verify-recheck-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "recheck",
+      "schema_version",
+      "mumei.verify-recheck-report/v1",
+      "mumei.verification-evidence/v1",
+      "consistent",
+      "inputs_changed",
+      "selected_result"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce",
+        "name": "Produce a saved Evidence record",
+        "repo": "mumei",
+        "command": "{mumei_bin} evidence verify-source {root_dir}/scenarios/verify_recheck/src/identity.mm --json --solver-timeout 5000 --solver-resource-limit 1000000 > {output_dir}/evidence.json 2> {output_dir}/produce.log; rc=$?; cat {output_dir}/evidence.json; cat {output_dir}/produce.log; test $rc -eq 0 && python3 -c \"import json; e=json.load(open('{output_dir}/evidence.json')); assert e['schema_version']=='mumei.verification-evidence/v1' and e['result']=='established', e; print('evidence: established verification-evidence record saved')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "produce.log",
+          "evidence.json"
+        ],
+        "harness_stage": "S1_evidence_produce",
+        "artifact_contract": "evidence.json binds schema mumei.verification-evidence/v1 with result established for identity.mm under the producer's declared solver budget.",
+        "verifier_gate": "verify-source exits 0 and writes an established verification-evidence record.",
+        "expected_patterns": [
+          "mumei.verification-evidence/v1",
+          "established"
+        ]
+      },
+      {
+        "id": "consistent",
+        "name": "verify-recheck: saved record consistent",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent verify-recheck --core {mumei_bin} --evidence {output_dir}/evidence.json --source {root_dir}/scenarios/verify_recheck/src/identity.mm --output {output_dir}/report.json > {output_dir}/recheck.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/recheck.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['schema_version']=='mumei.verify-recheck-report/v1' and r['recheck']=='consistent' and r['sequence'].get('selected_result') is not None and r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1', r; print('verify-recheck: consistent, candidate bound')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce"
+        ],
+        "artifacts": [
+          "recheck.log",
+          "report.json"
+        ],
+        "harness_stage": "S2_declared_recheck",
+        "artifact_contract": "report.json binds schema mumei.verify-recheck-report/v1 with recheck == consistent, a selected_result and a mumei.verifier-evidence-candidate/v1 candidate.",
+        "verifier_gate": "verify-recheck exits 0, reports recheck consistent and selects the candidate handoff.",
+        "expected_patterns": [
+          "consistent",
+          "mumei.verifier-evidence-candidate/v1"
+        ]
+      },
+      {
+        "id": "tampered",
+        "name": "verify-recheck: tampered record claims no outcome",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "python3 -c \"import json; e=json.load(open('{output_dir}/evidence.json')); s=e['specification']['sha256']; e['specification']['sha256']=('0' if s[0]!='0' else '1')+s[1:]; json.dump(e, open('{output_dir}/tampered.json','w'), indent=2)\" && {mumei_agent_python} -m agent verify-recheck --core {mumei_bin} --evidence {output_dir}/tampered.json --source {root_dir}/scenarios/verify_recheck/src/identity.mm --output {output_dir}/tampered_report.json > {output_dir}/tamper.log 2>&1; rc=$?; cat {output_dir}/tampered_report.json; cat {output_dir}/tamper.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/tampered_report.json')); assert 'recheck' not in r and r['normalized']['exit_code']==1 and r['sequence'].get('selected_result') is None, r; print('verify-recheck: tampered record exits 1 with no claimed outcome')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce"
+        ],
+        "artifacts": [
+          "tamper.log",
+          "tampered.json",
+          "tampered_report.json"
+        ],
+        "harness_stage": "S3_tamper_boundary",
+        "artifact_contract": "tampered_report.json carries no recheck field, normalized exit_code 1 and no selected_result for the tampered record.",
+        "verifier_gate": "verify-recheck exits 0 at the route level while the tampered record fails with no claimed outcome and no selection.",
+        "expected_patterns": [
+          "mumei.verify-recheck-report/v1",
+          "no claimed outcome"
+        ]
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Step 1: mumei evidence verify-source produces a real saved Evidence record...",
+      "Step 2: the declared verify-recheck route re-runs the same restricted query and reports consistent...",
+      "Step 3: a tampered specification hash makes the saved record inconsistent — the route claims no outcome..."
+    ],
+    "before": "A saved Evidence record could not be re-checked through the declared attempt boundary: freshness was an unassessed duty.",
+    "after": "verify-recheck re-runs the restricted query against the saved record; consistent records bind a verifier-evidence-candidate handoff while tampered or stale records exit 1 with no claimed outcome.",
+    "steps": {
+      "produce": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Evidence record saved (established)",
+          "follow_up": [
+            "  The record binds subject and specification hashes under mumei.verification-evidence/v1.",
+            "",
+            "  Step 2: Rechecking the saved record through the declared route..."
+          ]
+        }
+      },
+      "consistent": {
+        "pass": {
+          "icon": "✅",
+          "headline": "verify-recheck: consistent + candidate bound",
+          "follow_up": [
+            "  The same restricted query agrees with the saved record — a verifier-evidence-candidate handoff is emitted.",
+            "",
+            "  Step 3: Tampering with the saved record..."
+          ]
+        }
+      },
+      "tampered": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Tampered record exits 1, no claimed outcome",
+          "follow_up": [
+            "  Exit 1 conflates refutation with InconsistentSavedEvidence — the route claims no outcome and selects nothing.",
+            "",
+            "  Demo complete: the C02 freshness boundary is observable end to end."
+          ]
+        }
+      }
+    }
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared verify-recheck route rechecking a real saved Evidence record and refusing to claim an outcome for a tampered one.",
+    "success_criteria": [
+      "evidence.json carries schema mumei.verification-evidence/v1 with result established",
+      "report.json carries recheck == consistent and a selected verifier-evidence-candidate candidate",
+      "tampered_report.json carries no recheck field, normalized exit_code 1 and no selected_result"
+    ]
+  },
+  "success_criteria": [
+    "evidence.json carries schema mumei.verification-evidence/v1 with result established",
+    "report.json carries recheck == consistent and a selected verifier-evidence-candidate candidate",
+    "tampered_report.json carries no recheck field, normalized exit_code 1 and no selected_result"
+  ],
+  "gate_order": [
+    {
+      "gate": "produce",
+      "user_wording": [
+        "A real Evidence record is produced and saved"
+      ]
+    },
+    {
+      "gate": "freshness_recheck",
+      "user_wording": [
+        "The declared route re-checks the saved record consistently"
+      ]
+    },
+    {
+      "gate": "tamper_boundary",
+      "user_wording": [
+        "A tampered record claims no consistent outcome"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/produce.log",
+    "{output_dir}/recheck.log",
+    "{output_dir}/tamper.log",
+    "{output_dir}/evidence.json",
+    "{output_dir}/report.json",
+    "{output_dir}/tampered.json",
+    "{output_dir}/tampered_report.json",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "verify-recheck-v1",
+  "result_message": "Result: declared evidence recheck observable end to end — consistent records bind a candidate; tampered records claim no outcome."
+}
