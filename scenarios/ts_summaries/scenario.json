@@ -66,10 +66,12 @@
         "id": "check_manifest",
         "name": "Check: manifest reuse check against a fresh derivation",
         "repo": "mumei-agent",
-        "command": "{mumei_agent_python} -m agent ts-summaries-check {root_dir}/scenarios/ts_summaries/demo_counter.ts --manifest {output_dir}/manifest.json",
+        "command": "{mumei_agent_python} -m agent ts-summaries-check {root_dir}/scenarios/ts_summaries/demo_counter.ts --manifest {output_dir}/manifest.json > {output_dir}/check_result.json 2>&1; rc=$?; cat {output_dir}/check_result.json; test $rc -eq 0 && grep -q '\"context_match\": true' {output_dir}/check_result.json && grep -q '\"stale\": \\[\\]' {output_dir}/check_result.json && grep -q '\"missing\": \\[\\]' {output_dir}/check_result.json",
         "cwd": "{mumei_agent_repo}",
         "expected_exit": 0,
-        "depends_on": ["emit_manifest"],
+        "depends_on": [
+          "emit_manifest"
+        ],
         "expected_patterns": [
           "mumei.ts-summary-check/v1",
           "context_match",
@@ -79,16 +81,19 @@
         ],
         "harness_stage": "S2_check_manifest_reuse",
         "artifact_contract": "check step must emit mumei.ts-summary-check/v1 partitioning every declared function as reusable, stale or missing against a fresh derivation.",
-        "verifier_gate": "ts-summaries-check exits 0 and reports context_match true with both functions in reusable and empty stale/missing lists."
+        "verifier_gate": "ts-summaries-check exits 0 (checked via rc after redirecting output to check_result.json so the pipe cannot mask it) and the greps require context_match true plus empty stale/missing lists, so a refused or partially-stale partition fails the step instead of passing."
       },
       {
         "id": "accept_summary",
         "name": "Accept: strict whole-context gate on one declared summary",
         "repo": "mumei-agent",
-        "command": "{mumei_agent_python} -m agent ts-summaries-accept {root_dir}/scenarios/ts_summaries/demo_counter.ts --manifest {output_dir}/manifest.json --function add",
+        "command": "{mumei_agent_python} -m agent ts-summaries-accept {root_dir}/scenarios/ts_summaries/demo_counter.ts --manifest {output_dir}/manifest.json --function add > {output_dir}/accept_result.json 2>&1; rc=$?; cat {output_dir}/accept_result.json; test $rc -eq 0 && grep -q '\"accepted\": true' {output_dir}/accept_result.json",
         "cwd": "{mumei_agent_repo}",
         "expected_exit": 0,
-        "depends_on": ["emit_manifest", "check_manifest"],
+        "depends_on": [
+          "emit_manifest",
+          "check_manifest"
+        ],
         "expected_patterns": [
           "mumei.ts-summary-accept/v1",
           "accepted",
@@ -97,7 +102,7 @@
         ],
         "harness_stage": "S3_accept_declared_summary",
         "artifact_contract": "accept step must emit mumei.ts-summary-accept/v1 and echo the declared summary only under an exact whole-context match; a stale manifest must refuse.",
-        "verifier_gate": "ts-summaries-accept exits 0, reports accepted true for add, and echoes its declared summary."
+        "verifier_gate": "ts-summaries-accept exits 0 (checked via rc) and the grep requires accepted true, so an exit-0 refusal or a non-zero crash fails the step instead of passing."
       }
     ]
   },
