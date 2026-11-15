@@ -1,0 +1,210 @@
+{
+  "name": "Declared Evidence Check Acceptance (evidence-check-accept)",
+  "version": "1.0.0",
+  "description": "C02 consume-side demo: `verify-attempt` produces an accepted attempt report, the declared `evidence-check-accept` route restores its stored sequence + check record and reports accepted; the same check against a foreign sequence reports candidate_match false and accepted false.",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C02 consume side end to end: produce an accepted attempt report through verify-attempt, restore its sequence and check record through evidence-check-accept for accepted:true, then show a foreign sequence can never accept that check.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/evidence_check_accept/src/identity.mm and other.mm.",
+      "Step 1 runs `python -m agent verify-attempt` on identity.mm and asserts acceptance.accepted is true with candidate_match.",
+      "Step 2 restores the report's sequence + evidence_check records through `evidence-check-accept` and asserts accepted true with candidate_match.",
+      "Step 3 runs verify-attempt on the foreign source other.mm, then evaluates the first check record against the foreign sequence and asserts candidate_match false and accepted false.",
+      "Generate evidence: attempt.log, accept.log, foreign.log, attempt.json, foreign_attempt.json, sequence.json, check.json, foreign_sequence.json, accept.json, foreign_accept.json, harness_state.json, result.json, and report.md."
+    ],
+    "gate_order": [
+      "l1_z3"
+    ],
+    "notes": [
+      "evidence-check-accept is the consume half of produce+consume: it restores declared records only and performs no Core run — a stale or foreign check always yields accepted:false.",
+      "acceptance is representation-level: the six semantic checks (claim_truth, file_identity, freshness, producer_authenticity, semantic_correspondence, artifact_semantics) stay in checks_not_performed.",
+      "Every step exits the pipe-and-grep form so a failed command cannot pass silently as exit-0 output.",
+      "budget_policy_fingerprint is evidence-check-accept-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "accepted",
+      "candidate_match",
+      "schema_version",
+      "mumei.verify-attempt-report/v1",
+      "mumei.evidence-check-acceptance/v1",
+      "mumei.verifier-evidence-check/v1",
+      "mumei.verifier-attempt-sequence/v1"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "attempt",
+        "name": "verify-attempt: accepted attempt report",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent verify-attempt --core {mumei_bin} --source {root_dir}/scenarios/evidence_check_accept/src/identity.mm --output {output_dir}/attempt.json > {output_dir}/attempt.log 2>&1; rc=$?; cat {output_dir}/attempt.json; cat {output_dir}/attempt.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/attempt.json')); assert r['schema_version']=='mumei.verify-attempt-report/v1' and r['acceptance']['accepted'] is True and r['acceptance']['candidate_match'] is True, r.get('acceptance'); print('verify-attempt: accepted attempt report')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "attempt.log",
+          "attempt.json"
+        ],
+        "harness_stage": "S1_declared_attempt",
+        "artifact_contract": "attempt.json binds schema mumei.verify-attempt-report/v1 with acceptance.accepted true for identity.mm.",
+        "verifier_gate": "verify-attempt exits 0, reports acceptance.accepted true with candidate_match.",
+        "expected_patterns": [
+          "mumei.verify-attempt-report/v1",
+          "accepted"
+        ]
+      },
+      {
+        "id": "accept",
+        "name": "evidence-check-accept: stored check accepted",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "python3 -c \"import json; r=json.load(open('{output_dir}/attempt.json')); json.dump(r['sequence'], open('{output_dir}/sequence.json','w'), indent=2); json.dump(r['evidence_check'], open('{output_dir}/check.json','w'), indent=2)\" && {mumei_agent_python} -m agent evidence-check-accept --sequence {output_dir}/sequence.json --check {output_dir}/check.json --output {output_dir}/accept.json > {output_dir}/accept.log 2>&1; rc=$?; cat {output_dir}/accept.json; cat {output_dir}/accept.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/accept.json')); assert r['schema_version']=='mumei.evidence-check-acceptance/v1' and r['accepted'] is True and r['candidate_match'] is True, r; print('evidence-check-accept: stored check accepted')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "attempt"
+        ],
+        "artifacts": [
+          "accept.log",
+          "sequence.json",
+          "check.json",
+          "accept.json"
+        ],
+        "harness_stage": "S2_declared_accept",
+        "artifact_contract": "accept.json binds schema mumei.evidence-check-acceptance/v1 with accepted true and candidate_match true for the attempt's own sequence.",
+        "verifier_gate": "evidence-check-accept exits 0 and reports accepted true for the stored check against its own sequence.",
+        "expected_patterns": [
+          "mumei.evidence-check-acceptance/v1",
+          "accepted"
+        ]
+      },
+      {
+        "id": "foreign",
+        "name": "evidence-check-accept: foreign sequence cannot accept",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent verify-attempt --core {mumei_bin} --source {root_dir}/scenarios/evidence_check_accept/src/other.mm --output {output_dir}/foreign_attempt.json > {output_dir}/foreign.log 2>&1; rc=$?; cat {output_dir}/foreign.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/foreign_attempt.json')); json.dump(r['sequence'], open('{output_dir}/foreign_sequence.json','w'), indent=2)\" && {mumei_agent_python} -m agent evidence-check-accept --sequence {output_dir}/foreign_sequence.json --check {output_dir}/check.json --output {output_dir}/foreign_accept.json > {output_dir}/foreign_accept.log 2>&1; rc=$?; cat {output_dir}/foreign_accept.json; cat {output_dir}/foreign_accept.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/foreign_accept.json')); assert r['schema_version']=='mumei.evidence-check-acceptance/v1' and r['candidate_match'] is False and r['accepted'] is False, r; print('evidence-check-accept: foreign sequence rejected')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "accept"
+        ],
+        "artifacts": [
+          "foreign.log",
+          "foreign_attempt.json",
+          "foreign_sequence.json",
+          "foreign_accept.json",
+          "foreign_accept.log"
+        ],
+        "harness_stage": "S3_foreign_sequence_boundary",
+        "artifact_contract": "foreign_accept.json binds schema mumei.evidence-check-acceptance/v1 with candidate_match false and accepted false for the foreign sequence.",
+        "verifier_gate": "evidence-check-accept exits 0 while reporting candidate_match false and accepted false — a stale or foreign check can never forge acceptance.",
+        "expected_patterns": [
+          "mumei.evidence-check-acceptance/v1",
+          "foreign sequence rejected"
+        ]
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Step 1: verify-attempt produces an accepted attempt report against a real Core...",
+      "Step 2: evidence-check-accept restores the stored sequence + check record and accepts...",
+      "Step 3: the same check record evaluated against a foreign sequence reports candidate_match false and accepted false..."
+    ],
+    "before": "The consume half of produce+consume had no end-to-end coverage: whether a stored check record can be restored and accepted was only unit-tested.",
+    "after": "evidence-check-accept restores declared records and accepts the attempt's own check while a foreign sequence can never forge acceptance.",
+    "steps": {
+      "attempt": {
+        "pass": {
+          "icon": "✅",
+          "headline": "verify-attempt: accepted",
+          "follow_up": [
+            "  The live Core check produced a valid verifier-evidence-check record and an accepted acceptance descriptor.",
+            "",
+            "  Step 2: Restoring the stored sequence and check through evidence-check-accept..."
+          ]
+        }
+      },
+      "accept": {
+        "pass": {
+          "icon": "✅",
+          "headline": "evidence-check-accept: accepted",
+          "follow_up": [
+            "  The stored check binds the sequence's current candidate — accepted at representation level.",
+            "",
+            "  Step 3: Evaluating the same check against a foreign sequence..."
+          ]
+        }
+      },
+      "foreign": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Foreign sequence cannot accept",
+          "follow_up": [
+            "  candidate_match is false: a stale or foreign check never counts, so acceptance cannot be forged.",
+            "",
+            "  Demo complete: the C02 consume boundary is observable end to end."
+          ]
+        }
+      }
+    }
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show evidence-check-accept accepting a stored check for its own sequence and rejecting it for a foreign one.",
+    "success_criteria": [
+      "attempt.json carries acceptance.accepted true",
+      "accept.json carries accepted true with candidate_match true",
+      "foreign_accept.json carries candidate_match false and accepted false"
+    ]
+  },
+  "success_criteria": [
+    "attempt.json carries acceptance.accepted true",
+    "accept.json carries accepted true with candidate_match true",
+    "foreign_accept.json carries candidate_match false and accepted false"
+  ],
+  "gate_order": [
+    {
+      "gate": "attempt",
+      "user_wording": [
+        "An accepted attempt report is produced"
+      ]
+    },
+    {
+      "gate": "accept",
+      "user_wording": [
+        "The stored check is restored and accepted"
+      ]
+    },
+    {
+      "gate": "foreign_boundary",
+      "user_wording": [
+        "A foreign sequence cannot accept the check"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/attempt.log",
+    "{output_dir}/accept.log",
+    "{output_dir}/foreign.log",
+    "{output_dir}/foreign_accept.log",
+    "{output_dir}/attempt.json",
+    "{output_dir}/foreign_attempt.json",
+    "{output_dir}/sequence.json",
+    "{output_dir}/check.json",
+    "{output_dir}/foreign_sequence.json",
+    "{output_dir}/accept.json",
+    "{output_dir}/foreign_accept.json",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "evidence-check-accept-v1",
+  "result_message": "Result: declared evidence-check acceptance observable end to end — own sequence accepts, foreign sequence cannot."
+}
