@@ -1,0 +1,269 @@
+{
+  "name": "Declared Evidence Comparison (evidence-compare)",
+  "version": "1.0.0",
+  "description": "C02 claims-comparison demo: `evidence verify-source` produces two real saved Evidence records; the declared `evidence-compare` route reports claims_match for records of the same source and subject_match == false for a record of a foreign source — record-vs-record drift detection without a Core re-run.",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C02 record-vs-record boundary end to end: produce two real records from the same source and one from a foreign source, then show the declared compare route reports claims_match for identical claims and mismatch for foreign claims.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/evidence_compare/src/identity.mm and other.mm.",
+      "Steps 1-3 save real mumei.verification-evidence/v1 records from `evidence verify-source`.",
+      "Step 4 runs `python -m agent evidence-compare` on the two same-source records and asserts claims_match == true.",
+      "Step 5 runs the same route on a same-source record vs the foreign-source record and asserts claims_match == false — data, not an error.",
+      "Generate evidence: produce_a.log, produce_b.log, produce_c.log, match.log, mismatch.log, evidence_a.json, evidence_b.json, evidence_c.json, match.json, mismatch.json, harness_state.json, result.json, and report.md."
+    ],
+    "gate_order": [
+      "l1_z3"
+    ],
+    "notes": [
+      "claims_match means only that two records carry the same bound subject and specification claims: truth, freshness and authenticity stay in checks_not_performed.",
+      "evidence-compare is the record-vs-record companion of evidence-identity-check (record vs current bytes) and verify-recheck (record vs fresh query): no Core run and no spawn.",
+      "Every step exits the pipe-and-grep form so a failed command cannot pass silently as exit-0 output.",
+      "budget_policy_fingerprint is evidence-compare-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "claims_match",
+      "subject_match",
+      "specification_match",
+      "schema_version",
+      "mumei.evidence-comparison/v1",
+      "mumei.verification-evidence/v1",
+      "mumei_source"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_a",
+        "name": "Produce the first saved Evidence record",
+        "repo": "mumei",
+        "command": "{mumei_bin} evidence verify-source {root_dir}/scenarios/evidence_compare/src/identity.mm --json --solver-timeout 5000 --solver-resource-limit 1000000 > {output_dir}/evidence_a.json 2> {output_dir}/produce_a.log; rc=$?; cat {output_dir}/evidence_a.json; cat {output_dir}/produce_a.log; test $rc -eq 0 && python3 -c \"import json; e=json.load(open('{output_dir}/evidence_a.json')); assert e['schema_version']=='mumei.verification-evidence/v1' and e['result']=='established', e; print('evidence A: established verification-evidence record saved')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "produce_a.log",
+          "evidence_a.json"
+        ],
+        "harness_stage": "S1a_evidence_produce",
+        "artifact_contract": "evidence_a.json binds schema mumei.verification-evidence/v1 with result established for identity.mm under the producer's declared solver budget.",
+        "verifier_gate": "verify-source exits 0 and writes an established verification-evidence record.",
+        "expected_patterns": [
+          "mumei.verification-evidence/v1",
+          "established"
+        ]
+      },
+      {
+        "id": "produce_b",
+        "name": "Produce a second saved Evidence record (same source)",
+        "repo": "mumei",
+        "command": "{mumei_bin} evidence verify-source {root_dir}/scenarios/evidence_compare/src/identity.mm --json --solver-timeout 5000 --solver-resource-limit 1000000 > {output_dir}/evidence_b.json 2> {output_dir}/produce_b.log; rc=$?; cat {output_dir}/evidence_b.json; cat {output_dir}/produce_b.log; test $rc -eq 0 && python3 -c \"import json; e=json.load(open('{output_dir}/evidence_b.json')); assert e['schema_version']=='mumei.verification-evidence/v1' and e['result']=='established', e; print('evidence B: established verification-evidence record saved')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce_a"
+        ],
+        "artifacts": [
+          "produce_b.log",
+          "evidence_b.json"
+        ],
+        "harness_stage": "S1b_evidence_produce",
+        "artifact_contract": "evidence_b.json binds schema mumei.verification-evidence/v1 with result established for identity.mm under the producer's declared solver budget.",
+        "verifier_gate": "verify-source exits 0 and writes an established verification-evidence record.",
+        "expected_patterns": [
+          "mumei.verification-evidence/v1",
+          "established"
+        ]
+      },
+      {
+        "id": "produce_c",
+        "name": "Produce a saved Evidence record for a foreign source",
+        "repo": "mumei",
+        "command": "{mumei_bin} evidence verify-source {root_dir}/scenarios/evidence_compare/src/other.mm --json --solver-timeout 5000 --solver-resource-limit 1000000 > {output_dir}/evidence_c.json 2> {output_dir}/produce_c.log; rc=$?; cat {output_dir}/evidence_c.json; cat {output_dir}/produce_c.log; test $rc -eq 0 && python3 -c \"import json; e=json.load(open('{output_dir}/evidence_c.json')); assert e['schema_version']=='mumei.verification-evidence/v1' and e['result']=='established', e; print('evidence C: established verification-evidence record saved')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce_a"
+        ],
+        "artifacts": [
+          "produce_c.log",
+          "evidence_c.json"
+        ],
+        "harness_stage": "S1c_evidence_produce",
+        "artifact_contract": "evidence_c.json binds schema mumei.verification-evidence/v1 with result established for other.mm under the producer's declared solver budget.",
+        "verifier_gate": "verify-source exits 0 and writes an established verification-evidence record.",
+        "expected_patterns": [
+          "mumei.verification-evidence/v1",
+          "established"
+        ]
+      },
+      {
+        "id": "match",
+        "name": "evidence-compare: same-source records report claims_match",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent evidence-compare --evidence-a {output_dir}/evidence_a.json --evidence-b {output_dir}/evidence_b.json --output {output_dir}/match.json > {output_dir}/match.log 2>&1; rc=$?; cat {output_dir}/match.json; cat {output_dir}/match.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/match.json')); assert r['schema_version']=='mumei.evidence-comparison/v1' and r['subject_match'] and r['specification_match'] and r['claims_match'], r; print('evidence-compare: same-source records report claims_match')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce_a",
+          "produce_b"
+        ],
+        "artifacts": [
+          "match.log",
+          "match.json"
+        ],
+        "harness_stage": "S2_declared_claim_match",
+        "artifact_contract": "match.json binds schema mumei.evidence-comparison/v1 with subject_match, specification_match and claims_match all true.",
+        "verifier_gate": "evidence-compare exits 0 and reports claims_match for two records of the same source.",
+        "expected_patterns": [
+          "mumei.evidence-comparison/v1",
+          "claims_match"
+        ]
+      },
+      {
+        "id": "mismatch",
+        "name": "evidence-compare: foreign record reports claims mismatch",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent evidence-compare --evidence-a {output_dir}/evidence_a.json --evidence-b {output_dir}/evidence_c.json --output {output_dir}/mismatch.json > {output_dir}/mismatch.log 2>&1; rc=$?; cat {output_dir}/mismatch.json; cat {output_dir}/mismatch.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/mismatch.json')); assert r['schema_version']=='mumei.evidence-comparison/v1' and r['claims_match'] is False, r; print('evidence-compare: foreign record reports claims mismatch')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce_a",
+          "produce_c"
+        ],
+        "artifacts": [
+          "mismatch.log",
+          "mismatch.json"
+        ],
+        "harness_stage": "S3_declared_claim_mismatch",
+        "artifact_contract": "mismatch.json binds schema mumei.evidence-comparison/v1 with claims_match == false.",
+        "verifier_gate": "evidence-compare exits 0 and reports claims_match == false for a foreign-source record.",
+        "expected_patterns": [
+          "mumei.evidence-comparison/v1",
+          "claims_match"
+        ]
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Steps 1-3: mumei evidence verify-source produces three real saved Evidence records (two from the same source, one foreign)...",
+      "Step 4: the declared evidence-compare route reports claims_match for the same-source pair...",
+      "Step 5: a same-source vs foreign-source pair reports claims mismatch — record-vs-record drift without re-running the query..."
+    ],
+    "before": "Whether two saved Evidence records carried the same claims was an unassessed comparison duty.",
+    "after": "evidence-compare reads two declared records and reports subject_match, specification_match and claims_match at representation level.",
+    "steps": {
+      "produce_a": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Evidence record A saved (established)",
+          "follow_up": [
+            "  Record A binds identity.mm under mumei.verification-evidence/v1.",
+            "",
+            "  Step 2: Producing a second record for the same source..."
+          ]
+        }
+      },
+      "produce_b": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Evidence record B saved (established)",
+          "follow_up": [
+            "  Record B binds the same source under mumei.verification-evidence/v1.",
+            "",
+            "  Step 3: Producing a record for a foreign source..."
+          ]
+        }
+      },
+      "produce_c": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Evidence record C saved (established)",
+          "follow_up": [
+            "  Record C binds other.mm under mumei.verification-evidence/v1.",
+            "",
+            "  Step 4: Comparing the two same-source records..."
+          ]
+        }
+      },
+      "match": {
+        "pass": {
+          "icon": "✅",
+          "headline": "evidence-compare: claims_match",
+          "follow_up": [
+            "  Same-source records carry identical subject and specification claims — claims_match true.",
+            "",
+            "  Step 5: Comparing a same-source record against the foreign record..."
+          ]
+        }
+      },
+      "mismatch": {
+        "pass": {
+          "icon": "✅",
+          "headline": "evidence-compare: claims mismatch",
+          "follow_up": [
+            "  A foreign-source record answers claims_match false — drift across saved records surfaces as data, not an error.",
+            "",
+            "  Demo complete: the C02 record-vs-record comparison boundary is observable end to end."
+          ]
+        }
+      }
+    }
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared evidence-compare route reporting claims_match for same-source records and mismatch for a foreign record.",
+    "success_criteria": [
+      "evidence_a.json, evidence_b.json, evidence_c.json carry schema mumei.verification-evidence/v1 with result established",
+      "match.json carries subject_match, specification_match and claims_match all true",
+      "mismatch.json carries claims_match == false"
+    ]
+  },
+  "success_criteria": [
+    "evidence_a.json, evidence_b.json, evidence_c.json carry schema mumei.verification-evidence/v1 with result established",
+    "match.json carries subject_match, specification_match and claims_match all true",
+    "mismatch.json carries claims_match == false"
+  ],
+  "gate_order": [
+    {
+      "gate": "produce",
+      "user_wording": [
+        "Three real Evidence records are produced and saved"
+      ]
+    },
+    {
+      "gate": "claims_match",
+      "user_wording": [
+        "The declared route reports claims_match for same-source records"
+      ]
+    },
+    {
+      "gate": "claims_mismatch",
+      "user_wording": [
+        "The declared route reports claims mismatch for a foreign record"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/produce_a.log",
+    "{output_dir}/produce_b.log",
+    "{output_dir}/produce_c.log",
+    "{output_dir}/match.log",
+    "{output_dir}/mismatch.log",
+    "{output_dir}/evidence_a.json",
+    "{output_dir}/evidence_b.json",
+    "{output_dir}/evidence_c.json",
+    "{output_dir}/match.json",
+    "{output_dir}/mismatch.json",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "evidence-compare-v1",
+  "result_message": "Result: declared evidence comparison observable end to end — same-source records report claims_match; foreign records report mismatch."
+}
