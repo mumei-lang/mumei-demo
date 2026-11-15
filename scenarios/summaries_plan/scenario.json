@@ -1,0 +1,189 @@
+{
+  "name": "Declared Summary-Route Planning (summaries-plan)",
+  "version": "1.0.0",
+  "description": "C11/C06 planning demo: the `summaries-plan` route drives real C11 probes against the declared summary adapters and emits a mumei.summaries-plan/v1 plan — selecting agent.go-summaries only when a tool-version pin is declared, recording bounded adapter-probe-history records, and resuming a persisted history so a second pass continues the attempt count.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared summaries-plan route probing real adapter commands, selecting the Go summary adapter only under a declared tool-version pin, and resuming a persisted probe history across passes.",
+    "success_criteria": [
+      "plan.json carries schema mumei.summaries-plan/v1 with plan.selected.adapter_id agent.go-summaries and a probe history record (mumei.adapter-probe-history/v1)",
+      "resumed.json shows the Go adapter history continuing attempt_number 1 -> 2 from the persisted histories",
+      "unpinned.json carries plan.selected null and the Go decision reason tool_version_unknown — no declared pin, no selection"
+    ]
+  },
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C11 probe-driven planning boundary end to end: `python -m agent summaries-plan` runs each declared adapter's probe_argv through AttemptRunner, reports availability as observed command behavior, selects the Go adapter only when its declared tool-version pin is satisfied, and resumes a persisted mumei.adapter-probe-history/v1 record so the second pass continues attempt numbers rather than restarting them.",
+    "artifact_contracts": [
+      "Step 1 runs summaries-plan with a declared --tool-version and asserts plan.selected.adapter_id == agent.go-summaries, a selected_priority decision reason, an available observation and one adapter-probe-history record, then saves histories.json.",
+      "Step 2 reruns with --histories histories.json and asserts the Go adapter's outcomes list continues attempt_number 1 -> 2 instead of restarting at 1.",
+      "Step 3 reruns without --tool-version and asserts plan.selected is null with the Go decision reason tool_version_unknown — the planner refuses to select on an undeclared pin.",
+      "Generate evidence: plan1.log, plan2.log, plan3.log, plan.json, resumed.json, unpinned.json, histories.json, harness_state.json, result.json, and report.md."
+    ],
+    "gate_order": [
+      "l1_z3"
+    ],
+    "notes": [
+      "Each adapter's probe_argv is `python -m agent <route> --help` — probes observe real command behavior on the agent checkout, so availability is deterministic wherever the agent runs; no external toolchain is required.",
+      "Availability is an observed outcome, not a health claim: the route only selects the profile-supporting adapter, and only when the declared tool-version pin is satisfied.",
+      "The --histories input is a persisted mumei.adapter-probe-history/v1 array; a resumed retry records base stamp plus the previous attempt count.",
+      "Every step exits the rc-preserving form so a failed command cannot pass silently as exit-0 output.",
+      "budget_policy_fingerprint is summaries-plan-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "summaries-plan",
+      "schema_version",
+      "mumei.summaries-plan/v1",
+      "mumei.verification-plan/v1",
+      "mumei.adapter-probe-history/v1",
+      "adapter_id",
+      "availability",
+      "tool_version",
+      "tool_version_unknown",
+      "selected_priority",
+      "attempt_number"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "plan_selected",
+        "name": "Declared tool-version pin selects the Go summary adapter",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent summaries-plan --profile mumei.go-scalar-parameter-deps/v1 --stamp 1 --tool-version 1.23.0 > {output_dir}/plan.json 2> {output_dir}/plan1.err; rc=$?; cat {output_dir}/plan.json; cat {output_dir}/plan1.err; test $rc -eq 0 && python3 -c \"import json; d=json.load(open('{output_dir}/plan.json')); assert d['schema_version']=='mumei.summaries-plan/v1', d['schema_version']; assert d['profile']=='mumei.go-scalar-parameter-deps/v1'; sel=d['plan']['selected']; assert sel and sel['adapter_id']=='agent.go-summaries', sel; assert sel['observed_tool_version']=='1.23.0'; go=[x for x in d['plan']['decisions'] if x['adapter_id']=='agent.go-summaries']; assert go and go[0]['reasons']==['selected_priority'], go; obs=[o for o in d['observations'] if o['adapter_id']=='agent.go-summaries']; assert obs and obs[0]['availability']=='available' and obs[0]['tool_version']=='1.23.0', obs; hist=[h for h in d['histories'] if h['adapter_id']=='agent.go-summaries']; assert hist and hist[0]['schema_version']=='mumei.adapter-probe-history/v1' and len(hist[0]['outcomes'])==1, hist; json.dump(d['histories'], open('{output_dir}/histories.json','w')); print('summaries-plan: go adapter selected under declared pin')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "plan.json",
+          "histories.json",
+          "plan1.err"
+        ],
+        "harness_stage": "S1_plan_selected",
+        "artifact_contract": "plan.json holds mumei.summaries-plan/v1 whose plan selects agent.go-summaries with observed_tool_version 1.23.0; histories.json persists the emitted adapter-probe-history array.",
+        "verifier_gate": "summaries-plan exits 0; the Go adapter is selected with reason selected_priority and one probe outcome is recorded.",
+        "expected_patterns": [
+          "mumei.summaries-plan/v1",
+          "agent.go-summaries",
+          "selected_priority",
+          "mumei.adapter-probe-history/v1"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "plan_resumes_history",
+        "name": "Persisted probe history resumes the attempt count",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent summaries-plan --profile mumei.go-scalar-parameter-deps/v1 --stamp 1 --tool-version 1.23.0 --histories {output_dir}/histories.json > {output_dir}/resumed.json 2> {output_dir}/plan2.err; rc=$?; cat {output_dir}/resumed.json; cat {output_dir}/plan2.err; test $rc -eq 0 && python3 -c \"import json; d=json.load(open('{output_dir}/resumed.json')); assert d['schema_version']=='mumei.summaries-plan/v1'; hist=[h for h in d['histories'] if h['adapter_id']=='agent.go-summaries']; assert hist and [o['attempt_number'] for o in hist[0]['outcomes']]==[1,2], hist; sel=d['plan']['selected']; assert sel and sel['adapter_id']=='agent.go-summaries'; print('summaries-plan: resumed history continues attempt 1 -> 2')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "plan_selected"
+        ],
+        "artifacts": [
+          "resumed.json",
+          "plan2.err"
+        ],
+        "harness_stage": "S2_history_resume",
+        "artifact_contract": "resumed.json holds mumei.summaries-plan/v1 whose Go adapter history carries outcomes with attempt_number [1, 2].",
+        "verifier_gate": "summaries-plan exits 0; the persisted mumei.adapter-probe-history/v1 record resumes instead of restarting.",
+        "expected_patterns": [
+          "mumei.summaries-plan/v1",
+          "attempt_number"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "plan_unpinned",
+        "name": "No declared tool-version pin selects nothing",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent summaries-plan --profile mumei.go-scalar-parameter-deps/v1 --stamp 1 > {output_dir}/unpinned.json 2> {output_dir}/plan3.err; rc=$?; cat {output_dir}/unpinned.json; cat {output_dir}/plan3.err; test $rc -eq 0 && python3 -c \"import json; d=json.load(open('{output_dir}/unpinned.json')); assert d['schema_version']=='mumei.summaries-plan/v1'; assert d['plan']['selected'] is None, d['plan']['selected']; go=[x for x in d['plan']['decisions'] if x['adapter_id']=='agent.go-summaries']; assert go and 'tool_version_unknown' in go[0]['reasons'], go; print('summaries-plan: undeclared pin selects nothing')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "plan_selected"
+        ],
+        "artifacts": [
+          "unpinned.json",
+          "plan3.err"
+        ],
+        "harness_stage": "S3_unpinned",
+        "artifact_contract": "unpinned.json holds mumei.summaries-plan/v1 with plan.selected null and the Go decision reason tool_version_unknown.",
+        "verifier_gate": "summaries-plan exits 0 with no selection; a missing declared pin is a planning decision, not an error.",
+        "expected_patterns": [
+          "mumei.summaries-plan/v1",
+          "tool_version_unknown"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Step 1: summaries-plan probes each declared adapter and selects the Go adapter under a declared tool-version pin...",
+      "Step 2: rerunning with the persisted probe history resumes its attempt count (1 -> 2)...",
+      "Step 3: rerunning without a declared pin selects nothing — planning stays honest..."
+    ],
+    "before": "Adapter availability was an unassessed declaration: the planner had no observed evidence of which summary route could serve a profile.",
+    "after": "summaries-plan records bounded mumei.adapter-probe-history/v1 observations and selects only the profile-supporting adapter whose declared tool-version pin is satisfied.",
+    "steps": {
+      "plan_selected": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Go summary adapter selected under the declared pin",
+          "follow_up": [
+            "  plan.selected binds agent.go-summaries with observed_tool_version 1.23.0.",
+            "",
+            "  Step 2: Rerunning with the persisted history..."
+          ]
+        }
+      },
+      "plan_resumes_history": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Persisted probe history resumes attempt 1 -> 2",
+          "follow_up": [
+            "  The adapter-probe-history record continues instead of restarting.",
+            "",
+            "  Step 3: Rerunning without a declared pin..."
+          ]
+        }
+      },
+      "plan_unpinned": {
+        "pass": {
+          "icon": "✅",
+          "headline": "No declared pin — no selection",
+          "follow_up": [
+            "  plan.selected stays null with reason tool_version_unknown.",
+            "",
+            "  Demo complete: the probe-driven planning boundary is observable end to end."
+          ]
+        }
+      }
+    }
+  },
+  "success_criteria": [
+    "plan.json carries schema mumei.summaries-plan/v1 with plan.selected.adapter_id agent.go-summaries",
+    "resumed.json continues the Go adapter attempt count 1 -> 2 from the persisted histories",
+    "unpinned.json carries plan.selected null with reason tool_version_unknown"
+  ],
+  "gate_order": [
+    "l1_z3"
+  ],
+  "artifact_paths": [
+    "plan.json",
+    "resumed.json",
+    "unpinned.json",
+    "histories.json",
+    "plan1.err",
+    "plan2.err",
+    "plan3.err"
+  ],
+  "budget_policy_fingerprint": "summaries-plan-v1",
+  "result_message": "Result: declared summaries-plan observable end to end — adapter selected under a declared pin, history resumed, unpinned run selects nothing."
+}
