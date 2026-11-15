@@ -104,7 +104,7 @@ Render a Mumei demo result.
 | `--output` | `<OUTPUT>` | no | `dashboard/summary.md` | Summary markdown output path |
 | `--highlights-output` | `<HIGHLIGHTS_OUTPUT>` | no | `dashboard/highlights.md` | Highlights markdown output path |
 | `--report-output` | `<REPORT_OUTPUT>` | no | — | Scenario markdown output path; defaults to report.md next to result_json |
-| `--scenarios` | `<SCENARIOS>...` | no | `SCENARIO_ORDER` (18 names) | Scenario names to include in summary; defaults exclude optional targets: record_execution_demo, go_summaries, ts_summaries, rust_summaries, sol_summaries, audit_summaries, translation_validation, verify_recheck, verify_attempt, native_recheck, evidence_identity, evidence_check_accept, evidence_compare |
+| `--scenarios` | `<SCENARIOS>...` | no | `SCENARIO_ORDER` (18 names) | Scenario names to include in summary; defaults exclude optional targets: record_execution_demo, go_summaries, ts_summaries, rust_summaries, sol_summaries, audit_summaries, translation_validation, verify_recheck, verify_attempt, native_recheck, evidence_identity, evidence_check_accept, evidence_compare, native_attempt |
 | `--require-all` | — | no | `false` | Return a non-zero exit code when any requested scenario result is missing |
 
 ### `scripts/run_specimen_audits.py`
