@@ -1,0 +1,202 @@
+{
+  "name": "Declared Evidence Producer Identity (evidence-producer-check)",
+  "version": "1.0.0",
+  "description": "C02 producer-authenticity demo: `evidence verify-source` produces a saved Evidence record, the declared `evidence-producer-check` route reports identity match for the record's own declared producer and identity mismatch for a foreign adapter — representation-level producer pinning without a Core re-run.",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C02 producer_authenticity boundary end to end: produce real evidence with the Core, then show the declared producer-identity route reports match for the record's declared producer values and mismatch for foreign expectations.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/evidence_producer/src/producer.mm.",
+      "Step 1 saves a real mumei.verification-evidence/v1 record from `evidence verify-source`.",
+      "Step 2 extracts the record's provenance tool/adapter fields and runs `python -m agent evidence-producer-check` with them — asserts identity == match.",
+      "Step 3 runs the same route with a foreign adapter expectation and asserts identity == mismatch with mismatched == ['adapter.id'] — data, not an error.",
+      "Generate evidence: produce.log, match.log, mismatch.log, evidence.json, match.json, mismatch.json, harness_state.json, result.json, and report.md."
+    ],
+    "gate_order": [
+      "l1_z3"
+    ],
+    "notes": [
+      "A match means only that the record declares these producer values: representation-level producer pinning, not attestation — the other five semantic checks stay in checks_not_performed.",
+      "Expectations are read from the produced record's provenance so version bumps in the toolchain do not break the demo.",
+      "Every step exits the pipe-and-grep form so a failed command cannot pass silently as exit-0 output.",
+      "budget_policy_fingerprint is evidence-producer-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "identity",
+      "schema_version",
+      "mumei.evidence-producer-identity/v1",
+      "mumei.verification-evidence/v1",
+      "match",
+      "mismatch",
+      "tool_name",
+      "adapter_id",
+      "mismatched"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce",
+        "name": "Produce a saved Evidence record",
+        "repo": "mumei",
+        "command": "{mumei_bin} evidence verify-source {root_dir}/scenarios/evidence_producer/src/producer.mm --json --solver-timeout 5000 --solver-resource-limit 1000000 > {output_dir}/evidence.json 2> {output_dir}/produce.log; rc=$?; cat {output_dir}/evidence.json; cat {output_dir}/produce.log; test $rc -eq 0 && python3 -c \"import json; e=json.load(open('{output_dir}/evidence.json')); assert e['schema_version']=='mumei.verification-evidence/v1' and e['result']=='established' and 'provenance' in e, e; print('evidence: established verification-evidence record saved')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "produce.log",
+          "evidence.json"
+        ],
+        "harness_stage": "S1_evidence_produce",
+        "artifact_contract": "evidence.json binds schema mumei.verification-evidence/v1 with result established and a provenance block for producer.mm under the declared solver budget.",
+        "verifier_gate": "verify-source exits 0 and writes an established verification-evidence record carrying provenance.",
+        "expected_patterns": [
+          "mumei.verification-evidence/v1",
+          "established",
+          "provenance"
+        ]
+      },
+      {
+        "id": "match",
+        "name": "evidence-producer-check: declared producer reports match",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "TOOL=$(python3 -c \"import json; p=json.load(open('{output_dir}/evidence.json'))['provenance']; print(p['tool']['name'])\") && ADAPTER=$(python3 -c \"import json; p=json.load(open('{output_dir}/evidence.json'))['provenance']; print(p['adapter']['id'])\") && {mumei_agent_python} -m agent evidence-producer-check --evidence {output_dir}/evidence.json --tool \"$TOOL\" --adapter \"$ADAPTER\" --output {output_dir}/match.json > {output_dir}/match.log 2>&1; rc=$?; cat {output_dir}/match.json; cat {output_dir}/match.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/match.json')); assert r['schema_version']=='mumei.evidence-producer-identity/v1' and r['identity']=='match' and r['mismatched']==[], r; print('evidence-producer-check: declared producer reports match')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce"
+        ],
+        "artifacts": [
+          "match.log",
+          "match.json"
+        ],
+        "harness_stage": "S2_declared_producer_match",
+        "artifact_contract": "match.json binds schema mumei.evidence-producer-identity/v1 with identity == match and an empty mismatched list for the record's declared producer.",
+        "verifier_gate": "evidence-producer-check exits 0 and reports identity match for the declared producer values.",
+        "expected_patterns": [
+          "mumei.evidence-producer-identity/v1",
+          "match"
+        ]
+      },
+      {
+        "id": "mismatch",
+        "name": "evidence-producer-check: foreign adapter reports mismatch",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "TOOL=$(python3 -c \"import json; p=json.load(open('{output_dir}/evidence.json'))['provenance']; print(p['tool']['name'])\") && {mumei_agent_python} -m agent evidence-producer-check --evidence {output_dir}/evidence.json --tool \"$TOOL\" --adapter foreign-adapter --output {output_dir}/mismatch.json > {output_dir}/mismatch.log 2>&1; rc=$?; cat {output_dir}/mismatch.json; cat {output_dir}/mismatch.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/mismatch.json')); assert r['schema_version']=='mumei.evidence-producer-identity/v1' and r['identity']=='mismatch' and r['mismatched']==['adapter.id'], r; print('evidence-producer-check: foreign adapter reports mismatch')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce"
+        ],
+        "artifacts": [
+          "mismatch.log",
+          "mismatch.json"
+        ],
+        "harness_stage": "S3_declared_producer_mismatch",
+        "artifact_contract": "mismatch.json binds schema mumei.evidence-producer-identity/v1 with identity == mismatch and mismatched == ['adapter.id'] for a foreign adapter expectation.",
+        "verifier_gate": "evidence-producer-check exits 0 and reports identity mismatch naming adapter.id.",
+        "expected_patterns": [
+          "mumei.evidence-producer-identity/v1",
+          "mismatch"
+        ]
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Step 1: mumei evidence verify-source produces a real saved Evidence record...",
+      "Step 2: the declared evidence-producer-check route reports match for the record's own producer values...",
+      "Step 3: a foreign adapter expectation reports mismatch — producer pinning without re-running the query..."
+    ],
+    "before": "Whether a saved Evidence record declares the expected producer was an unassessed producer_authenticity duty.",
+    "after": "evidence-producer-check compares the record's provenance against declared expectations: the bound producer reports match, foreign expectations report mismatch with the differing fields named.",
+    "steps": {
+      "produce": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Evidence record saved (established)",
+          "follow_up": [
+            "  The record carries a provenance block declaring its adapter and tool under mumei.verification-evidence/v1.",
+            "",
+            "  Step 2: Checking producer identity against the record's declared producer..."
+          ]
+        }
+      },
+      "match": {
+        "pass": {
+          "icon": "✅",
+          "headline": "evidence-producer-check: match",
+          "follow_up": [
+            "  The record's declared tool/adapter equal the expectations — producer identity match.",
+            "",
+            "  Step 3: Checking against a foreign adapter expectation..."
+          ]
+        }
+      },
+      "mismatch": {
+        "pass": {
+          "icon": "✅",
+          "headline": "evidence-producer-check: mismatch",
+          "follow_up": [
+            "  A foreign adapter expectation answers mismatch naming adapter.id — a record pinned to another producer surfaces as data, not an error.",
+            "",
+            "  Demo complete: the C02 producer-authenticity boundary is observable end to end."
+          ]
+        }
+      }
+    }
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared evidence-producer-check route reporting match for the record's declared producer and mismatch for a foreign expectation.",
+    "success_criteria": [
+      "evidence.json carries schema mumei.verification-evidence/v1 with result established and a provenance block",
+      "match.json carries identity == match with mismatched == []",
+      "mismatch.json carries identity == mismatch with mismatched == ['adapter.id']"
+    ]
+  },
+  "success_criteria": [
+    "evidence.json carries schema mumei.verification-evidence/v1 with result established and a provenance block",
+    "match.json carries identity == match with mismatched == []",
+    "mismatch.json carries identity == mismatch with mismatched == ['adapter.id']"
+  ],
+  "gate_order": [
+    {
+      "gate": "produce",
+      "user_wording": [
+        "A real Evidence record is produced and saved"
+      ]
+    },
+    {
+      "gate": "producer_match",
+      "user_wording": [
+        "The declared route reports identity match for the declared producer"
+      ]
+    },
+    {
+      "gate": "producer_mismatch",
+      "user_wording": [
+        "The declared route reports identity mismatch for a foreign expectation"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/produce.log",
+    "{output_dir}/match.log",
+    "{output_dir}/mismatch.log",
+    "{output_dir}/evidence.json",
+    "{output_dir}/match.json",
+    "{output_dir}/mismatch.json",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "evidence-producer-v1",
+  "result_message": "Result: declared evidence producer identity observable end to end — the bound producer reports match; foreign expectations report mismatch."
+}

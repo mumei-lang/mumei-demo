@@ -33,7 +33,7 @@ SCENARIO_ORDER = [
     "test_observation_demo",
     "self_correction_demo",
 ]
-OPTIONAL_SCENARIOS = ["record_execution_demo", "go_summaries", "ts_summaries", "rust_summaries", "sol_summaries", "audit_summaries", "translation_validation", "verify_recheck", "verify_attempt", "native_recheck", "evidence_identity", "evidence_check_accept", "evidence_compare", "native_attempt", "evidence_check", "summaries_plan", "summaries_attempt"]
+OPTIONAL_SCENARIOS = ["record_execution_demo", "go_summaries", "ts_summaries", "rust_summaries", "sol_summaries", "audit_summaries", "translation_validation", "verify_recheck", "verify_attempt", "native_recheck", "evidence_identity", "evidence_check_accept", "evidence_compare", "native_attempt", "evidence_check", "summaries_plan", "summaries_attempt", "evidence_producer"]
 LAYER_LABELS = {
     "l1_z3": "L1 / Z3",
     "l2_agent": "L2 / Agent",
