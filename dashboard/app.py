@@ -32,7 +32,7 @@ SCENARIO_ORDER = [
     "test_observation_demo",
     "self_correction_demo",
 ]
-OPTIONAL_SCENARIOS = ["record_execution_demo", "go_summaries", "ts_summaries", "rust_summaries", "sol_summaries", "audit_summaries", "translation_validation", "verify_recheck"]
+OPTIONAL_SCENARIOS = ["record_execution_demo", "go_summaries", "ts_summaries", "rust_summaries", "sol_summaries", "audit_summaries", "translation_validation", "verify_recheck", "verify_attempt"]
 
 
 def scenario_names() -> list[str]:
