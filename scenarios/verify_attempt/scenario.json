@@ -23,7 +23,7 @@
       "l1_z3"
     ],
     "notes": [
-      "The acceptance evaluation is representation-level only: checks_not_performed still names claim truth, file identity, freshness, producer authenticity, semantic correspondence and artifact semantics.",
+      "The acceptance evaluation is representation-level only: its checks_not_performed still names all six duties, while the report-level discharged_checks declares the four a selected run discharges for the produced record.",
       "accepted requires the check record to bind the same candidate the sequence selected and the Core outcome to be valid.",
       "Every step exits the pipe-and-grep form so a failed command cannot pass silently as exit-0 output.",
       "budget_policy_fingerprint is verify-attempt-v1 for deterministic runs."
@@ -46,14 +46,14 @@
         "name": "verify-attempt: established atom accepted",
         "repo": "mumei-agent",
         "cwd": "{mumei_agent_repo}",
-        "command": "{mumei_agent_python} -m agent verify-attempt --core {mumei_bin} --source {root_dir}/scenarios/verify_attempt/src/identity.mm --output {output_dir}/report.json > {output_dir}/attempt.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/attempt.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); a=r['acceptance']; assert r['schema_version']=='mumei.verify-attempt-report/v1' and a['accepted'] is True and a['candidate_match'] is True and r['evidence_check']['schema_version']=='mumei.verifier-evidence-check/v1' and r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1', r; print('verify-attempt: accepted true, candidate bound')\"",
+        "command": "{mumei_agent_python} -m agent verify-attempt --core {mumei_bin} --source {root_dir}/scenarios/verify_attempt/src/identity.mm --output {output_dir}/report.json > {output_dir}/attempt.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/attempt.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); a=r['acceptance']; assert r['schema_version']=='mumei.verify-attempt-report/v1' and a['accepted'] is True and a['candidate_match'] is True and r['evidence_check']['schema_version']=='mumei.verifier-evidence-check/v1' and r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1' and r['discharged_checks']==['file_identity','freshness','producer_authenticity','semantic_correspondence'], r; print('verify-attempt: accepted true, candidate bound, four checks discharged')\"",
         "expected_exit": 0,
         "artifacts": [
           "attempt.log",
           "report.json"
         ],
         "harness_stage": "S1_declared_attempt",
-        "artifact_contract": "report.json binds schema mumei.verify-attempt-report/v1 with acceptance.accepted true, candidate_match true, a mumei.verifier-evidence-check/v1 check and a mumei.verifier-evidence-candidate/v1 candidate.",
+        "artifact_contract": "report.json binds schema mumei.verify-attempt-report/v1 with acceptance.accepted true, candidate_match true, a mumei.verifier-evidence-check/v1 check, a mumei.verifier-evidence-candidate/v1 candidate and discharged_checks == ['file_identity', 'freshness', 'producer_authenticity', 'semantic_correspondence'].",
         "verifier_gate": "verify-attempt exits 0 and reports acceptance accepted:true for the established atom.",
         "expected_patterns": [
           "accepted",
@@ -65,7 +65,7 @@
         "name": "verify-attempt: refuted atom emits no acceptance",
         "repo": "mumei-agent",
         "cwd": "{mumei_agent_repo}",
-        "command": "{mumei_agent_python} -m agent verify-attempt --core {mumei_bin} --source {root_dir}/scenarios/verify_attempt/src/wrong.mm --output {output_dir}/refuted_report.json > {output_dir}/refuted.log 2>&1; rc=$?; cat {output_dir}/refuted_report.json; cat {output_dir}/refuted.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/refuted_report.json')); assert r.get('acceptance') is None and r['normalized']['exit_code']==1 and r['sequence'].get('selected_result') is None, r; print('verify-attempt: refuted atom exits 1 with no acceptance')\"",
+        "command": "{mumei_agent_python} -m agent verify-attempt --core {mumei_bin} --source {root_dir}/scenarios/verify_attempt/src/wrong.mm --output {output_dir}/refuted_report.json > {output_dir}/refuted.log 2>&1; rc=$?; cat {output_dir}/refuted_report.json; cat {output_dir}/refuted.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/refuted_report.json')); assert r.get('acceptance') is None and 'discharged_checks' not in r and r['normalized']['exit_code']==1 and r['sequence'].get('selected_result') is None, r; print('verify-attempt: refuted atom exits 1 with no acceptance')\"",
         "expected_exit": 0,
         "depends_on": [
           "attempt"
@@ -75,7 +75,7 @@
           "refuted_report.json"
         ],
         "harness_stage": "S2_refuted_boundary",
-        "artifact_contract": "refuted_report.json carries no acceptance block, normalized exit_code 1 and no selected_result for the refuted atom.",
+        "artifact_contract": "refuted_report.json carries no acceptance block or discharged_checks field, normalized exit_code 1 and no selected_result for the refuted atom.",
         "verifier_gate": "verify-attempt exits 0 at the route level while the refuted attempt reports no acceptance and no selection.",
         "expected_patterns": [
           "mumei.verify-attempt-report/v1",
@@ -121,13 +121,13 @@
     "score": 1.0,
     "source_intent": "Show the declared verify-attempt route closing the produce+consume loop: accepted:true for an established atom, no acceptance for a refuted one.",
     "success_criteria": [
-      "report.json carries acceptance.accepted true, candidate_match true, a verifier-evidence-check record and a verifier-evidence-candidate descriptor",
-      "refuted_report.json carries no acceptance block, normalized exit_code 1 and no selected_result"
+      "report.json carries acceptance.accepted true, candidate_match true, a verifier-evidence-check record, a verifier-evidence-candidate descriptor and discharged_checks for the produced record",
+      "refuted_report.json carries no acceptance block or discharged_checks field, normalized exit_code 1 and no selected_result"
     ]
   },
   "success_criteria": [
-    "report.json carries acceptance.accepted true, candidate_match true, a verifier-evidence-check record and a verifier-evidence-candidate descriptor",
-    "refuted_report.json carries no acceptance block, normalized exit_code 1 and no selected_result"
+    "report.json carries acceptance.accepted true, candidate_match true, a verifier-evidence-check record, a verifier-evidence-candidate descriptor and discharged_checks for the produced record",
+    "refuted_report.json carries no acceptance block or discharged_checks field, normalized exit_code 1 and no selected_result"
   ],
   "gate_order": [
     {
