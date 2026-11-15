@@ -84,6 +84,27 @@
         "verifier_gate": "ts-summaries-check exits 0 (checked via rc after redirecting output to check_result.json so the pipe cannot mask it) and the greps require context_match true plus empty stale/missing lists, so a refused or partially-stale partition fails the step instead of passing."
       },
       {
+        "id": "reuse_manifest",
+        "name": "ts-summaries-reuse: unchanged manifest is reused byte-for-byte",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent ts-summaries-reuse {root_dir}/scenarios/ts_summaries/demo_counter.ts --manifest {output_dir}/manifest.json > {output_dir}/reused_manifest.json 2> {output_dir}/reuse.log; rc=$?; cat {output_dir}/reused_manifest.json; cat {output_dir}/reuse.log; test $rc -eq 0 && cmp {output_dir}/manifest.json {output_dir}/reused_manifest.json && echo 'ts-summaries-reuse: reused manifest is byte-identical'",
+        "expected_exit": 0,
+        "depends_on": [
+          "check_manifest"
+        ],
+        "artifacts": [
+          "reused_manifest.json",
+          "reuse.log"
+        ],
+        "harness_stage": "S4_declared_reuse",
+        "artifact_contract": "reused_manifest.json is the ts-summaries-reuse merged manifest — with no source drift it reuses every unchanged summary and is byte-identical to manifest.json.",
+        "verifier_gate": "ts-summaries-reuse exits 0 and emits a manifest byte-identical to the declared one.",
+        "expected_patterns": [
+          "reused manifest is byte-identical"
+        ]
+      },
+      {
         "id": "accept_summary",
         "name": "Accept: strict whole-context gate on one declared summary",
         "repo": "mumei-agent",
@@ -197,6 +218,8 @@
     "{output_dir}/accept_summary.log",
     "{output_dir}/manifest.json",
     "{output_dir}/harness_state.json",
+    "{output_dir}/reused_manifest.json",
+    "{output_dir}/reuse.log",
     "{output_dir}/result.json"
   ],
   "budget_policy_fingerprint": "ts-summaries-v1",
