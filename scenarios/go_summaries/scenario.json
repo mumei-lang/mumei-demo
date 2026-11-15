@@ -1,0 +1,230 @@
+{
+  "name": "Go Interprocedural Summary Manifests",
+  "version": "1.0.0",
+  "description": "C06 declared summary route demo: the provisioned go-types helper produces a declared mumei.go-scalar-parameter-deps/v1 manifest for a two-function Go unit, the reuse check partitions bindings as reusable, and the strict whole-context accept gate echoes one function's declared summary.",
+  "layers": [
+    "l1_summaries"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_summaries"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the declared go-summaries route family end to end: provision the go-types helper, emit the summary manifest, verify it against a fresh helper report, and accept one binding under the strict whole-context gate.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/go_summaries/demo_counter.go and the sibling mumei-agent go-summaries route commands.",
+      "Build step: the go-types helper is compiled into {output_dir}/bin/go-types when a maintained Go toolchain is on PATH; the step is SKIPPED without one.",
+      "Generate evidence: build_go_types.log, emit_manifest.log, check_manifest.log, accept_summary.log, manifest.json, harness_state.json, result.json, and report.md.",
+      "Gate order: emit -> check -> accept; the check and accept steps consume only the manifest the emit step wrote, never the helper output directly.",
+      "The emitted manifest is declared data: check re-runs the helper and partitions reusable/stale/missing bindings, and accept refuses anything but an exact context match."
+    ],
+    "gate_order": [
+      "l1_summaries"
+    ],
+    "notes": [
+      "The go-types helper is source-analysis infrastructure, not a verifier; the demo routes it only through the declared go-summaries family.",
+      "Every run step is gated on the go toolchain (optional_toolchain): without it each step reports SKIPPED rather than fabricating output.",
+      "Fixture mode (CI_FIXTURE_MODE=1) replays recorded route payloads captured from the real helper so CI stays deterministic.",
+      "The accept step binds sha256-pinned binding ids from the fixture file; editing demo_counter.go invalidates the recorded fixture payload on purpose.",
+      "budget_policy_fingerprint is fixture-go-summaries-v1 for deterministic fixture runs."
+    ],
+    "artifact_keys": [
+      "schema_version",
+      "context_key",
+      "functions",
+      "binding_id",
+      "context_match",
+      "reusable",
+      "stale",
+      "missing",
+      "accepted"
+    ]
+  },
+  "l1_summaries": {
+    "steps": [
+      {
+        "id": "build_go_types",
+        "name": "Provision: build the go-types helper binary",
+        "repo": "mumei-agent",
+        "optional_toolchain": "go",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then echo \"go-types helper build recorded (fixture mode)\"; else mkdir -p {output_dir}/bin && cd {mumei_agent_repo}/tools/go-types && GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off GOWORK=off go build -o {output_dir}/bin/go-types . && echo \"go-types helper built\"; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "go-types helper"
+        ],
+        "harness_stage": "S0_provision_go_types_helper",
+        "artifact_contract": "build step must leave an executable {output_dir}/bin/go-types for the later steps or report a recorded fixture line; the helper is declared, not a default dependency.",
+        "verifier_gate": "Build exits 0 (or is SKIPPED without a Go toolchain) and leaves the provisioned helper path for the emit step."
+      },
+      {
+        "id": "emit_manifest",
+        "name": "Emit: declared summary manifest for demo_counter.go",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"context_key\": \"9f5f00b4736a7ecbed41bb72d2d822f40191b6020b975fb191ba1a1c01da1861\",\n    \"functions\": [\n        {\n            \"binding_id\": \"sha256:d2a2acf60fa9d7a0c647e8335fbeea73af4832818cfe8590f1904c09c13bdf08:22:0:116\",\n            \"calls\": [],\n            \"gaps\": [],\n            \"key\": \"412b8a49d960976b3756e95e4538448da571dcaa4c88fe7ddde3962b9a9760ea\",\n            \"parameters\": [\n                {\"basic_name\": \"int64\", \"bit_width\": 64, \"kind\": \"integer\", \"signed\": True, \"type_id\": \"\"},\n                {\"basic_name\": \"int64\", \"bit_width\": 64, \"kind\": \"integer\", \"signed\": True, \"type_id\": \"\"}\n            ],\n            \"result_type\": {\"basic_name\": \"int64\", \"bit_width\": 64, \"kind\": \"integer\", \"signed\": True, \"type_id\": \"\"},\n            \"return_dependencies\": [0, 1]\n        },\n        {\n            \"binding_id\": \"sha256:d2a2acf60fa9d7a0c647e8335fbeea73af4832818cfe8590f1904c09c13bdf08:74:0:116\",\n            \"calls\": [\n                {\n                    \"arguments\": [[0], []],\n                    \"result\": [0],\n                    \"span\": {\"end\": 113, \"start\": 104},\n                    \"target\": \"sha256:d2a2acf60fa9d7a0c647e8335fbeea73af4832818cfe8590f1904c09c13bdf08:22:0:116\"\n                }\n            ],\n            \"gaps\": [],\n            \"key\": \"d69fb3a42e1bb339e528a5359d934eeb6c685382b4a5c59983ffaa0d44e8c1c0\",\n            \"parameters\": [\n                {\"basic_name\": \"int64\", \"bit_width\": 64, \"kind\": \"integer\", \"signed\": True, \"type_id\": \"\"}\n            ],\n            \"result_type\": {\"basic_name\": \"int64\", \"bit_width\": 64, \"kind\": \"integer\", \"signed\": True, \"type_id\": \"\"},\n            \"return_dependencies\": [0]\n        }\n    ],\n    \"schema_version\": \"mumei.go-scalar-parameter-deps/v1\",\n    \"target_arch\": \"amd64\"\n}\nfrom pathlib import Path\nmanifest_path = Path(\"{output_dir}\") / \"manifest.json\"\nmanifest_path.write_text(json.dumps(payload, indent=2) + \"\\n\", encoding=\"utf-8\")\nprint(json.dumps(payload, indent=2))\nPY\nelse {mumei_agent_python} -m agent go-summaries --source {root_dir}/scenarios/go_summaries/demo_counter.go --go-types {output_dir}/bin/go-types --output {output_dir}/manifest.json --timeout 30 && cat {output_dir}/manifest.json; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "schema_version",
+          "mumei.go-scalar-parameter-deps/v1",
+          "context_key",
+          "binding_id",
+          "return_dependencies"
+        ],
+        "harness_stage": "S1_emit_declared_summary_manifest",
+        "artifact_contract": "emit step must write {output_dir}/manifest.json holding one mumei.go-scalar-parameter-deps/v1 manifest keyed to the declared unit's context_key.",
+        "verifier_gate": "go-summaries exits 0, writes manifest.json, and the manifest's schema_version and context_key appear in the step output."
+      },
+      {
+        "id": "check_manifest",
+        "name": "Check: manifest reuse check against a fresh helper report",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"context_match\": True,\n    \"missing\": [],\n    \"reusable\": [\n        \"sha256:d2a2acf60fa9d7a0c647e8335fbeea73af4832818cfe8590f1904c09c13bdf08:22:0:116\",\n        \"sha256:d2a2acf60fa9d7a0c647e8335fbeea73af4832818cfe8590f1904c09c13bdf08:74:0:116\"\n    ],\n    \"schema_version\": \"mumei.go-summary-check/v1\",\n    \"stale\": []\n}\nprint(json.dumps(payload, indent=2))\nPY\nelse {mumei_agent_python} -m agent go-summaries-check --source {root_dir}/scenarios/go_summaries/demo_counter.go --go-types {output_dir}/bin/go-types --manifest {output_dir}/manifest.json --timeout 30; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "depends_on": ["emit_manifest"],
+        "expected_patterns": [
+          "mumei.go-summary-check/v1",
+          "context_match",
+          "reusable",
+          "stale",
+          "missing"
+        ],
+        "harness_stage": "S2_check_manifest_reuse",
+        "artifact_contract": "check step must emit mumei.go-summary-check/v1 partitioning every declared binding as reusable, stale or missing against a fresh helper report.",
+        "verifier_gate": "go-summaries-check exits 0 and reports context_match true with both fixture bindings in reusable and empty stale/missing lists."
+      },
+      {
+        "id": "accept_summary",
+        "name": "Accept: strict whole-context gate on one declared summary",
+        "repo": "mumei-agent",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"accepted\": True,\n    \"binding_id\": \"sha256:d2a2acf60fa9d7a0c647e8335fbeea73af4832818cfe8590f1904c09c13bdf08:22:0:116\",\n    \"context_match\": True,\n    \"schema_version\": \"mumei.go-summary-accept/v1\",\n    \"summary\": {\n        \"binding_id\": \"sha256:d2a2acf60fa9d7a0c647e8335fbeea73af4832818cfe8590f1904c09c13bdf08:22:0:116\",\n        \"calls\": [],\n        \"gaps\": [],\n        \"key\": \"412b8a49d960976b3756e95e4538448da571dcaa4c88fe7ddde3962b9a9760ea\",\n        \"parameters\": [\n            {\"basic_name\": \"int64\", \"bit_width\": 64, \"kind\": \"integer\", \"signed\": True, \"type_id\": \"\"},\n            {\"basic_name\": \"int64\", \"bit_width\": 64, \"kind\": \"integer\", \"signed\": True, \"type_id\": \"\"}\n        ],\n        \"result_type\": {\"basic_name\": \"int64\", \"bit_width\": 64, \"kind\": \"integer\", \"signed\": True, \"type_id\": \"\"},\n        \"return_dependencies\": [0, 1]\n    }\n}\nprint(json.dumps(payload, indent=2))\nPY\nelse {mumei_agent_python} -m agent go-summaries-accept --source {root_dir}/scenarios/go_summaries/demo_counter.go --go-types {output_dir}/bin/go-types --manifest {output_dir}/manifest.json --binding \"sha256:d2a2acf60fa9d7a0c647e8335fbeea73af4832818cfe8590f1904c09c13bdf08:22:0:116\" --timeout 30; fi",
+        "cwd": "{mumei_agent_repo}",
+        "expected_exit": 0,
+        "depends_on": ["emit_manifest", "check_manifest"],
+        "expected_patterns": [
+          "mumei.go-summary-accept/v1",
+          "accepted",
+          "binding_id",
+          "summary",
+          "return_dependencies"
+        ],
+        "harness_stage": "S3_accept_declared_summary",
+        "artifact_contract": "accept step must emit mumei.go-summary-accept/v1 and echo the declared summary only under an exact whole-context match; a stale manifest must refuse.",
+        "verifier_gate": "go-summaries-accept exits 0, reports accepted true for the bound function, and echoes its declared summary."
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Step 1: Provision the go-types helper (go build, SKIPPED without a Go toolchain)...",
+      "Step 2: go-summaries emits a declared mumei.go-scalar-parameter-deps/v1 manifest for demo_counter.go...",
+      "Step 3: go-summaries-check re-runs the helper and partitions reusable/stale/missing bindings...",
+      "Step 4: go-summaries-accept echoes one function's declared summary under the strict whole-context gate..."
+    ],
+    "before": "No declared summary manifest exists for the Go unit; every binding is unassessed and nothing can be reused.",
+    "after": "manifest.json records both function summaries keyed to the unit's context_key, the reuse check confirms both bindings reusable, and the strict accept gate echoes add's declared summary.",
+    "steps": {
+      "build_go_types": {
+        "pass": {
+          "icon": "✅",
+          "headline": "go-types helper provisioned",
+          "follow_up": [
+            "  The helper is declared, opt-in infrastructure — not a verifier or proof backend.",
+            "  SKIPPED is honest: without a maintained Go toolchain no step fabricates a helper.",
+            "",
+            "  Step 2: Emitting the declared summary manifest..."
+          ]
+        }
+      },
+      "emit_manifest": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Declared manifest emitted for demo_counter.go",
+          "follow_up": [
+            "  schema_version mumei.go-scalar-parameter-deps/v1 pins the manifest shape.",
+            "  context_key binds the declared unit's bytes; binding_id pins each function.",
+            "  add's return_dependencies [0, 1] and next's call into add are recorded as declared data.",
+            "",
+            "  Step 3: Checking the manifest against a fresh helper report..."
+          ]
+        }
+      },
+      "check_manifest": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Reuse check: both bindings reusable",
+          "follow_up": [
+            "  context_match true and stale/missing empty — the manifest reproduces verbatim.",
+            "  reusable lists both sha256-pinned binding ids for the host's freshness choice.",
+            "",
+            "  Step 4: Accepting one declared summary under the strict gate..."
+          ]
+        }
+      },
+      "accept_summary": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Strict accept: add's declared summary authorized",
+          "follow_up": [
+            "  accepted true requires the manifest's context_key to match the fresh unit exactly.",
+            "  The echoed summary is identical to the declared record — no forgery channel.",
+            "",
+            "  Demo complete: emit -> check -> accept closes the declared summary loop."
+          ]
+        }
+      }
+    }
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared go-summaries route family producing, checking and strictly accepting a real summary manifest with the provisioned go-types helper.",
+    "success_criteria": [
+      "emit_manifest.log shows mumei.go-scalar-parameter-deps/v1 with context_key and per-function binding_id",
+      "check_manifest.log shows mumei.go-summary-check/v1 with context_match true and both bindings reusable",
+      "accept_summary.log shows mumei.go-summary-accept/v1 with accepted true and the echoed declared summary",
+      "manifest.json exists under the report directory and is consumed only by the check/accept steps",
+      "Steps are SKIPPED, never fabricated, when the go toolchain is absent"
+    ]
+  },
+  "success_criteria": [
+    "emit_manifest.log shows mumei.go-scalar-parameter-deps/v1 with context_key and per-function binding_id",
+    "check_manifest.log shows mumei.go-summary-check/v1 with context_match true and both bindings reusable",
+    "accept_summary.log shows mumei.go-summary-accept/v1 with accepted true and the echoed declared summary",
+    "manifest.json exists under the report directory and is consumed only by the check/accept steps"
+  ],
+  "gate_order": [
+    {
+      "gate": "emit",
+      "user_wording": [
+        "Declared summary manifest is produced before any reuse decision"
+      ]
+    },
+    {
+      "gate": "check",
+      "user_wording": [
+        "Reusable bindings are confirmed only against a fresh helper report"
+      ]
+    },
+    {
+      "gate": "accept",
+      "user_wording": [
+        "Strict acceptance requires an exact whole-context match"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/build_go_types.log",
+    "{output_dir}/emit_manifest.log",
+    "{output_dir}/check_manifest.log",
+    "{output_dir}/accept_summary.log",
+    "{output_dir}/manifest.json",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "fixture-go-summaries-v1",
+  "result_message": "Result: declared go-summaries loop closed — manifest emitted, reuse checked, strict accept passed."
+}
