@@ -18,7 +18,7 @@
       "Step 1 asserts the report exists, binds schema mumei.translation-validation-report/v1, and shows both functions equivalent_within_profile.",
       "Step 2 runs the produced binary and asserts the observed exit code equals main's return value.",
       "Step 3 shows the advisory boundary: an extern-declaring module links fine but leaves no translation-validation report.",
-      "Generate evidence: build.log, run.log, out_of_profile.log, tv_bin.translation-validation.json, harness_state.json, result.json, and report.md."
+      "Generate evidence: build.log, run_binary.log, out_of_profile.log, tv_bin.translation-validation.json, harness_state.json, result.json, and report.md."
     ],
     "gate_order": [
       "l1_z3"
@@ -44,7 +44,7 @@
         "id": "build_binary",
         "name": "Build: per-atom translation validation report",
         "repo": "mumei",
-        "command": "{mumei_bin} build {root_dir}/scenarios/translation_validation/src/add.mm --emit binary -o {output_dir}/tv_bin > {output_dir}/build.log 2>&1; rc=$?; cat {output_dir}/build.log; test $rc -eq 0 && grep -q 'Translation validation' {output_dir}/build.log && python3 -c \"import json; r=json.load(open('{output_dir}/tv_bin.translation-validation.json')); assert r['schema_version']=='mumei.translation-validation-report/v1' and r['outcome']=='equivalent_within_profile' and len(r['functions'])==2 and all(f['outcome']=='equivalent_within_profile' for f in r['functions']), r; print('report: both atoms equivalent_within_profile')\"",
+        "command": "{mumei_bin} build {root_dir}/scenarios/translation_validation/src/add.mm --emit binary -o {output_dir}/tv_bin > {output_dir}/build.log 2>&1; rc=$?; cat {output_dir}/build.log; test $rc -eq 0 && grep -q 'Translation validation' {output_dir}/build.log && python3 -c \"import json; r=json.load(open('{output_dir}/tv_bin.translation-validation.json')); assert r['schema_version']=='mumei.translation-validation-report/v1' and r['outcome']=='equivalent_within_profile' and sorted(f['function_name'] for f in r['functions'])==['add','main'] and all(f['outcome']=='equivalent_within_profile' for f in r['functions']), r; print('report: add + main equivalent_within_profile')\"",
         "expected_exit": 0,
         "expected_patterns": [
           "Translation validation",
@@ -69,10 +69,10 @@
           "exit=10"
         ],
         "artifacts": [
-          "run.log"
+          "run_binary.log"
         ],
         "harness_stage": "S2_binary_execution",
-        "artifact_contract": "run.log records the process exit code observed from the validated binary.",
+        "artifact_contract": "run_binary.log records the process exit code observed from the validated binary.",
         "verifier_gate": "The produced binary exits with main's return value (add(3,7) = 10)."
       },
       {
@@ -144,13 +144,13 @@
     "source_intent": "Show mumei build --emit binary running per-atom translation validation and writing an advisory report artifact.",
     "success_criteria": [
       "build.log shows the Translation validation advisory and tv_bin.translation-validation.json records equivalent_within_profile for both atoms",
-      "run.log shows the binary exiting with code 10",
+      "run_binary.log shows the binary exiting with code 10",
       "out_of_profile.log shows the extern module linking with no report file emitted"
     ]
   },
   "success_criteria": [
     "build.log shows the Translation validation advisory and tv_bin.translation-validation.json records equivalent_within_profile for both atoms",
-    "run.log shows the binary exiting with code 10",
+    "run_binary.log shows the binary exiting with code 10",
     "out_of_profile.log shows the extern module linking with no report file emitted"
   ],
   "gate_order": [
@@ -175,7 +175,7 @@
   ],
   "artifact_paths": [
     "{output_dir}/build.log",
-    "{output_dir}/run.log",
+    "{output_dir}/run_binary.log",
     "{output_dir}/out_of_profile.log",
     "{output_dir}/tv_bin.translation-validation.json",
     "{output_dir}/harness_state.json",
