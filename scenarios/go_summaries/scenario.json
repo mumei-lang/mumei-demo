@@ -118,7 +118,7 @@
         "artifacts": [
           "reused_manifest.json"
         ],
-        "harness_stage": "S4_declared_reuse",
+        "harness_stage": "S3_declared_reuse",
         "artifact_contract": "reused_manifest.json is the go-summaries-reuse merged manifest — with no source drift it reuses every unchanged summary and is byte-identical to manifest.json (fixture mode replays the recorded manifest bytes).",
         "verifier_gate": "go-summaries-reuse exits 0 and emits a manifest byte-identical to the declared one."
       },
@@ -140,7 +140,7 @@
           "summary",
           "return_dependencies"
         ],
-        "harness_stage": "S3_accept_declared_summary",
+        "harness_stage": "S4_accept_declared_summary",
         "artifact_contract": "accept step must emit mumei.go-summary-accept/v1 and echo the declared summary only under an exact whole-context match; a stale manifest must refuse.",
         "verifier_gate": "go-summaries-accept exits 0, reports accepted true for the bound function, and echoes its declared summary."
       }
@@ -190,7 +190,7 @@
             "  context_match true and stale/missing empty — the manifest reproduces verbatim.",
             "  reusable lists both sha256-pinned binding ids for the host's freshness choice.",
             "",
-            "  Step 4: Accepting one declared summary under the strict gate..."
+            "  Step 4: Reusing the declared manifest's unchanged summaries..."
           ]
         }
       },
@@ -201,7 +201,7 @@
           "follow_up": [
             "  Every summary is reusable — the merged manifest equals the declared one byte for byte.",
             "",
-            "  Step 5: go-summaries-accept echoes one function's declared summary under the strict whole-context gate..."
+            "  Step 5: Accepting one declared summary under the strict gate..."
           ]
         }
       },
@@ -213,7 +213,7 @@
             "  accepted true requires the manifest's context_key to match the fresh unit exactly.",
             "  The echoed summary is identical to the declared record — no forgery channel.",
             "",
-            "  Demo complete: emit -> check -> accept closes the declared summary loop."
+            "  Demo complete: emit -> check -> reuse -> accept closes the declared summary loop."
           ]
         }
       }
