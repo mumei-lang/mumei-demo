@@ -1,7 +1,7 @@
 {
   "name": "Declared Evidence Recheck (verify-recheck)",
   "version": "1.0.0",
-  "description": "C02 freshness demo: `evidence verify-source` produces a saved Evidence record, the declared `verify-recheck` route re-runs the same restricted query against it and reports consistent; a tampered record exits 1 with no claimed outcome.",
+  "description": "C02 freshness demo: `evidence verify-source` produces a saved Evidence record, the declared `verify-recheck` route re-runs the same restricted query against it, reports consistent and discharges freshness + semantic_correspondence; a tampered record exits 1 with no claimed outcome.",
   "layers": [
     "l1_z3"
   ],
@@ -64,7 +64,7 @@
         "name": "verify-recheck: saved record consistent",
         "repo": "mumei-agent",
         "cwd": "{mumei_agent_repo}",
-        "command": "{mumei_agent_python} -m agent verify-recheck --core {mumei_bin} --evidence {output_dir}/evidence.json --source {root_dir}/scenarios/verify_recheck/src/identity.mm --output {output_dir}/report.json > {output_dir}/recheck.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/recheck.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['schema_version']=='mumei.verify-recheck-report/v1' and r['recheck']=='consistent' and r['sequence'].get('selected_result') is not None and r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1', r; print('verify-recheck: consistent, candidate bound')\"",
+        "command": "{mumei_agent_python} -m agent verify-recheck --core {mumei_bin} --evidence {output_dir}/evidence.json --source {root_dir}/scenarios/verify_recheck/src/identity.mm --output {output_dir}/report.json > {output_dir}/recheck.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/recheck.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['schema_version']=='mumei.verify-recheck-report/v1' and r['recheck']=='consistent' and r['sequence'].get('selected_result') is not None and r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1' and r['discharged_checks']==['freshness','semantic_correspondence'], r; print('verify-recheck: consistent, candidate bound, freshness + semantic_correspondence discharged')\"",
         "expected_exit": 0,
         "depends_on": [
           "produce"
@@ -74,8 +74,8 @@
           "report.json"
         ],
         "harness_stage": "S2_declared_recheck",
-        "artifact_contract": "report.json binds schema mumei.verify-recheck-report/v1 with recheck == consistent, a selected_result and a mumei.verifier-evidence-candidate/v1 candidate.",
-        "verifier_gate": "verify-recheck exits 0, reports recheck consistent and selects the candidate handoff.",
+        "artifact_contract": "report.json binds schema mumei.verify-recheck-report/v1 with recheck == consistent, a selected_result, a mumei.verifier-evidence-candidate/v1 candidate and discharged_checks == ['freshness', 'semantic_correspondence'].",
+        "verifier_gate": "verify-recheck exits 0, reports recheck consistent, discharges freshness + semantic_correspondence and selects the candidate handoff.",
         "expected_patterns": [
           "consistent",
           "mumei.verifier-evidence-candidate/v1"
@@ -86,7 +86,7 @@
         "name": "verify-recheck: tampered record claims no outcome",
         "repo": "mumei-agent",
         "cwd": "{mumei_agent_repo}",
-        "command": "python3 -c \"import json; e=json.load(open('{output_dir}/evidence.json')); s=e['specification']['sha256']; e['specification']['sha256']=('0' if s[0]!='0' else '1')+s[1:]; json.dump(e, open('{output_dir}/tampered.json','w'), indent=2)\" && {mumei_agent_python} -m agent verify-recheck --core {mumei_bin} --evidence {output_dir}/tampered.json --source {root_dir}/scenarios/verify_recheck/src/identity.mm --output {output_dir}/tampered_report.json > {output_dir}/tamper.log 2>&1; rc=$?; cat {output_dir}/tampered_report.json; cat {output_dir}/tamper.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/tampered_report.json')); assert 'recheck' not in r and r['normalized']['exit_code']==1 and r['sequence'].get('selected_result') is None, r; print('verify-recheck: tampered record exits 1 with no claimed outcome')\"",
+        "command": "python3 -c \"import json; e=json.load(open('{output_dir}/evidence.json')); s=e['specification']['sha256']; e['specification']['sha256']=('0' if s[0]!='0' else '1')+s[1:]; json.dump(e, open('{output_dir}/tampered.json','w'), indent=2)\" && {mumei_agent_python} -m agent verify-recheck --core {mumei_bin} --evidence {output_dir}/tampered.json --source {root_dir}/scenarios/verify_recheck/src/identity.mm --output {output_dir}/tampered_report.json > {output_dir}/tamper.log 2>&1; rc=$?; cat {output_dir}/tampered_report.json; cat {output_dir}/tamper.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/tampered_report.json')); assert 'recheck' not in r and 'discharged_checks' not in r and r['normalized']['exit_code']==1 and r['sequence'].get('selected_result') is None, r; print('verify-recheck: tampered record exits 1 with no claimed outcome')\"",
         "expected_exit": 0,
         "depends_on": [
           "produce"
@@ -97,7 +97,7 @@
           "tampered_report.json"
         ],
         "harness_stage": "S3_tamper_boundary",
-        "artifact_contract": "tampered_report.json carries no recheck field, normalized exit_code 1 and no selected_result for the tampered record.",
+        "artifact_contract": "tampered_report.json carries no recheck or discharged_checks field, normalized exit_code 1 and no selected_result for the tampered record.",
         "verifier_gate": "verify-recheck exits 0 at the route level while the tampered record fails with no claimed outcome and no selection.",
         "expected_patterns": [
           "mumei.verify-recheck-report/v1",
@@ -156,14 +156,14 @@
     "source_intent": "Show the declared verify-recheck route rechecking a real saved Evidence record and refusing to claim an outcome for a tampered one.",
     "success_criteria": [
       "evidence.json carries schema mumei.verification-evidence/v1 with result established",
-      "report.json carries recheck == consistent and a selected verifier-evidence-candidate candidate",
-      "tampered_report.json carries no recheck field, normalized exit_code 1 and no selected_result"
+      "report.json carries recheck == consistent, discharged_checks == ['freshness', 'semantic_correspondence'] and a selected verifier-evidence-candidate candidate",
+      "tampered_report.json carries no recheck or discharged_checks field, normalized exit_code 1 and no selected_result"
     ]
   },
   "success_criteria": [
     "evidence.json carries schema mumei.verification-evidence/v1 with result established",
-    "report.json carries recheck == consistent and a selected verifier-evidence-candidate candidate",
-    "tampered_report.json carries no recheck field, normalized exit_code 1 and no selected_result"
+    "report.json carries recheck == consistent, discharged_checks == ['freshness', 'semantic_correspondence'] and a selected verifier-evidence-candidate candidate",
+    "tampered_report.json carries no recheck or discharged_checks field, normalized exit_code 1 and no selected_result"
   ],
   "gate_order": [
     {
