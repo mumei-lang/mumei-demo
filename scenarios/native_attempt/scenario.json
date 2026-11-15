@@ -1,0 +1,102 @@
+{
+  "name": "Declared Native Bundle Production (native-attempt)",
+  "version": "1.0.0",
+  "description": "C02/C10 produce demo: the declared `native-attempt` route runs `native-bundle build` as one attempt — reporting the Build ID (sha256 of native-bundle.json) and a selected candidate only when the full member set is written; an out-of-profile source selects nothing.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared native-attempt route producing a real native bundle, reporting the Build ID equal to sha256(native-bundle.json), and refusing to claim one for an out-of-profile source.",
+    "success_criteria": [
+      "report.json carries schema mumei.native-attempt-report/v1 with build_id equal to sha256(native-bundle.json), a non-null selected_result and a candidate",
+      "bundle/ holds all five declared members (native-bundle.json, program.ll, program.o, proof-cert.json, program)",
+      "bad_report.json carries no build_id, no selected_result and a nonzero normalized exit_code"
+    ]
+  },
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C10 native produce route end to end: run `python -m agent native-attempt` so Core builds a real mumei.native-bundle/v1 directory, assert the reported build_id is the sha256 of native-bundle.json, then show an out-of-profile source produces no claimed build_id and no selection.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/native_attempt/src/main.mm (the bounded native profile atom main() -> i64 requires: true) and bad.mm (outside the native profile).",
+      "Step 1 runs the declared `native-attempt` route and asserts report.build_id equals sha256(native-bundle.json), a selected verifier-evidence-candidate handoff, and all five bundle members on disk.",
+      "Step 2 reruns the route on the out-of-profile source and asserts no build_id, no selection, and a nonzero normalized exit_code.",
+      "Generate evidence: attempt.log, bad.log, report.json, bad_report.json, bundle/, harness_state.json, result.json, and report.md."
+    ],
+    "gate_order": [
+      "l1_z3"
+    ],
+    "notes": [
+      "Unlike verify-attempt, the bundle is a side effect, not a stdout document — selection requires exit 0 AND a parseable Build ID AND the full declared member set.",
+      "The reported build_id is the Core-computed sha256 of native-bundle.json — the exact identity a native-recheck call pins via --expected-build-id.",
+      "native-bundle build requires the first native profile (linux/x86_64 host, atom main() -> i64 requires: true).",
+      "Every step exits the pipe-and-grep form so a failed command cannot pass silently as exit-0 output.",
+      "budget_policy_fingerprint is native-attempt-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "native-attempt",
+      "schema_version",
+      "mumei.native-attempt-report/v1",
+      "mumei.native-bundle/v1",
+      "build_id",
+      "inputs_changed",
+      "selected_result",
+      "Build ID"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_bundle",
+        "name": "Produce a real native bundle through native-attempt",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-attempt --core {mumei_bin} --source {root_dir}/scenarios/native_attempt/src/main.mm --bundle {output_dir}/bundle --output {output_dir}/report.json > {output_dir}/attempt.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/attempt.log; test $rc -eq 0 && python3 -c \"import json, hashlib; r=json.load(open('{output_dir}/report.json')); assert r['schema_version']=='mumei.native-attempt-report/v1', r['schema_version']; assert r['build_id']==hashlib.sha256(open('{output_dir}/bundle/native-bundle.json','rb').read()).hexdigest(); assert r['sequence'].get('selected_result') is not None; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1'; import os; [open('{output_dir}/bundle/'+n).close() for n in ('native-bundle.json','program.ll','program.o','proof-cert.json','program')]; print('native-attempt produced bundle, build_id verified')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "attempt.log",
+          "report.json",
+          "bundle/native-bundle.json",
+          "bundle/program.ll",
+          "bundle/program.o",
+          "bundle/proof-cert.json",
+          "bundle/program"
+        ],
+        "harness_stage": "S1_bundle_produce",
+        "artifact_contract": "report.json holds mumei.native-attempt-report/v1 with build_id equal to sha256(native-bundle.json), a non-null selected_result and a candidate; bundle/ holds all five declared members.",
+        "verifier_gate": "native-attempt exits 0; build_id matches the Core-computed record digest and the bundle directory is complete.",
+        "expected_patterns": [
+          "mumei.native-attempt-report/v1",
+          "build_id",
+          "selected_result",
+          "mumei.verifier-evidence-candidate/v1"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "out_of_profile_source",
+        "name": "Out-of-profile source produces no claimed build_id",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-attempt --core {mumei_bin} --source {root_dir}/scenarios/native_attempt/src/bad.mm --bundle {output_dir}/bad_bundle --output {output_dir}/bad_report.json > {output_dir}/bad.log 2>&1; rc=$?; cat {output_dir}/bad_report.json; cat {output_dir}/bad.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/bad_report.json')); assert r['schema_version']=='mumei.native-attempt-report/v1'; assert 'build_id' not in r; assert r['sequence'].get('selected_result') is None; assert 'candidate' not in r; assert r['normalized'].get('exit_code') not in (0, None), r['normalized']; print('out-of-profile source: no claimed build_id, no selection')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "bad.log",
+          "bad_report.json"
+        ],
+        "harness_stage": "S2_out_of_profile",
+        "artifact_contract": "bad_report.json holds mumei.native-attempt-report/v1 with no build_id, no selected_result and a nonzero normalized exit_code.",
+        "verifier_gate": "native-attempt exits 0 with an unselected lineage; the profile rejection is a run outcome, not a static error.",
+        "expected_patterns": [
+          "mumei.native-attempt-report/v1",
+          "normalized"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
