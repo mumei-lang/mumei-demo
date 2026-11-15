@@ -1,0 +1,156 @@
+{
+  "name": "Declared Verify Attempt (verify-attempt)",
+  "version": "1.0.0",
+  "description": "C02 produce+consume demo: `python -m agent verify-attempt` runs `evidence verify-source` as one declared attempt and applies the live Core representation check; an established atom reports acceptance accepted:true while a refuted one emits no acceptance.",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the first route where evidence acceptance can be true: the declared attempt produces real evidence, the live representation check binds it to the emitted candidate, and evaluate_evidence_check reports accepted for the established atom.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/verify_attempt/src/identity.mm (established atom) and src/wrong.mm (refuted atom).",
+      "Step 1 runs `python -m agent verify-attempt` and asserts acceptance.accepted, candidate_match, the check record and the candidate descriptor.",
+      "Step 2 runs the same route against a refuted atom and asserts no acceptance block, normalized exit_code 1 and no selected_result.",
+      "Generate evidence: attempt.log, refuted.log, report.json, refuted_report.json, harness_state.json, result.json, and report.md."
+    ],
+    "gate_order": [
+      "l1_z3"
+    ],
+    "notes": [
+      "The acceptance evaluation is representation-level only: checks_not_performed still names claim truth, file identity, freshness, producer authenticity, semantic correspondence and artifact semantics.",
+      "accepted requires the check record to bind the same candidate the sequence selected and the Core outcome to be valid.",
+      "Every step exits the pipe-and-grep form so a failed command cannot pass silently as exit-0 output.",
+      "budget_policy_fingerprint is verify-attempt-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "acceptance",
+      "accepted",
+      "candidate_match",
+      "schema_version",
+      "mumei.verify-attempt-report/v1",
+      "mumei.verifier-evidence-check/v1",
+      "mumei.evidence-check-acceptance/v1",
+      "selected_result"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "attempt",
+        "name": "verify-attempt: established atom accepted",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent verify-attempt --core {mumei_bin} --source {root_dir}/scenarios/verify_attempt/src/identity.mm --output {output_dir}/report.json > {output_dir}/attempt.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/attempt.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); a=r['acceptance']; assert r['schema_version']=='mumei.verify-attempt-report/v1' and a['accepted'] is True and a['candidate_match'] is True and r['evidence_check']['schema_version']=='mumei.verifier-evidence-check/v1' and r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1', r; print('verify-attempt: accepted true, candidate bound')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "attempt.log",
+          "report.json"
+        ],
+        "harness_stage": "S1_declared_attempt",
+        "artifact_contract": "report.json binds schema mumei.verify-attempt-report/v1 with acceptance.accepted true, candidate_match true, a mumei.verifier-evidence-check/v1 check and a mumei.verifier-evidence-candidate/v1 candidate.",
+        "verifier_gate": "verify-attempt exits 0 and reports acceptance accepted:true for the established atom.",
+        "expected_patterns": [
+          "accepted",
+          "mumei.verifier-evidence-candidate/v1"
+        ]
+      },
+      {
+        "id": "refuted",
+        "name": "verify-attempt: refuted atom emits no acceptance",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent verify-attempt --core {mumei_bin} --source {root_dir}/scenarios/verify_attempt/src/wrong.mm --output {output_dir}/refuted_report.json > {output_dir}/refuted.log 2>&1; rc=$?; cat {output_dir}/refuted_report.json; cat {output_dir}/refuted.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/refuted_report.json')); assert r.get('acceptance') is None and r['normalized']['exit_code']==1 and r['sequence'].get('selected_result') is None, r; print('verify-attempt: refuted atom exits 1 with no acceptance')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "attempt"
+        ],
+        "artifacts": [
+          "refuted.log",
+          "refuted_report.json"
+        ],
+        "harness_stage": "S2_refuted_boundary",
+        "artifact_contract": "refuted_report.json carries no acceptance block, normalized exit_code 1 and no selected_result for the refuted atom.",
+        "verifier_gate": "verify-attempt exits 0 at the route level while the refuted attempt reports no acceptance and no selection.",
+        "expected_patterns": [
+          "mumei.verify-attempt-report/v1",
+          "no acceptance"
+        ]
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Step 1: verify-attempt produces real evidence as one declared attempt and evaluates its live representation check...",
+      "Step 2: the same route against a refuted atom emits no acceptance block..."
+    ],
+    "before": "Evidence acceptance was always unevaluated: no route closed the produce-plus-representation-check loop inside one declared attempt.",
+    "after": "verify-attempt emits the check record and the acceptance evaluation in one report; accepted:true only when the check binds the selected candidate and the Core outcome is valid.",
+    "steps": {
+      "attempt": {
+        "pass": {
+          "icon": "✅",
+          "headline": "verify-attempt: accepted true, candidate bound",
+          "follow_up": [
+            "  The live representation check binds the emitted candidate — acceptance.accepted is the first route-level true verdict.",
+            "",
+            "  Step 2: Refuting the same route on a wrong atom..."
+          ]
+        }
+      },
+      "refuted": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Refuted atom exits 1, no acceptance",
+          "follow_up": [
+            "  No produced evidence means no check and no acceptance — the route stays honest about what it cannot claim.",
+            "",
+            "  Demo complete: the C02 produce+consume loop is observable end to end."
+          ]
+        }
+      }
+    }
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared verify-attempt route closing the produce+consume loop: accepted:true for an established atom, no acceptance for a refuted one.",
+    "success_criteria": [
+      "report.json carries acceptance.accepted true, candidate_match true, a verifier-evidence-check record and a verifier-evidence-candidate descriptor",
+      "refuted_report.json carries no acceptance block, normalized exit_code 1 and no selected_result"
+    ]
+  },
+  "success_criteria": [
+    "report.json carries acceptance.accepted true, candidate_match true, a verifier-evidence-check record and a verifier-evidence-candidate descriptor",
+    "refuted_report.json carries no acceptance block, normalized exit_code 1 and no selected_result"
+  ],
+  "gate_order": [
+    {
+      "gate": "produce_consume",
+      "user_wording": [
+        "The declared attempt produces evidence and evaluates its acceptance"
+      ]
+    },
+    {
+      "gate": "refuted_boundary",
+      "user_wording": [
+        "A refuted atom claims no acceptance"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/attempt.log",
+    "{output_dir}/refuted.log",
+    "{output_dir}/report.json",
+    "{output_dir}/refuted_report.json",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "verify-attempt-v1",
+  "result_message": "Result: declared verify attempt observable end to end — established atoms accept; refuted atoms claim nothing."
+}

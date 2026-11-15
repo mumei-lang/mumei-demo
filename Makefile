@@ -2,7 +2,7 @@ SCENARIOS := ownership_transfer rtgs_settlement regtech_compliance nl_to_verifie
 # Large-scale (Priority 16) targets. Kept out of SCENARIOS on purpose: they are
 # separate targets so the deterministic fixture-mode CI run stays unchanged.
 SCALE_SCENARIOS := medical_device_scale rtgs_settlement_scale regtech_compliance_scale defi_invariant_scale ownership_transfer_scale
-OPTIONAL_SCENARIOS := record_execution_demo go_summaries ts_summaries rust_summaries sol_summaries audit_summaries translation_validation verify_recheck
+OPTIONAL_SCENARIOS := record_execution_demo go_summaries ts_summaries rust_summaries sol_summaries audit_summaries translation_validation verify_recheck verify_attempt
 NO_MM_AUDIT_LANGUAGES := python rust typescript go
 MUMEI_REPO ?= ../mumei
 MUMEI_AGENT_REPO ?= ../mumei-agent
@@ -10,7 +10,7 @@ MUMEI_AGENT_REPO ?= ../mumei-agent
 .PHONY: demo demo-ownership demo-settlement demo-regtech demo-nl demo-no-mm demo-no-mm-multilang demo-spec-code demo-mumei-develop-audit demo-smart-contract demo-blockchain demo-medical demo-aviation demo-merkle demo-defi demo-arklib demo-charter demo-negative-controls demo-test-observation demo-self-correction demo-human-review demo-all demo-ci report setup help \
 	demo-scale demo-medical-scale demo-settlement-scale demo-regtech-scale demo-defi-scale demo-ownership-scale \
 	demo-go-summaries demo-ts-summaries demo-rust-summaries demo-sol-summaries demo-audit-summaries \
-	demo-translation-validation demo-verify-recheck
+	demo-translation-validation demo-verify-recheck demo-verify-attempt
 
 demo: ## Run the default scenario set and regenerate summary reports.
 	@status=0; \
@@ -170,6 +170,11 @@ demo-translation-validation: ## Build --emit binary translation-validation advis
 
 demo-verify-recheck: ## Declared evidence recheck route (real mumei + mumei-agent).
 	@./scripts/run_scenario.sh verify_recheck \
+		--mumei-repo "$(MUMEI_REPO)" \
+		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
+
+demo-verify-attempt: ## Declared verify attempt route with live evidence check (real mumei + mumei-agent).
+	@./scripts/run_scenario.sh verify_attempt \
 		--mumei-repo "$(MUMEI_REPO)" \
 		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
 
