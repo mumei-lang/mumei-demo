@@ -1,0 +1,200 @@
+{
+  "name": "Declared Evidence File Identity (evidence-identity-check)",
+  "version": "1.0.0",
+  "description": "C02 file-identity demo: `evidence verify-source` produces a saved Evidence record, the declared `evidence-identity-check` route reports identity match for its own source and identity mismatch for a foreign source — byte-level staleness detection without a Core re-run.",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C02 file_identity boundary end to end: produce real evidence with the Core, then show the declared identity route reports match for the bound source bytes and mismatch for foreign source bytes.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/evidence_identity/src/identity.mm and other.mm.",
+      "Step 1 saves a real mumei.verification-evidence/v1 record from `evidence verify-source`.",
+      "Step 2 runs `python -m agent evidence-identity-check` against identity.mm and asserts identity == match with subject_sha256 == source_sha256.",
+      "Step 3 runs the same route against other.mm and asserts identity == mismatch with differing digests — data, not an error.",
+      "Generate evidence: produce.log, match.log, mismatch.log, evidence.json, match.json, mismatch.json, harness_state.json, result.json, and report.md."
+    ],
+    "gate_order": [
+      "l1_z3"
+    ],
+    "notes": [
+      "A match means only that the record still binds these source bytes: representation validity stays Core's evidence check duty and the other five semantic checks stay in checks_not_performed.",
+      "evidence-identity-check is the byte-level staleness companion of verify-recheck's query-level freshness: no Core run and no fresh query.",
+      "Every step exits the pipe-and-grep form so a failed command cannot pass silently as exit-0 output.",
+      "budget_policy_fingerprint is evidence-identity-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "identity",
+      "schema_version",
+      "mumei.evidence-file-identity/v1",
+      "mumei.verification-evidence/v1",
+      "match",
+      "mismatch",
+      "subject_sha256",
+      "source_sha256"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce",
+        "name": "Produce a saved Evidence record",
+        "repo": "mumei",
+        "command": "{mumei_bin} evidence verify-source {root_dir}/scenarios/evidence_identity/src/identity.mm --json --solver-timeout 5000 --solver-resource-limit 1000000 > {output_dir}/evidence.json 2> {output_dir}/produce.log; rc=$?; cat {output_dir}/evidence.json; cat {output_dir}/produce.log; test $rc -eq 0 && python3 -c \"import json; e=json.load(open('{output_dir}/evidence.json')); assert e['schema_version']=='mumei.verification-evidence/v1' and e['result']=='established', e; print('evidence: established verification-evidence record saved')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "produce.log",
+          "evidence.json"
+        ],
+        "harness_stage": "S1_evidence_produce",
+        "artifact_contract": "evidence.json binds schema mumei.verification-evidence/v1 with result established for identity.mm under the producer's declared solver budget.",
+        "verifier_gate": "verify-source exits 0 and writes an established verification-evidence record.",
+        "expected_patterns": [
+          "mumei.verification-evidence/v1",
+          "established"
+        ]
+      },
+      {
+        "id": "match",
+        "name": "evidence-identity-check: bound source reports match",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent evidence-identity-check --evidence {output_dir}/evidence.json --source {root_dir}/scenarios/evidence_identity/src/identity.mm --output {output_dir}/match.json > {output_dir}/match.log 2>&1; rc=$?; cat {output_dir}/match.json; cat {output_dir}/match.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/match.json')); assert r['schema_version']=='mumei.evidence-file-identity/v1' and r['identity']=='match' and r['subject_sha256']==r['source_sha256'], r; print('evidence-identity-check: bound source reports match')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce"
+        ],
+        "artifacts": [
+          "match.log",
+          "match.json"
+        ],
+        "harness_stage": "S2_declared_identity_match",
+        "artifact_contract": "match.json binds schema mumei.evidence-file-identity/v1 with identity == match and equal subject/source digests.",
+        "verifier_gate": "evidence-identity-check exits 0 and reports identity match for the bound source.",
+        "expected_patterns": [
+          "mumei.evidence-file-identity/v1",
+          "match"
+        ]
+      },
+      {
+        "id": "mismatch",
+        "name": "evidence-identity-check: foreign source reports mismatch",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent evidence-identity-check --evidence {output_dir}/evidence.json --source {root_dir}/scenarios/evidence_identity/src/other.mm --output {output_dir}/mismatch.json > {output_dir}/mismatch.log 2>&1; rc=$?; cat {output_dir}/mismatch.json; cat {output_dir}/mismatch.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/mismatch.json')); assert r['schema_version']=='mumei.evidence-file-identity/v1' and r['identity']=='mismatch' and r['subject_sha256']!=r['source_sha256'], r; print('evidence-identity-check: foreign source reports mismatch')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce"
+        ],
+        "artifacts": [
+          "mismatch.log",
+          "mismatch.json"
+        ],
+        "harness_stage": "S3_declared_identity_mismatch",
+        "artifact_contract": "mismatch.json binds schema mumei.evidence-file-identity/v1 with identity == mismatch and differing subject/source digests.",
+        "verifier_gate": "evidence-identity-check exits 0 and reports identity mismatch for a foreign source.",
+        "expected_patterns": [
+          "mumei.evidence-file-identity/v1",
+          "mismatch"
+        ]
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Step 1: mumei evidence verify-source produces a real saved Evidence record...",
+      "Step 2: the declared evidence-identity-check route reports match for the bound source bytes...",
+      "Step 3: a foreign source file reports mismatch — byte-level staleness without re-running the query..."
+    ],
+    "before": "Whether a saved Evidence record still binds the current source bytes was an unassessed file_identity duty.",
+    "after": "evidence-identity-check compares the record's bound subject sha256 against the current source bytes: bound sources report match, foreign sources report mismatch.",
+    "steps": {
+      "produce": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Evidence record saved (established)",
+          "follow_up": [
+            "  The record binds the source digest in subject.sha256 under mumei.verification-evidence/v1.",
+            "",
+            "  Step 2: Checking file identity against the bound source..."
+          ]
+        }
+      },
+      "match": {
+        "pass": {
+          "icon": "✅",
+          "headline": "evidence-identity-check: match",
+          "follow_up": [
+            "  The record's bound digest equals the current source bytes — identity match.",
+            "",
+            "  Step 3: Checking against a foreign source file..."
+          ]
+        }
+      },
+      "mismatch": {
+        "pass": {
+          "icon": "✅",
+          "headline": "evidence-identity-check: mismatch",
+          "follow_up": [
+            "  Foreign source bytes answer mismatch — a saved record that no longer binds the declared source surfaces as data, not an error.",
+            "",
+            "  Demo complete: the C02 file-identity boundary is observable end to end."
+          ]
+        }
+      }
+    }
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared evidence-identity-check route reporting match for the bound source bytes and mismatch for a foreign source.",
+    "success_criteria": [
+      "evidence.json carries schema mumei.verification-evidence/v1 with result established",
+      "match.json carries identity == match with subject_sha256 == source_sha256",
+      "mismatch.json carries identity == mismatch with subject_sha256 != source_sha256"
+    ]
+  },
+  "success_criteria": [
+    "evidence.json carries schema mumei.verification-evidence/v1 with result established",
+    "match.json carries identity == match with subject_sha256 == source_sha256",
+    "mismatch.json carries identity == mismatch with subject_sha256 != source_sha256"
+  ],
+  "gate_order": [
+    {
+      "gate": "produce",
+      "user_wording": [
+        "A real Evidence record is produced and saved"
+      ]
+    },
+    {
+      "gate": "identity_match",
+      "user_wording": [
+        "The declared route reports identity match for the bound source"
+      ]
+    },
+    {
+      "gate": "identity_mismatch",
+      "user_wording": [
+        "The declared route reports identity mismatch for a foreign source"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/produce.log",
+    "{output_dir}/match.log",
+    "{output_dir}/mismatch.log",
+    "{output_dir}/evidence.json",
+    "{output_dir}/match.json",
+    "{output_dir}/mismatch.json",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "evidence-identity-v1",
+  "result_message": "Result: declared evidence file identity observable end to end — bound sources report match; foreign sources report mismatch."
+}
