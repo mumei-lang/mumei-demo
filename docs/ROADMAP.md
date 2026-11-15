@@ -80,6 +80,21 @@ and is exercised separately in source-built CI. Formal model/Python
 correspondence, production authentication/storage, distributed operations and
 arbitrary-code confinement remain unproved and outside this experiment.
 
+## Optional declared go-summaries scenario
+
+The optional [go_summaries scenario](../scenarios/go_summaries/README.md)
+exercises the `mumei-agent` declared summary route family end to end:
+`go build` provisions the go-types helper (SKIPPED without a maintained
+toolchain), `go-summaries` emits a
+`mumei.go-scalar-parameter-deps/v1` manifest for a two-function fixture
+unit, `go-summaries-check` partitions reusable/stale/missing bindings
+against a fresh helper report, and `go-summaries-accept` echoes one
+binding's declared summary under the strict whole-context gate. It stays
+in `OPTIONAL_SCENARIOS` — the default 18-scenario sequence is unchanged
+and fixture mode replays recorded payloads for deterministic CI. The
+helper remains declared source-analysis infrastructure, not a verifier;
+no audit, MCP or planner wiring is implied.
+
 ## Cross-project no-.mm scenario contract
 
 `mumei-lang/mumei/docs/CROSS_PROJECT_ROADMAP.md` owns the global V1 order. Demo scenarios that cover the no-`.mm` path must keep the same `audit -> migrate-suggest -> heal` gate order as `mumei-agent audit --auto-migrate --auto-heal` and MCP `scan_and_fix`.

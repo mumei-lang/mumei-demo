@@ -117,6 +117,14 @@ connects those finite checks to an independent Lean model audit and a small
 `.mm` contract, keeping all three evidence categories separate. It requires
 the pinned Lean toolchain, but leaves the default 18-scenario sequence intact.
 
+The optional [`make demo-go-summaries`](scenarios/go_summaries/README.md)
+runs the declared `go-summaries` route family on a sibling `mumei-agent`
+checkout: provision the go-types helper, emit a
+`mumei.go-scalar-parameter-deps/v1` manifest, check it against a fresh
+helper report, and accept one binding under the strict whole-context gate.
+Fixture mode replays recorded payloads; real mode needs a maintained Go
+toolchain on `PATH` and the default scenario sequence stays unchanged.
+
 ## Running scenarios
 
 ```bash

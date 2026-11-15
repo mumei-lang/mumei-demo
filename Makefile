@@ -2,13 +2,14 @@ SCENARIOS := ownership_transfer rtgs_settlement regtech_compliance nl_to_verifie
 # Large-scale (Priority 16) targets. Kept out of SCENARIOS on purpose: they are
 # separate targets so the deterministic fixture-mode CI run stays unchanged.
 SCALE_SCENARIOS := medical_device_scale rtgs_settlement_scale regtech_compliance_scale defi_invariant_scale ownership_transfer_scale
-OPTIONAL_SCENARIOS := record_execution_demo
+OPTIONAL_SCENARIOS := record_execution_demo go_summaries
 NO_MM_AUDIT_LANGUAGES := python rust typescript go
 MUMEI_REPO ?= ../mumei
 MUMEI_AGENT_REPO ?= ../mumei-agent
 
 .PHONY: demo demo-ownership demo-settlement demo-regtech demo-nl demo-no-mm demo-no-mm-multilang demo-spec-code demo-mumei-develop-audit demo-smart-contract demo-blockchain demo-medical demo-aviation demo-merkle demo-defi demo-arklib demo-charter demo-negative-controls demo-test-observation demo-self-correction demo-human-review demo-all demo-ci report setup help \
-	demo-scale demo-medical-scale demo-settlement-scale demo-regtech-scale demo-defi-scale demo-ownership-scale
+	demo-scale demo-medical-scale demo-settlement-scale demo-regtech-scale demo-defi-scale demo-ownership-scale \
+	demo-go-summaries
 
 demo: ## Run the default scenario set and regenerate summary reports.
 	@status=0; \
@@ -129,6 +130,16 @@ demo-human-review: ## Run the human-review demo scenario.
 .PHONY: demo-record-execution
 demo-record-execution: ## Run the optional single-process record-execution experiment.
 	@./scripts/run_scenario.sh record_execution_demo
+
+demo-go-summaries: ## Declared go-summaries route loop (fixture mode unless CI_FIXTURE_MODE=0).
+	@mode="$${CI_FIXTURE_MODE:-1}"; \
+	if [ "$$mode" = "1" ]; then \
+		CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh go_summaries \
+			--mumei-agent-repo "$(MUMEI_AGENT_REPO)"; \
+	else \
+		./scripts/run_scenario.sh go_summaries \
+			--mumei-agent-repo "$(MUMEI_AGENT_REPO)"; \
+	fi
 
 demo-all: demo ## Compatibility alias for the default demo target.
 
