@@ -1,14 +1,16 @@
 {
   "name": "Declared Evidence Check-List (evidence-check-list)",
   "version": "1.0.0",
-  "description": "C02 representation demo: the declared `evidence-check-list` route runs `evidence check-list` as one attempt \u2014 `representation: valid` plus `record_count` and a candidate on a clean run; a bogus envelope claims nothing.",
+  "description": "C02 representation demo: the declared `evidence-check-list` route runs `evidence check-list` as one attempt — `representation: valid` plus `record_count` and a candidate on a clean run; a bogus envelope claims nothing. A gated `--expected-adapter` run names declared_producer_identity, and a mismatched adapter claims nothing.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,
-    "source_intent": "C02 representation demo: the declared `evidence-check-list` route runs `evidence check-list` as one attempt \u2014 `representation: valid` plus `record_count` and a candidate on a clean run; a bogus envelope claims nothing.",
+    "source_intent": "C02 representation demo: the declared `evidence-check-list` route runs `evidence check-list` as one attempt — `representation: valid` plus `record_count` and a candidate on a clean run; a bogus envelope claims nothing. A gated `--expected-adapter` run names declared_producer_identity, and a mismatched adapter claims nothing.",
     "success_criteria": [
       "report.json carries representation == 'valid', record_count == 2 and a selected candidate",
-      "bogus_report.json carries no representation, no selected_result and normalized exit_code 1"
+      "bogus_report.json carries no representation, no selected_result and normalized exit_code 1",
+      "gated_report.json names declared_producer_identity in checks_performed while producer_authenticity stays not_performed",
+      "gated_mismatch_report.json carries no checks_performed, no selected_result and normalized exit_code 1"
     ]
   },
   "layers": [
@@ -21,11 +23,13 @@
     ],
     "state_dir": "{output_dir}",
     "state_file": "{output_dir}/harness_state.json",
-    "intent": "Demonstrate the C02 evidence list-envelope representation check: mint two real Evidence records, wrap them in the list envelope, run `python -m agent evidence-check-list` for a valid envelope, then show bogus bytes produce no claimed outcome.",
+    "intent": "Demonstrate the C02 evidence list-envelope representation check: mint two real Evidence records, wrap them in the list envelope, run `python -m agent evidence-check-list` for a valid envelope, then show bogus bytes produce no claimed outcome. A gated run with --expected-adapter mumei.source-evidence then names declared_producer_identity, and a mismatched adapter is rejected with no claimed outcome.",
     "artifact_contracts": [
       "Read inputs: scenarios/evidence_check_list/src/identity.mm and the two minted records wrapped in a mumei.verification-evidence-list/v1 envelope.",
       "Step 3 runs `evidence-check-list` and asserts representation valid + record_count 2 + candidate.",
-      "Step 4 feeding non-envelope bytes produces no claimed outcome."
+      "Step 4 feeding non-envelope bytes produces no claimed outcome.",
+      "The gated step asserts checks_performed names declared_producer_identity on a matching declared producer.",
+      "The mismatch step feeding a wrong adapter produces no claimed outcome."
     ]
   },
   "l1_z3": {
@@ -97,11 +101,54 @@
         ],
         "harness_stage": "S4_bogus",
         "artifact_contract": "bogus_report.json holds no representation and no selected_result.",
-        "verifier_gate": "Non-envelope bytes exit nonzero \u2014 no claimed outcome.",
+        "verifier_gate": "Non-envelope bytes exit nonzero — no claimed outcome.",
         "expected_patterns": [
           "schema_version"
         ],
         "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "gated",
+        "name": "evidence-check-list: --expected-adapter gate reports declared_producer_identity",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent evidence-check-list --core {mumei_bin} --evidence {output_dir}/list.json --expected-adapter mumei.source-evidence --output {output_dir}/gated_report.json > {output_dir}/gated.log 2>&1; rc=$?; cat {output_dir}/gated_report.json; cat {output_dir}/gated.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/gated_report.json')); assert r['checks_performed']==['representation_gate','declared_producer_identity'], r['checks_performed']; assert 'producer_authenticity' in r['checks_not_performed'], r['checks_not_performed']; assert r['sequence'].get('selected_result') is not None; assert r['representation']=='valid'; assert r['record_count']==2; print('evidence-check-list: gated run names declared_producer_identity')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "valid"
+        ],
+        "artifacts": [
+          "gated.log",
+          "gated_report.json"
+        ],
+        "harness_stage": "S5_declared_producer_gate",
+        "artifact_contract": "gated_report.json binds the gated diagnostic: checks_performed [\"representation_gate\", \"declared_producer_identity\"] while producer_authenticity stays in checks_not_performed.",
+        "verifier_gate": "evidence-check-list --expected-adapter mumei.source-evidence exits 0; the gated diagnostic names declared_producer_identity.",
+        "expected_patterns": [
+          "declared_producer_identity",
+          "representation_gate"
+        ]
+      },
+      {
+        "id": "gated_mismatch",
+        "name": "evidence-check-list: mismatched expected adapter claims nothing",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent evidence-check-list --core {mumei_bin} --evidence {output_dir}/list.json --expected-adapter other-adapter --output {output_dir}/gated_mismatch_report.json > {output_dir}/gated_mismatch.log 2>&1; rc=$?; cat {output_dir}/gated_mismatch_report.json; cat {output_dir}/gated_mismatch.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/gated_mismatch_report.json')); assert 'checks_performed' not in r, r; assert r['sequence'].get('selected_result') is None, r; assert r['normalized'].get('exit_code')==1, r['normalized']; print('evidence-check-list: mismatched adapter exits 1, no claim')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "gated"
+        ],
+        "artifacts": [
+          "gated_mismatch.log",
+          "gated_mismatch_report.json"
+        ],
+        "harness_stage": "S6_producer_gate_rejection",
+        "artifact_contract": "gated_mismatch_report.json carries the report schema with no checks_performed, no selected_result and normalized exit_code 1 — a declared producer mismatch binds nothing.",
+        "verifier_gate": "evidence-check-list --expected-adapter other-adapter: Core's gate rejects the record and the route claims no outcome.",
+        "expected_patterns": [
+          "exit_code"
+        ]
       }
     ]
   }

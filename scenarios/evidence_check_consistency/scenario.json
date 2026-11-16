@@ -1,14 +1,16 @@
 {
   "name": "Declared Evidence Check-Consistency (evidence-check-consistency)",
   "version": "1.0.0",
-  "description": "C02 cross-record demo: the declared `evidence-check-consistency` route runs `evidence check-consistency` as one attempt \u2014 identical pins report `consistent: true` with `conflict_count: 0`; a record disagreeing on a shared identity pin reports `consistent: false` with named conflicts. Both outcomes select the diagnostic \u2014 the check completed either way.",
+  "description": "C02 cross-record demo: the declared `evidence-check-consistency` route runs `evidence check-consistency` as one attempt — identical pins report `consistent: true` with `conflict_count: 0`; a record disagreeing on a shared identity pin reports `consistent: false` with named conflicts. Both outcomes select the diagnostic — the check completed either way. A gated `--expected-adapter` run names declared_producer_identity, and a mismatched adapter claims nothing.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,
-    "source_intent": "C02 cross-record demo: the declared `evidence-check-consistency` route runs `evidence check-consistency` as one attempt \u2014 identical pins report `consistent: true` with `conflict_count: 0`; a record disagreeing on a shared identity pin reports `consistent: false` with named conflicts. Both outcomes select the diagnostic \u2014 the check completed either way.",
+    "source_intent": "C02 cross-record demo: the declared `evidence-check-consistency` route runs `evidence check-consistency` as one attempt — identical pins report `consistent: true` with `conflict_count: 0`; a record disagreeing on a shared identity pin reports `consistent: false` with named conflicts. Both outcomes select the diagnostic — the check completed either way. A gated `--expected-adapter` run names declared_producer_identity, and a mismatched adapter claims nothing.",
     "success_criteria": [
       "consistent_report.json carries consistent == True, conflict_count == 0 and a candidate",
-      "conflict_report.json carries consistent == False, conflict_count >= 1 naming field subject.kind, and still a candidate (the check completed)"
+      "conflict_report.json carries consistent == False, conflict_count >= 1 naming field subject.kind, and still a candidate (the check completed)",
+      "gated_report.json names declared_producer_identity alongside cross_record_pin_agreement in checks_performed",
+      "gated_mismatch_report.json carries no checks_performed, no selected_result and normalized exit_code 1"
     ]
   },
   "layers": [
@@ -21,10 +23,12 @@
     ],
     "state_dir": "{output_dir}",
     "state_file": "{output_dir}/harness_state.json",
-    "intent": "Demonstrate the C02 cross-record consistency check: mint a real record, wrap two identical copies in the list envelope and assert consistent, then tamper one copy's subject.kind pin and assert consistent false with a named conflict \u2014 the diagnostic selects either way because the check itself completed.",
+    "intent": "Demonstrate the C02 cross-record consistency check: mint a real record, wrap two identical copies in the list envelope and assert consistent, then tamper one copy's subject.kind pin and assert consistent false with a named conflict — the diagnostic selects either way because the check itself completed. A gated run with --expected-adapter mumei.source-evidence then names declared_producer_identity, and a mismatched adapter is rejected with no claimed outcome.",
     "artifact_contracts": [
       "Read inputs: scenarios/evidence_check_consistency/src/identity.mm and envelopes of identical-vs-tampered record pairs.",
-      "Step 3 asserts consistent true with zero conflicts; step 4 asserts consistent false with a subject.kind conflict \u2014 both select the diagnostic."
+      "Step 3 asserts consistent true with zero conflicts; step 4 asserts consistent false with a subject.kind conflict — both select the diagnostic.",
+      "The gated step asserts checks_performed names declared_producer_identity on a matching declared producer.",
+      "The mismatch step feeding a wrong adapter produces no claimed outcome."
     ]
   },
   "l1_z3": {
@@ -95,12 +99,55 @@
         ],
         "harness_stage": "S4_conflict",
         "artifact_contract": "conflict_report.json holds consistent false, a subject.kind conflict and still a candidate.",
-        "verifier_gate": "The disagreement is reported as a named conflict \u2014 the check completed, so the diagnostic selects.",
+        "verifier_gate": "The disagreement is reported as a named conflict — the check completed, so the diagnostic selects.",
         "expected_patterns": [
           "consistent",
           "subject.kind"
         ],
         "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "gated",
+        "name": "evidence-check-consistency: --expected-adapter gate reports declared_producer_identity",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent evidence-check-consistency --core {mumei_bin} --evidence {output_dir}/same.json --expected-adapter mumei.source-evidence --output {output_dir}/gated_report.json > {output_dir}/gated.log 2>&1; rc=$?; cat {output_dir}/gated_report.json; cat {output_dir}/gated.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/gated_report.json')); assert r['checks_performed']==['representation_gate','cross_record_pin_agreement','declared_producer_identity'], r['checks_performed']; assert 'producer_authenticity' in r['checks_not_performed'], r['checks_not_performed']; assert r['sequence'].get('selected_result') is not None; assert r['consistent'] is True; print('evidence-check-consistency: gated run names declared_producer_identity')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "conflict"
+        ],
+        "artifacts": [
+          "gated.log",
+          "gated_report.json"
+        ],
+        "harness_stage": "S5_declared_producer_gate",
+        "artifact_contract": "gated_report.json binds the gated diagnostic: checks_performed [\"representation_gate\", \"cross_record_pin_agreement\", \"declared_producer_identity\"] while producer_authenticity stays in checks_not_performed.",
+        "verifier_gate": "evidence-check-consistency --expected-adapter mumei.source-evidence exits 0; the gated diagnostic names declared_producer_identity.",
+        "expected_patterns": [
+          "declared_producer_identity",
+          "representation_gate"
+        ]
+      },
+      {
+        "id": "gated_mismatch",
+        "name": "evidence-check-consistency: mismatched expected adapter claims nothing",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent evidence-check-consistency --core {mumei_bin} --evidence {output_dir}/same.json --expected-adapter other-adapter --output {output_dir}/gated_mismatch_report.json > {output_dir}/gated_mismatch.log 2>&1; rc=$?; cat {output_dir}/gated_mismatch_report.json; cat {output_dir}/gated_mismatch.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/gated_mismatch_report.json')); assert 'checks_performed' not in r, r; assert r['sequence'].get('selected_result') is None, r; assert r['normalized'].get('exit_code')==1, r['normalized']; print('evidence-check-consistency: mismatched adapter exits 1, no claim')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "gated"
+        ],
+        "artifacts": [
+          "gated_mismatch.log",
+          "gated_mismatch_report.json"
+        ],
+        "harness_stage": "S6_producer_gate_rejection",
+        "artifact_contract": "gated_mismatch_report.json carries the report schema with no checks_performed, no selected_result and normalized exit_code 1 — a declared producer mismatch binds nothing.",
+        "verifier_gate": "evidence-check-consistency --expected-adapter other-adapter: Core's gate rejects the record and the route claims no outcome.",
+        "expected_patterns": [
+          "exit_code"
+        ]
       }
     ]
   }
