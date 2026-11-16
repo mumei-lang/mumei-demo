@@ -1,0 +1,98 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C10 native exit-status acceptance route end to end: build a real mumei.native-bundle/v1, run `python -m agent native-exit-status-accept` so the byte-identical reproduced program executes once and its OS exit status matches the record pin — emitting the acceptance descriptor — then show a wrong build ID produces no claimed outcome.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/native_exit_status_accept/src/main.mm (the bounded native profile atom main() -> i64 requires: true).",
+      "Step 1 runs `native-bundle build` and records sha256(native-bundle.json) as the trusted-channel build ID.",
+      "Step 2 runs the declared `native-exit-status-accept` route and asserts report.acceptance == 'accepted' plus the discharged-check partition.",
+      "Step 3 reruns the route with a wrong build ID and asserts no claimed outcome and normalized exit_code 1."
+    ]
+  },
+  "name": "Declared Native Exit-Status Acceptance (native-exit-status-accept)",
+  "description": "C02/C10 exit-status acceptance demo: the declared `native-exit-status-accept` route runs `native-bundle accept-exit-status` as one attempt — `acceptance: accepted` plus `artifact_semantics` + `claim_truth` discharged checks only on a clean run; a wrong build ID claims no outcome.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared native-exit-status-accept route executing a real bundle's byte-identical reproduced program once, matching its OS exit status against the record pin and emitting the acceptance descriptor, then refusing to claim an outcome for a wrong build ID.",
+    "success_criteria": [
+      "report.json carries mumei.native-exit-status-accept-report/v1 with acceptance == 'accepted', discharged_checks == ['artifact_semantics', 'claim_truth'] and a non-null selected_result",
+      "wrong_report.json carries no acceptance, no selected_result and normalized exit_code 1"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_bundle",
+        "name": "Produce a real native bundle via the Core",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle build {root_dir}/scenarios/native_exit_status_accept/src/main.mm -o {output_dir}/bundle > {output_dir}/build.log 2>&1 && python3 -c \"import hashlib; print(hashlib.sha256(open('{output_dir}/bundle/native-bundle.json','rb').read()).hexdigest())\" > {output_dir}/build_id.txt; rc=$?; cat {output_dir}/build.log; cat {output_dir}/build_id.txt; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "build.log",
+          "build_id.txt",
+          "bundle/native-bundle.json",
+          "bundle/program.ll",
+          "bundle/program.o",
+          "bundle/proof-cert.json",
+          "bundle/program"
+        ],
+        "harness_stage": "S1_bundle_produce",
+        "artifact_contract": "build_id.txt holds sha256(native-bundle.json); bundle/ holds all five declared members.",
+        "verifier_gate": "native-bundle build exits 0 and the declared member set is complete.",
+        "expected_patterns": [
+          "Build ID:"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "accepted",
+        "name": "native-exit-status-accept reports accepted + discharged checks",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-exit-status-accept --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_exit_status_accept/src/main.mm --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/report.json > {output_dir}/accept.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/accept.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['schema_version']=='mumei.native-exit-status-accept-report/v1', r['schema_version']; assert r['acceptance']=='accepted', r; assert r['discharged_checks']==['artifact_semantics','claim_truth'], r; assert r['sequence'].get('selected_result') is not None; assert 'candidate' not in r; print('native-exit-status-accept: accepted, artifact_semantics + claim_truth discharged')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "accept.log",
+          "report.json"
+        ],
+        "harness_stage": "S2_exit_status_accept",
+        "artifact_contract": "report.json holds mumei.native-exit-status-accept-report/v1 with acceptance accepted and discharged artifact_semantics + claim_truth.",
+        "verifier_gate": "native-exit-status-accept exits 0; the reproduced program's OS exit status matched the record pin and the descriptor was emitted.",
+        "expected_patterns": [
+          "mumei.native-exit-status-accept-report/v1",
+          "acceptance",
+          "accepted",
+          "artifact_semantics"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "wrong_build_id",
+        "name": "Wrong build ID claims no outcome",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-exit-status-accept --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_exit_status_accept/src/main.mm --expected-build-id $(python3 -c \"import hashlib;print(hashlib.sha256(b'not-the-build-id').hexdigest())\") --output {output_dir}/wrong_report.json > {output_dir}/wrong.log 2>&1; rc=$?; cat {output_dir}/wrong_report.json; cat {output_dir}/wrong.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/wrong_report.json')); assert r['schema_version']=='mumei.native-exit-status-accept-report/v1'; assert 'acceptance' not in r; assert 'discharged_checks' not in r; assert r['sequence'].get('selected_result') is None; assert r['normalized'].get('exit_code') == 1, r['normalized']; print('wrong build ID: no claimed outcome, exit 1')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "wrong.log",
+          "wrong_report.json"
+        ],
+        "harness_stage": "S3_wrong_build_id",
+        "artifact_contract": "wrong_report.json holds no acceptance, no selected_result and normalized exit_code 1.",
+        "verifier_gate": "The mismatched build ID exits 1, conflating mismatch with static failure — no claimed outcome.",
+        "expected_patterns": [
+          "mumei.native-exit-status-accept-report/v1"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
