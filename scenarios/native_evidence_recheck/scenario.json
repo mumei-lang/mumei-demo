@@ -1,0 +1,107 @@
+{
+  "name": "Declared Native Evidence Recheck (native-evidence-recheck)",
+  "version": "1.0.0",
+  "description": "C10 consumer-replay demo: the declared `native-evidence-recheck` route runs `native-bundle recheck-evidence` as one attempt \u2014 a saved consumer Evidence envelope that matches the fresh pinned recheck reports `evidence_recheck: consistent` plus discharged `artifact_semantics`/`claim_truth`; a mismatched build-id pin claims no outcome.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "C10 consumer-replay demo: the declared `native-evidence-recheck` route runs `native-bundle recheck-evidence` as one attempt \u2014 a saved consumer Evidence envelope that matches the fresh pinned recheck reports `evidence_recheck: consistent` plus discharged `artifact_semantics`/`claim_truth`; a mismatched build-id pin claims no outcome.",
+    "success_criteria": [
+      "report.json carries evidence_recheck == 'consistent', discharged_checks == ['artifact_semantics','claim_truth'] and a non-null selected_result",
+      "wrong_report.json carries no evidence_recheck, no selected_result and normalized exit_code 1"
+    ]
+  },
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the deepest declared replay: build a real native bundle, save the consumer Evidence envelope emitted by `recheck-llvm --json`, run `python -m agent native-evidence-recheck` so the saved envelope is checked against a fresh pinned recheck, then show a mismatched expected-build-id produces no claimed outcome.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/native_evidence_recheck/src/main.mm, the freshly built bundle/ and the saved consumer Evidence envelope.",
+      "Step 3 runs `native-evidence-recheck` and asserts evidence_recheck == consistent with the discharged-check partition.",
+      "Step 4 a mismatched expected-build-id produces no claimed outcome."
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_bundle",
+        "name": "Build a real native bundle",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle build {root_dir}/scenarios/native_evidence_recheck/src/main.mm -o {output_dir}/bundle > {output_dir}/build.log 2>&1 && python3 -c \"import hashlib; print(hashlib.sha256(open('{output_dir}/bundle/native-bundle.json','rb').read()).hexdigest())\" > {output_dir}/build_id.txt; rc=$?; cat {output_dir}/build.log; cat {output_dir}/build_id.txt; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "build.log",
+          "build_id.txt"
+        ],
+        "harness_stage": "S1_bundle_produce",
+        "artifact_contract": "bundle/ holds the native bundle; build_id.txt pins the record sha256.",
+        "verifier_gate": "native-bundle build exits 0 with a bundle directory.",
+        "expected_patterns": [
+          "Build ID:"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "emit_evidence",
+        "name": "Emit the saved consumer Evidence envelope",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle recheck-llvm --expected-build-id $(cat {output_dir}/build_id.txt) --json {output_dir}/bundle {root_dir}/scenarios/native_evidence_recheck/src/main.mm > {output_dir}/evidence.json; rc=$?; cat {output_dir}/evidence.json; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "evidence.json"
+        ],
+        "harness_stage": "S1b_evidence_emit",
+        "artifact_contract": "evidence.json holds a mumei.native-consumer-evidence/v1 envelope.",
+        "verifier_gate": "recheck-llvm --json exits 0 with the consumer envelope.",
+        "expected_patterns": [
+          "mumei.native-consumer-evidence/v1"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "consistent",
+        "name": "native-evidence-recheck reports consistent + discharged checks",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-evidence-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_evidence_recheck/src/main.mm --evidence {output_dir}/evidence.json --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/report.json > {output_dir}/recheck.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/recheck.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['evidence_recheck']=='consistent', r; assert r['discharged_checks']==['artifact_semantics','claim_truth'], r; assert r['sequence'].get('selected_result') is not None, r; print('native-evidence-recheck: consistent, selection bound')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "recheck.log",
+          "report.json"
+        ],
+        "harness_stage": "S2_evidence_recheck",
+        "artifact_contract": "report.json holds evidence_recheck consistent, the discharged-check partition and a bound selection.",
+        "verifier_gate": "native-evidence-recheck exits 0; the saved envelope matches the fresh recheck.",
+        "expected_patterns": [
+          "consistent",
+          "artifact_semantics"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "wrong_build_id",
+        "name": "Mismatched expected-build-id claims no outcome",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-evidence-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_evidence_recheck/src/main.mm --evidence {output_dir}/evidence.json --expected-build-id $(python3 -c \"import hashlib;print(hashlib.sha256(b'not-the-build-id').hexdigest())\") --output {output_dir}/wrong_report.json > {output_dir}/wrong.log 2>&1; rc=$?; cat {output_dir}/wrong_report.json; cat {output_dir}/wrong.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/wrong_report.json')); assert 'evidence_recheck' not in r; assert r['sequence'].get('selected_result') is None; assert r['normalized'].get('exit_code') == 1, r['normalized']; print('mismatched build id: no claimed outcome')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "wrong.log",
+          "wrong_report.json"
+        ],
+        "harness_stage": "S3_wrong_build_id",
+        "artifact_contract": "wrong_report.json holds no evidence_recheck, no selected_result and normalized exit_code 1.",
+        "verifier_gate": "The mismatched pin exits 1 \u2014 no claimed outcome.",
+        "expected_patterns": [
+          "schema_version"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}

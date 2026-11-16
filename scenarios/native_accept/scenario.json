@@ -1,0 +1,90 @@
+{
+  "name": "Declared Native Artifact Acceptance (native-accept)",
+  "version": "1.0.0",
+  "description": "C02/C10 acceptance demo: the declared `native-accept` route runs `native-bundle accept-artifact` as one attempt \u2014 `acceptance: accepted` plus discharged `artifact_semantics`/`claim_truth` on a clean run; a mismatched build-id pin claims no outcome.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "C02/C10 acceptance demo: the declared `native-accept` route runs `native-bundle accept-artifact` as one attempt \u2014 `acceptance: accepted` plus discharged `artifact_semantics`/`claim_truth` on a clean run; a mismatched build-id pin claims no outcome.",
+    "success_criteria": [
+      "report.json carries acceptance == 'accepted', discharged_checks == ['artifact_semantics','claim_truth'] and a non-null selected_result",
+      "wrong_report.json carries no acceptance, no selected_result and normalized exit_code 1"
+    ]
+  },
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the deepest declared native acceptance route: build a real native bundle, run `python -m agent native-accept` so artifact reproduction is evaluated for acceptance, then show a mismatched expected-build-id produces no claimed outcome.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/native_accept/src/main.mm (the trivial atom) and the freshly built bundle/ plus its pinned build-id.",
+      "Step 2 runs `native-accept` and asserts acceptance == accepted with the discharged-check partition and a bound selection.",
+      "Step 3 a mismatched expected-build-id produces no claimed outcome."
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_bundle",
+        "name": "Build a real native bundle",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle build {root_dir}/scenarios/native_accept/src/main.mm -o {output_dir}/bundle > {output_dir}/build.log 2>&1 && python3 -c \"import hashlib; print(hashlib.sha256(open('{output_dir}/bundle/native-bundle.json','rb').read()).hexdigest())\" > {output_dir}/build_id.txt; rc=$?; cat {output_dir}/build.log; cat {output_dir}/build_id.txt; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "build.log",
+          "build_id.txt"
+        ],
+        "harness_stage": "S1_bundle_produce",
+        "artifact_contract": "bundle/ holds the native bundle; build_id.txt pins the record sha256.",
+        "verifier_gate": "native-bundle build exits 0 with a bundle directory.",
+        "expected_patterns": [
+          "Build ID:"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "accepted",
+        "name": "native-accept reports accepted + discharged checks",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-accept --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_accept/src/main.mm --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/report.json > {output_dir}/accept.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/accept.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['acceptance']=='accepted', r; assert r['discharged_checks']==['artifact_semantics','claim_truth'], r; assert r['sequence'].get('selected_result') is not None, r; print('native-accept: accepted, selection bound')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "accept.log",
+          "report.json"
+        ],
+        "harness_stage": "S2_native_accept",
+        "artifact_contract": "report.json holds acceptance accepted, the discharged-check partition and a bound selection.",
+        "verifier_gate": "native-accept exits 0; the artifact reproduction is accepted.",
+        "expected_patterns": [
+          "accepted",
+          "artifact_semantics"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "wrong_build_id",
+        "name": "Mismatched expected-build-id claims no outcome",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-accept --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_accept/src/main.mm --expected-build-id $(python3 -c \"import hashlib;print(hashlib.sha256(b'not-the-build-id').hexdigest())\") --output {output_dir}/wrong_report.json > {output_dir}/wrong.log 2>&1; rc=$?; cat {output_dir}/wrong_report.json; cat {output_dir}/wrong.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/wrong_report.json')); assert 'acceptance' not in r; assert r['sequence'].get('selected_result') is None; assert r['normalized'].get('exit_code') == 1, r['normalized']; print('mismatched build id: no claimed outcome')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "wrong.log",
+          "wrong_report.json"
+        ],
+        "harness_stage": "S3_wrong_build_id",
+        "artifact_contract": "wrong_report.json holds no acceptance, no selected_result and normalized exit_code 1.",
+        "verifier_gate": "The mismatched pin exits 1 \u2014 no claimed outcome.",
+        "expected_patterns": [
+          "schema_version"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
