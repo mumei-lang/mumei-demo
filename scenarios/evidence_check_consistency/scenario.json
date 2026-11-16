@@ -1,0 +1,107 @@
+{
+  "name": "Declared Evidence Check-Consistency (evidence-check-consistency)",
+  "version": "1.0.0",
+  "description": "C02 cross-record demo: the declared `evidence-check-consistency` route runs `evidence check-consistency` as one attempt \u2014 identical pins report `consistent: true` with `conflict_count: 0`; a record disagreeing on a shared identity pin reports `consistent: false` with named conflicts. Both outcomes select the diagnostic \u2014 the check completed either way.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "C02 cross-record demo: the declared `evidence-check-consistency` route runs `evidence check-consistency` as one attempt \u2014 identical pins report `consistent: true` with `conflict_count: 0`; a record disagreeing on a shared identity pin reports `consistent: false` with named conflicts. Both outcomes select the diagnostic \u2014 the check completed either way.",
+    "success_criteria": [
+      "consistent_report.json carries consistent == True, conflict_count == 0 and a candidate",
+      "conflict_report.json carries consistent == False, conflict_count >= 1 naming field subject.kind, and still a candidate (the check completed)"
+    ]
+  },
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C02 cross-record consistency check: mint a real record, wrap two identical copies in the list envelope and assert consistent, then tamper one copy's subject.kind pin and assert consistent false with a named conflict \u2014 the diagnostic selects either way because the check itself completed.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/evidence_check_consistency/src/identity.mm and envelopes of identical-vs-tampered record pairs.",
+      "Step 3 asserts consistent true with zero conflicts; step 4 asserts consistent false with a subject.kind conflict \u2014 both select the diagnostic."
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce",
+        "name": "Mint a real Evidence record via verify-source",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} evidence verify-source {root_dir}/scenarios/evidence_check_consistency/src/identity.mm --json --solver-timeout 5000 --solver-resource-limit 1000000 > {output_dir}/evidence.json; rc=$?; cat {output_dir}/evidence.json; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "evidence.json"
+        ],
+        "harness_stage": "S1_evidence_produce",
+        "artifact_contract": "evidence.json holds a mumei.verification-evidence/v1 record.",
+        "verifier_gate": "evidence verify-source exits 0 with a JSON record.",
+        "expected_patterns": [
+          "mumei.verification-evidence/v1"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "envelopes",
+        "name": "Wrap identical and tampered pairs",
+        "repo": "mumei-agent",
+        "command": "python3 -c \"import json, copy; r=json.load(open('{output_dir}/evidence.json')); env={'schema_version':'mumei.verification-evidence-list/v1','evidence':[r,r]}; json.dump(env, open('{output_dir}/same.json','w')); t=copy.deepcopy(r); t['subject']['kind']='foreign_source'; env2={'schema_version':'mumei.verification-evidence-list/v1','evidence':[r,t]}; json.dump(env2, open('{output_dir}/conflict.json','w')); print('envelopes: same-pair + conflict-pair')\" && cat {output_dir}/same.json && cat {output_dir}/conflict.json",
+        "expected_exit": 0,
+        "artifacts": [
+          "same.json",
+          "conflict.json"
+        ],
+        "harness_stage": "S2_envelopes",
+        "artifact_contract": "same.json holds identical copies; conflict.json holds a copy disagreeing on subject.kind (a second valid enum value).",
+        "verifier_gate": "Both envelopes carry the declared schema_version.",
+        "expected_patterns": [
+          "mumei.verification-evidence-list/v1"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "consistent",
+        "name": "Identical pins report consistent",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent evidence-check-consistency --core {mumei_bin} --evidence {output_dir}/same.json --output {output_dir}/consistent_report.json > {output_dir}/consistent.log 2>&1; rc=$?; cat {output_dir}/consistent_report.json; cat {output_dir}/consistent.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/consistent_report.json')); assert r['consistent'] is True, r; assert r['conflict_count']==0, r; assert r['sequence'].get('selected_result') is not None, r; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1'; print('consistent pair: consistent, 0 conflicts')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "consistent.log",
+          "consistent_report.json"
+        ],
+        "harness_stage": "S3_consistent",
+        "artifact_contract": "consistent_report.json holds consistent true, conflict_count 0 and a candidate.",
+        "verifier_gate": "Identical pins exit 0 with the consistent diagnostic.",
+        "expected_patterns": [
+          "consistent",
+          "conflict_count"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "conflict",
+        "name": "Shared-pin disagreement reports inconsistent",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent evidence-check-consistency --core {mumei_bin} --evidence {output_dir}/conflict.json --output {output_dir}/conflict_report.json > {output_dir}/conflict.log 2>&1; rc=$?; cat {output_dir}/conflict_report.json; cat {output_dir}/conflict.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/conflict_report.json')); assert r['consistent'] is False, r; assert r['conflict_count']>=1, r; assert any(c['field']=='subject.kind' for c in r['conflicts']), r; assert r['sequence'].get('selected_result') is not None, r; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1'; print('conflict pair: inconsistent, subject.kind conflict named')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "conflict.log",
+          "conflict_report.json"
+        ],
+        "harness_stage": "S4_conflict",
+        "artifact_contract": "conflict_report.json holds consistent false, a subject.kind conflict and still a candidate.",
+        "verifier_gate": "The disagreement is reported as a named conflict \u2014 the check completed, so the diagnostic selects.",
+        "expected_patterns": [
+          "consistent",
+          "subject.kind"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}

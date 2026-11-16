@@ -1,0 +1,91 @@
+{
+  "name": "Declared Source Evidence Acceptance (verify-accept)",
+  "version": "1.0.0",
+  "description": "C02 acceptance demo: the declared `verify-accept` route runs `evidence accept-source` as one attempt \u2014 `acceptance: accepted` plus discharged `claim_truth`/`freshness`/`semantic_correspondence` and a candidate handoff on a clean run; a tampered record claims no outcome.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "C02 acceptance demo: the declared `verify-accept` route runs `evidence accept-source` as one attempt \u2014 `acceptance: accepted` plus discharged `claim_truth`/`freshness`/`semantic_correspondence` and a candidate handoff on a clean run; a tampered record claims no outcome.",
+    "success_criteria": [
+      "report.json carries acceptance == 'accepted', discharged_checks == ['claim_truth','freshness','semantic_correspondence'] and a selected candidate",
+      "tampered_report.json carries no acceptance, no selected_result and normalized exit_code 1"
+    ]
+  },
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C02 source-evidence acceptance route end to end: mint a real Evidence record, run `python -m agent verify-accept` so the saved record is evaluated for acceptance within the same restricted query, then show a tampered record produces no claimed outcome.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/verify_accept/src/identity.mm (the bounded pure-i64 atom) and the minted evidence.json record.",
+      "Step 2 runs `verify-accept` and asserts acceptance == accepted plus the discharged-check partition and candidate.",
+      "Step 3 tampering the saved record's subject hash produces no claimed outcome."
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce",
+        "name": "Mint a real Evidence record via verify-source",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} evidence verify-source {root_dir}/scenarios/verify_accept/src/identity.mm --json --solver-timeout 5000 --solver-resource-limit 1000000 > {output_dir}/evidence.json; rc=$?; cat {output_dir}/evidence.json; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "evidence.json"
+        ],
+        "harness_stage": "S1_evidence_produce",
+        "artifact_contract": "evidence.json holds a mumei.verification-evidence/v1 record.",
+        "verifier_gate": "evidence verify-source exits 0 with a JSON record.",
+        "expected_patterns": [
+          "mumei.verification-evidence/v1"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "accepted",
+        "name": "verify-accept reports accepted + discharged checks",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent verify-accept --core {mumei_bin} --evidence {output_dir}/evidence.json --source {root_dir}/scenarios/verify_accept/src/identity.mm --solver-timeout 5000 --solver-resource-limit 1000000 --output {output_dir}/report.json > {output_dir}/accept.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/accept.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['acceptance']=='accepted', r; assert r['discharged_checks']==['claim_truth','freshness','semantic_correspondence'], r; assert r['sequence'].get('selected_result') is not None, r; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1'; print('verify-accept: accepted + candidate bound')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "accept.log",
+          "report.json"
+        ],
+        "harness_stage": "S2_verify_accept",
+        "artifact_contract": "report.json holds acceptance accepted plus the three discharged checks and a candidate.",
+        "verifier_gate": "verify-accept exits 0; the saved record is accepted within the same restricted query.",
+        "expected_patterns": [
+          "accepted",
+          "claim_truth",
+          "verifier-evidence-candidate"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "tampered",
+        "name": "Tampered record claims no outcome",
+        "repo": "mumei-agent",
+        "command": "python3 -c \"import json; e=json.load(open('{output_dir}/evidence.json')); s=e['subject']['sha256']; e['subject']['sha256']=('0' if s[0]!='0' else '1')+s[1:]; json.dump(e, open('{output_dir}/tampered.json','w'))\" && {mumei_agent_python} -m agent verify-accept --core {mumei_bin} --evidence {output_dir}/tampered.json --source {root_dir}/scenarios/verify_accept/src/identity.mm --solver-timeout 5000 --solver-resource-limit 1000000 --output {output_dir}/tampered_report.json > {output_dir}/tampered.log 2>&1; rc=$?; cat {output_dir}/tampered_report.json; cat {output_dir}/tampered.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/tampered_report.json')); assert 'acceptance' not in r; assert 'discharged_checks' not in r; assert r['sequence'].get('selected_result') is None; assert r['normalized'].get('exit_code') == 1, r['normalized']; print('tampered record: no claimed outcome')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "tampered.json",
+          "tampered.log",
+          "tampered_report.json"
+        ],
+        "harness_stage": "S3_tampered",
+        "artifact_contract": "tampered_report.json holds no acceptance, no selected_result and normalized exit_code 1.",
+        "verifier_gate": "The tampered record exits 1 \u2014 no claimed outcome.",
+        "expected_patterns": [
+          "schema_version"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
