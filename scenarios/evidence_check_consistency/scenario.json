@@ -68,7 +68,7 @@
         "id": "consistent",
         "name": "Identical pins report consistent",
         "repo": "mumei-agent",
-        "command": "{mumei_agent_python} -m agent evidence-check-consistency --core {mumei_bin} --evidence {output_dir}/same.json --output {output_dir}/consistent_report.json > {output_dir}/consistent.log 2>&1; rc=$?; cat {output_dir}/consistent_report.json; cat {output_dir}/consistent.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/consistent_report.json')); assert r['consistent'] is True, r; assert r['conflict_count']==0, r; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1'; print('consistent pair: consistent, 0 conflicts')\"",
+        "command": "{mumei_agent_python} -m agent evidence-check-consistency --core {mumei_bin} --evidence {output_dir}/same.json --output {output_dir}/consistent_report.json > {output_dir}/consistent.log 2>&1; rc=$?; cat {output_dir}/consistent_report.json; cat {output_dir}/consistent.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/consistent_report.json')); assert r['consistent'] is True, r; assert r['conflict_count']==0, r; assert r['sequence'].get('selected_result') is not None, r; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1'; print('consistent pair: consistent, 0 conflicts')\"",
         "expected_exit": 0,
         "artifacts": [
           "consistent.log",
@@ -87,7 +87,7 @@
         "id": "conflict",
         "name": "Shared-pin disagreement reports inconsistent",
         "repo": "mumei-agent",
-        "command": "{mumei_agent_python} -m agent evidence-check-consistency --core {mumei_bin} --evidence {output_dir}/conflict.json --output {output_dir}/conflict_report.json > {output_dir}/conflict.log 2>&1; rc=$?; cat {output_dir}/conflict_report.json; cat {output_dir}/conflict.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/conflict_report.json')); assert r['consistent'] is False, r; assert r['conflict_count']>=1, r; assert any(c['field']=='subject.kind' for c in r['conflicts']), r; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1'; print('conflict pair: inconsistent, subject.kind conflict named')\"",
+        "command": "{mumei_agent_python} -m agent evidence-check-consistency --core {mumei_bin} --evidence {output_dir}/conflict.json --output {output_dir}/conflict_report.json > {output_dir}/conflict.log 2>&1; rc=$?; cat {output_dir}/conflict_report.json; cat {output_dir}/conflict.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/conflict_report.json')); assert r['consistent'] is False, r; assert r['conflict_count']>=1, r; assert any(c['field']=='subject.kind' for c in r['conflicts']), r; assert r['sequence'].get('selected_result') is not None, r; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1'; print('conflict pair: inconsistent, subject.kind conflict named')\"",
         "expected_exit": 0,
         "artifacts": [
           "conflict.log",

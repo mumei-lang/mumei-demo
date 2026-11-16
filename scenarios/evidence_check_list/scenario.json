@@ -68,7 +68,7 @@
         "id": "valid",
         "name": "evidence-check-list reports valid + record_count",
         "repo": "mumei-agent",
-        "command": "{mumei_agent_python} -m agent evidence-check-list --core {mumei_bin} --evidence {output_dir}/list.json --output {output_dir}/report.json > {output_dir}/check.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/check.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['representation']=='valid', r; assert r['record_count']==2, r; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1'; print('evidence-check-list: valid, 2 records, candidate bound')\"",
+        "command": "{mumei_agent_python} -m agent evidence-check-list --core {mumei_bin} --evidence {output_dir}/list.json --output {output_dir}/report.json > {output_dir}/check.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/check.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['representation']=='valid', r; assert r['record_count']==2, r; assert r['sequence'].get('selected_result') is not None, r; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1'; print('evidence-check-list: valid, 2 records, candidate bound')\"",
         "expected_exit": 0,
         "artifacts": [
           "check.log",
