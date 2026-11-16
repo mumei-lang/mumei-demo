@@ -1,0 +1,108 @@
+{
+  "name": "Declared Evidence Check-List (evidence-check-list)",
+  "version": "1.0.0",
+  "description": "C02 representation demo: the declared `evidence-check-list` route runs `evidence check-list` as one attempt \u2014 `representation: valid` plus `record_count` and a candidate on a clean run; a bogus envelope claims nothing.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "C02 representation demo: the declared `evidence-check-list` route runs `evidence check-list` as one attempt \u2014 `representation: valid` plus `record_count` and a candidate on a clean run; a bogus envelope claims nothing.",
+    "success_criteria": [
+      "report.json carries representation == 'valid', record_count == 2 and a selected candidate",
+      "bogus_report.json carries no representation, no selected_result and normalized exit_code 1"
+    ]
+  },
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C02 evidence list-envelope representation check: mint two real Evidence records, wrap them in the list envelope, run `python -m agent evidence-check-list` for a valid envelope, then show bogus bytes produce no claimed outcome.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/evidence_check_list/src/identity.mm and the two minted records wrapped in a mumei.verification-evidence-list/v1 envelope.",
+      "Step 3 runs `evidence-check-list` and asserts representation valid + record_count 2 + candidate.",
+      "Step 4 feeding non-envelope bytes produces no claimed outcome."
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce",
+        "name": "Mint a real Evidence record via verify-source",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} evidence verify-source {root_dir}/scenarios/evidence_check_list/src/identity.mm --json --solver-timeout 5000 --solver-resource-limit 1000000 > {output_dir}/evidence.json; rc=$?; cat {output_dir}/evidence.json; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "evidence.json"
+        ],
+        "harness_stage": "S1_evidence_produce",
+        "artifact_contract": "evidence.json holds a mumei.verification-evidence/v1 record.",
+        "verifier_gate": "evidence verify-source exits 0 with a JSON record.",
+        "expected_patterns": [
+          "mumei.verification-evidence/v1"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "envelope",
+        "name": "Wrap two copies in the list envelope",
+        "repo": "mumei-agent",
+        "command": "python3 -c \"import json; r=json.load(open('{output_dir}/evidence.json')); env={'schema_version':'mumei.verification-evidence-list/v1','evidence':[r,r]}; json.dump(env, open('{output_dir}/list.json','w')); print('envelope: 2 records')\" && cat {output_dir}/list.json",
+        "expected_exit": 0,
+        "artifacts": [
+          "list.json"
+        ],
+        "harness_stage": "S2_envelope",
+        "artifact_contract": "list.json holds a mumei.verification-evidence-list/v1 envelope of two records.",
+        "verifier_gate": "The envelope serializes with the declared schema_version.",
+        "expected_patterns": [
+          "mumei.verification-evidence-list/v1"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "valid",
+        "name": "evidence-check-list reports valid + record_count",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent evidence-check-list --core {mumei_bin} --evidence {output_dir}/list.json --output {output_dir}/report.json > {output_dir}/check.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/check.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['representation']=='valid', r; assert r['record_count']==2, r; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1'; print('evidence-check-list: valid, 2 records, candidate bound')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "check.log",
+          "report.json"
+        ],
+        "harness_stage": "S3_check_list",
+        "artifact_contract": "report.json holds representation valid, record_count 2 and a candidate.",
+        "verifier_gate": "evidence-check-list exits 0 with the valid diagnostic.",
+        "expected_patterns": [
+          "valid",
+          "record_count",
+          "verifier-evidence-candidate"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "bogus",
+        "name": "Bogus bytes claim no outcome",
+        "repo": "mumei-agent",
+        "command": "printf 'not-json' > {output_dir}/bogus.json && {mumei_agent_python} -m agent evidence-check-list --core {mumei_bin} --evidence {output_dir}/bogus.json --output {output_dir}/bogus_report.json > {output_dir}/bogus.log 2>&1; rc=$?; cat {output_dir}/bogus_report.json; cat {output_dir}/bogus.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/bogus_report.json')); assert 'representation' not in r; assert r['sequence'].get('selected_result') is None; assert r['normalized'].get('exit_code') not in (0, None), r['normalized']; print('bogus bytes: no claimed outcome')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "bogus.json",
+          "bogus.log",
+          "bogus_report.json"
+        ],
+        "harness_stage": "S4_bogus",
+        "artifact_contract": "bogus_report.json holds no representation and no selected_result.",
+        "verifier_gate": "Non-envelope bytes exit nonzero \u2014 no claimed outcome.",
+        "expected_patterns": [
+          "schema_version"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
