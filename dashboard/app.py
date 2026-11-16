@@ -32,7 +32,7 @@ SCENARIO_ORDER = [
     "test_observation_demo",
     "self_correction_demo",
 ]
-OPTIONAL_SCENARIOS = ["record_execution_demo", "go_summaries", "ts_summaries", "rust_summaries", "sol_summaries", "audit_summaries", "translation_validation", "verify_recheck", "verify_attempt", "native_recheck", "evidence_identity", "evidence_check_accept", "evidence_compare", "native_attempt", "native_check", "native_artifact_recheck", "verify_accept", "evidence_check_list", "evidence_check_consistency", "evidence_check", "summaries_plan", "summaries_attempt", "evidence_producer"]
+OPTIONAL_SCENARIOS = ["record_execution_demo", "go_summaries", "ts_summaries", "rust_summaries", "sol_summaries", "audit_summaries", "translation_validation", "verify_recheck", "verify_attempt", "native_recheck", "evidence_identity", "evidence_check_accept", "evidence_compare", "native_attempt", "native_check", "native_artifact_recheck", "verify_accept", "evidence_check_list", "evidence_check_consistency", "native_accept", "native_evidence_recheck", "native_evidence_accept", "native_source_recheck", "evidence_check", "summaries_plan", "summaries_attempt", "evidence_producer"]
 
 
 def scenario_names() -> list[str]:
