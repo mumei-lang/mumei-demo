@@ -48,6 +48,7 @@ Generated from the Makefile, argparse definitions, and environment registry.
 | `demo-native-check` | Declared native bundle check route (real mumei + mumei-agent, native toolchain). |
 | `demo-native-artifact-recheck` | Declared native artifact recheck route (real mumei + mumei-agent, native toolchain). |
 | `demo-native-refined-attempt` | Declared refined-scalar (v2) native bundle production route (real mumei + mumei-agent, native toolchain). |
+| `demo-native-refined-widened-attempt` | Declared widened refined-scalar (v3) native bundle production route (real mumei + mumei-agent, native toolchain). |
 | `demo-native-accept` | Declared native artifact acceptance route (real mumei + mumei-agent, native toolchain). |
 | `demo-native-evidence-recheck` | Declared native evidence replay route (real mumei + mumei-agent, native toolchain). |
 | `demo-native-evidence-accept` | Declared native evidence acceptance route (real mumei + mumei-agent, native toolchain). |
