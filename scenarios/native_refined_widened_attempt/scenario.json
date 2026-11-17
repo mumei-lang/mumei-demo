@@ -28,8 +28,8 @@
       "Read inputs: scenarios/native_refined_widened_attempt/src/main.mm (typedef Flag on a bool leaf, chained typedef Port over NonNeg, atoms using both in signatures) and bad.mm (typedef whose leaf is u64, outside the admitted scalar set).",
       "Step 1 runs the declared `native-attempt` route and asserts report.build_id equals sha256(native-bundle.json), record profile v3, source_profile refined-scalar/v2, and all five bundle members on disk.",
       "Step 2 runs `native-check` on the produced bundle pinned to the reported build ID and asserts bundle_check consistent with discharged file_identity under the v3 gate.",
-      "Step 3 reruns `native-attempt` on the u64-leaf source and asserts no build_id, no selection, and a nonzero normalized exit_code.",
-      "Generate evidence: attempt.log, check.log, bad.log, build_id.txt, report.json, check_report.json, bad_report.json, bundle/, harness_state.json, result.json, and report.md."
+      "Step 3 reruns `native-attempt` on the u64-leaf source and asserts no build_id, no selection, no partial bundle, and a nonzero normalized exit_code; a direct Core invocation records the profile-gate rejection diagnostic in bad_direct.log.",
+      "Generate evidence: attempt.log, check.log, bad.log, bad_direct.log, build_id.txt, report.json, check_report.json, bad_report.json, bundle/, harness_state.json, result.json, and report.md."
     ],
     "gate_order": [
       "l1_z3"
@@ -111,20 +111,22 @@
       },
       {
         "id": "u64_leaf_typedef",
-        "name": "Typedef with a u64 leaf produces no claimed build_id",
+        "name": "Typedef with a u64 leaf is rejected by the profile gate",
         "repo": "mumei-agent",
-        "command": "{mumei_agent_python} -m agent native-attempt --core {mumei_bin} --source {root_dir}/scenarios/native_refined_widened_attempt/src/bad.mm --bundle {output_dir}/bad_bundle --output {output_dir}/bad_report.json > {output_dir}/bad.log 2>&1; rc=$?; cat {output_dir}/bad_report.json; cat {output_dir}/bad.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/bad_report.json')); assert r['schema_version']=='mumei.native-attempt-report/v1'; assert 'build_id' not in r; assert r['sequence'].get('selected_result') is None; assert 'candidate' not in r; assert r['normalized'].get('exit_code') not in (0, None), r['normalized']; print('u64 leaf: no claimed build_id, no selection')\"",
+        "command": "{mumei_agent_python} -m agent native-attempt --core {mumei_bin} --source {root_dir}/scenarios/native_refined_widened_attempt/src/bad.mm --bundle {output_dir}/bad_bundle --output {output_dir}/bad_report.json > {output_dir}/bad.log 2>&1; rc=$?; cat {output_dir}/bad_report.json; cat {output_dir}/bad.log; test $rc -eq 0 && python3 -c \"import json, os; r=json.load(open('{output_dir}/bad_report.json')); assert r['schema_version']=='mumei.native-attempt-report/v1'; assert 'build_id' not in r; assert r['sequence'].get('selected_result') is None; assert 'candidate' not in r; assert r['normalized'].get('exit_code') not in (0, None), r['normalized']; assert not os.path.exists('{output_dir}/bad_bundle/native-bundle.json'), 'partial bundle emitted'; print('u64 leaf: no claimed build_id, no selection, no partial bundle')\" && {mumei_bin} native-bundle build {root_dir}/scenarios/native_refined_widened_attempt/src/bad.mm -o {output_dir}/bad_bundle_direct > {output_dir}/bad_direct.log 2>&1; rc2=$?; cat {output_dir}/bad_direct.log; test $rc2 -ne 0 && grep -q 'native bundle rejected' {output_dir}/bad_direct.log && echo 'Core profile gate rejected the u64 leaf'",
         "expected_exit": 0,
         "artifacts": [
           "bad.log",
-          "bad_report.json"
+          "bad_report.json",
+          "bad_direct.log"
         ],
         "harness_stage": "S3_out_of_profile",
-        "artifact_contract": "bad_report.json holds mumei.native-attempt-report/v1 with no build_id, no selected_result and a nonzero normalized exit_code.",
-        "verifier_gate": "native-attempt exits 0 with an unselected lineage; the u64-leaf typedef is a run outcome, not a static error.",
+        "artifact_contract": "bad_report.json holds mumei.native-attempt-report/v1 with no build_id, no selected_result and a nonzero normalized exit_code; no bad_bundle/native-bundle.json is emitted; bad_direct.log records the Core gate's rejection diagnostic.",
+        "verifier_gate": "native-attempt exits 0 with an unselected lineage; the direct Core invocation exits nonzero with the profile-gate rejection diagnostic.",
         "expected_patterns": [
           "mumei.native-attempt-report/v1",
-          "normalized"
+          "normalized",
+          "native bundle rejected"
         ],
         "cwd": "{mumei_agent_repo}"
       }
