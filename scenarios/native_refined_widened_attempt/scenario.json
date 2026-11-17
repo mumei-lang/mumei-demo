@@ -1,0 +1,135 @@
+{
+  "name": "Declared Native Widened Refined-Scalar Bundle Production (native-refined-widened-attempt)",
+  "version": "1.0.0",
+  "description": "C02/C10 produce demo: the declared `native-attempt` route builds a bundle from a module that exercises the widened refined-scalar admission — a bool-leaf alias (`type Flag = bool where v == true;`) and an alias chain (`type Port = NonNeg where v <= 65535;` over `type NonNeg = i64 where v >= 0;`) — the record pins the v3 member profile and the v2 refined source profile; `native-check` re-derives under the same gate; a u64-leaf typedef stays refused.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the widened refined-scalar member profile end to end: `native-attempt` produces a bundle whose record names mumei.native-pure-i64-module-linux-x86_64/v3 with source_profile mumei.pure-i64-refined-scalar/v2, `native-check` rechecks it consistent under that same gate, and a typedef whose leaf is outside the admitted scalar set (u64) selects nothing.",
+    "success_criteria": [
+      "report.json carries schema mumei.native-attempt-report/v1 with build_id equal to sha256(native-bundle.json) and a non-null selected_result",
+      "bundle/native-bundle.json pins profile mumei.native-pure-i64-module-linux-x86_64/v3 and source.source_profile mumei.pure-i64-refined-scalar/v2",
+      "native-check on the v3 bundle reports bundle_check consistent with discharged file_identity",
+      "bad_report.json carries no build_id, no selected_result and a nonzero normalized exit_code"
+    ]
+  },
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the widened refined-scalar member profile end to end: run `python -m agent native-attempt` on a module declaring a bool-leaf alias and an alias chain, assert the record pins the v3 member profile and v2 refined source profile, recheck the bundle through `native-check`, then show a u64-leaf typedef produces no claimed build_id and no selection.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/native_refined_widened_attempt/src/main.mm (typedef Flag on a bool leaf, chained typedef Port over NonNeg, atoms using both in signatures) and bad.mm (typedef whose leaf is u64, outside the admitted scalar set).",
+      "Step 1 runs the declared `native-attempt` route and asserts report.build_id equals sha256(native-bundle.json), record profile v3, source_profile refined-scalar/v2, and all five bundle members on disk.",
+      "Step 2 runs `native-check` on the produced bundle pinned to the reported build ID and asserts bundle_check consistent with discharged file_identity under the v3 gate.",
+      "Step 3 reruns `native-attempt` on the u64-leaf source and asserts no build_id, no selection, no partial bundle, and a nonzero normalized exit_code; a direct Core invocation records the profile-gate rejection diagnostic in bad_direct.log.",
+      "Generate evidence: attempt.log, check.log, bad.log, bad_direct.log, build_id.txt, report.json, check_report.json, bad_report.json, bundle/, harness_state.json, result.json, and report.md."
+    ],
+    "gate_order": [
+      "l1_z3"
+    ],
+    "notes": [
+      "The v3 member profile widens refined-scalar admission: bool-leaf aliases and multi-declaration alias chains are admitted in addition to the v2 single-level i64-leaf aliases; the record pins the admitted profile by name so a recheck re-derives under the same gate.",
+      "The reported build_id is the Core-computed sha256 of native-bundle.json — the exact identity a native-check call pins via --expected-build-id.",
+      "bad.mm declares `type Big = u64 where v > 0;` — the u64 leaf stays outside the admitted scalar set under the widened gate, so the whole module is out of profile rather than silently re-admitted under a narrower gate.",
+      "Every step exits the pipe-and-grep form so a failed command cannot pass silently as exit-0 output.",
+      "budget_policy_fingerprint is native-refined-widened-attempt-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "native-attempt",
+      "native-check",
+      "schema_version",
+      "mumei.native-attempt-report/v1",
+      "mumei.native-check-report/v1",
+      "mumei.native-bundle/v1",
+      "mumei.native-pure-i64-module-linux-x86_64/v3",
+      "mumei.pure-i64-refined-scalar/v2",
+      "build_id",
+      "bundle_check",
+      "file_identity",
+      "selected_result",
+      "Build ID"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_widened_bundle",
+        "name": "Produce a v3-profile native bundle through native-attempt",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-attempt --core {mumei_bin} --source {root_dir}/scenarios/native_refined_widened_attempt/src/main.mm --bundle {output_dir}/bundle --output {output_dir}/report.json > {output_dir}/attempt.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/attempt.log; test $rc -eq 0 && python3 -c \"import json, hashlib; r=json.load(open('{output_dir}/report.json')); assert r['schema_version']=='mumei.native-attempt-report/v1', r['schema_version']; assert r['build_id']==hashlib.sha256(open('{output_dir}/bundle/native-bundle.json','rb').read()).hexdigest(); assert r['sequence'].get('selected_result') is not None; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1'; rec=json.load(open('{output_dir}/bundle/native-bundle.json')); assert rec['profile']=='mumei.native-pure-i64-module-linux-x86_64/v3', rec['profile']; assert rec['source']['source_profile']=='mumei.pure-i64-refined-scalar/v2', rec['source']; import os; [open('{output_dir}/bundle/'+n).close() for n in ('native-bundle.json','program.ll','program.o','proof-cert.json','program')]; open('{output_dir}/build_id.txt','w').write(r['build_id']); print('native-attempt produced v3 bundle, build_id verified'); print(rec['profile']); print(rec['source']['source_profile'])\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "attempt.log",
+          "report.json",
+          "build_id.txt",
+          "bundle/native-bundle.json",
+          "bundle/program.ll",
+          "bundle/program.o",
+          "bundle/proof-cert.json",
+          "bundle/program"
+        ],
+        "harness_stage": "S1_widened_bundle_produce",
+        "artifact_contract": "report.json holds mumei.native-attempt-report/v1 with build_id equal to sha256(native-bundle.json), a non-null selected_result and a candidate; the record pins the v3 member profile and refined-scalar v2 source profile; bundle/ holds all five declared members.",
+        "verifier_gate": "native-attempt exits 0; build_id matches the Core-computed record digest, the record names the v3 profile, and the bundle directory is complete.",
+        "expected_patterns": [
+          "mumei.native-attempt-report/v1",
+          "build_id",
+          "selected_result",
+          "mumei.verifier-evidence-candidate/v1",
+          "mumei.native-pure-i64-module-linux-x86_64/v3",
+          "mumei.pure-i64-refined-scalar/v2"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "v3_bundle_rechecks_consistent",
+        "name": "native-check rechecks the v3 bundle consistent",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-check --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_refined_widened_attempt/src/main.mm --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/check_report.json > {output_dir}/check.log 2>&1; rc=$?; cat {output_dir}/check_report.json; cat {output_dir}/check.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/check_report.json')); assert r['schema_version']=='mumei.native-check-report/v1', r['schema_version']; assert r['bundle_check']=='consistent', r; assert r['discharged_checks']==['file_identity']; assert r['sequence'].get('selected_result') is not None; print('native-check on v3 bundle: consistent, file_identity discharged')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "check.log",
+          "check_report.json"
+        ],
+        "harness_stage": "S2_v3_native_check",
+        "artifact_contract": "check_report.json holds mumei.native-check-report/v1 with bundle_check consistent and discharged file_identity for the v3-profile bundle.",
+        "verifier_gate": "native-check exits 0; the v3-pinned identities re-derive under the same widened gate and check consistent.",
+        "expected_patterns": [
+          "mumei.native-check-report/v1",
+          "bundle_check",
+          "consistent",
+          "file_identity"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "u64_leaf_typedef",
+        "name": "Typedef with a u64 leaf is rejected by the profile gate",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-attempt --core {mumei_bin} --source {root_dir}/scenarios/native_refined_widened_attempt/src/bad.mm --bundle {output_dir}/bad_bundle --output {output_dir}/bad_report.json > {output_dir}/bad.log 2>&1; rc=$?; cat {output_dir}/bad_report.json; cat {output_dir}/bad.log; test $rc -eq 0 && python3 -c \"import json, os; r=json.load(open('{output_dir}/bad_report.json')); assert r['schema_version']=='mumei.native-attempt-report/v1'; assert 'build_id' not in r; assert r['sequence'].get('selected_result') is None; assert 'candidate' not in r; assert r['normalized'].get('exit_code') not in (0, None), r['normalized']; assert not os.path.exists('{output_dir}/bad_bundle/native-bundle.json'), 'partial bundle emitted'; print('u64 leaf: no claimed build_id, no selection, no partial bundle')\" && {mumei_bin} native-bundle build {root_dir}/scenarios/native_refined_widened_attempt/src/bad.mm -o {output_dir}/bad_bundle_direct > {output_dir}/bad_direct.log 2>&1; rc2=$?; cat {output_dir}/bad_direct.log; test $rc2 -ne 0 && grep -q 'native bundle rejected' {output_dir}/bad_direct.log && echo 'Core profile gate rejected the u64 leaf'",
+        "expected_exit": 0,
+        "artifacts": [
+          "bad.log",
+          "bad_report.json",
+          "bad_direct.log"
+        ],
+        "harness_stage": "S3_out_of_profile",
+        "artifact_contract": "bad_report.json holds mumei.native-attempt-report/v1 with no build_id, no selected_result and a nonzero normalized exit_code; no bad_bundle/native-bundle.json is emitted; bad_direct.log records the Core gate's rejection diagnostic.",
+        "verifier_gate": "native-attempt exits 0 with an unselected lineage; the direct Core invocation exits nonzero with the profile-gate rejection diagnostic.",
+        "expected_patterns": [
+          "mumei.native-attempt-report/v1",
+          "normalized",
+          "native bundle rejected"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
