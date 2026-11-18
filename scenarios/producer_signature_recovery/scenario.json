@@ -1,0 +1,134 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C02 producer-authenticity recovery lane end to end: generate an ed25519 producer keypair with `mumei evidence keygen` (the secret file is the only place the secret ever lands), detachably sign a declared record's bytes, verify the envelope cryptographically with a pinned producer key via `python -m agent signature-verify`, then show `python -m agent recovery-eval` recovers the record's declared `producer_authenticity` check from the bound verification \u2014 and that a wrong producer-key pin fails the evidence instead.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/producer_signature_recovery/src/record.json (a declared record carrying checks_not_performed: [producer_authenticity] and no carrier fields, so its bound digest is the SHA-256 of its own bytes).",
+      "Step 1 runs `mumei evidence keygen`, asserts the secret file is exactly 64 bytes with no trailing newline and that the secret value never reaches stdout.",
+      "Step 2 runs `mumei evidence sign`, asserting the mumei.producer-signature/v1 envelope's subject_digest equals sha256(record bytes).",
+      "Step 3 runs `python -m agent signature-verify` with the trusted public key and --expected-producer-key, asserting signature_valid + key_pinned + the echoed subject_digest.",
+      "Step 4 runs `python -m agent recovery-eval` over the record plus the verification, asserting producer_authenticity reports recovered.",
+      "Step 5 reruns the lane with a wrong producer-key pin: key_pinned is false, so producer_authenticity reports evidence_failed \u2014 a signature under an unpinned identity never recovers the check."
+    ]
+  },
+  "name": "Declared Producer Signature Recovery (keygen/sign/signature-verify/recovery-eval)",
+  "description": "C02/C13 producer-authenticity demo: `mumei evidence keygen` + `mumei evidence sign` produce a detached mumei.producer-signature/v1 envelope; `signature-verify` verifies it cryptographically under a pinned producer key and `recovery-eval` recovers the record's producer_authenticity check from the bound document \u2014 while a wrong producer-key pin fails the evidence.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared keygen \u2192 sign \u2192 signature-verify \u2192 recovery-eval lane recovering producer_authenticity only when the signature verifies AND the producer key is pinned AND the document binds the record's own byte digest; a wrong key pin fails the evidence.",
+    "success_criteria": [
+      "recovery.json carries mumei.unperformed-check-recovery/v1 with checks.producer_authenticity == 'recovered'",
+      "verification.json carries signature_valid == true, key_pinned == true and subject_digest == sha256(record bytes)",
+      "wrong_recovery.json reports checks.producer_authenticity == 'evidence_failed' under a mismatched producer-key pin",
+      "the secret key bytes never appear on stdout or in any written artifact besides producer.secret"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "keygen",
+        "name": "mumei evidence keygen writes the secret to file only",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} evidence keygen --secret-file {output_dir}/producer.secret > {output_dir}/keygen.log 2>&1; rc=$?; cat {output_dir}/keygen.log; test $rc -eq 0 && grep '^Public key: ' {output_dir}/keygen.log | cut -d' ' -f3 | tr -d '[:space:]' > {output_dir}/pubkey.txt && test $(wc -c < {output_dir}/producer.secret) -eq 64 && python3 -c \"key=open('{output_dir}/producer.secret').read(); pub=open('{output_dir}/pubkey.txt').read().strip(); log=open('{output_dir}/keygen.log').read(); assert len(pub)==64 and all(c in '0123456789abcdef' for c in pub), pub; assert all(c in '0123456789abcdef' for c in key), 'secret file is 64 lowercase hex chars'; assert key != pub; assert key not in log, 'secret material on stdout'; print('keygen: 64-byte secret file, only the public key printed')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "keygen.log",
+          "pubkey.txt",
+          "producer.secret"
+        ],
+        "harness_stage": "S1_keygen",
+        "artifact_contract": "producer.secret holds exactly 64 lowercase-hex bytes with no newline; pubkey.txt holds the printed public key; the secret never appears in keygen.log.",
+        "verifier_gate": "evidence keygen exits 0, writes a new 64-byte secret file, and prints only the public key.",
+        "expected_patterns": [
+          "Public key:"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "sign",
+        "name": "mumei evidence sign emits a bound producer-signature envelope",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} evidence sign {root_dir}/scenarios/producer_signature_recovery/src/record.json --key-file {output_dir}/producer.secret --producer-key-id demo-producer-key --json > {output_dir}/envelope.json 2>{output_dir}/sign.log; rc=$?; cat {output_dir}/sign.log; cat {output_dir}/envelope.json; test $rc -eq 0 && python3 -c \"import json,hashlib; e=json.load(open('{output_dir}/envelope.json')); assert e['schema_version']=='mumei.producer-signature/v1', e; assert e['subject_digest']==hashlib.sha256(open('{root_dir}/scenarios/producer_signature_recovery/src/record.json','rb').read()).hexdigest(); assert e['producer_key_id']=='demo-producer-key'; assert e['algorithm']=='ed25519'; print('sign: envelope binds sha256(record bytes) to demo-producer-key')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "envelope.json",
+          "sign.log"
+        ],
+        "harness_stage": "S2_sign",
+        "artifact_contract": "envelope.json holds mumei.producer-signature/v1 with subject_digest == sha256(record bytes) and producer_key_id == demo-producer-key.",
+        "verifier_gate": "evidence sign exits 0 and emits the detached envelope bound to the record's byte digest.",
+        "expected_patterns": [
+          "mumei.producer-signature/v1"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "verify",
+        "name": "signature-verify: signature_valid + key_pinned + subject_digest",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent signature-verify --envelope {output_dir}/envelope.json --producer-key $(cat {output_dir}/pubkey.txt) --expected-producer-key demo-producer-key --output {output_dir}/verification.json > {output_dir}/verify.log 2>&1; rc=$?; cat {output_dir}/verify.log; cat {output_dir}/verification.json; test $rc -eq 0 && python3 -c \"import json,hashlib; v=json.load(open('{output_dir}/verification.json')); assert v['schema_version']=='mumei.signature-verification/v1', v; assert v['envelope_match'] is True; assert v['signature_valid'] is True; assert v['key_pinned'] is True; assert v['subject_digest']==hashlib.sha256(open('{root_dir}/scenarios/producer_signature_recovery/src/record.json','rb').read()).hexdigest(); print('signature-verify: valid signature under the pinned key, bound to record bytes')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "verify.log",
+          "verification.json"
+        ],
+        "harness_stage": "S3_verify",
+        "artifact_contract": "verification.json holds mumei.signature-verification/v1 with signature_valid + key_pinned true and subject_digest echoing the record digest.",
+        "verifier_gate": "signature-verify exits 0; the envelope's signature verifies under the trusted key and the key id matches the pin.",
+        "expected_patterns": [
+          "mumei.signature-verification/v1"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "recover",
+        "name": "recovery-eval recovers producer_authenticity",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent recovery-eval --record {root_dir}/scenarios/producer_signature_recovery/src/record.json --evidence {output_dir}/verification.json --output {output_dir}/recovery.json > {output_dir}/recovery.log 2>&1; rc=$?; cat {output_dir}/recovery.log; cat {output_dir}/recovery.json; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/recovery.json')); assert r['schema_version']=='mumei.unperformed-check-recovery/v1', r; assert r['checks']['producer_authenticity']=='recovered', r; assert 'producer_authenticity' in r['recovered']; print('recovery-eval: producer_authenticity recovered via pinned bound signature')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "recovery.log",
+          "recovery.json"
+        ],
+        "harness_stage": "S4_recover",
+        "artifact_contract": "recovery.json holds mumei.unperformed-check-recovery/v1 reporting producer_authenticity recovered.",
+        "verifier_gate": "recovery-eval exits 0; the bound, pinned verification performs the record's declared check.",
+        "expected_patterns": [
+          "mumei.unperformed-check-recovery/v1",
+          "recovered"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "wrong_key_pin",
+        "name": "Wrong producer-key pin fails the evidence",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent signature-verify --envelope {output_dir}/envelope.json --producer-key $(cat {output_dir}/pubkey.txt) --expected-producer-key not-the-producer --output {output_dir}/wrong_verification.json > {output_dir}/wrong_verify.log 2>&1; rc=$?; cat {output_dir}/wrong_verify.log; test $rc -eq 0 && {mumei_agent_python} -m agent recovery-eval --record {root_dir}/scenarios/producer_signature_recovery/src/record.json --evidence {output_dir}/wrong_verification.json --output {output_dir}/wrong_recovery.json > {output_dir}/wrong_recovery.log 2>&1; rc=$?; cat {output_dir}/wrong_recovery.log; cat {output_dir}/wrong_recovery.json; test $rc -eq 0 && python3 -c \"import json; v=json.load(open('{output_dir}/wrong_verification.json')); assert v['signature_valid'] is True; assert v['key_pinned'] is False; r=json.load(open('{output_dir}/wrong_recovery.json')); assert r['checks']['producer_authenticity']=='evidence_failed', r; assert 'producer_authenticity' in r['unrecovered']; print('wrong key pin: valid signature under unpinned identity -> evidence_failed')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "wrong_verify.log",
+          "wrong_verification.json",
+          "wrong_recovery.log",
+          "wrong_recovery.json"
+        ],
+        "harness_stage": "S5_wrong_key_pin",
+        "artifact_contract": "wrong_verification.json holds key_pinned false; wrong_recovery.json reports producer_authenticity evidence_failed \u2014 a signature that verifies under an unpinned identity never recovers the check.",
+        "verifier_gate": "Both routes exit 0; the fold reports evidence_failed rather than recovered.",
+        "expected_patterns": [
+          "evidence_failed"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
