@@ -14,7 +14,7 @@
     "artifact_contracts": [
       "Read inputs: scenarios/agent_signature_sign/src/record.json (a declared record carrying checks_not_performed: [producer_authenticity] and no carrier fields, so its bound digest is the SHA-256 of its own bytes).",
       "Step 2 runs `python -m agent signature-sign`, asserting the mumei.producer-signature/v1 envelope's subject_digest equals sha256(record bytes) and the secret material never reaches stdout.",
-      "Step 2 runs `mumei evidence sign`, asserting the mumei.producer-signature/v1 envelope's subject_digest equals sha256(record bytes).",
+      "Step 2 runs `python -m agent signature-sign`, asserting the mumei.producer-signature/v1 envelope's subject_digest equals sha256(record bytes) and the secret material never reaches stdout.",
       "Step 3 runs `python -m agent signature-verify` with the trusted public key and --expected-producer-key, asserting signature_valid + key_pinned + the echoed subject_digest.",
       "Step 4 runs `python -m agent recovery-eval` over the record plus the verification, asserting producer_authenticity reports recovered.",
       "Step 5 reruns the lane with a wrong producer-key pin: key_pinned is false, so producer_authenticity reports evidence_failed — a signature under an unpinned identity never recovers the check."
@@ -147,7 +147,7 @@
   "narrative": {
     "intro": [
       "Step 1: mumei evidence keygen generates a demo-only ed25519 keypair — the secret file is the only place the secret lands.",
-      "Step 2: mumei evidence sign detaches a mumei.producer-signature/v1 envelope bound to the record's byte digest.",
+      "Step 2: python -m agent signature-sign detaches a mumei.producer-signature/v1 envelope bound to the record's byte digest.",
       "Step 3: signature-verify checks the envelope cryptographically under a pinned producer key.",
       "Step 4: recovery-eval recovers the record's declared producer_authenticity check from the bound verification.",
       "Step 5: a wrong producer-key pin fails the evidence — signature_valid but key_pinned false."
