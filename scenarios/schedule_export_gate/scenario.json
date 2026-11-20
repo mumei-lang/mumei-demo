@@ -1,0 +1,164 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the scheduled promotable export end to end across both repos: declare a verifier-adapter manifest whose argv runs real `mumei evidence verify-source`, run `python -m agent verify-schedule` with `--core` and `--core-requirement-list` so the selected attempt's captured output is conjunctively accepted by Core, have `--export-evidence-acceptance` write the promotable gate triple, then feed it to `mumei claims --require-evidence-acceptance` — the accepted triple promotes, and a tampered exported record fails closed.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/schedule_export_gate/src/main.mm (the bounded pure-i64 atom) plus five declared schedule documents generated in Step 1 (request, adapter manifest, argv map, planner policy, observations).",
+      "Step 2 mints a reference record and Step 3 declares the conjunctive requirement list pinning that record's subject/obligation/semantics identity.",
+      "Step 4 runs `python -m agent verify-schedule --core ... --core-requirement-list ... --export-evidence-acceptance` and asserts the schedule record's evidence_check outcome is accepted and the export triple exists.",
+      "Step 5 runs `mumei claims --require-evidence-acceptance` on the exported triple and asserts exit 0.",
+      "Step 6 reruns the gate with a tampered exported evidence record and asserts exit 1."
+    ]
+  },
+  "name": "Scheduled Promotable Export Gate (verify-schedule export → claims gate)",
+  "description": "C11/C13 end-to-end demo: a declared adapter manifest dispatches real `mumei evidence verify-source` through `python -m agent verify-schedule`; `--core-requirement-list` makes the selected attempt's evidence check the conjunctive Core verdict and `--export-evidence-acceptance` writes the requirement-list/evidence/acceptance triple that `mumei claims --require-evidence-acceptance` promotes — while a tampered export fails closed.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the observation-to-promotable chain across repos: verify-schedule dispatches a declared adapter producing a real Evidence record, Core conjunctively accepts it under the declared requirement list, the export writes exactly the gate input shape, claims promotes the accepted triple and refuses a tampered one. The schedule records what Core declared; the gate decides promotion.",
+    "success_criteria": [
+      "schedule.json carries mumei.attempt-schedule/v1 with evidence_check.outcome == 'accepted'",
+      "export/requirement-list.json, export/evidence.json and export/acceptance.json exist and pin each other",
+      "the claims gate exits 0 on the exported triple",
+      "the claims gate exits 1 on a tampered exported evidence record"
+    ]
+  },
+  "budget_policy_fingerprint": "schedule-export-gate-v1",
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "docs",
+        "name": "Declare the schedule documents (request/manifest/argv/policy/observations)",
+        "repo": "mumei-agent",
+        "command": "python3 -c \"import json,os; out='{output_dir}'; src='{root_dir}/scenarios/schedule_export_gate/src/main.mm'; mb='{mumei_bin}'; profile='mumei.source-verification/v1'; contract={'profile':profile,'method':'deductive_proof','scope':'unbounded','correspondence_relation':'exact_model','correspondence_status':'assumed'}; docs={'request.json':{'profile':profile,'method':'deductive_proof','result_contract':contract,'input_format':'mumei.source-text/v1'},'adapters.json':[{'schema_version':'mumei.verifier-adapter/v1','adapter_id':'evidence-producer','adapter_version':'1.0.0','profiles':[profile],'methods':['deductive_proof'],'result_contracts':[contract],'input_formats':['mumei.source-text/v1'],'required_permissions':[]}],'argv_map.json':{'evidence-producer':[mb,'evidence','verify-source',src,'--json']},'policy.json':{'allowed_permissions':['process.spawn'],'allow_fallback':False,'timeout_ms':30000},'observations.json':[{'adapter_id':'evidence-producer','availability':'available','tool_version':'1.0.0','stamp':1}]}; [json.dump(d, open(os.path.join(out,n),'w'), indent=2) for n,d in docs.items()]; print('schedule docs declared: one adapter running mumei evidence verify-source')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "request.json",
+          "adapters.json",
+          "argv_map.json",
+          "policy.json",
+          "observations.json"
+        ],
+        "harness_stage": "S1_declare",
+        "artifact_contract": "request/adapters/argv_map/policy/observations are the declared schedule inputs; the argv map addresses the real mumei binary.",
+        "verifier_gate": "all five declared documents are written as valid JSON.",
+        "expected_patterns": [
+          "schedule docs declared"
+        ]
+      },
+      {
+        "id": "produce",
+        "name": "Mint the reference Evidence record via evidence verify-source",
+        "repo": "mumei",
+        "command": "{mumei_bin} evidence verify-source {root_dir}/scenarios/schedule_export_gate/src/main.mm --json > {output_dir}/reference.json; rc=$?; cat {output_dir}/reference.json; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/reference.json')); assert r['schema_version']=='mumei.verification-evidence/v1', r.get('schema_version'); print('reference record minted')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "reference.json"
+        ],
+        "harness_stage": "S2_evidence_produce",
+        "artifact_contract": "reference.json holds a mumei.verification-evidence/v1 record for main.mm; the scheduled adapter re-derives the same deterministic record.",
+        "verifier_gate": "evidence verify-source exits 0 with a mumei.verification-evidence/v1 record.",
+        "expected_patterns": [
+          "mumei.verification-evidence/v1"
+        ],
+        "depends_on": [
+          "docs"
+        ]
+      },
+      {
+        "id": "requirements",
+        "name": "Declare the conjunctive requirement list",
+        "repo": "mumei",
+        "command": "python3 -c \"import json; r=json.load(open('{output_dir}/reference.json')); req={'schema_version':'mumei.evidence-requirement-list/v1','requirements':[{'schema_version':'mumei.evidence-requirement/v1','subject_sha256':r['subject']['sha256'],'obligation_id':r['obligation_id'],'semantics':{'profile':r['semantics']['profile'],'integer_model':r['semantics']['integer_model'],'target_triple':r['semantics']['target_triple']},'minimum_assurance':'unbounded_proof','correspondence_status':['validated','assumed'],'excluded_assumptions':[]}]}; json.dump(req, open('{output_dir}/requirements.json','w'), indent=2); print('requirement list declared for', r['subject']['sha256'][:16])\" && cat {output_dir}/requirements.json",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce"
+        ],
+        "artifacts": [
+          "requirements.json"
+        ],
+        "harness_stage": "S3_requirement_declare",
+        "artifact_contract": "requirements.json holds a mumei.evidence-requirement-list/v1 pinning the record's own subject sha256, obligation and semantics.",
+        "verifier_gate": "the declared list is written as valid JSON with one requirement.",
+        "expected_patterns": [
+          "mumei.evidence-requirement-list/v1"
+        ]
+      },
+      {
+        "id": "schedule",
+        "name": "verify-schedule: selected attempt accepted + promotable export",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent verify-schedule --request {output_dir}/request.json --adapters {output_dir}/adapters.json --argv-map {output_dir}/argv_map.json --policy {output_dir}/policy.json --observations {output_dir}/observations.json --source {root_dir}/scenarios/schedule_export_gate/src/main.mm --core {mumei_bin} --core-requirement-list {output_dir}/requirements.json --export-evidence-acceptance {output_dir}/export --output {output_dir}/schedule.json > {output_dir}/schedule.log 2>&1; rc=$?; cat {output_dir}/schedule.log; cat {output_dir}/schedule.json; test $rc -eq 0 && python3 -c \"import json,hashlib,os; out='{output_dir}'; s=json.load(open(os.path.join(out,'schedule.json'))); assert s['schema_version']=='mumei.attempt-schedule/v1', s.get('schema_version'); assert s['outcome']=='selected', s['outcome']; assert s['evidence_check']['outcome']=='accepted', s['evidence_check']; e=json.load(open(os.path.join(out,'export','acceptance.json'))); assert e['schema_version']=='mumei.evidence-requirement-list-acceptance/v1' and e['verdict']=='accepted', e; assert e['requirement_list_fingerprint']==hashlib.sha256(open(os.path.join(out,'export','requirement-list.json'),'rb').read()).hexdigest(); assert e['evidence_fingerprint']==hashlib.sha256(open(os.path.join(out,'export','evidence.json'),'rb').read()).hexdigest(); assert open(os.path.join(out,'export','requirement-list.json'),'rb').read()==open(os.path.join(out,'requirements.json'),'rb').read(); assert json.load(open(os.path.join(out,'export','evidence.json')))==json.load(open(os.path.join(out,'reference.json'))); print('verify-schedule: accepted verdict recorded, promotable triple exported')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "requirements"
+        ],
+        "artifacts": [
+          "schedule.json",
+          "schedule.log",
+          "export/requirement-list.json",
+          "export/evidence.json",
+          "export/acceptance.json"
+        ],
+        "harness_stage": "S4_schedule_export",
+        "artifact_contract": "schedule.json records the accepted conjunctive verdict; export/ holds the exact triple the Claim Book gate pins.",
+        "verifier_gate": "verify-schedule exits 0, records evidence_check outcome accepted, and exports a self-consistent triple.",
+        "expected_patterns": [
+          "mumei.attempt-schedule/v1",
+          "accepted"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "gate_pass",
+        "name": "claims --require-evidence-acceptance: exported triple promotes",
+        "repo": "mumei",
+        "command": "{mumei_bin} claims {root_dir}/scenarios/schedule_export_gate/src/main.mm --require-evidence-acceptance {output_dir}/export/requirement-list.json {output_dir}/export/evidence.json {output_dir}/export/acceptance.json > {output_dir}/gate.log 2>&1; rc=$?; cat {output_dir}/gate.log; test $rc -eq 0 && grep -q 'Claim Book' {output_dir}/gate.log && echo 'claims gate: exported triple promotes'",
+        "cwd": "{output_dir}",
+        "expected_exit": 0,
+        "depends_on": [
+          "schedule"
+        ],
+        "artifacts": [
+          "gate.log"
+        ],
+        "harness_stage": "S5_gate_promote",
+        "artifact_contract": "gate.log records the claim book emitted because the exported triple promoted.",
+        "verifier_gate": "mumei claims exits 0 and prints the Claim Book summary.",
+        "expected_patterns": [
+          "Claim Book"
+        ]
+      },
+      {
+        "id": "gate_tampered",
+        "name": "claims --require-evidence-acceptance: tampered export fails closed",
+        "repo": "mumei",
+        "command": "python3 -c \"import json; r=json.load(open('{output_dir}/export/evidence.json')); r['subject']['sha256']='0'*64; json.dump(r, open('{output_dir}/tampered.json','w'), indent=2)\" && {mumei_bin} claims {root_dir}/scenarios/schedule_export_gate/src/main.mm --require-evidence-acceptance {output_dir}/export/requirement-list.json {output_dir}/tampered.json {output_dir}/export/acceptance.json > {output_dir}/gate_tampered.log 2>&1; rc=$?; cat {output_dir}/gate_tampered.log; test $rc -eq 1 && grep -q 'require-evidence-acceptance' {output_dir}/gate_tampered.log && echo 'claims gate: tampered export refused'",
+        "cwd": "{output_dir}",
+        "expected_exit": 0,
+        "depends_on": [
+          "gate_pass"
+        ],
+        "artifacts": [
+          "tampered.json",
+          "gate_tampered.log"
+        ],
+        "harness_stage": "S6_gate_fail_closed",
+        "artifact_contract": "gate_tampered.log records the refusal: the descriptor's evidence_fingerprint no longer matches the declared bytes.",
+        "verifier_gate": "mumei claims exits 1 with a --require-evidence-acceptance diagnostic.",
+        "expected_patterns": [
+          "require-evidence-acceptance"
+        ]
+      }
+    ]
+  }
+}
