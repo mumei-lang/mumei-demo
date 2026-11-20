@@ -79,6 +79,7 @@ Generated from the Makefile, argparse definitions, and environment registry.
 | `demo-summaries-attempt` | Declared summary attempt routes (ts/rust/sol + timeout refusal). |
 | `demo-evidence-producer` | Declared evidence producer-identity route (real mumei + mumei-agent). |
 | `demo-producer-signature-recovery` | Producer-authenticity lane: keygen, sign, pinned verify, recovery (real mumei + mumei-agent). |
+| `demo-claimbook-acceptance-gate` | Promotable acceptance gate: accepted triple promotes, tampered fails closed (real mumei). |
 
 ## Make variables
 
