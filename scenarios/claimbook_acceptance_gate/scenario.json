@@ -1,0 +1,276 @@
+{
+  "name": "Claim Book Promotable Acceptance Gate (claimbook-acceptance-gate)",
+  "version": "1.0.0",
+  "description": "C13 gate demo: mint a real Evidence record, evaluate it against a declared `mumei.evidence-requirement-list/v1` with `evidence accept`, then run `mumei claims --require-evidence-acceptance` — the accepted triple passes the gate; a tampered evidence record fails closed. The gate trusts the Core-issued verdict only as far as its sha256 pins.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "C13 gate demo: mint a real Evidence record, evaluate it against a declared `mumei.evidence-requirement-list/v1` with `evidence accept`, then run `mumei claims --require-evidence-acceptance` — the accepted triple passes the gate; a tampered evidence record fails closed. The gate trusts the Core-issued verdict only as far as its sha256 pins.",
+    "success_criteria": [
+      "acceptance.json carries schema mumei.evidence-requirement-list-acceptance/v1 with verdict accepted",
+      "the claims gate exits 0 on the accepted triple",
+      "the claims gate exits 1 on a tampered evidence record"
+    ]
+  },
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the verdict-bearing acceptance gate end to end: produce a real Evidence record with evidence verify-source, declare the conjunctive requirement list pinning that record, evaluate it with evidence accept --requirement-list into a mumei.evidence-requirement-list-acceptance/v1 verdict, feed the triple to mumei claims --require-evidence-acceptance and show the accepted triple passes while a tampered record fails closed.",
+    "artifact_contracts": [
+      "Read input: scenarios/claimbook_acceptance_gate/src/main.mm (the bounded pure-i64 atom).",
+      "Step 2 declares a requirement list pinning the record's own subject/obligation/semantics identity.",
+      "Step 3 runs evidence accept and asserts a requirement-list-acceptance descriptor with verdict accepted.",
+      "Step 4 runs mumei claims with --require-evidence-acceptance on the triple and asserts exit 0.",
+      "Step 5 runs the same gate with a tampered evidence record and asserts exit 1.",
+      "Generate evidence: verify.log, accept.log, gate.log, gate_tampered.log, evidence.json, requirements.json, acceptance.json, tampered.json, harness_state.json, result.json, and report.md."
+    ],
+    "gate_order": [
+      "l1_z3"
+    ],
+    "notes": [
+      "The gate is opt-in and fail-closed: only a descriptor whose declared verdict is accepted, whose fingerprints pin the declared bytes, and whose consistency check reports zero conflicts promotes the triple.",
+      "The gate trusts the Core-issued verdict without recomputation — the sha256 pins are the whole trust boundary.",
+      "Every step exits the pipe-and-grep form so a failed command cannot pass silently as exit-0 output.",
+      "budget_policy_fingerprint is claimbook-acceptance-gate-v1 for deterministic runs."
+    ],
+    "artifact_keys": [
+      "verdict",
+      "accepted",
+      "requirement_list_fingerprint",
+      "evidence_fingerprint",
+      "schema_version",
+      "mumei.verification-evidence/v1",
+      "mumei.evidence-requirement-list/v1",
+      "mumei.evidence-requirement-list-acceptance/v1"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce",
+        "name": "Mint a real Evidence record via evidence verify-source",
+        "repo": "mumei",
+        "command": "{mumei_bin} evidence verify-source {root_dir}/scenarios/claimbook_acceptance_gate/src/main.mm --json > {output_dir}/evidence.json; rc=$?; cat {output_dir}/evidence.json; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/evidence.json')); assert r['schema_version']=='mumei.verification-evidence/v1', r.get('schema_version'); print('evidence verify-source: record minted')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "evidence.json"
+        ],
+        "harness_stage": "S1_evidence_produce",
+        "artifact_contract": "evidence.json holds a mumei.verification-evidence/v1 record for main.mm.",
+        "verifier_gate": "evidence verify-source exits 0 with a mumei.verification-evidence/v1 record.",
+        "expected_patterns": [
+          "mumei.verification-evidence/v1"
+        ]
+      },
+      {
+        "id": "requirements",
+        "name": "Declare the conjunctive requirement list",
+        "repo": "mumei",
+        "command": "python3 -c \"import json; r=json.load(open('{output_dir}/evidence.json')); req={'schema_version':'mumei.evidence-requirement-list/v1','requirements':[{'schema_version':'mumei.evidence-requirement/v1','subject_sha256':r['subject']['sha256'],'obligation_id':r['obligation_id'],'semantics':{'profile':r['semantics']['profile'],'integer_model':r['semantics']['integer_model'],'target_triple':r['semantics']['target_triple']},'minimum_assurance':'unbounded_proof','correspondence_status':['validated','assumed'],'excluded_assumptions':[]}]}; json.dump(req, open('{output_dir}/requirements.json','w'), indent=2); print('requirement list declared for', r['subject']['sha256'][:16])\" && cat {output_dir}/requirements.json",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce"
+        ],
+        "artifacts": [
+          "requirements.json"
+        ],
+        "harness_stage": "S2_requirement_declare",
+        "artifact_contract": "requirements.json holds a mumei.evidence-requirement-list/v1 pinning the record's own subject sha256, obligation and semantics.",
+        "verifier_gate": "the declared list is written as valid JSON with one requirement.",
+        "expected_patterns": [
+          "mumei.evidence-requirement-list/v1",
+          "unbounded_proof"
+        ]
+      },
+      {
+        "id": "accept",
+        "name": "evidence accept --requirement-list: accepted verdict",
+        "repo": "mumei",
+        "command": "{mumei_bin} evidence accept {output_dir}/evidence.json --requirement-list {output_dir}/requirements.json --json > {output_dir}/acceptance.json; rc=$?; cat {output_dir}/acceptance.json; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/acceptance.json')); assert r['schema_version']=='mumei.evidence-requirement-list-acceptance/v1' and r['verdict']=='accepted', r; print('evidence accept: accepted verdict issued')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "requirements"
+        ],
+        "artifacts": [
+          "acceptance.json",
+          "accept.log"
+        ],
+        "harness_stage": "S3_verdict_issue",
+        "artifact_contract": "acceptance.json binds schema mumei.evidence-requirement-list-acceptance/v1 with verdict accepted and fingerprints pinning the declared requirement list and evidence bytes.",
+        "verifier_gate": "evidence accept exits 0 with an accepted requirement-list-acceptance descriptor.",
+        "expected_patterns": [
+          "mumei.evidence-requirement-list-acceptance/v1",
+          "accepted"
+        ]
+      },
+      {
+        "id": "gate_pass",
+        "name": "claims --require-evidence-acceptance: accepted triple promotes",
+        "repo": "mumei",
+        "command": "{mumei_bin} claims {root_dir}/scenarios/claimbook_acceptance_gate/src/main.mm --require-evidence-acceptance {output_dir}/requirements.json {output_dir}/evidence.json {output_dir}/acceptance.json > {output_dir}/gate.log 2>&1; rc=$?; cat {output_dir}/gate.log; test $rc -eq 0 && grep -q 'Claim Book' {output_dir}/gate.log && echo 'claims gate: accepted triple promotes'",
+        "cwd": "{output_dir}",
+        "expected_exit": 0,
+        "depends_on": [
+          "accept"
+        ],
+        "artifacts": [
+          "gate.log"
+        ],
+        "harness_stage": "S4_gate_promote",
+        "artifact_contract": "gate.log records the claim book emitted because every declared triple promoted.",
+        "verifier_gate": "mumei claims exits 0 and prints the Claim Book summary.",
+        "expected_patterns": [
+          "Claim Book"
+        ]
+      },
+      {
+        "id": "gate_tampered",
+        "name": "claims --require-evidence-acceptance: tampered evidence fails closed",
+        "repo": "mumei",
+        "command": "python3 -c \"import json; r=json.load(open('{output_dir}/evidence.json')); r['subject']['sha256']='0'*64; json.dump(r, open('{output_dir}/tampered.json','w'), indent=2)\" && {mumei_bin} claims {root_dir}/scenarios/claimbook_acceptance_gate/src/main.mm --require-evidence-acceptance {output_dir}/requirements.json {output_dir}/tampered.json {output_dir}/acceptance.json > {output_dir}/gate_tampered.log 2>&1; rc=$?; cat {output_dir}/gate_tampered.log; test $rc -eq 1 && grep -q 'require-evidence-acceptance' {output_dir}/gate_tampered.log && echo 'claims gate: tampered evidence refused'",
+        "cwd": "{output_dir}",
+        "expected_exit": 0,
+        "depends_on": [
+          "gate_pass"
+        ],
+        "artifacts": [
+          "tampered.json",
+          "gate_tampered.log"
+        ],
+        "harness_stage": "S5_gate_fail_closed",
+        "artifact_contract": "gate_tampered.log records the refusal: the descriptor's evidence_fingerprint no longer matches the declared bytes.",
+        "verifier_gate": "mumei claims exits 1 with a --require-evidence-acceptance diagnostic.",
+        "expected_patterns": [
+          "require-evidence-acceptance",
+          "tampered evidence refused"
+        ]
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Step 1: evidence verify-source mints a real Evidence record for the clamp atom...",
+      "Step 2: the consumer declares a conjunctive requirement list pinning that record...",
+      "Step 3: evidence accept evaluates the record and issues an accepted verdict...",
+      "Step 4: mumei claims passes because the promotable gate sees an accepted triple...",
+      "Step 5: the same gate refuses a tampered record — the verdict only travels as far as its pins."
+    ],
+    "before": "The verdict-bearing acceptance path produced promotable descriptors, but no end-to-end scenario showed the claim-book gate consuming one.",
+    "after": "The promotable gate is observable end to end: an accepted triple promotes, a tampered one fails closed.",
+    "steps": {
+      "produce": {
+        "pass": {
+          "icon": "✅",
+          "headline": "evidence verify-source: record minted",
+          "follow_up": [
+            "  A real mumei.verification-evidence/v1 record exists for the clamp atom.",
+            "",
+            "  Step 2: Declaring the conjunctive requirement list pinning that record..."
+          ]
+        }
+      },
+      "requirements": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Requirement list declared",
+          "follow_up": [
+            "  The consumer's requirement pins the record's subject, obligation and semantics identity.",
+            "",
+            "  Step 3: Running evidence accept against the declared list..."
+          ]
+        }
+      },
+      "accept": {
+        "pass": {
+          "icon": "✅",
+          "headline": "evidence accept: accepted",
+          "follow_up": [
+            "  Core issued a mumei.evidence-requirement-list-acceptance/v1 descriptor with verdict accepted.",
+            "",
+            "  Step 4: Feeding the promotable triple to the claims gate..."
+          ]
+        }
+      },
+      "gate_pass": {
+        "pass": {
+          "icon": "✅",
+          "headline": "claims gate: triple promotes",
+          "follow_up": [
+            "  The accepted triple passed the opt-in gate — the claim book was emitted.",
+            "",
+            "  Step 5: Re-running the gate against a tampered evidence record..."
+          ]
+        }
+      },
+      "gate_tampered": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Tampered evidence fails closed",
+          "follow_up": [
+            "  The descriptor's fingerprint no longer covers the declared bytes — exit 1, no claim book.",
+            "",
+            "  Demo complete: verdict-bearing acceptance promotes only inside its trust boundary."
+          ]
+        }
+      }
+    }
+  },
+  "success_criteria": [
+    "acceptance.json carries schema mumei.evidence-requirement-list-acceptance/v1 with verdict accepted",
+    "the claims gate exits 0 on the accepted triple",
+    "the claims gate exits 1 on a tampered evidence record"
+  ],
+  "gate_order": [
+    {
+      "gate": "produce",
+      "user_wording": [
+        "A real Evidence record is minted"
+      ]
+    },
+    {
+      "gate": "requirements",
+      "user_wording": [
+        "The consumer declares a requirement list"
+      ]
+    },
+    {
+      "gate": "accept",
+      "user_wording": [
+        "Core issues an accepted verdict"
+      ]
+    },
+    {
+      "gate": "gate_pass",
+      "user_wording": [
+        "The promotable gate passes the accepted triple"
+      ]
+    },
+    {
+      "gate": "gate_tampered",
+      "user_wording": [
+        "A tampered record fails closed"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/verify.log",
+    "{output_dir}/accept.log",
+    "{output_dir}/gate.log",
+    "{output_dir}/gate_tampered.log",
+    "{output_dir}/evidence.json",
+    "{output_dir}/requirements.json",
+    "{output_dir}/acceptance.json",
+    "{output_dir}/tampered.json",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json"
+  ],
+  "budget_policy_fingerprint": "claimbook-acceptance-gate-v1",
+  "result_message": "Result: promotable gate observable end to end — accepted triple promotes, tampered record fails closed."
+}
