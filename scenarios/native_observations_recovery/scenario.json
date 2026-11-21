@@ -1,0 +1,284 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "C13 negative regression: show that runtime_observation_semantics, which means one invocation observed all channels, is never composed from channel-specific acceptance reports or recheck reports. Build one zero-output native bundle, run the three single-channel accepts plus observations-recheck and observations-accept, then fold the real reports with recovery-eval. Use the native-stdout-accept report as the record because its checks_not_performed declares exit-status, stderr and runtime semantics unperformed and its expected_build_id scopes sibling reports to the same bundle.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/native_observations_recovery/src/main.mm (the bounded native profile atom main() -> i64 requires: true).",
+      "Step 1 builds a real mumei.native-bundle/v1, verifies exit status 0 and the SHA-256 of empty stdout and stderr are pinned in link_build, and records sha256(native-bundle.json) as the build ID.",
+      "Steps 2–6 run native-exit-status-accept, native-stdout-accept, native-stderr-accept, native-observations-recheck and native-observations-accept using the same build ID; assert their accepted/reproduced outcomes.",
+      "The native-stdout-accept report is the record for all folds: its checks_not_performed contains os_exit_status_observation, os_stderr_observation and runtime_observation_semantics, while its expected_build_id binds it to sibling reports for the same bundle.",
+      "Recovery A uses exit-status and stderr accept reports as evidence: both channel checks recover, while runtime_observation_semantics is no_evidence.",
+      "Recovery B uses only the reproduced observations-recheck report: none of the record's runtime checks recover because recheck reports are not performers.",
+      "Recovery C uses the accepted observations-accept report: exit status, stderr and runtime_observation_semantics recover from the same accepted one-invocation observation."
+    ]
+  },
+  "name": "C13 Native Observations Recovery Composition Regression",
+  "description": "C13 negative regression: runtime_observation_semantics is a one-invocation claim and must never be composed from three channel acceptance reports or a recheck. Folds real route reports for one declared build: sibling exit-status and stderr accepts recover only their channel checks; observations-recheck recovers nothing; observations-accept recovers the two sibling channel checks and runtime semantics. The native-stdout-accept report is the record because it declares all three target checks unperformed and shares expected_build_id with its evidence.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Regression-test the C13 boundary: sibling single-channel accepts may recover only their own observations for a shared declared build; recheck reports perform nothing; runtime_observation_semantics is recovered only by one invocation that observed all channels through native-observations-accept.",
+    "success_criteria": [
+      "The built record pins expected_exit_status 0 and the empty stdout and stderr digests, and all five route reports carry the same expected_build_id with accepted/reproduced outcomes.",
+      "Recovery A records os_exit_status_observation == recovered, os_stderr_observation == recovered and runtime_observation_semantics == no_evidence.",
+      "Recovery B, with only observations-recheck as evidence, reports no_evidence for os_exit_status_observation, os_stderr_observation and runtime_observation_semantics.",
+      "Recovery C records os_exit_status_observation == recovered, os_stderr_observation == recovered and runtime_observation_semantics == recovered."
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_bundle",
+        "name": "Build a native bundle with all three runtime pins",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle build {root_dir}/scenarios/native_observations_recovery/src/main.mm -o {output_dir}/bundle > {output_dir}/build.log 2>&1 && python3 -c \"import hashlib,json; r=json.load(open('{output_dir}/bundle/native-bundle.json')); p=r['link_build']; empty=hashlib.sha256(b'').hexdigest(); assert p['expected_exit_status']==0, p; assert p['expected_stdout_sha256']==empty, p; assert p['expected_stderr_sha256']==empty, p; print(hashlib.sha256(open('{output_dir}/bundle/native-bundle.json','rb').read()).hexdigest())\" > {output_dir}/build_id.txt; rc=$?; cat {output_dir}/build.log; cat {output_dir}/build_id.txt; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "build.log",
+          "build_id.txt",
+          "bundle/native-bundle.json",
+          "bundle/program.ll",
+          "bundle/program.o",
+          "bundle/proof-cert.json",
+          "bundle/program"
+        ],
+        "harness_stage": "S1_bundle_produce",
+        "artifact_contract": "build_id.txt holds sha256(native-bundle.json); link_build pins exit status 0 and the empty stdout/stderr digests; bundle/ holds all five declared members.",
+        "verifier_gate": "native-bundle build exits 0 and the complete record contains all three runtime observation pins.",
+        "expected_patterns": [
+          "Build ID:"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "accept_exit_status",
+        "name": "Accept the exit-status observation",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-exit-status-accept --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_observations_recovery/src/main.mm --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/exit_status_report.json > {output_dir}/exit_status.log 2>&1; rc=$?; cat {output_dir}/exit_status_report.json; cat {output_dir}/exit_status.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/exit_status_report.json')); assert r['schema_version']=='mumei.native-exit-status-accept-report/v1', r['schema_version']; assert r['acceptance']=='accepted', r; assert r['expected_build_id']==open('{output_dir}/build_id.txt').read().strip(), r; print('native-exit-status-accept: accepted')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "exit_status.log",
+          "exit_status_report.json"
+        ],
+        "harness_stage": "S2_exit_status_accept",
+        "artifact_contract": "exit_status_report.json holds an accepted native-exit-status report for the bundle's expected_build_id.",
+        "verifier_gate": "native-exit-status-accept exits 0 with acceptance accepted for the declared build.",
+        "expected_patterns": [
+          "mumei.native-exit-status-accept-report/v1",
+          "accepted"
+        ],
+        "cwd": "{mumei_agent_repo}",
+        "depends_on": [
+          "produce_bundle"
+        ]
+      },
+      {
+        "id": "accept_stdout",
+        "name": "Accept the stdout observation and select the recovery record",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-stdout-accept --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_observations_recovery/src/main.mm --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/stdout_report.json > {output_dir}/stdout.log 2>&1; rc=$?; cat {output_dir}/stdout_report.json; cat {output_dir}/stdout.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/stdout_report.json')); assert r['schema_version']=='mumei.native-stdout-accept-report/v1', r['schema_version']; assert r['acceptance']=='accepted', r; assert r['expected_build_id']==open('{output_dir}/build_id.txt').read().strip(), r; assert r['checks_not_performed']==['file_identity', 'freshness', 'os_exit_status_observation', 'os_stderr_observation', 'producer_authenticity', 'runtime_observation_semantics', 'semantic_correspondence'], r; print('native-stdout-accept: selected as the record; three target checks remain unperformed')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "stdout.log",
+          "stdout_report.json"
+        ],
+        "harness_stage": "S3_stdout_accept",
+        "artifact_contract": "stdout_report.json is the recovery-eval record: its checks_not_performed declares exit status, stderr and runtime semantics, and expected_build_id binds it to sibling reports for the same bundle.",
+        "verifier_gate": "native-stdout-accept exits 0 and its declared unperformed set includes all recovery targets.",
+        "expected_patterns": [
+          "mumei.native-stdout-accept-report/v1",
+          "accepted"
+        ],
+        "cwd": "{mumei_agent_repo}",
+        "depends_on": [
+          "produce_bundle"
+        ]
+      },
+      {
+        "id": "accept_stderr",
+        "name": "Accept the stderr observation",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-stderr-accept --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_observations_recovery/src/main.mm --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/stderr_report.json > {output_dir}/stderr.log 2>&1; rc=$?; cat {output_dir}/stderr_report.json; cat {output_dir}/stderr.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/stderr_report.json')); assert r['schema_version']=='mumei.native-stderr-accept-report/v1', r['schema_version']; assert r['acceptance']=='accepted', r; assert r['expected_build_id']==open('{output_dir}/build_id.txt').read().strip(), r; print('native-stderr-accept: accepted')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "stderr.log",
+          "stderr_report.json"
+        ],
+        "harness_stage": "S4_stderr_accept",
+        "artifact_contract": "stderr_report.json holds an accepted native-stderr report for the bundle's expected_build_id.",
+        "verifier_gate": "native-stderr-accept exits 0 with acceptance accepted for the declared build.",
+        "expected_patterns": [
+          "mumei.native-stderr-accept-report/v1",
+          "accepted"
+        ],
+        "cwd": "{mumei_agent_repo}",
+        "depends_on": [
+          "produce_bundle"
+        ]
+      },
+      {
+        "id": "recheck_observations",
+        "name": "Recheck all runtime observations without performing recovery",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-observations-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_observations_recovery/src/main.mm --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/recheck_report.json > {output_dir}/recheck.log 2>&1; rc=$?; cat {output_dir}/recheck_report.json; cat {output_dir}/recheck.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/recheck_report.json')); assert r['schema_version']=='mumei.native-observations-recheck-report/v1', r['schema_version']; assert r['observations_recheck']=='reproduced', r; assert r['runtime_observation_schema']=='mumei.runtime-observation/v1', r; assert r['expected_build_id']==open('{output_dir}/build_id.txt').read().strip(), r; print('native-observations-recheck: reproduced; remains a recovery non-performer')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "recheck.log",
+          "recheck_report.json"
+        ],
+        "harness_stage": "S5_observations_recheck",
+        "artifact_contract": "recheck_report.json holds a reproduced runtime-observation recheck report for the same expected_build_id; its schema is not a recovery performer.",
+        "verifier_gate": "native-observations-recheck exits 0 and emits the runtime-observation schema descriptor.",
+        "expected_patterns": [
+          "mumei.native-observations-recheck-report/v1",
+          "reproduced",
+          "mumei.runtime-observation/v1"
+        ],
+        "cwd": "{mumei_agent_repo}",
+        "depends_on": [
+          "produce_bundle"
+        ]
+      },
+      {
+        "id": "accept_observations",
+        "name": "Accept all channels from one invocation",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-observations-accept --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_observations_recovery/src/main.mm --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/observations_accept_report.json > {output_dir}/observations_accept.log 2>&1; rc=$?; cat {output_dir}/observations_accept_report.json; cat {output_dir}/observations_accept.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/observations_accept_report.json')); assert r['schema_version']=='mumei.native-observations-accept-report/v1', r['schema_version']; assert r['acceptance']=='accepted', r; assert r['expected_build_id']==open('{output_dir}/build_id.txt').read().strip(), r; assert 'runtime_observation_semantics' in r['discharged_checks'], r; print('native-observations-accept: accepted all channels and one-invocation semantics')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "observations_accept.log",
+          "observations_accept_report.json"
+        ],
+        "harness_stage": "S6_observations_accept",
+        "artifact_contract": "observations_accept_report.json holds the accepted one-invocation observations report for the same expected_build_id, including runtime_observation_semantics.",
+        "verifier_gate": "native-observations-accept exits 0 and accepts all three runtime pins from one invocation.",
+        "expected_patterns": [
+          "mumei.native-observations-accept-report/v1",
+          "accepted",
+          "runtime_observation_semantics"
+        ],
+        "cwd": "{mumei_agent_repo}",
+        "depends_on": [
+          "produce_bundle"
+        ]
+      },
+      {
+        "id": "recovery_channels_only",
+        "name": "Recovery A: sibling channel accepts do not recover runtime semantics",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent recovery-eval --record {output_dir}/stdout_report.json --evidence {output_dir}/exit_status_report.json --evidence {output_dir}/stderr_report.json --output {output_dir}/recovery_a.json > {output_dir}/recovery_a.log 2>&1; rc=$?; cat {output_dir}/recovery_a.json; cat {output_dir}/recovery_a.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/recovery_a.json')); expected={'file_identity':'no_evidence','freshness':'no_evidence','os_exit_status_observation':'recovered','os_stderr_observation':'recovered','producer_authenticity':'no_evidence','runtime_observation_semantics':'no_evidence','semantic_correspondence':'no_evidence'}; assert r['schema_version']=='mumei.unperformed-check-recovery/v1', r['schema_version']; assert r['checks_declared'] is True; assert r['checks']==expected, r['checks']; assert r['recovered']==['os_exit_status_observation','os_stderr_observation'], r['recovered']; assert r['unrecovered']==['file_identity','freshness','producer_authenticity','runtime_observation_semantics','semantic_correspondence'], r['unrecovered']; print('Recovery A:', r['checks'])\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "recovery_a.log",
+          "recovery_a.json"
+        ],
+        "harness_stage": "S7_channel_composition_negative",
+        "artifact_contract": "recovery_a.json reports only the matching exit-status and stderr checks recovered; runtime_observation_semantics remains no_evidence.",
+        "verifier_gate": "recovery-eval composes the two shared-build channel accepts without composing one-invocation runtime semantics.",
+        "expected_patterns": [
+          "mumei.unperformed-check-recovery/v1",
+          "runtime_observation_semantics",
+          "no_evidence"
+        ],
+        "cwd": "{mumei_agent_repo}",
+        "depends_on": [
+          "accept_exit_status",
+          "accept_stdout",
+          "accept_stderr"
+        ]
+      },
+      {
+        "id": "recovery_recheck_is_not_performer",
+        "name": "Recovery B: a reproduced recheck report recovers no runtime checks",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent recovery-eval --record {output_dir}/stdout_report.json --evidence {output_dir}/recheck_report.json --output {output_dir}/recovery_b.json > {output_dir}/recovery_b.log 2>&1; rc=$?; cat {output_dir}/recovery_b.json; cat {output_dir}/recovery_b.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/recovery_b.json')); expected={'file_identity':'no_evidence','freshness':'no_evidence','os_exit_status_observation':'no_evidence','os_stderr_observation':'no_evidence','producer_authenticity':'no_evidence','runtime_observation_semantics':'no_evidence','semantic_correspondence':'no_evidence'}; assert r['schema_version']=='mumei.unperformed-check-recovery/v1', r['schema_version']; assert r['checks_declared'] is True; assert r['checks']==expected, r['checks']; assert r['recovered']==[], r['recovered']; assert r['unrecovered']==['file_identity','freshness','os_exit_status_observation','os_stderr_observation','producer_authenticity','runtime_observation_semantics','semantic_correspondence'], r['unrecovered']; print('Recovery B:', r['checks'])\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "recovery_b.log",
+          "recovery_b.json"
+        ],
+        "harness_stage": "S8_recheck_non_performer",
+        "artifact_contract": "recovery_b.json reports no runtime checks recovered from the observations-recheck report.",
+        "verifier_gate": "recovery-eval does not treat a reproduced observations-recheck report as a performer.",
+        "expected_patterns": [
+          "mumei.unperformed-check-recovery/v1",
+          "no_evidence"
+        ],
+        "cwd": "{mumei_agent_repo}",
+        "depends_on": [
+          "accept_stdout",
+          "recheck_observations"
+        ]
+      },
+      {
+        "id": "recovery_one_invocation",
+        "name": "Recovery C: one-invocation acceptance recovers runtime semantics",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent recovery-eval --record {output_dir}/stdout_report.json --evidence {output_dir}/observations_accept_report.json --output {output_dir}/recovery_c.json > {output_dir}/recovery_c.log 2>&1; rc=$?; cat {output_dir}/recovery_c.json; cat {output_dir}/recovery_c.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/recovery_c.json')); expected={'file_identity':'no_evidence','freshness':'no_evidence','os_exit_status_observation':'recovered','os_stderr_observation':'recovered','producer_authenticity':'no_evidence','runtime_observation_semantics':'recovered','semantic_correspondence':'no_evidence'}; assert r['schema_version']=='mumei.unperformed-check-recovery/v1', r['schema_version']; assert r['checks_declared'] is True; assert r['checks']==expected, r['checks']; assert r['recovered']==['os_exit_status_observation','os_stderr_observation','runtime_observation_semantics'], r['recovered']; assert r['unrecovered']==['file_identity','freshness','producer_authenticity','semantic_correspondence'], r['unrecovered']; print('Recovery C:', r['checks'])\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "recovery_c.log",
+          "recovery_c.json"
+        ],
+        "harness_stage": "S9_observations_accept_positive",
+        "artifact_contract": "recovery_c.json reports exit status, stderr and runtime_observation_semantics recovered through the accepted one-invocation observations report.",
+        "verifier_gate": "recovery-eval recovers the two sibling channel checks and runtime semantics from native-observations-accept.",
+        "expected_patterns": [
+          "mumei.unperformed-check-recovery/v1",
+          "runtime_observation_semantics",
+          "recovered"
+        ],
+        "cwd": "{mumei_agent_repo}",
+        "depends_on": [
+          "accept_stdout",
+          "accept_observations"
+        ]
+      }
+    ]
+  },
+  "narrative": {
+    "intro": [
+      "Step 1: build a zero-output native program and pin exit status plus both stream digests.",
+      "Steps 2–6: produce three sibling channel accepts, a reproduced observations recheck, and an accepted one-invocation observations report for the same build ID.",
+      "Step 7: sibling exit-status and stderr accepts recover their own channel checks, but runtime_observation_semantics stays no_evidence.",
+      "Step 8: observations-recheck is not a recovery performer, even when reproduced.",
+      "Step 9: only observations-accept recovers runtime_observation_semantics alongside the two sibling channel checks."
+    ],
+    "before": "A mistaken recovery fold might compose one-invocation semantics from separate channel reports or infer it from a successful recheck.",
+    "after": "Only the accepted observations route, which observes all channels in one invocation, performs runtime_observation_semantics.",
+    "steps": {
+      "recovery_channels_only": {
+        "pass": {
+          "headline": "Channel checks recovered; runtime semantics stayed unperformed",
+          "follow_up": [
+            "  A reproduced recheck report still has no performer binding..."
+          ]
+        }
+      },
+      "recovery_recheck_is_not_performer": {
+        "pass": {
+          "headline": "Recheck report recovered no runtime checks",
+          "follow_up": [
+            "  Now fold the one-invocation acceptance report..."
+          ]
+        }
+      },
+      "recovery_one_invocation": {
+        "pass": {
+          "headline": "One-invocation semantics recovered from observations acceptance",
+          "follow_up": []
+        }
+      }
+    }
+  },
+  "result_message": "Result: C13 regression passed — runtime_observation_semantics is never composed from channel accepts or rechecks, and recovers only from one-invocation observations acceptance."
+}
