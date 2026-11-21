@@ -93,7 +93,7 @@ Generated from the Makefile, argparse definitions, and environment registry.
 | `setup` | Set up sibling repositories and build/install their tools. |
 | `demo-evidence-check` | Declared evidence representation check route (real mumei + mumei-agent). |
 | `demo-summaries-plan` | Declared summary-route planning (probe boundary + resume). |
-| `demo-summaries-attempt` | Declared summary attempt routes (ts/rust/sol + timeout refusal). |
+| `demo-summaries-attempt` | Declared summary attempt routes (ts/rust/sol + optional Go + timeout refusal). |
 | `demo-summaries-reuse-attempt` | Declared summary reuse-attempt routes (go/rust/sol/ts, stale TS manifest, timeout). |
 | `demo-evidence-producer` | Declared evidence producer-identity route (real mumei + mumei-agent). |
 | `demo-producer-signature-recovery` | Producer-authenticity lane: keygen, sign, pinned verify, recovery (real mumei + mumei-agent). |
