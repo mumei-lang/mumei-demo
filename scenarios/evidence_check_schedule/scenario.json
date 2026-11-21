@@ -1,0 +1,101 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C11 evidence-check-schedule route by producing a real mumei.attempt-schedule/v1 document with the agent's verify-schedule command and checking its representation and consistency with Core. The check reports acceptance as not_evaluated: this does not execute adapters, establish reported-outcome truth, evaluate Evidence acceptance, or promote a grade. A schedule with a selected_adapter_id inconsistent with its final attempt must not be selected.",
+    "artifact_contracts": [
+      "Step 1 runs agent verify-schedule over the declared local adapter and saves its mumei.attempt-schedule/v1 output.",
+      "Step 2 checks the saved schedule with evidence-check-schedule and asserts representation valid, acceptance not_evaluated, adapter_self_report meaning, exact performed/unperformed check lists, the schedule outcome and attempt count, and a candidate.",
+      "Step 3 changes selected_adapter_id so it disagrees with the final attempt; Core rejects the inconsistent document and the route emits no representation, schedule outcome or selected result."
+    ]
+  },
+  "name": "Declared Evidence Attempt-Schedule Check (evidence-check-schedule)",
+  "description": "C11 Core attempt-schedule representation demo: agent verify-schedule produces a real schedule, then evidence-check-schedule selects only Core's representation and consistency diagnostic. Acceptance remains not_evaluated; no adapter execution, reported-outcome truth, Evidence acceptance, or grade promotion is claimed.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show representation and schedule consistency only: produce a schedule with agent verify-schedule, check it with Core via evidence-check-schedule, and select the candidate only for Core's recognized valid diagnostic. Acceptance stays not_evaluated, with no Evidence acceptance or grade promotion; a tampered inconsistent schedule claims nothing.",
+    "success_criteria": [
+      "report.json carries mumei.evidence-check-schedule-report/v1 with representation == 'valid', acceptance == 'not_evaluated', schedule_outcome and attempt_count equal to Core's diagnostic for the generated schedule, reported_outcome_meaning == 'adapter_self_report', checks_performed == ['representation_gate', 'schedule_consistency'], checks_not_performed == ['adapter_execution', 'reported_outcome_truth', 'evidence_acceptance', 'embedded_acceptance_validation', 'claim_truth', 'producer_authenticity', 'freshness', 'resource_enforcement', 'grade_promotion'], and a candidate",
+      "tampered_report.json carries no representation or schedule_outcome and no selected_result after Core rejects a schedule whose selected_adapter_id disagrees with its final attempt"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_schedule",
+        "name": "Produce a schedule with agent verify-schedule",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent verify-schedule --request {root_dir}/scenarios/evidence_check_schedule/src/request.json --adapters {root_dir}/scenarios/evidence_check_schedule/src/adapters.json --argv-map {root_dir}/scenarios/evidence_check_schedule/src/argv_map.json --policy {root_dir}/scenarios/evidence_check_schedule/src/policy.json --observations {root_dir}/scenarios/evidence_check_schedule/src/observations.json --source {root_dir}/scenarios/evidence_check_schedule/src/source.mm > {output_dir}/schedule.json 2>{output_dir}/produce.log; rc=$?; cat {output_dir}/schedule.json; cat {output_dir}/produce.log; test $rc -eq 0 && python3 -c \"import json; s=json.load(open('{output_dir}/schedule.json')); assert s['schema_version']=='mumei.attempt-schedule/v1', s; assert s['outcome']=='selected', s; assert s['selected_adapter_id']=='integration-adapter', s; print('agent verify-schedule produced selected schedule with', len(s['attempts']), 'attempt')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "schedule.json",
+          "produce.log"
+        ],
+        "harness_stage": "S1_schedule_produce",
+        "artifact_contract": "schedule.json is the real mumei.attempt-schedule/v1 document emitted by the agent's verify-schedule route from the checked-in request, adapter, policy and observation fixtures.",
+        "verifier_gate": "agent verify-schedule exits 0 and emits a selected schedule for integration-adapter.",
+        "expected_patterns": [
+          "mumei.attempt-schedule/v1",
+          "selected"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "check_schedule",
+        "name": "evidence-check-schedule selects representation only",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent evidence-check-schedule --core {mumei_bin} --schedule {output_dir}/schedule.json --output {output_dir}/report.json > {output_dir}/check.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/check.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); s=json.load(open('{output_dir}/schedule.json')); assert r['schema_version']=='mumei.evidence-check-schedule-report/v1', r['schema_version']; assert r['representation']=='valid', r; assert r['acceptance']=='not_evaluated', r; assert r['schedule_outcome']==s['outcome'], r; assert r['attempt_count']==len(s['attempts']), r; assert r['reported_outcome_meaning']=='adapter_self_report', r; assert r['checks_performed']==['representation_gate', 'schedule_consistency'], r; assert r['checks_not_performed']==['adapter_execution', 'reported_outcome_truth', 'evidence_acceptance', 'embedded_acceptance_validation', 'claim_truth', 'producer_authenticity', 'freshness', 'resource_enforcement', 'grade_promotion'], r; assert r.get('candidate') is not None, r; assert r['sequence'].get('selected_result') is not None, r; print('evidence-check-schedule: representation valid; acceptance not evaluated')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce_schedule"
+        ],
+        "artifacts": [
+          "check.log",
+          "report.json"
+        ],
+        "harness_stage": "S2_representation_check",
+        "artifact_contract": "report.json binds the exact Core check-schedule diagnostic: valid representation, not_evaluated acceptance, the generated schedule's outcome and attempt count, adapter_self_report meaning, both performed checks, nine unperformed checks, and a candidate.",
+        "verifier_gate": "Core selects the schedule representation/consistency diagnostic; no Evidence acceptance or grade promotion is evaluated.",
+        "expected_patterns": [
+          "mumei.evidence-check-schedule-report/v1",
+          "representation",
+          "not_evaluated",
+          "adapter_self_report"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "check_tampered_schedule",
+        "name": "Inconsistent schedule claims no result",
+        "repo": "mumei-agent",
+        "command": "python3 -c \"import json; p='{output_dir}/schedule.json'; s=json.load(open(p)); s['selected_adapter_id']='tampered'; json.dump(s,open('{output_dir}/tampered.json','w'))\" && {mumei_agent_python} -m agent evidence-check-schedule --core {mumei_bin} --schedule {output_dir}/tampered.json --output {output_dir}/tampered_report.json > {output_dir}/tampered.log 2>&1; rc=$?; cat {output_dir}/tampered_report.json; cat {output_dir}/tampered.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/tampered_report.json')); assert r['schema_version']=='mumei.evidence-check-schedule-report/v1'; assert 'representation' not in r; assert 'schedule_outcome' not in r; assert 'candidate' not in r; assert r['sequence'].get('selected_result') is None, r; assert r['normalized'].get('exit_code')==1, r['normalized']; print('inconsistent schedule: no selected result')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "check_schedule"
+        ],
+        "artifacts": [
+          "tampered.json",
+          "tampered.log",
+          "tampered_report.json"
+        ],
+        "harness_stage": "S3_consistency_rejection",
+        "artifact_contract": "tampered_report.json carries no representation, schedule_outcome, candidate or selected_result after selected_adapter_id is changed to disagree with the final attempt.",
+        "verifier_gate": "Core rejects the inconsistent schedule and the route claims no selected outcome.",
+        "expected_patterns": [
+          "mumei.evidence-check-schedule-report/v1",
+          "exit_code"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
