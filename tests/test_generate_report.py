@@ -246,7 +246,10 @@ def test_native_and_evidence_reports_have_bounded_route_summaries():
         path
         for path in (root / "scenarios").iterdir()
         if path.is_dir()
-        and path.name.startswith(("native_", "evidence_"))
+        and (
+            path.name.startswith(("native_", "evidence_"))
+            or path.name == "verify_plan"
+        )
         and (path / "scenario.json").exists()
     )
 
@@ -285,6 +288,7 @@ def test_native_and_evidence_reports_have_bounded_route_summaries():
             "evidence_acceptance_eval",
             "evidence_check_adapter",
             "evidence_check_attempt_acceptance",
+            "verify_plan",
         }:
             audit_status = scenario["narrative"]["audit_status"]
         elif name in {"evidence_compare", "evidence_identity", "evidence_producer"}:
@@ -873,6 +877,7 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
         "native_machine_tv_f64_recheck",
         "native_object_accept",
         "summaries_reuse_attempt",
+        "verify_plan",
     } <= set(OPTIONAL_SCENARIOS)
     assert app.scenario_names().index("record_execution_demo") == len(SCENARIO_ORDER)
     assert app.scenario_names().count("record_execution_demo") == 1
