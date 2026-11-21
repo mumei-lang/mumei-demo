@@ -10,7 +10,7 @@
     ],
     "state_dir": "{output_dir}",
     "state_file": "{output_dir}/harness_state.json",
-    "intent": "Run Core's native-machine-tv-recheck on the exact scalar-f64 fixture. Assert the f64 check only when Core lists it as performed; MXCSR control state and NaN payload bits remain not performed. The XMM register convention is assumed, not validated, and direct calls with f64 arguments fail closed in Core. This makes no IEEE-754 conformance, ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim.",
+    "intent": "Run Core's native-machine-tv-recheck on the exact scalar-f64 fixture. Assert the f64 check only when Core lists it as performed; MXCSR control state and NaN payload bits remain not performed. The XMM register convention is assumed, not validated, and direct-call f64 arguments are admitted only under Core's exact-bits obligation. This makes no IEEE-754 conformance, ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim.",
     "artifact_contracts": [
       "Read scenarios/native_machine_tv_f64_recheck/src/main.mm: it is the exact fadd, feq, mixed, and main fixture from the scalar-f64 machine-TV test.",
       "Step 1 builds a real native bundle and asserts its pinned exit status is 0 with empty stdout/stderr digests; build_id.txt records sha256(native-bundle.json).",
@@ -19,7 +19,7 @@
     ]
   },
   "name": "Declared Native Scalar-f64 Machine-TV Recheck (native-machine-tv-f64-recheck)",
-  "description": "A real Core and mumei-agent recheck of the scalar-f64 fixture. It requires Core's f64 check to be performed and the agent to discharge it, while MXCSR control state and NaN payload bits remain not performed. The XMM register convention is assumed, not validated; direct calls with f64 arguments fail closed in Core. No IEEE-754 conformance, ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim is made.",
+  "description": "A real Core and mumei-agent recheck of the scalar-f64 fixture. It requires Core's f64 check to be performed and the agent to discharge it, while MXCSR control state and NaN payload bits remain not performed. The XMM register convention is assumed, not validated; direct-call f64 arguments are admitted only under Core's exact-bits obligation. No IEEE-754 conformance, ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim is made.",
   "narrative": {
     "intro": [
       "Build the exact scalar-f64 fixture as a native bundle.",
@@ -28,7 +28,7 @@
       "The XMM convention is assumed; MXCSR/NaN, ABI/runtime, CRT/loader and OS exit-status observations remain outside."
     ],
     "before": "The scalar-f64 machine-code check has not yet been rechecked.",
-    "after": "Only bounded scalar-f64 TV ran. The XMM register convention is assumed, not validated; MXCSR control state and NaN payload bits were not performed. Direct calls with f64 arguments fail closed in Core. No IEEE-754 conformance, ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim is made.",
+    "after": "Only bounded scalar-f64 TV ran. The XMM register convention is assumed, not validated; MXCSR control state and NaN payload bits were not performed. Direct-call f64 arguments are admitted only under Core's exact-bits obligation; otherwise they fail closed. No IEEE-754 conformance, ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim is made.",
     "audit_status": "BOUNDED MACHINE-TV",
     "moment": "Register convention assumed; not verified ABI; object_translation_correspondence not performed."
   },
@@ -36,7 +36,7 @@
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,
-    "source_intent": "Demonstrate Core's real scalar-f64 machine-TV descriptor for the exact fadd, feq, mixed, and main source. The f64 function check is consumed only when listed in checks_performed; MXCSR control state and NaN payload bits remain not performed. The XMM register convention is assumed rather than validated, direct calls with f64 arguments fail closed in Core, and function names are not reported. No IEEE-754 conformance, ABI/runtime/CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim is made.",
+    "source_intent": "Demonstrate Core's real scalar-f64 machine-TV descriptor for the exact fadd, feq, mixed, and main source. The f64 function check is consumed only when listed in checks_performed; MXCSR control state and NaN payload bits remain not performed. The XMM register convention is assumed rather than validated, direct-call f64 arguments are admitted only under Core's exact-bits obligation, and function names are not reported. No IEEE-754 conformance, ABI/runtime/CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim is made.",
     "success_criteria": [
       "report.json carries mumei.native-machine-tv-recheck-report/v1 with machine_tv_recheck == 'checked'; Core checks_performed contains machine_code_f64_scalar_function_tv and the agent discharges it; Core and agent checks_not_performed contain machine_code_tv_mxcsr_control_state and machine_code_tv_nan_payload_bits, and neither is discharged; the register convention is copied verbatim; entry-wrapper and callee-saved checks are discharged only if Core lists them in checks_performed; Core lists os_exit_status_observation as not performed and the agent does not discharge it; object_translation_correspondence is not discharged; fadd, feq, and mixed do not appear in the report.",
       "wrong_report.json has no machine_tv_recheck or discharged_checks, normalized.exit_code is nonzero, the sequence has no selected_result, and no f64 machine-TV check is discharged."
