@@ -2,6 +2,13 @@
   "name": "Declared Native Refined-Scalar Bundle Production (native-refined-attempt)",
   "version": "1.0.0",
   "description": "C02/C10 produce demo: the declared `native-attempt` route builds a bundle from a module that declares a refined scalar alias (`type Port = i64 where v >= 1 && v <= 65535;`) — the record pins the v2 member profile and the refined source profile; `native-check` re-derives under the same gate; a typedef whose base does not resolve is refused.",
+  "narrative": {
+    "before": "The declared route boundary has not yet been checked.",
+    "after": "Only the route's declared fields are checked; broader guarantees are not claimed.",
+    "audit_status": "BOUNDED NATIVE ATTEMPT",
+    "moment": "Refined scalar profile only; unresolved typedef base fails closed."
+  },
+  "result_message": "Result: Refined profile only; invalid typedef base fails.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,

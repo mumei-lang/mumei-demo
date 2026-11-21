@@ -20,6 +20,13 @@
   },
   "name": "Declared Native Observations Recheck (native-observations-recheck)",
   "description": "C02/C10 runtime-observation recheck demo: the declared `native-observations-recheck` route runs `native-bundle recheck-observations --json` as one attempt — `observations_recheck: reproduced` plus `artifact_semantics`, `claim_truth`, all three OS channel checks, and `runtime_observation_semantics` from the same invocation; the matching Core descriptor is named and a wrong build ID leaves the full C02/runtime family unperformed.",
+  "narrative": {
+    "before": "The declared route boundary has not yet been checked.",
+    "after": "Only the route's declared fields are checked; broader guarantees are not claimed.",
+    "audit_status": "BOUNDED RECHECK",
+    "moment": "Pinned observations reproduced; wrong build ID selects nothing."
+  },
+  "result_message": "Result: Bounded recheck; wrong build ID claims nothing.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,

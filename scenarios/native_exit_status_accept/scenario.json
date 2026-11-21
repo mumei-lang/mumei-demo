@@ -20,6 +20,13 @@
   },
   "name": "Declared Native Exit-Status Acceptance (native-exit-status-accept)",
   "description": "C02/C10 exit-status acceptance demo: the declared `native-exit-status-accept` route runs `native-bundle accept-exit-status` as one attempt — `acceptance: accepted` plus `artifact_semantics` + `claim_truth` + `os_exit_status_observation` discharged checks on a clean run; the other runtime checks stay unperformed, and a wrong build ID leaves the full C02/runtime family unperformed.",
+  "narrative": {
+    "before": "The declared route boundary has not yet been checked.",
+    "after": "Only the route's declared fields are checked; broader guarantees are not claimed.",
+    "audit_status": "BOUNDED ACCEPTANCE",
+    "moment": "One Core invocation checks exit status; no universal ABI/runtime claim."
+  },
+  "result_message": "Result: One Core call; wrong pin claims nothing.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,

@@ -2,6 +2,13 @@
   "name": "Declared Native Evidence Recheck (native-evidence-recheck)",
   "version": "1.0.0",
   "description": "C10 consumer-replay demo: the declared `native-evidence-recheck` route runs `native-bundle recheck-evidence` as one attempt \u2014 a saved consumer Evidence envelope that matches the fresh pinned recheck reports `evidence_recheck: consistent` plus discharged `artifact_semantics`/`claim_truth`; a mismatched build-id pin claims no outcome.",
+  "narrative": {
+    "before": "The declared route boundary has not yet been checked.",
+    "after": "Only the route's declared fields are checked; broader guarantees are not claimed.",
+    "audit_status": "BOUNDED RECHECK",
+    "moment": "Saved record replay matches; wrong build ID selects nothing."
+  },
+  "result_message": "Result: Bounded recheck; wrong build ID claims nothing.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,

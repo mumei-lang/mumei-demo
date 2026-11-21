@@ -20,6 +20,13 @@
   },
   "name": "Declared Native Stdout Acceptance (native-stdout-accept)",
   "description": "C02/C10 stdout acceptance demo: the declared `native-stdout-accept` route runs `native-bundle accept-stdout` as one attempt — `acceptance: accepted` plus `artifact_semantics` + `claim_truth` + `os_stdout_observation` discharged checks on a clean run; the other runtime checks stay unperformed, and a wrong build ID leaves the full C02/runtime family unperformed.",
+  "narrative": {
+    "before": "The declared route boundary has not yet been checked.",
+    "after": "Only the route's declared fields are checked; broader guarantees are not claimed.",
+    "audit_status": "BOUNDED ACCEPTANCE",
+    "moment": "One Core invocation checks stdout pin; no universal ABI/runtime claim."
+  },
+  "result_message": "Result: One Core call; wrong pin claims nothing.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,

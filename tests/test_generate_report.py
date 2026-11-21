@@ -148,6 +148,105 @@ def test_evidence_route_reports_and_result_messages_are_bounded():
         assert "code-correctness proof" in narrative_text or "proof of code correctness" in narrative_text
 
 
+def test_native_and_evidence_reports_have_bounded_route_summaries():
+    root = Path(__file__).resolve().parents[1]
+    scenario_dirs = sorted(
+        path
+        for path in (root / "scenarios").iterdir()
+        if path.is_dir()
+        and path.name.startswith(("native_", "evidence_"))
+        and (path / "scenario.json").exists()
+    )
+
+    for scenario_dir in scenario_dirs:
+        name = scenario_dir.name
+        scenario = json.loads(
+            (scenario_dir / "scenario.json").read_text(encoding="utf-8")
+        )
+        if name.startswith("native_"):
+            if name in {"native_machine_tv_recheck", "native_machine_tv_branch_call_recheck"}:
+                audit_status = "BOUNDED MACHINE-TV"
+            elif name == "native_observations_recovery":
+                audit_status = "BOUNDED RECOVERY"
+            elif name in {
+                "native_attempt",
+                "native_composite_attempt",
+                "native_refined_attempt",
+                "native_refined_widened_attempt",
+            }:
+                audit_status = "BOUNDED NATIVE ATTEMPT"
+            elif name == "native_check":
+                audit_status = "BOUNDED CHECK"
+            elif name.endswith("_accept"):
+                audit_status = "BOUNDED ACCEPTANCE"
+            else:
+                audit_status = "BOUNDED RECHECK"
+        elif name in {
+            "evidence_accept_list",
+            "evidence_acceptance_eval",
+            "evidence_check_adapter",
+            "evidence_check_attempt_acceptance",
+        }:
+            audit_status = scenario["narrative"]["audit_status"]
+        elif name in {"evidence_compare", "evidence_identity", "evidence_producer"}:
+            audit_status = "DECLARED-EVIDENCE CHECK"
+        else:
+            audit_status = "REPRESENTATION-CHECK"
+
+        narrative = scenario.get("narrative", {})
+        moment = narrative.get("moment")
+        result_message = scenario.get("result_message")
+        assert narrative.get("audit_status") == audit_status, name
+        assert isinstance(narrative.get("before"), str) and narrative["before"], name
+        assert isinstance(narrative.get("after"), str) and narrative["after"], name
+        assert isinstance(moment, str) and moment, name
+        assert isinstance(result_message, str) and result_message.startswith("Result:"), name
+        assert len(f"  Moment:        {moment}") <= 116, name
+        assert len(f"  {result_message}") <= 62, name
+        assert not any(
+            phrase in result_message.lower()
+            for phrase in ("trustless", "correct code proven", "bug caught", "proof")
+        ), name
+
+        report = render_cli_report(
+            {
+                "scenario": name,
+                "scenario_name": scenario["name"],
+                "overall_status": "PASS",
+                "layers": {"l1_z3": {}},
+                "proof_density": {"verified": 1, "total": 1, "percentage": 100},
+                "narrative": narrative,
+            }
+        )
+        assert f"Audit Status:  {audit_status}" in report, name
+        assert f"Moment:        {moment}" in report, name
+        assert "TRUSTLESS" not in report, name
+        assert "Proof failure → Bug found" not in report, name
+
+        if audit_status == "BOUNDED MACHINE-TV":
+            assert "Register convention assumed" in moment, name
+            assert "not verified ABI" in moment, name
+            assert "object_translation_correspondence not performed" in moment, name
+        if audit_status == "BOUNDED ACCEPTANCE":
+            assert "One Core invocation" in moment, name
+            assert "no universal ABI/runtime claim" in moment, name
+
+
+def test_cli_report_defaults_remain_unchanged_for_other_scenarios():
+    report = render_cli_report(
+        {
+            "scenario": "ownership_transfer",
+            "scenario_name": "Ownership Transfer",
+            "overall_status": "PASS",
+            "layers": {"l1_z3": {}},
+            "proof_density": {"verified": 1, "total": 1, "percentage": 100},
+        }
+    )
+
+    assert "Audit Status:  TRUSTLESS" in report
+    assert "Moment:        Proof failure → Bug found" in report
+
+
 def test_charter_gate_section_renders_statuses_and_highlights(tmp_path):
     report = render_scenario_markdown(
         {
