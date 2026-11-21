@@ -1,0 +1,326 @@
+{
+  "name": "Planning-Only Verification Route",
+  "version": "1.0.0",
+  "description": "Run verify-plan against declared adapter manifests, policy and observations; it records planning decisions only, without spawning, dispatching or accepting an adapter.",
+  "layers": [
+    "l1_planning"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_planning"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Plan adapter selection from host-declared documents only. No adapter is spawned, dispatched or accepted, and the selected adapter is not a verification result.",
+    "artifact_contracts": [
+      "Read the request, policy, adapter manifests and host-declared observations under scenarios/verify_plan/src/.",
+      "The priority plan selects beta by declared priority; beta-unavailable fallback selects alpha and records beta as fallback_from.",
+      "A gamma adapter requiring network.connect is excluded by the policy that allows only process.spawn, with its tested exclusion reason.",
+      "A request with an unsupported profile emits a plan whose selected field is null; the planning command exits 0.",
+      "Input fixture hashes match before and after planning. Plans contain no injected environment sentinel or adapter execution, dispatch or acceptance record."
+    ],
+    "gate_order": [
+      "l1_planning"
+    ],
+    "notes": [
+      "PLANNING-ONLY: adapter selection is planning metadata, not a verification result.",
+      "Availability and tool versions are host-declared observations; this route does not probe or invoke adapters.",
+      "The permission-exclusion case uses network.connect against the declared process.spawn-only policy.",
+      "The unsupported-profile case has no compatible adapter and is reported with selected: null."
+    ],
+    "artifact_keys": [
+      "schema_version",
+      "request",
+      "policy",
+      "selected",
+      "fallback_from",
+      "decisions"
+    ]
+  },
+  "l1_planning": {
+    "steps": [
+      {
+        "id": "input_hashes_before",
+        "name": "Snapshot declared planner input bytes",
+        "repo": "mumei-demo",
+        "command": "sha256sum {root_dir}/scenarios/verify_plan/src/request.json {root_dir}/scenarios/verify_plan/src/policy.json {root_dir}/scenarios/verify_plan/src/adapters.json {root_dir}/scenarios/verify_plan/src/observations.json {root_dir}/scenarios/verify_plan/src/policy_fallback.json {root_dir}/scenarios/verify_plan/src/observations_beta_missing.json {root_dir}/scenarios/verify_plan/src/adapters_permissions.json {root_dir}/scenarios/verify_plan/src/observations_permissions.json {root_dir}/scenarios/verify_plan/src/request_no_compatible.json > {output_dir}/input_hashes.before && cat {output_dir}/input_hashes.before",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "request.json",
+          "policy.json",
+          "adapters.json",
+          "observations.json"
+        ],
+        "artifacts": [
+          "input_hashes.before"
+        ],
+        "harness_stage": "S0_input_hash_snapshot",
+        "artifact_contract": "Record SHA-256 hashes for every source fixture used by the four plans.",
+        "verifier_gate": "The final integrity step must reproduce this exact hash listing."
+      },
+      {
+        "id": "plan_priority",
+        "name": "Plan: select the highest-priority compatible adapter",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "MUMEI_TEST_SECRET=FAKE_SECRET_SENTINEL_VALUE_9f2c1d {mumei_agent_python} -m agent verify-plan --request {root_dir}/scenarios/verify_plan/src/request.json --adapters {root_dir}/scenarios/verify_plan/src/adapters.json --policy {root_dir}/scenarios/verify_plan/src/policy.json --observations {root_dir}/scenarios/verify_plan/src/observations.json --output {output_dir}/plan_priority.json > {output_dir}/plan_priority.stdout 2> {output_dir}/plan_priority.stderr; rc=$?; cat {output_dir}/plan_priority.json; cat {output_dir}/plan_priority.stdout; cat {output_dir}/plan_priority.stderr; test $rc -eq 0 && {mumei_agent_python} -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p)); reasons=dict((x[\"adapter_id\"],x[\"reasons\"]) for x in d[\"decisions\"]); assert d[\"schema_version\"] == \"mumei.verification-plan/v1\"; assert d[\"selected\"][\"adapter_id\"] == \"beta\" and d[\"fallback_from\"] is None; assert reasons[\"beta\"] == [\"selected_priority\"] and reasons[\"alpha\"] == [\"compatible_not_selected\"]; assert not any(k in d for k in (\"candidate\",\"acceptance\",\"dispatch\",\"selected_result\",\"accepted\")); assert \"FAKE_SECRET_SENTINEL_VALUE_9f2c1d\" not in open(p).read(); print(\"priority selection only; injected environment sentinel absent\")' {output_dir}/plan_priority.json",
+        "expected_exit": 0,
+        "depends_on": [
+          "input_hashes_before"
+        ],
+        "expected_patterns": [
+          "mumei.verification-plan/v1",
+          "\"adapter_id\": \"beta\"",
+          "selected_priority",
+          "compatible_not_selected",
+          "priority selection only; injected environment sentinel absent"
+        ],
+        "artifacts": [
+          "plan_priority.json",
+          "plan_priority.stdout",
+          "plan_priority.stderr"
+        ],
+        "harness_stage": "S1_priority_plan",
+        "artifact_contract": "plan_priority.json uses mumei.verification-plan/v1, selects beta, records the exact tested decision reasons and has no fallback origin or execution record.",
+        "verifier_gate": "The route exits 0 and its output omits the injected environment sentinel."
+      },
+      {
+        "id": "plan_unavailable_fallback",
+        "name": "Plan: fall back when beta is unavailable",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent verify-plan --request {root_dir}/scenarios/verify_plan/src/request.json --adapters {root_dir}/scenarios/verify_plan/src/adapters.json --policy {root_dir}/scenarios/verify_plan/src/policy_fallback.json --observations {root_dir}/scenarios/verify_plan/src/observations_beta_missing.json --output {output_dir}/plan_unavailable_fallback.json > {output_dir}/plan_unavailable_fallback.stdout 2> {output_dir}/plan_unavailable_fallback.stderr; rc=$?; cat {output_dir}/plan_unavailable_fallback.json; cat {output_dir}/plan_unavailable_fallback.stdout; cat {output_dir}/plan_unavailable_fallback.stderr; test $rc -eq 0 && {mumei_agent_python} -c 'import json,sys; d=json.load(open(sys.argv[1])); reasons=dict((x[\"adapter_id\"],x[\"reasons\"]) for x in d[\"decisions\"]); assert d[\"schema_version\"] == \"mumei.verification-plan/v1\"; assert d[\"selected\"][\"adapter_id\"] == \"alpha\" and d[\"fallback_from\"] == \"beta\"; assert reasons[\"alpha\"] == [\"selected_fallback\"] and \"tool_missing\" in reasons[\"beta\"]; print(\"beta unavailable; alpha selected with beta fallback origin\")' {output_dir}/plan_unavailable_fallback.json",
+        "expected_exit": 0,
+        "depends_on": [
+          "input_hashes_before"
+        ],
+        "expected_patterns": [
+          "mumei.verification-plan/v1",
+          "\"adapter_id\": \"alpha\"",
+          "\"fallback_from\": \"beta\"",
+          "selected_fallback",
+          "tool_missing"
+        ],
+        "artifacts": [
+          "plan_unavailable_fallback.json",
+          "plan_unavailable_fallback.stdout",
+          "plan_unavailable_fallback.stderr"
+        ],
+        "harness_stage": "S2_unavailable_fallback",
+        "artifact_contract": "With beta's host-declared availability set to missing, the plan selects alpha and records fallback_from as beta.",
+        "verifier_gate": "The route exits 0 and the plan retains the unavailable requested adapter as fallback origin."
+      },
+      {
+        "id": "plan_permission_excluded",
+        "name": "Plan: exclude an adapter outside the permission policy",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent verify-plan --request {root_dir}/scenarios/verify_plan/src/request.json --adapters {root_dir}/scenarios/verify_plan/src/adapters_permissions.json --policy {root_dir}/scenarios/verify_plan/src/policy.json --observations {root_dir}/scenarios/verify_plan/src/observations_permissions.json --output {output_dir}/plan_permission_excluded.json > {output_dir}/plan_permission_excluded.stdout 2> {output_dir}/plan_permission_excluded.stderr; rc=$?; cat {output_dir}/plan_permission_excluded.json; cat {output_dir}/plan_permission_excluded.stdout; cat {output_dir}/plan_permission_excluded.stderr; test $rc -eq 0 && {mumei_agent_python} -c 'import json,sys; d=json.load(open(sys.argv[1])); reasons=dict((x[\"adapter_id\"],x[\"reasons\"]) for x in d[\"decisions\"]); assert d[\"schema_version\"] == \"mumei.verification-plan/v1\"; assert d[\"selected\"][\"adapter_id\"] == \"beta\"; assert reasons[\"gamma\"] == [\"permissions_not_allowed\"]; print(\"gamma excluded: permissions_not_allowed\")' {output_dir}/plan_permission_excluded.json",
+        "expected_exit": 0,
+        "depends_on": [
+          "input_hashes_before"
+        ],
+        "expected_patterns": [
+          "mumei.verification-plan/v1",
+          "\"adapter_id\": \"gamma\"",
+          "permissions_not_allowed"
+        ],
+        "artifacts": [
+          "plan_permission_excluded.json",
+          "plan_permission_excluded.stdout",
+          "plan_permission_excluded.stderr"
+        ],
+        "harness_stage": "S3_permission_exclusion",
+        "artifact_contract": "The permission-specific plan excludes gamma, whose declared network.connect requirement is outside policy.allowed_permissions.",
+        "verifier_gate": "The route exits 0 and reports the tested permissions_not_allowed decision reason."
+      },
+      {
+        "id": "plan_no_compatible",
+        "name": "Plan: report no compatible adapter",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent verify-plan --request {root_dir}/scenarios/verify_plan/src/request_no_compatible.json --adapters {root_dir}/scenarios/verify_plan/src/adapters.json --policy {root_dir}/scenarios/verify_plan/src/policy.json --observations {root_dir}/scenarios/verify_plan/src/observations.json --output {output_dir}/plan_no_compatible.json > {output_dir}/plan_no_compatible.stdout 2> {output_dir}/plan_no_compatible.stderr; rc=$?; cat {output_dir}/plan_no_compatible.json; cat {output_dir}/plan_no_compatible.stdout; cat {output_dir}/plan_no_compatible.stderr; test $rc -eq 0 && {mumei_agent_python} -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d[\"schema_version\"] == \"mumei.verification-plan/v1\"; assert d[\"selected\"] is None and d[\"fallback_from\"] is None; assert all(\"unsupported_semantic_profile\" in x[\"reasons\"] for x in d[\"decisions\"]); print(\"no compatible adapter; selected is null\")' {output_dir}/plan_no_compatible.json",
+        "expected_exit": 0,
+        "depends_on": [
+          "input_hashes_before"
+        ],
+        "expected_patterns": [
+          "mumei.verification-plan/v1",
+          "\"selected\": null",
+          "unsupported_semantic_profile",
+          "no compatible adapter; selected is null"
+        ],
+        "artifacts": [
+          "plan_no_compatible.json",
+          "plan_no_compatible.stdout",
+          "plan_no_compatible.stderr"
+        ],
+        "harness_stage": "S4_no_compatible_adapter",
+        "artifact_contract": "An unsupported request profile returns an ordinary plan document with selected: null and exit status 0.",
+        "verifier_gate": "The scenario pins selected: null rather than inventing a nonzero-exit contract."
+      },
+      {
+        "id": "inputs_unchanged",
+        "name": "Check input integrity and planning-only output",
+        "repo": "mumei-demo",
+        "command": "before=$(cat {output_dir}/input_hashes.before); after=$(sha256sum {root_dir}/scenarios/verify_plan/src/request.json {root_dir}/scenarios/verify_plan/src/policy.json {root_dir}/scenarios/verify_plan/src/adapters.json {root_dir}/scenarios/verify_plan/src/observations.json {root_dir}/scenarios/verify_plan/src/policy_fallback.json {root_dir}/scenarios/verify_plan/src/observations_beta_missing.json {root_dir}/scenarios/verify_plan/src/adapters_permissions.json {root_dir}/scenarios/verify_plan/src/observations_permissions.json {root_dir}/scenarios/verify_plan/src/request_no_compatible.json); test \"$before\" = \"$after\" && {mumei_agent_python} -c 'import json,sys; sentinel=\"FAKE_SECRET_SENTINEL_VALUE_9f2c1d\"; execution=set((\"candidate\",\"acceptance\",\"dispatch\",\"selected_result\",\"accepted\")); texts=[open(p).read() for p in sys.argv[1:]]; assert all(sentinel not in text for text in texts); assert all(not execution.intersection(json.loads(text).keys()) for p,text in zip(sys.argv[1:],texts) if p.endswith(\".json\")); print(\"input hashes unchanged; no secret/environment values or execution records\")' {output_dir}/plan_priority.json {output_dir}/plan_priority.stdout {output_dir}/plan_priority.stderr {output_dir}/plan_unavailable_fallback.json {output_dir}/plan_unavailable_fallback.stdout {output_dir}/plan_unavailable_fallback.stderr {output_dir}/plan_permission_excluded.json {output_dir}/plan_permission_excluded.stdout {output_dir}/plan_permission_excluded.stderr {output_dir}/plan_no_compatible.json {output_dir}/plan_no_compatible.stdout {output_dir}/plan_no_compatible.stderr",
+        "expected_exit": 0,
+        "depends_on": [
+          "plan_priority",
+          "plan_unavailable_fallback",
+          "plan_permission_excluded",
+          "plan_no_compatible"
+        ],
+        "expected_patterns": [
+          "input hashes unchanged",
+          "no secret/environment values or execution records"
+        ],
+        "artifacts": [
+          "input_hashes.before"
+        ],
+        "harness_stage": "S5_input_integrity",
+        "artifact_contract": "All declared input fixture hashes remain unchanged; plan documents omit the injected environment sentinel and any execution or acceptance record.",
+        "verifier_gate": "Only planning outputs are present: the route never spawns or dispatches an adapter, accepts anything, or returns a verifier result."
+      }
+    ]
+  },
+  "narrative": {
+    "audit_status": "PLANNING-ONLY",
+    "moment": "Planning only: beta selected by priority; no verifier result is produced.",
+    "intro": [
+      "Step 1: plan_priority selects beta by declared priority.",
+      "Step 2: missing beta falls back to alpha.",
+      "Step 3: gamma is excluded by policy permissions.",
+      "Step 4: no supported profile yields selected: null.",
+      "Step 5: inputs unchanged; no adapter is executed."
+    ],
+    "before": "No local plan records the declared adapter choice or exclusion reasons.",
+    "after": "Plans record selection, fallback and exclusion reasons without executing an adapter; selection is not a verification result.",
+    "steps": {
+      "plan_priority": {
+        "pass": {
+          "icon": "✅",
+          "headline": "verify-plan: beta selected by priority",
+          "follow_up": [
+            "  mumei.verification-plan/v1 records beta as the selected adapter.",
+            "  Decision reasons match the route tests; fallback_from is null.",
+            "  Planning only: no adapter is spawned, dispatched or accepted."
+          ]
+        }
+      },
+      "plan_unavailable_fallback": {
+        "pass": {
+          "icon": "✅",
+          "headline": "verify-plan: fallback_from beta",
+          "follow_up": [
+            "  Host-declared missing availability selects alpha as the fallback.",
+            "  fallback_from names beta, the requested adapter.",
+            "  Selection is not a verifier execution or result."
+          ]
+        }
+      },
+      "plan_permission_excluded": {
+        "pass": {
+          "icon": "✅",
+          "headline": "verify-plan: gamma excluded by policy",
+          "follow_up": [
+            "  gamma requires network.connect, outside the declared permission set.",
+            "  The plan reports permissions_not_allowed for gamma."
+          ]
+        }
+      },
+      "plan_no_compatible": {
+        "pass": {
+          "icon": "✅",
+          "headline": "verify-plan: no compatible adapter",
+          "follow_up": [
+            "  An unsupported profile leaves selected null with exit status 0.",
+            "  The output is a planning document, not a verification result."
+          ]
+        }
+      },
+      "inputs_unchanged": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Inputs unchanged; planning-only boundary holds",
+          "follow_up": [
+            "  Every declared fixture hash matches its initial snapshot.",
+            "  No fake environment value or execution record appears in any plan."
+          ]
+        }
+      }
+    }
+  },
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Plan adapter selection and exclusion from declared manifests, policy and observations only; do not execute adapters or treat a selected adapter as a verification result.",
+    "success_criteria": [
+      "Priority plan selects beta with selected_priority, alpha compatible_not_selected and null fallback_from",
+      "Missing beta selects alpha and records beta as fallback_from",
+      "Gamma requiring network.connect is excluded with permissions_not_allowed",
+      "No-compatible request exits 0 with selected null",
+      "Input fixture hashes are unchanged; no environment sentinel or execution record is exposed"
+    ]
+  },
+  "success_criteria": [
+    "Priority plan uses mumei.verification-plan/v1, selects beta, reports the exact decision reasons and null fallback_from",
+    "Missing beta selects alpha and records beta as fallback_from",
+    "Gamma requiring network.connect is excluded with permissions_not_allowed",
+    "No-compatible request exits 0 with selected null",
+    "Input fixture hashes are unchanged; no environment sentinel or execution record is exposed"
+  ],
+  "gate_order": [
+    {
+      "gate": "plan_priority",
+      "user_wording": [
+        "Beta is selected by declared priority; this is planning only"
+      ]
+    },
+    {
+      "gate": "plan_unavailable_fallback",
+      "user_wording": [
+        "When beta is declared missing, alpha is selected and beta is recorded as fallback_from"
+      ]
+    },
+    {
+      "gate": "plan_permission_excluded",
+      "user_wording": [
+        "A permission-incompatible adapter is excluded with its tested reason"
+      ]
+    },
+    {
+      "gate": "plan_no_compatible",
+      "user_wording": [
+        "No compatible adapter produces selected: null"
+      ]
+    },
+    {
+      "gate": "inputs_unchanged",
+      "user_wording": [
+        "Inputs remain byte-identical; no adapter is spawned, dispatched or accepted"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/input_hashes.before",
+    "{output_dir}/plan_priority.json",
+    "{output_dir}/plan_priority.stdout",
+    "{output_dir}/plan_priority.stderr",
+    "{output_dir}/plan_unavailable_fallback.json",
+    "{output_dir}/plan_unavailable_fallback.stdout",
+    "{output_dir}/plan_unavailable_fallback.stderr",
+    "{output_dir}/plan_permission_excluded.json",
+    "{output_dir}/plan_permission_excluded.stdout",
+    "{output_dir}/plan_permission_excluded.stderr",
+    "{output_dir}/plan_no_compatible.json",
+    "{output_dir}/plan_no_compatible.stdout",
+    "{output_dir}/plan_no_compatible.stderr",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/result.json",
+    "{output_dir}/report.md"
+  ],
+  "budget_policy_fingerprint": "verify-plan-v1",
+  "result_message": "Result: beta planned; no adapter was run."
+}
