@@ -256,8 +256,14 @@ def test_native_and_evidence_reports_have_bounded_route_summaries():
             (scenario_dir / "scenario.json").read_text(encoding="utf-8")
         )
         if name.startswith("native_"):
-            if name in {"native_machine_tv_recheck", "native_machine_tv_branch_call_recheck"}:
+            if name in {
+                "native_machine_tv_recheck",
+                "native_machine_tv_branch_call_recheck",
+                "native_machine_tv_bounded_loop_recheck",
+            }:
                 audit_status = "BOUNDED MACHINE-TV"
+            elif name == "native_object_accept":
+                audit_status = "BOUNDED OBJECT-ACCEPT"
             elif name == "native_observations_recovery":
                 audit_status = "BOUNDED RECOVERY"
             elif name in {
@@ -326,6 +332,81 @@ def test_native_and_evidence_reports_have_bounded_route_summaries():
         if audit_status == "BOUNDED ACCEPTANCE":
             assert "One Core invocation" in moment, name
             assert "no universal ABI/runtime claim" in moment, name
+        if audit_status == "BOUNDED OBJECT-ACCEPT":
+            bounded_text = " ".join(
+                [
+                    scenario["description"],
+                    narrative["after"],
+                    narrative["moment"],
+                    *intro,
+                    scenario["harness_contract"]["intent"],
+                    result_message,
+                ]
+            ).lower()
+            for term in (
+                "register convention",
+                "assumed",
+                "not validated",
+                "abi",
+                "runtime",
+                "crt",
+                "loader",
+                "os exit-status",
+                "universal object-tv",
+                "no grade",
+            ):
+                assert term in bounded_text, (name, term)
+            assert (
+                "evidence reuse" in bounded_text
+                or "evidence-reuse" in bounded_text
+            ), name
+
+        if name in {
+            "native_machine_tv_bounded_loop_recheck",
+            "native_object_accept",
+        }:
+            bounded_text = " ".join(
+                [
+                    scenario["description"],
+                    narrative["after"],
+                    narrative["moment"],
+                    *intro,
+                    scenario["harness_contract"]["intent"],
+                    result_message,
+                ]
+            ).lower()
+            assert "only bounded" in bounded_text or "only the bounded" in bounded_text
+            assert all(
+                phrase in bounded_text
+                for phrase in (
+                    "register convention",
+                    "assumed",
+                    "not validated",
+                    "abi",
+                    "runtime",
+                    "crt",
+                    "loader",
+                    "os exit-status",
+                    "universal object-tv",
+                )
+            ), name
+            assert (
+                "evidence reuse" in bounded_text
+                or "evidence-reuse" in bounded_text
+            ), name
+            failed = render_cli_report(
+                {
+                    "scenario": name,
+                    "scenario_name": scenario["name"],
+                    "overall_status": "FAIL",
+                    "layers": {"l1_z3": {}},
+                    "proof_density": {"verified": 0, "total": 1, "percentage": 0},
+                    "narrative": narrative,
+                }
+            )
+            assert "Audit Status:  ATTENTION" in failed, name
+            assert f"Audit Status:  {audit_status}" not in failed, name
+            assert "TRUSTLESS" not in failed and "Correct code proven" not in failed
 
 
 def test_cli_report_defaults_remain_unchanged_for_other_scenarios():
@@ -785,6 +866,10 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
                          if line.startswith("OPTIONAL_SCENARIOS :="))
     assert OPTIONAL_SCENARIOS == app.OPTIONAL_SCENARIOS == optional_line.split(":=", 1)[1].split()
     assert {"rust_bindings", "sol_bindings", "ts_bindings"} <= set(OPTIONAL_SCENARIOS)
+    assert {
+        "native_machine_tv_bounded_loop_recheck",
+        "native_object_accept",
+    } <= set(OPTIONAL_SCENARIOS)
     assert app.scenario_names().index("record_execution_demo") == len(SCENARIO_ORDER)
     assert app.scenario_names().count("record_execution_demo") == 1
     assert len(app.scenario_names()) == len(set(app.scenario_names()))
