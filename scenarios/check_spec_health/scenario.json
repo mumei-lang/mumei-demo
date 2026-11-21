@@ -1,0 +1,263 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_spec_health"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_spec_health"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Report only Core diagnostics from contradiction and vacuity checks. Do not assess specification intent, implementation correctness, or a grade.",
+    "artifact_contracts": [
+      "The healthy_spec report has no entry for that atom in contradictions or vacuous.",
+      "The contradictory_requires atom appears under contradictions.",
+      "The vacuous list contains exactly one entry for weak_spec with a message containing vacuous; unknown atom attribution is rejected.",
+      "SHA-256 values for all three source fixtures match before and after the route calls."
+    ],
+    "gate_order": [
+      "l1_spec_health"
+    ],
+    "notes": [
+      "SPEC-HEALTH-DIAGNOSTIC: report only Core contradiction and vacuity findings.",
+      "No conclusion is made about specification intent or implementation correctness.",
+      "No grade is assigned."
+    ],
+    "artifact_keys": [
+      "contradictions",
+      "vacuous",
+      "atom",
+      "message"
+    ]
+  },
+  "name": "Core Specification Health Diagnostics",
+  "description": "Report only Core contradiction and vacuity diagnostics; no specification-intent, implementation-correctness, or grade assessment is made.",
+  "narrative": {
+    "before": "The declared .mm examples have no captured health-route output.",
+    "after": "Reports contain only Core contradiction and vacuity diagnostics, with no intent, implementation, or grade conclusion.",
+    "audit_status": "SPEC-HEALTH-DIAGNOSTIC",
+    "moment": "Core contradiction/vacuity diagnostics only; no intent, implementation, or grade assessment.",
+    "intro": [
+      "Step 1: healthy_spec has no contradiction or vacuity entry.",
+      "Step 2: contradictory_requires is reported under contradictions.",
+      "Step 3: One vacuity entry is attributed to weak_spec.",
+      "Step 4: Input fixture SHA-256 values are unchanged.",
+      "Only Core contradiction and vacuity diagnostics are reported.",
+      "No specification-intent or implementation-correctness conclusion is made.",
+      "No grade is assigned."
+    ],
+    "steps": {
+      "healthy": {
+        "pass": {
+          "icon": "✅",
+          "headline": "No diagnostic entry for healthy_spec",
+          "follow_up": [
+            "  healthy_spec is absent from contradictions and vacuous."
+          ]
+        }
+      },
+      "contradictory": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Contradictory requires attributed",
+          "follow_up": [
+            "  contradictory_requires appears under contradictions."
+          ]
+        }
+      },
+      "vacuity": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Vacuity diagnostic attributed to weak_spec",
+          "follow_up": [
+            "  Exactly one vacuous entry names weak_spec.",
+            "  Its message contains a vacuity diagnostic."
+          ]
+        }
+      },
+      "inputs_unchanged": {
+        "pass": {
+          "icon": "✅",
+          "headline": "Source fixture hashes unchanged",
+          "follow_up": [
+            "  SHA-256 values match the initial snapshot."
+          ]
+        }
+      }
+    }
+  },
+  "result_message": "Result: Core spec-health diagnostics only.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Capture exact diagnostic keys and atom attribution from Core's contradiction and vacuity checks without making claims about specification intent, implementation correctness, or grade.",
+    "success_criteria": [
+      "healthy_spec has no entry in contradictions or vacuous",
+      "contradictory_requires appears in contradictions",
+      "The vacuous list has exactly one weak_spec entry whose message contains vacuous",
+      "SHA-256 values for all source fixtures are unchanged"
+    ]
+  },
+  "success_criteria": [
+    "The healthy fixture has no matching atom in contradictions or vacuous",
+    "The contradictory fixture reports contradictory_requires under contradictions",
+    "The vacuous list contains exactly one entry with atom weak_spec and a message containing vacuous",
+    "The three source fixture hashes match before and after the route calls"
+  ],
+  "gate_order": [
+    {
+      "gate": "healthy",
+      "user_wording": [
+        "No contradiction or vacuity entry is reported for healthy_spec"
+      ]
+    },
+    {
+      "gate": "contradictory",
+      "user_wording": [
+        "contradictory_requires is reported under contradictions"
+      ]
+    },
+    {
+      "gate": "vacuity",
+      "user_wording": [
+        "Exactly one vacuity diagnostic is attributed to weak_spec"
+      ]
+    },
+    {
+      "gate": "inputs_unchanged",
+      "user_wording": [
+        "Source fixture SHA-256 values are unchanged"
+      ]
+    }
+  ],
+  "artifact_paths": [
+    "{output_dir}/input_hashes.before",
+    "{output_dir}/healthy.json",
+    "{output_dir}/healthy.stdout",
+    "{output_dir}/healthy.stderr",
+    "{output_dir}/contradictory.json",
+    "{output_dir}/contradictory.stdout",
+    "{output_dir}/contradictory.stderr",
+    "{output_dir}/vacuity.json",
+    "{output_dir}/vacuity.stdout",
+    "{output_dir}/vacuity.stderr",
+    "{output_dir}/harness_state.json",
+    "{output_dir}/report.md"
+  ],
+  "l1_spec_health": {
+    "steps": [
+      {
+        "id": "input_hashes_before",
+        "name": "Snapshot source fixture SHA-256 values",
+        "repo": "mumei-demo",
+        "command": "sha256sum {root_dir}/scenarios/check_spec_health/src/healthy.mm {root_dir}/scenarios/check_spec_health/src/contradictory.mm {root_dir}/scenarios/check_spec_health/src/weak_spec.mm > {output_dir}/input_hashes.before && cat {output_dir}/input_hashes.before",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "healthy.mm",
+          "contradictory.mm",
+          "weak_spec.mm"
+        ],
+        "artifacts": [
+          "input_hashes.before"
+        ],
+        "harness_stage": "S0_source_hash_snapshot",
+        "artifact_contract": "Record the SHA-256 values for the three source fixtures before invoking check-spec-health.",
+        "verifier_gate": "The final integrity step must reproduce the exact hash listing."
+      },
+      {
+        "id": "healthy",
+        "name": "Check a well-specified atom",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "MUMEI_BIN={mumei_bin} {mumei_agent_python} -m agent check-spec-health {root_dir}/scenarios/check_spec_health/src/healthy.mm --mumei-repo {mumei_repo} --output {output_dir}/healthy.json > {output_dir}/healthy.stdout 2> {output_dir}/healthy.stderr; rc=$?; cat {output_dir}/healthy.json; cat {output_dir}/healthy.stdout; cat {output_dir}/healthy.stderr; test $rc -eq 0 && {mumei_agent_python} -c 'import json,sys; r=json.load(open(sys.argv[1])); atom=sys.argv[2]; assert isinstance(r.get(\"contradictions\"),list), r; assert isinstance(r.get(\"vacuous\"),list), r; assert not any(isinstance(e,dict) and e.get(\"atom\")==atom for e in r[\"contradictions\"]), r; assert not any(isinstance(e,dict) and e.get(\"atom\")==atom for e in r[\"vacuous\"]), r; print(\"healthy_spec absent from contradiction/vacuity diagnostics\")' {output_dir}/healthy.json healthy_spec",
+        "expected_exit": 0,
+        "depends_on": [
+          "input_hashes_before"
+        ],
+        "expected_patterns": [
+          "\"contradictions\"",
+          "\"vacuous\"",
+          "healthy_spec absent from contradiction/vacuity diagnostics"
+        ],
+        "artifacts": [
+          "healthy.json",
+          "healthy.stdout",
+          "healthy.stderr"
+        ],
+        "harness_stage": "S1_healthy_diagnostics",
+        "artifact_contract": "The tested report keys contain no contradictions or vacuous entry for healthy_spec.",
+        "verifier_gate": "Pass only when healthy_spec has no matching atom in contradictions or vacuous."
+      },
+      {
+        "id": "contradictory",
+        "name": "Check contradictory requires",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "MUMEI_BIN={mumei_bin} {mumei_agent_python} -m agent check-spec-health {root_dir}/scenarios/check_spec_health/src/contradictory.mm --mumei-repo {mumei_repo} --output {output_dir}/contradictory.json > {output_dir}/contradictory.stdout 2> {output_dir}/contradictory.stderr; rc=$?; cat {output_dir}/contradictory.json; cat {output_dir}/contradictory.stdout; cat {output_dir}/contradictory.stderr; test $rc -eq 0 && {mumei_agent_python} -c 'import json,sys; r=json.load(open(sys.argv[1])); assert isinstance(r.get(\"contradictions\"),list), r; assert any(isinstance(e,dict) and e.get(\"atom\")==\"contradictory_requires\" for e in r[\"contradictions\"]), r; print(\"contradictory_requires reported under contradictions\")' {output_dir}/contradictory.json",
+        "expected_exit": 0,
+        "depends_on": [
+          "input_hashes_before"
+        ],
+        "expected_patterns": [
+          "\"contradictions\"",
+          "contradictory_requires reported under contradictions"
+        ],
+        "artifacts": [
+          "contradictory.json",
+          "contradictory.stdout",
+          "contradictory.stderr"
+        ],
+        "harness_stage": "S2_contradictory_diagnostics",
+        "artifact_contract": "The tested contradictions list includes the target atom contradictory_requires.",
+        "verifier_gate": "Pass only when contradictory_requires appears under contradictions."
+      },
+      {
+        "id": "vacuity",
+        "name": "Check vacuity atom attribution",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "MUMEI_BIN={mumei_bin} {mumei_agent_python} -m agent check-spec-health {root_dir}/scenarios/check_spec_health/src/weak_spec.mm --mumei-repo {mumei_repo} --output {output_dir}/vacuity.json > {output_dir}/vacuity.stdout 2> {output_dir}/vacuity.stderr; rc=$?; cat {output_dir}/vacuity.json; cat {output_dir}/vacuity.stdout; cat {output_dir}/vacuity.stderr; test $rc -eq 0 && {mumei_agent_python} -c 'import json,sys; r=json.load(open(sys.argv[1])); entries=r.get(\"vacuous\"); assert isinstance(entries,list) and len(entries)==1, r; entry=entries[0]; assert entry.get(\"atom\")==\"weak_spec\", r; message=entry.get(\"message\"); assert isinstance(message,str) and \"vacuous\" in message.lower(), r; print(\"exactly one vacuity diagnostic attributed to weak_spec\")' {output_dir}/vacuity.json",
+        "expected_exit": 0,
+        "depends_on": [
+          "input_hashes_before"
+        ],
+        "expected_patterns": [
+          "\"vacuous\"",
+          "\"atom\": \"weak_spec\"",
+          "exactly one vacuity diagnostic attributed to weak_spec"
+        ],
+        "artifacts": [
+          "vacuity.json",
+          "vacuity.stdout",
+          "vacuity.stderr"
+        ],
+        "harness_stage": "S3_vacuity_atom_attribution",
+        "artifact_contract": "The tested vacuous list has exactly one entry whose atom is weak_spec and whose message contains vacuous case-insensitively.",
+        "verifier_gate": "An unknown or other atom, a missing message, or any vacuous-entry count other than one fails the step."
+      },
+      {
+        "id": "inputs_unchanged",
+        "name": "Check source fixture integrity",
+        "repo": "mumei-demo",
+        "command": "before=$(cat {output_dir}/input_hashes.before); after=$(sha256sum {root_dir}/scenarios/check_spec_health/src/healthy.mm {root_dir}/scenarios/check_spec_health/src/contradictory.mm {root_dir}/scenarios/check_spec_health/src/weak_spec.mm); test \"$before\" = \"$after\" && echo 'source fixture SHA-256 values unchanged'",
+        "expected_exit": 0,
+        "depends_on": [
+          "healthy",
+          "contradictory",
+          "vacuity"
+        ],
+        "expected_patterns": [
+          "source fixture SHA-256 values unchanged"
+        ],
+        "artifacts": [
+          "input_hashes.before"
+        ],
+        "harness_stage": "S4_input_integrity",
+        "artifact_contract": "The source fixture SHA-256 listing is identical before and after all route calls.",
+        "verifier_gate": "All declared .mm fixture bytes remain unchanged."
+      }
+    ]
+  }
+}

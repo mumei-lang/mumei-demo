@@ -240,13 +240,16 @@ def test_lexical_binding_reports_are_bounded_and_failures_force_attention():
         assert "Correct code proven" not in passed + failed
 
 
-def test_native_and_evidence_reports_have_bounded_route_summaries():
+def test_native_evidence_and_spec_health_reports_have_bounded_route_summaries():
     root = Path(__file__).resolve().parents[1]
     scenario_dirs = sorted(
         path
         for path in (root / "scenarios").iterdir()
         if path.is_dir()
-        and path.name.startswith(("native_", "evidence_"))
+        and (
+            path.name.startswith(("native_", "evidence_"))
+            or path.name == "check_spec_health"
+        )
         and (path / "scenario.json").exists()
     )
 
@@ -285,6 +288,7 @@ def test_native_and_evidence_reports_have_bounded_route_summaries():
             "evidence_acceptance_eval",
             "evidence_check_adapter",
             "evidence_check_attempt_acceptance",
+            "check_spec_health",
         }:
             audit_status = scenario["narrative"]["audit_status"]
         elif name in {"evidence_compare", "evidence_identity", "evidence_producer"}:
@@ -873,6 +877,7 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
         "native_machine_tv_f64_recheck",
         "native_object_accept",
         "evidence_fold_eval",
+        "check_spec_health",
         "summaries_reuse_attempt",
     } <= set(OPTIONAL_SCENARIOS)
     assert app.scenario_names().index("record_execution_demo") == len(SCENARIO_ORDER)
