@@ -1,0 +1,191 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Run Core's native-machine-tv-recheck on exact two-leaf integer and four-leaf mixed i64/f64 aggregate fixtures, plus native-object-accept on the wide fixture. Core's machine_code_composite_register_aggregate_tv is consumed only when listed in checks_performed. One- and two-leaf aggregates use Core's assumed SysV eightbyte convention; aggregates wider than two leaves assume LLVM first-class aggregate register lowering, not SysV C-ABI classification. machine_code_tv_sysv_memory_class_aggregate_abi remains not performed; register conventions are assumed, not validated. This makes no ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim.",
+    "artifact_contracts": [
+      "Read src/two_leaf.mm and src/wide.mm: exact copies of the agent COMPOSITE_AGGREGATE_SOURCE and COMPOSITE_WIDE_MIXED_F64_SOURCE fixtures, each ending in main returning 0.",
+      "Steps 1 and 3 build native bundles, assert pinned exit status 0 with empty stdout/stderr digests, and record sha256(native-bundle.json) build IDs.",
+      "Steps 2 and 4 capture Core's machine-TV descriptors and agent reports. Require the composite check and all listed per-function outcomes; preserve the register convention verbatim; keep the memory-class, MXCSR, NaN, OS exit-status, and object-translation claims bounded as specified.",
+      "Step 5 captures Core accept-object and agent native-object-accept results for the wide fixture; require accepted status, the same convention string, and only the performed composite machine-TV check discharged.",
+      "Step 6 passes a wrong expected build ID to Core and the agent recheck route; Core exits nonzero, the report has no machine-TV outcome or discharged checks, and no result is selected."
+    ]
+  },
+  "name": "Declared Native Composite Aggregate Machine-TV Recheck (native-machine-tv-composite-recheck)",
+  "description": "A bounded Core and mumei-agent machine-TV recheck of one- through four-leaf struct parameters, results, and direct-call values with i64 and/or f64 leaves. One- and two-leaf aggregates use Core's assumed SysV eightbyte convention. Aggregates wider than two leaves assume LLVM first-class aggregate register lowering, not SysV C-ABI classification. machine_code_tv_sysv_memory_class_aggregate_abi remains not performed; the register convention is assumed, not validated. No ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim is made.",
+  "narrative": {
+    "intro": [
+      "Build the exact two-leaf integer and four-leaf mixed i64/f64 aggregate fixtures.",
+      "Recheck Core's composite aggregate machine-TV descriptor.",
+      "Accept the wide bundle only through native-object-accept after Core lists the check as performed.",
+      "Reject a wrong build ID without a machine-TV outcome.",
+      "One- and two-leaf SysV eightbyte and wider LLVM aggregate register conventions are assumed, not validated; the memory-class marker remains not performed."
+    ],
+    "before": "The declared composite aggregate machine-TV checks have not yet been rechecked.",
+    "after": "Only bounded composite aggregate machine-TV ran for one- through four-leaf struct parameters, results, and direct-call values with i64 and/or f64 leaves. One- and two-leaf aggregates use Core's assumed SysV eightbyte convention; aggregates wider than two leaves assume LLVM first-class aggregate register lowering, not SysV C-ABI classification. machine_code_tv_sysv_memory_class_aggregate_abi remains not performed. The register convention is assumed, not validated. No ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim is made.",
+    "audit_status": "BOUNDED MACHINE-TV",
+    "moment": "Register convention assumed; not verified ABI; object_translation_correspondence not performed."
+  },
+  "result_message": "Result: bounded composite aggregate machine-TV only.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Demonstrate Core's descriptor-gated composite aggregate machine-TV for one- through four-leaf struct parameters, results, and direct-call values with i64 and/or f64 leaves. One- and two-leaf aggregates use Core's assumed SysV eightbyte convention; aggregates wider than two leaves assume LLVM first-class aggregate register lowering, not SysV C-ABI classification. machine_code_tv_sysv_memory_class_aggregate_abi remains not performed. The register convention is assumed, not validated. No ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim is made.",
+    "success_criteria": [
+      "The two-leaf bundle pins exit status 0 with empty stdout/stderr digests and records its build ID; Core and agent reports have machine_tv_recheck == 'checked', the composite check performed and discharged, and sum/mk/caller/fwd equivalent_within_profile.",
+      "The two-leaf Core and agent register_convention_assumed values match and end in _two_eightbyte_integer_aggregates_in_consecutive_gprs_result_rax_rdx. The memory-class marker is not in Core checks_performed and is not discharged; OS exit-status observation and object_translation_correspondence are not discharged; entry-wrapper and callee-saved checks are discharged iff Core lists them as performed; function names are absent from the report after long hexadecimal runs are removed.",
+      "The four-leaf mixed fixture has Core and agent machine_tv_recheck == 'checked', the composite check performed and discharged, and sum4/mk4/caller/fwd equivalent_within_profile. Its exact LLVM first-class aggregate convention is preserved; the memory-class marker is in Core and agent checks_not_performed and is not discharged; MXCSR and NaN markers remain not performed and not discharged.",
+      "The wide native-object-accept report has acceptance == 'accepted', passes through Core's convention verbatim, discharges the composite check, and leaves machine_code_tv_sysv_memory_class_aggregate_abi not performed and not discharged.",
+      "The wrong-build-ID Core recheck exits nonzero; the agent report has no machine_tv_recheck or discharged_checks and has no selected_result."
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_two_leaf",
+        "name": "Build the two-leaf integer aggregate bundle",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle build {root_dir}/scenarios/native_machine_tv_composite_recheck/src/two_leaf.mm -o {output_dir}/two_leaf_bundle > {output_dir}/two_leaf_build.log 2>&1 && python3 -c \"import hashlib,json; r=json.load(open('{output_dir}/two_leaf_bundle/native-bundle.json')); p=r['link_build']; empty=hashlib.sha256(b'').hexdigest(); assert p['expected_exit_status']==0, p; assert p['expected_stdout_sha256']==empty, p; assert p['expected_stderr_sha256']==empty, p; print(hashlib.sha256(open('{output_dir}/two_leaf_bundle/native-bundle.json','rb').read()).hexdigest())\" > {output_dir}/two_leaf_build_id.txt; rc=$?; cat {output_dir}/two_leaf_build.log; cat {output_dir}/two_leaf_build_id.txt; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "two_leaf_build.log",
+          "two_leaf_build_id.txt",
+          "two_leaf_bundle/native-bundle.json",
+          "two_leaf_bundle/program.ll",
+          "two_leaf_bundle/program.o",
+          "two_leaf_bundle/proof-cert.json",
+          "two_leaf_bundle/program"
+        ],
+        "harness_stage": "S1_two_leaf_bundle_produce",
+        "artifact_contract": "The exact two-leaf integer fixture builds with pinned exit status 0 and empty stdout/stderr; two_leaf_build_id.txt records sha256(native-bundle.json).",
+        "verifier_gate": "Core builds the declared two-leaf source and the native bundle pins its expected process exit and output channels.",
+        "expected_patterns": [
+          "Build ID:"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "checked_two_leaf",
+        "name": "Recheck the two-leaf integer aggregate machine TV",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle recheck-machine-tv --expected-build-id $(cat {output_dir}/two_leaf_build_id.txt) --json {output_dir}/two_leaf_bundle {root_dir}/scenarios/native_machine_tv_composite_recheck/src/two_leaf.mm > {output_dir}/two_leaf_core_descriptor.json && {mumei_agent_python} -m agent native-machine-tv-recheck --core {mumei_bin} --bundle {output_dir}/two_leaf_bundle --source {root_dir}/scenarios/native_machine_tv_composite_recheck/src/two_leaf.mm --expected-build-id $(cat {output_dir}/two_leaf_build_id.txt) --output {output_dir}/two_leaf_report.json > {output_dir}/two_leaf_recheck.log 2>&1; rc=$?; cat {output_dir}/two_leaf_core_descriptor.json; cat {output_dir}/two_leaf_report.json; cat {output_dir}/two_leaf_recheck.log; test $rc -eq 0 && python3 -c \"import json,re; c=json.load(open('{output_dir}/two_leaf_core_descriptor.json')); r=json.load(open('{output_dir}/two_leaf_report.json')); performed=set(c['checks_performed']); discharged=set(r['discharged_checks']); check='machine_code_composite_register_aggregate_tv'; memory='machine_code_tv_sysv_memory_class_aggregate_abi'; suffix='_two_eightbyte_integer_aggregates_in_consecutive_gprs_result_rax_rdx'; assert r['schema_version']=='mumei.native-machine-tv-recheck-report/v1' and r['machine_tv_recheck']=='checked', r; assert check in performed and check in discharged, (c,r); assert all(c['functions'][name]['outcome']=='equivalent_within_profile' for name in ('sum','mk','caller','fwd')), c; assert c['register_convention_assumed']==r['register_convention_assumed'] and c['register_convention_assumed'].endswith(suffix), (c,r); assert memory not in performed and memory not in discharged and memory in r['checks_not_performed'], (c,r); assert 'os_exit_status_observation' not in discharged and 'object_translation_correspondence' not in discharged, r; assert all((name in performed)==(name in discharged) for name in ('machine_code_entry_wrapper_tv','machine_code_callee_saved_register_preservation')), (c,r); assert r['expected_build_id']==open('{output_dir}/two_leaf_build_id.txt').read().strip() and r['sequence'].get('selected_result') is not None, r; text=re.sub('[0-9a-f]{16,}','',json.dumps(r,sort_keys=True)); assert all(json.dumps(name) not in text for name in ('sum','mk','caller','fwd')), text; print('two-leaf composite check performed and discharged')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "two_leaf_core_descriptor.json",
+          "two_leaf_recheck.log",
+          "two_leaf_report.json"
+        ],
+        "depends_on": [
+          "produce_two_leaf"
+        ],
+        "harness_stage": "S2_two_leaf_machine_tv_recheck",
+        "artifact_contract": "Core and agent list the two-leaf composite check as performed and discharged with equivalent sum/mk/caller/fwd outcomes; the convention string matches and ends with the required two-eightbyte suffix; the memory-class marker is not performed or discharged; OS exit-status and object-translation checks are not discharged; report text omits function names.",
+        "verifier_gate": "The matching Core descriptor lists the composite check in checks_performed and all four aggregate functions as equivalent within profile; the agent consumes only the performed check.",
+        "expected_patterns": [
+          "machine_code_composite_register_aggregate_tv",
+          "two-leaf composite check performed and discharged"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "produce_wide",
+        "name": "Build the four-leaf mixed aggregate bundle",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle build {root_dir}/scenarios/native_machine_tv_composite_recheck/src/wide.mm -o {output_dir}/wide_bundle > {output_dir}/wide_build.log 2>&1 && python3 -c \"import hashlib,json; r=json.load(open('{output_dir}/wide_bundle/native-bundle.json')); p=r['link_build']; empty=hashlib.sha256(b'').hexdigest(); assert p['expected_exit_status']==0, p; assert p['expected_stdout_sha256']==empty, p; assert p['expected_stderr_sha256']==empty, p; print(hashlib.sha256(open('{output_dir}/wide_bundle/native-bundle.json','rb').read()).hexdigest())\" > {output_dir}/wide_build_id.txt; rc=$?; cat {output_dir}/wide_build.log; cat {output_dir}/wide_build_id.txt; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "wide_build.log",
+          "wide_build_id.txt",
+          "wide_bundle/native-bundle.json",
+          "wide_bundle/program.ll",
+          "wide_bundle/program.o",
+          "wide_bundle/proof-cert.json",
+          "wide_bundle/program"
+        ],
+        "harness_stage": "S3_wide_bundle_produce",
+        "artifact_contract": "The exact four-leaf mixed i64/f64 fixture builds with pinned exit status 0 and empty stdout/stderr; wide_build_id.txt records sha256(native-bundle.json).",
+        "verifier_gate": "Core builds the declared wide source and the native bundle pins its expected process exit and output channels.",
+        "expected_patterns": [
+          "Build ID:"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "checked_wide",
+        "name": "Recheck the four-leaf mixed aggregate machine TV",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle recheck-machine-tv --expected-build-id $(cat {output_dir}/wide_build_id.txt) --json {output_dir}/wide_bundle {root_dir}/scenarios/native_machine_tv_composite_recheck/src/wide.mm > {output_dir}/wide_core_descriptor.json && {mumei_agent_python} -m agent native-machine-tv-recheck --core {mumei_bin} --bundle {output_dir}/wide_bundle --source {root_dir}/scenarios/native_machine_tv_composite_recheck/src/wide.mm --expected-build-id $(cat {output_dir}/wide_build_id.txt) --output {output_dir}/wide_report.json > {output_dir}/wide_recheck.log 2>&1; rc=$?; cat {output_dir}/wide_core_descriptor.json; cat {output_dir}/wide_report.json; cat {output_dir}/wide_recheck.log; test $rc -eq 0 && python3 -c \"import json,re; c=json.load(open('{output_dir}/wide_core_descriptor.json')); r=json.load(open('{output_dir}/wide_report.json')); performed=set(c['checks_performed']); core_not=set(c['checks_not_performed']); discharged=set(r['discharged_checks']); report_not=set(r['checks_not_performed']); check='machine_code_composite_register_aggregate_tv'; memory='machine_code_tv_sysv_memory_class_aggregate_abi'; mxcsr='machine_code_tv_mxcsr_control_state'; nan='machine_code_tv_nan_payload_bits'; convention='sysv_x86_64_integer_args_rdi_rsi_rdx_rcx_r8_r9_f64_args_xmm0_7_result_rax_or_xmm0_llvm_first_class_aggregates_split_into_registers_result_rax_rdx_rcx_xmm0_xmm1'; assert r['schema_version']=='mumei.native-machine-tv-recheck-report/v1' and r['machine_tv_recheck']=='checked', r; assert check in performed and check in discharged, (c,r); assert all(c['functions'][name]['outcome']=='equivalent_within_profile' for name in ('sum4','mk4','caller','fwd')), c; assert c['register_convention_assumed']==convention==r['register_convention_assumed'], (c,r); assert memory in core_not and memory not in performed and memory in report_not and memory not in discharged, (c,r); assert {mxcsr,nan} <= core_not and {mxcsr,nan} <= report_not and not ({mxcsr,nan} & discharged), (c,r); assert 'os_exit_status_observation' not in discharged and 'object_translation_correspondence' not in discharged, r; assert all((name in performed)==(name in discharged) for name in ('machine_code_entry_wrapper_tv','machine_code_callee_saved_register_preservation')), (c,r); assert r['expected_build_id']==open('{output_dir}/wide_build_id.txt').read().strip() and r['sequence'].get('selected_result') is not None, r; text=re.sub('[0-9a-f]{16,}','',json.dumps(r,sort_keys=True)); assert all(json.dumps(name) not in text for name in ('sum4','mk4','caller','fwd')), text; print('wide composite aggregate check performed and discharged; memory-class, MXCSR, and NaN markers remain not performed')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "wide_core_descriptor.json",
+          "wide_recheck.log",
+          "wide_report.json"
+        ],
+        "depends_on": [
+          "produce_wide"
+        ],
+        "harness_stage": "S4_wide_machine_tv_recheck",
+        "artifact_contract": "Core and agent list the wide composite check as performed and discharged with equivalent sum4/mk4/caller/fwd outcomes and the exact LLVM aggregate convention; the memory-class marker is not performed or discharged; MXCSR and NaN remain not performed and not discharged; OS exit-status and object-translation checks are not discharged; report text omits function names.",
+        "verifier_gate": "The matching Core descriptor lists the composite check in checks_performed and all four aggregate functions as equivalent within profile; wider-than-two-leaf lowering remains an explicit assumption, not a SysV C-ABI claim.",
+        "expected_patterns": [
+          "machine_code_composite_register_aggregate_tv",
+          "wide composite aggregate check performed and discharged"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "accept_wide",
+        "name": "Accept the wide bundle through native-object-accept",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle accept-object --expected-build-id $(cat {output_dir}/wide_build_id.txt) --json {output_dir}/wide_bundle {root_dir}/scenarios/native_machine_tv_composite_recheck/src/wide.mm > {output_dir}/accept_core_descriptor.json && {mumei_agent_python} -m agent native-object-accept --core {mumei_bin} --bundle {output_dir}/wide_bundle --source {root_dir}/scenarios/native_machine_tv_composite_recheck/src/wide.mm --expected-build-id $(cat {output_dir}/wide_build_id.txt) --output {output_dir}/accept_report.json > {output_dir}/accept.log 2>&1; rc=$?; cat {output_dir}/accept_core_descriptor.json; cat {output_dir}/accept_report.json; cat {output_dir}/accept.log; test $rc -eq 0 && python3 -c \"import json; c=json.load(open('{output_dir}/accept_core_descriptor.json')); r=json.load(open('{output_dir}/accept_report.json')); performed=set(c['checks_performed']); core_not=set(c['checks_not_performed']); discharged=set(r['discharged_checks']); report_not=set(r['checks_not_performed']); check='machine_code_composite_register_aggregate_tv'; memory='machine_code_tv_sysv_memory_class_aggregate_abi'; convention='sysv_x86_64_integer_args_rdi_rsi_rdx_rcx_r8_r9_f64_args_xmm0_7_result_rax_or_xmm0_llvm_first_class_aggregates_split_into_registers_result_rax_rdx_rcx_xmm0_xmm1'; assert c['acceptance']=='evaluated' and c['accepted'] is True, c; assert r['schema_version']=='mumei.native-object-accept-report/v1' and r['acceptance']=='accepted', r; assert check in performed and check in discharged, (c,r); assert c['register_convention_assumed']==convention==r['register_convention_assumed'], (c,r); assert memory in core_not and memory not in performed and memory in report_not and memory not in discharged, (c,r); assert r['sequence'].get('selected_result') is not None, r; print('accepted; wide composite machine-TV check discharged and memory-class marker remains not performed')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "accept_core_descriptor.json",
+          "accept.log",
+          "accept_report.json"
+        ],
+        "depends_on": [
+          "checked_wide"
+        ],
+        "harness_stage": "S5_wide_object_accept",
+        "artifact_contract": "Core accepts the wide object descriptor with the composite check performed; the agent reports acceptance == accepted, passes through the exact convention string, discharges the composite check, and leaves the memory-class marker not performed and not discharged.",
+        "verifier_gate": "The valid Core accept-object descriptor is consumed by native-object-accept; only the performed composite machine-TV check is claimed.",
+        "expected_patterns": [
+          "accepted",
+          "wide composite machine-TV check discharged"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "wrong_build_id",
+        "name": "Reject a mismatched build ID for the wide bundle",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle recheck-machine-tv --expected-build-id $(python3 -c \"import hashlib;print(hashlib.sha256(b'not-the-build-id').hexdigest())\") --json {output_dir}/wide_bundle {root_dir}/scenarios/native_machine_tv_composite_recheck/src/wide.mm > {output_dir}/wrong_core.log 2>&1; core_rc=$?; {mumei_agent_python} -m agent native-machine-tv-recheck --core {mumei_bin} --bundle {output_dir}/wide_bundle --source {root_dir}/scenarios/native_machine_tv_composite_recheck/src/wide.mm --expected-build-id $(python3 -c \"import hashlib;print(hashlib.sha256(b'not-the-build-id').hexdigest())\") --output {output_dir}/wrong_report.json > {output_dir}/wrong.log 2>&1; rc=$?; cat {output_dir}/wrong_core.log; cat {output_dir}/wrong_report.json; cat {output_dir}/wrong.log; test $core_rc -ne 0 && test $rc -eq 0 && python3 -c \"import hashlib,json; r=json.load(open('{output_dir}/wrong_report.json')); assert r['schema_version']=='mumei.native-machine-tv-recheck-report/v1'; assert 'machine_tv_recheck' not in r and not r.get('discharged_checks'), r; assert r['expected_build_id']==hashlib.sha256(b'not-the-build-id').hexdigest(), r; assert r['normalized'].get('exit_code') != 0, r['normalized']; assert r['sequence'].get('selected_result') is None, r; print('wrong build ID: Core exited nonzero and no machine-TV checks were discharged')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "wrong_core.log",
+          "wrong.log",
+          "wrong_report.json"
+        ],
+        "depends_on": [
+          "checked_wide"
+        ],
+        "harness_stage": "S6_wrong_build_id",
+        "artifact_contract": "The raw Core command exits nonzero; wrong_report.json has no machine-TV outcome or discharges, a nonzero normalized child exit, and no selected result.",
+        "verifier_gate": "Core rejects the mismatched expected build ID and the agent report does not select a result or claim a machine-TV check.",
+        "expected_patterns": [
+          "wrong build ID: Core exited nonzero and no machine-TV checks were discharged"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
