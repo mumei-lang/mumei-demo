@@ -105,6 +105,27 @@ def test_cli_report_uses_scenario_specific_bounded_audit_summary():
     assert "Proof failure → Bug found" not in report
 
 
+def test_failed_native_report_ignores_bounded_narrative_overrides():
+    report = render_cli_report(
+        {
+            "scenario": "native_check",
+            "scenario_name": "Native Check",
+            "overall_status": "FAIL",
+            "layers": {"l1_z3": {}},
+            "proof_density": {"verified": 0, "total": 1, "percentage": 0},
+            "narrative": {
+                "audit_status": "BOUNDED CHECK",
+                "moment": "Bundle consistency only; wrong pin claims nothing.",
+            },
+        }
+    )
+
+    assert "Audit Status:  ATTENTION" in report
+    assert "Audit Status:  BOUNDED CHECK" not in report
+    assert "Moment:        Proof failure → Bug found" in report
+    assert "Moment:        Bundle consistency only" not in report
+
+
 def test_evidence_route_reports_and_result_messages_are_bounded():
     root = Path(__file__).resolve().parents[1]
     scenarios = {
