@@ -845,13 +845,18 @@ def test_claim_book_summary_labels():
     }) == "3/4 machine-sealed · 1 drifted · 2 uncertified"
 
 
-def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
+def _load_dashboard_app(monkeypatch):
     streamlit = types.ModuleType("streamlit")
     monkeypatch.setitem(sys.modules, "streamlit", streamlit)
     app_path = Path(__file__).resolve().parents[1] / "dashboard" / "app.py"
     spec = importlib.util.spec_from_file_location("claim_book_dashboard_app", app_path)
     app = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(app)
+    return app
+
+
+def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
+    app = _load_dashboard_app(monkeypatch)
     charter_index = app.SCENARIO_ORDER.index("charter_gate_demo")
     assert app.SCENARIO_ORDER[charter_index - 1 : charter_index + 4] == [
         "arklib_style_audit",
@@ -897,6 +902,78 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
 
     assert cli_claim_book_label(data) == expected
     assert app.claim_book_label(data) == expected
+
+
+def test_verification_labels_use_audit_status_for_bounded_routes(monkeypatch):
+    app = _load_dashboard_app(monkeypatch)
+    assert app.verification_labels({
+        "narrative": {"audit_status": "PLANNING-ONLY"},
+        "layers": {"l3_lean": {}},
+    }) == (
+        "PLANNING-ONLY (bounded route; not a Z3/Lean proof)",
+        "Route Steps",
+        "route steps",
+    )
+
+
+def test_verification_labels_identify_declared_evidence(monkeypatch):
+    app = _load_dashboard_app(monkeypatch)
+    assert app.verification_labels({"layers": {"l1_summaries": {}}}) == (
+        "DECLARED EVIDENCE (not a Z3/Lean proof)",
+        "Route Steps",
+        "route steps",
+    )
+
+
+def test_verification_labels_identify_lean_proofs(monkeypatch):
+    app = _load_dashboard_app(monkeypatch)
+    assert app.verification_labels({
+        "layers": {"l1_z3": {}, "l2_agent": {}, "l3_lean": {}},
+    }) == ("Z3 + Lean 4", "Proof Density", "atoms")
+
+
+@pytest.mark.parametrize(
+    "narrative",
+    [None, "legacy narrative", {"audit_status": ""}, {"audit_status": None}],
+)
+def test_verification_labels_fall_back_when_audit_status_is_absent_or_invalid(
+    monkeypatch, narrative
+):
+    app = _load_dashboard_app(monkeypatch)
+    assert app.verification_labels({
+        "narrative": narrative,
+        "layers": {"l3_lean": {}},
+    }) == ("Z3 + Lean 4", "Proof Density", "atoms")
+
+
+def test_verification_labels_default_to_z3_only(monkeypatch):
+    app = _load_dashboard_app(monkeypatch)
+    assert app.verification_labels({"layers": {"l1_z3": {}}}) == (
+        "Z3 Only",
+        "Proof Density",
+        "atoms",
+    )
+
+
+def test_scenarios_with_audit_status_do_not_use_z3_only_caption(monkeypatch):
+    app = _load_dashboard_app(monkeypatch)
+    scenarios = Path(__file__).resolve().parents[1] / "scenarios"
+    seen = 0
+    for scenario_path in scenarios.iterdir():
+        scenario_file = scenario_path / "scenario.json"
+        if not scenario_path.is_dir() or not scenario_file.is_file():
+            continue
+        scenario = json.loads(scenario_file.read_text(encoding="utf-8"))
+        narrative = scenario.get("narrative")
+        if not isinstance(narrative, dict):
+            continue
+        audit_status = narrative.get("audit_status")
+        if not isinstance(audit_status, str) or not audit_status:
+            continue
+        caption, _, _ = app.verification_labels({"narrative": narrative})
+        assert "Z3 Only" not in caption
+        seen += 1
+    assert seen
 
 
 def test_record_operation_before_after_uses_its_local_contracts():

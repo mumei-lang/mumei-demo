@@ -44,6 +44,31 @@ def scenario_names() -> list[str]:
     return ordered + [name for name in names if name not in ordered]
 
 
+def verification_labels(data: dict) -> tuple[str, str, str]:
+    """Return (verification caption, density metric title, density unit)."""
+    narrative = data.get("narrative")
+    if isinstance(narrative, dict):
+        audit_status = narrative.get("audit_status")
+        if isinstance(audit_status, str) and audit_status:
+            return (
+                f"{audit_status} (bounded route; not a Z3/Lean proof)",
+                "Route Steps",
+                "route steps",
+            )
+
+    layers = data.get("layers", {})
+    layer_names = set(layers) if isinstance(layers, dict) else set()
+    if layer_names and layer_names <= {"l1_summaries"}:
+        return (
+            "DECLARED EVIDENCE (not a Z3/Lean proof)",
+            "Route Steps",
+            "route steps",
+        )
+    if "l3_lean" in layer_names:
+        return "Z3 + Lean 4", "Proof Density", "atoms"
+    return "Z3 Only", "Proof Density", "atoms"
+
+
 def latest_result(scenario: str) -> Path | None:
     latest = REPORTS / scenario / "latest" / "result.json"
     if latest.exists():
@@ -316,8 +341,8 @@ def main() -> None:
     st.caption(f"Report: `{result_path}`")
     layers = data.get("layers", {})
     has_lean = "l3_lean" in layers
-    verification_type = "Z3 + Lean 4" if has_lean else "Z3 Only"
-    st.caption(f"Verification: **{verification_type}**")
+    caption, density_title, density_unit = verification_labels(data)
+    st.caption(f"Verification: **{caption}**")
     if "evidence_summary" in data:
         st.markdown(render_evidence(data))
 
@@ -328,9 +353,9 @@ def main() -> None:
     density = data.get("proof_density", {})
     metric_cols = st.columns(5 if has_lean else 4)
     metric_cols[0].metric(
-        "Proof Density",
+        density_title,
         f"{density.get('percentage', 0):g}%",
-        f"{density.get('verified', 0)}/{density.get('total', 0)} atoms",
+        f"{density.get('verified', 0)}/{density.get('total', 0)} {density_unit}",
     )
     metric_cols[1].metric("Harness Contract", compliance_label(data))
     metric_cols[2].metric("Intent Fidelity", intent_fidelity_label(data))
