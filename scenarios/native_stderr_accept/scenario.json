@@ -20,6 +20,18 @@
   },
   "name": "Declared Native Stderr Acceptance (native-stderr-accept)",
   "description": "C02/C10 stderr acceptance demo: the declared `native-stderr-accept` route runs `native-bundle accept-stderr` as one attempt — `acceptance: accepted` plus `artifact_semantics` + `claim_truth` + `os_stderr_observation` discharged checks on a clean run; the other runtime checks stay unperformed, and a wrong build ID leaves the full C02/runtime family unperformed.",
+  "narrative": {
+    "intro": [
+      "Step 1: Build a native bundle with an stderr pin.",
+      "Step 2: Check the declared stderr acceptance fields.",
+      "Step 3: Try a mismatched build ID."
+    ],
+    "before": "The declared route boundary has not yet been checked.",
+    "after": "Only the route's declared fields are checked; broader guarantees are not claimed.",
+    "audit_status": "BOUNDED ACCEPTANCE",
+    "moment": "One Core invocation checks stderr pin; no universal ABI/runtime claim."
+  },
+  "result_message": "Result: One Core call; wrong pin claims nothing.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,

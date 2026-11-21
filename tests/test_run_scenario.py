@@ -125,6 +125,7 @@ def _run_scenario(
     controls_exit: int = 0,
     claims_stderr: str = "fixture claims failed",
     narrative: dict | None = None,
+    result_message: str | None = None,
     evidence_requirements: dict | None = None,
 ) -> tuple[int, dict, Path]:
     root = tmp_path / "root"
@@ -165,6 +166,8 @@ def _run_scenario(
     }
     if narrative is not None:
         scenario["narrative"] = narrative
+    if result_message is not None:
+        scenario["result_message"] = result_message
     if evidence_requirements is not None:
         scenario["evidence_requirements"] = evidence_requirements
     (scenario_dir / "scenario.json").write_text(json.dumps(scenario), encoding="utf-8")
@@ -885,6 +888,30 @@ def test_claims_weak_gate_rejects_wrong_artifact_under_pythonoptimize(
         "Claim Book discrimination check failed: expected next_dose status weak"
         in step_result["stderr"]
     )
+
+
+def test_pass_story_uses_scenario_intro_and_result_message(tmp_path, monkeypatch, capsys):
+    intro = [
+        "Step 1: Prepare the declared fixture.",
+        "Step 2: Check it and a mismatched input.",
+    ]
+    result_message = "Result: Declared shape only; mismatch fails closed."
+
+    exit_code, result, _ = _run_scenario(
+        tmp_path,
+        monkeypatch,
+        [None],
+        narrative={"intro": intro},
+        result_message=result_message,
+    )
+    output = capsys.readouterr().out
+
+    assert exit_code == 0
+    assert result["overall_status"] == "PASS"
+    assert all(line in output for line in intro)
+    assert result_message in output
+    assert "Correct code proven" not in output
+    assert "ownership transfer" not in output.lower()
 
 
 def test_step_narratives_render_for_new_and_existing_ids(tmp_path, monkeypatch, capsys):

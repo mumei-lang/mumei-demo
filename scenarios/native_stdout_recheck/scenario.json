@@ -20,6 +20,18 @@
   },
   "name": "Declared Native Stdout Recheck (native-stdout-recheck)",
   "description": "C02/C10 stdout recheck demo: the declared `native-stdout-recheck` route runs `native-bundle recheck-stdout` as one attempt — `stdout_recheck: reproduced` plus `artifact_semantics` + `claim_truth` + `os_stdout_observation` discharged checks on a clean run; the other runtime checks stay unperformed, and a wrong build ID leaves the full C02/runtime family unperformed.",
+  "narrative": {
+    "intro": [
+      "Step 1: Build a native bundle with a stdout pin.",
+      "Step 2: Recheck the declared stdout field.",
+      "Step 3: Try a mismatched build ID."
+    ],
+    "before": "The declared route boundary has not yet been checked.",
+    "after": "Only the route's declared fields are checked; broader guarantees are not claimed.",
+    "audit_status": "BOUNDED RECHECK",
+    "moment": "Stdout pin reproduced; wrong build ID selects nothing."
+  },
+  "result_message": "Result: Bounded recheck; wrong build ID claims nothing.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,

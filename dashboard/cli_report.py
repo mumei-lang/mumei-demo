@@ -149,11 +149,14 @@ def render(data: dict) -> str:
         audit_status = "TRUSTLESS" if data.get("overall_status") == "PASS" else "ATTENTION"
     if "evidence_summary" in data and data.get("overall_status") == "PASS" and not declared_only:
         audit_status = "LIMITED MODEL EVIDENCE"
-    audit_status = narrative.get("audit_status", audit_status)
-    moment = narrative.get(
-        "moment",
-        "Declared summaries reused" if declared_only else "Proof failure → Bug found",
+    default_moment = (
+        "Declared summaries reused" if declared_only else "Proof failure → Bug found"
     )
+    if data.get("overall_status") == "PASS":
+        audit_status = narrative.get("audit_status", audit_status)
+        moment = narrative.get("moment", default_moment)
+    else:
+        moment = default_moment
     table.extend([
         "",
         f"  Proof Density: [{proof_density_bar(float(pct))}] {pct:g}%",

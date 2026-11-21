@@ -2,6 +2,18 @@
   "name": "Declared Evidence Check-Consistency (evidence-check-consistency)",
   "version": "1.0.0",
   "description": "C02 cross-record demo: the declared `evidence-check-consistency` route runs `evidence check-consistency` as one attempt — identical pins report `consistent: true` with `conflict_count: 0`; a record disagreeing on a shared identity pin reports `consistent: false` with named conflicts. Both outcomes select the diagnostic — the check completed either way. A gated `--expected-adapter` run names declared_producer_identity, and a mismatched adapter claims nothing.",
+  "narrative": {
+    "intro": [
+      "Step 1: Produce the declared Evidence record.",
+      "Step 2: Check matching and conflicting pins.",
+      "Step 3: Test the adapter gate on a mismatch."
+    ],
+    "before": "The declared route boundary has not yet been checked.",
+    "after": "Only the route's declared fields are checked; broader guarantees are not claimed.",
+    "audit_status": "REPRESENTATION-CHECK",
+    "moment": "Pin conflicts are reported; mismatched adapter fails closed."
+  },
+  "result_message": "Result: Pin check only; adapter mismatch fails closed.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,

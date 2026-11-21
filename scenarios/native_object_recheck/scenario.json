@@ -20,6 +20,18 @@
   },
   "name": "Declared Native Object Recheck (native-object-recheck)",
   "description": "C10 Option B bounded object correspondence demo: the declared `native-object-recheck` route runs `native-bundle recheck-object --json` as one attempt — `object_recheck: corresponds` plus `artifact_semantics`, `claim_truth`, `object_call_edge_correspondence`, `object_link_correspondence`, and `object_symbol_correspondence`; the matching Core descriptor is named, while `machine_code_acyclic_branch_function_tv`, `machine_code_conditional_call_function_tv`, `machine_code_direct_call_site_tv`, `machine_code_forward_branch_function_tv`, `machine_code_leaf_function_tv`, and `object_translation_correspondence` remain unperformed and a wrong build ID leaves the full C02/object family unperformed.",
+  "narrative": {
+    "intro": [
+      "Step 1: Build a native bundle.",
+      "Step 2: Recheck the listed object fields.",
+      "Step 3: Try a mismatched build ID."
+    ],
+    "before": "The declared route boundary has not yet been checked.",
+    "after": "Only the route's declared fields are checked; broader guarantees are not claimed.",
+    "audit_status": "BOUNDED RECHECK",
+    "moment": "Listed object correspondence fields only; wrong build ID selects nothing."
+  },
+  "result_message": "Result: Bounded recheck; wrong build ID claims nothing.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,

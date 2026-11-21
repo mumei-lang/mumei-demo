@@ -2,6 +2,18 @@
   "name": "Declared Native Widened Refined-Scalar Bundle Production (native-refined-widened-attempt)",
   "version": "1.0.0",
   "description": "C02/C10 produce demo: the declared `native-attempt` route builds a bundle from a module that exercises the widened refined-scalar admission — a bool-leaf alias (`type Flag = bool where v == true;`) and an alias chain (`type Port = NonNeg where v <= 65535;` over `type NonNeg = i64 where v >= 0;`) — the record pins the v3 member profile and the v2 refined source profile; `native-check` re-derives under the same gate; a u64-leaf typedef stays refused.",
+  "narrative": {
+    "intro": [
+      "Step 1: Request the widened scalar bundle profile.",
+      "Step 2: Recheck the declared bundle fields.",
+      "Step 3: Try a u64 leaf typedef."
+    ],
+    "before": "The declared route boundary has not yet been checked.",
+    "after": "Only the route's declared fields are checked; broader guarantees are not claimed.",
+    "audit_status": "BOUNDED NATIVE ATTEMPT",
+    "moment": "Widened scalar profile only; u64 leaf remains refused."
+  },
+  "result_message": "Result: Widened profile only; u64 leaf remains refused.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,
