@@ -1,0 +1,98 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the C10 native observations recheck route end to end: build a real mumei.native-bundle/v1 from an atom that returns 0 without writing stdout or stderr, so the bundle pins exit status and both empty output channels; run `python -m agent native-observations-recheck` with --json and show one invocation matching all three pins and emitting the runtime-observation descriptor, then show a wrong build ID produces no claimed outcome.",
+    "artifact_contracts": [
+      "Read inputs: scenarios/native_observations_recheck/src/main.mm (the bounded native profile atom main() -> i64 requires: true).",
+      "Step 1 runs `native-bundle build`, verifies the record pins exit status 0 plus the SHA-256 of empty stdout and stderr, and records sha256(native-bundle.json) as the trusted-channel build ID.",
+      "Step 2 runs the declared `native-observations-recheck` route and asserts report.observations_recheck == 'reproduced', the all-channel discharged-check partition, and runtime_observation_schema == 'mumei.runtime-observation/v1'.",
+      "Step 3 reruns the route with a wrong build ID and asserts no claimed outcome, full C02/runtime checks_not_performed and normalized exit_code 1."
+    ]
+  },
+  "name": "Declared Native Observations Recheck (native-observations-recheck)",
+  "description": "C02/C10 runtime-observation recheck demo: the declared `native-observations-recheck` route runs `native-bundle recheck-observations --json` as one attempt — `observations_recheck: reproduced` plus `artifact_semantics`, `claim_truth`, all three OS channel checks, and `runtime_observation_semantics` from the same invocation; the matching Core descriptor is named and a wrong build ID leaves the full C02/runtime family unperformed.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the declared native-observations-recheck route executing a real bundle's byte-identical reproduced program once, matching its exit status, stdout and stderr pins in that one invocation, and emitting the matching Core runtime-observation schema, then refusing to claim an outcome for a wrong build ID.",
+    "success_criteria": [
+      "report.json carries mumei.native-observations-recheck-report/v1 with observations_recheck == 'reproduced', discharged_checks == ['artifact_semantics', 'claim_truth', 'os_exit_status_observation', 'os_stderr_observation', 'os_stdout_observation', 'runtime_observation_semantics'], checks_not_performed == ['file_identity', 'freshness', 'producer_authenticity', 'semantic_correspondence'], runtime_observation_schema == 'mumei.runtime-observation/v1', and expected_build_id equal to sha256(native-bundle.json)",
+      "wrong_report.json carries no observations_recheck, runtime_observation_schema or discharged_checks, checks_not_performed == ['artifact_semantics', 'claim_truth', 'file_identity', 'freshness', 'os_exit_status_observation', 'os_stderr_observation', 'os_stdout_observation', 'producer_authenticity', 'runtime_observation_semantics', 'semantic_correspondence'], no selected_result and normalized exit_code 1"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_bundle",
+        "name": "Produce a native bundle with all three runtime pins",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle build {root_dir}/scenarios/native_observations_recheck/src/main.mm -o {output_dir}/bundle > {output_dir}/build.log 2>&1 && python3 -c \"import hashlib,json; r=json.load(open('{output_dir}/bundle/native-bundle.json')); p=r['link_build']; empty=hashlib.sha256(b'').hexdigest(); assert p['expected_exit_status']==0, p; assert p['expected_stdout_sha256']==empty, p; assert p['expected_stderr_sha256']==empty, p; print(hashlib.sha256(open('{output_dir}/bundle/native-bundle.json','rb').read()).hexdigest())\" > {output_dir}/build_id.txt; rc=$?; cat {output_dir}/build.log; cat {output_dir}/build_id.txt; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "build.log",
+          "build_id.txt",
+          "bundle/native-bundle.json",
+          "bundle/program.ll",
+          "bundle/program.o",
+          "bundle/proof-cert.json",
+          "bundle/program"
+        ],
+        "harness_stage": "S1_bundle_produce",
+        "artifact_contract": "build_id.txt holds sha256(native-bundle.json); link_build pins exit status 0 and the empty stdout/stderr digests; bundle/ holds all five declared members.",
+        "verifier_gate": "native-bundle build exits 0 and the complete record contains all three runtime observation pins.",
+        "expected_patterns": [
+          "Build ID:"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "reproduced",
+        "name": "native-observations-recheck reports reproduced + all observations",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-observations-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_observations_recheck/src/main.mm --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/report.json > {output_dir}/recheck.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/recheck.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['schema_version']=='mumei.native-observations-recheck-report/v1', r['schema_version']; assert r['observations_recheck']=='reproduced', r; assert r['discharged_checks']==['artifact_semantics', 'claim_truth', 'os_exit_status_observation', 'os_stderr_observation', 'os_stdout_observation', 'runtime_observation_semantics'], r; assert r['checks_not_performed']==['file_identity', 'freshness', 'producer_authenticity', 'semantic_correspondence'], r; assert r['runtime_observation_schema']=='mumei.runtime-observation/v1', r; assert r['expected_build_id']==open('{output_dir}/build_id.txt').read().strip(), r; assert r['sequence'].get('selected_result') is not None; assert 'candidate' not in r; print('native-observations-recheck: reproduced all runtime observations with the Core descriptor')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "recheck.log",
+          "report.json"
+        ],
+        "harness_stage": "S2_observations_recheck",
+        "artifact_contract": "report.json holds mumei.native-observations-recheck-report/v1 with all three channel observations and runtime_observation_semantics discharged from one invocation plus runtime_observation_schema mumei.runtime-observation/v1.",
+        "verifier_gate": "native-observations-recheck exits 0; the one reproduced invocation matched all three pins and normalized stdout carried the matching descriptor.",
+        "expected_patterns": [
+          "mumei.native-observations-recheck-report/v1",
+          "observations_recheck",
+          "reproduced",
+          "runtime_observation_schema"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "wrong_build_id",
+        "name": "Wrong build ID claims no outcome",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent native-observations-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_observations_recheck/src/main.mm --expected-build-id $(python3 -c \"import hashlib;print(hashlib.sha256(b'not-the-build-id').hexdigest())\") --output {output_dir}/wrong_report.json > {output_dir}/wrong.log 2>&1; rc=$?; cat {output_dir}/wrong_report.json; cat {output_dir}/wrong.log; test $rc -eq 0 && python3 -c \"import hashlib,json; r=json.load(open('{output_dir}/wrong_report.json')); assert r['schema_version']=='mumei.native-observations-recheck-report/v1'; assert 'observations_recheck' not in r; assert 'runtime_observation_schema' not in r; assert 'discharged_checks' not in r; assert r['expected_build_id']==hashlib.sha256(b'not-the-build-id').hexdigest(), r; assert r['checks_not_performed']==['artifact_semantics', 'claim_truth', 'file_identity', 'freshness', 'os_exit_status_observation', 'os_stderr_observation', 'os_stdout_observation', 'producer_authenticity', 'runtime_observation_semantics', 'semantic_correspondence'], r; assert r['sequence'].get('selected_result') is None; assert r['normalized'].get('exit_code') == 1, r['normalized']; print('wrong build ID: no claimed outcome, exit 1')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "wrong.log",
+          "wrong_report.json"
+        ],
+        "harness_stage": "S3_wrong_build_id",
+        "artifact_contract": "wrong_report.json holds no observations_recheck, runtime_observation_schema or discharged_checks, full C02/runtime checks_not_performed, no selected_result, normalized exit_code 1, and the echoed wrong expected_build_id.",
+        "verifier_gate": "The mismatched build ID exits 1 — no claimed outcome.",
+        "expected_patterns": [
+          "mumei.native-observations-recheck-report/v1"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
