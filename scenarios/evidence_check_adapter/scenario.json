@@ -1,0 +1,98 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the real mumei-agent evidence-check-adapter route against Core's declared adapter-manifest representation diagnostic. The minimal Core fixture selects as a valid representation with acceptance not evaluated; a wrong-schema manifest fails closed with no selection. Declared command/stdin metadata stays inert and no adapter execution, Evidence acceptance or grade promotion is claimed.",
+    "artifact_contracts": [
+      "Step 1 derives a wrong-schema negative manifest from Core's checked-in minimal adapter-manifest fixture without changing the fixture.",
+      "Step 2 runs evidence-check-adapter on the fixture and asserts its observed valid representation-only report, exact performed/unperformed checks, inert absent command/stdin declarations, and selected result.",
+      "Step 3 runs the route on the wrong-schema manifest and asserts the observed nonzero Core exit, no selected result, and no diagnostic claim fields."
+    ]
+  },
+  "name": "Declared Adapter Manifest Check (evidence-check-adapter)",
+  "description": "C11 representation-only adapter-manifest check. The route selects only when Core's diagnostic matches the local manifest representation. Acceptance stays not_evaluated; the route does not execute adapter commands, enforce host policy or resources, accept Evidence, or promote a grade.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show that the agent selects Core's exact adapter-manifest representation diagnostic when the local manifest matches, while a malformed schema produces no selection. Declared argv/stdin and verdict markers are representation metadata, not execution or truth claims.",
+    "success_criteria": [
+      "valid_report.json has schema_version == 'mumei.evidence-check-adapter-report/v1', representation == 'valid', acceptance == 'not_evaluated', attempt_argv == 'absent', attempt_stdin == 'absent', verdict_marker_count == 0, exact declared_field_meaning and checks lists, a candidate, and a selected_result",
+      "invalid_report.json has normalized.exit_code == 1, no candidate, no selected_result, and none of the diagnostic fields"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "prepare_invalid_manifest",
+        "name": "Prepare a wrong-schema negative manifest",
+        "repo": "mumei-agent",
+        "command": "python3 -c \"import json; p='{root_dir}/scenarios/evidence_check_adapter/fixtures/adapter_manifest_minimal.json'; d=json.load(open(p)); d['schema_version']='mumei.not-verifier-adapter/v1'; json.dump(d,open('{output_dir}/invalid_manifest.json','w')); print('wrong-schema manifest derived from Core minimal fixture')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "invalid_manifest.json"
+        ],
+        "harness_stage": "S1_negative_input",
+        "artifact_contract": "invalid_manifest.json changes only the schema_version of the checked-in Core minimal adapter fixture.",
+        "verifier_gate": "The negative input is derived locally and does not modify the Core fixture.",
+        "expected_patterns": [
+          "wrong-schema manifest",
+          "Core minimal fixture"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "check_valid_manifest",
+        "name": "Select the valid Core adapter representation diagnostic",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent evidence-check-adapter --core {mumei_bin} --manifest {root_dir}/scenarios/evidence_check_adapter/fixtures/adapter_manifest_minimal.json --output {output_dir}/valid_report.json > {output_dir}/valid.log 2>&1; rc=$?; cat {output_dir}/valid_report.json; cat {output_dir}/valid.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/valid_report.json')); assert r['schema_version']=='mumei.evidence-check-adapter-report/v1', r; assert r['manifest_schema_version']=='mumei.verifier-adapter/v1', r; assert r['representation']=='valid', r; assert r['acceptance']=='not_evaluated', r; assert r['attempt_argv']=='absent', r; assert r['attempt_stdin']=='absent', r; assert r['verdict_marker_count']==0, r; assert r['declared_field_meaning']=={'attempt_argv':'inert_without_host_opt_in','attempt_stdin':'inert_without_host_opt_in','verdict_markers':'adapter_self_report_vocabulary','max_memory_mb':'declared_ceiling_not_enforced_by_core'}, r; assert r['checks_performed']==['representation_gate','manifest_consistency'], r; assert r['checks_not_performed']==['adapter_execution','command_safety','stdin_semantics','reported_outcome_truth','resource_enforcement','producer_authenticity','host_policy','grade_promotion'], r; assert r['normalized']['exit_code']==0, r; assert r['sequence'].get('selected_result') is not None, r; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1', r; print('valid representation selected; acceptance not_evaluated; no adapter execution or grade promotion')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "prepare_invalid_manifest"
+        ],
+        "artifacts": [
+          "valid.log",
+          "valid_report.json"
+        ],
+        "harness_stage": "S2_valid_representation",
+        "artifact_contract": "valid_report.json matches Core's exact representation-only diagnostic and local manifest: acceptance is not_evaluated, command/stdin are absent, and selection carries no adapter-execution, Evidence-acceptance or grade-promotion claim.",
+        "verifier_gate": "The report has the observed exact performed/unperformed checks, a matching candidate and selected result.",
+        "expected_patterns": [
+          "mumei.evidence-check-adapter-report/v1",
+          "not_evaluated",
+          "grade_promotion"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "reject_invalid_manifest",
+        "name": "Fail closed on a wrong-schema manifest",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent evidence-check-adapter --core {mumei_bin} --manifest {output_dir}/invalid_manifest.json --output {output_dir}/invalid_report.json > {output_dir}/invalid.log 2>&1; rc=$?; cat {output_dir}/invalid_report.json; cat {output_dir}/invalid.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/invalid_report.json')); assert r['schema_version']=='mumei.evidence-check-adapter-report/v1', r; assert r['normalized']['exit_code']==1, r; assert r['normalized']['stdout']['size_bytes']==0, r; assert r['sequence'].get('selected_result') is None, r; assert 'candidate' not in r, r; assert all(k not in r for k in ('manifest_schema_version','representation','acceptance','attempt_argv','attempt_stdin','verdict_marker_count','declared_field_meaning','checks_performed','checks_not_performed')), r; print('wrong-schema manifest rejected; no diagnostic selection')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "check_valid_manifest"
+        ],
+        "artifacts": [
+          "invalid.log",
+          "invalid_report.json"
+        ],
+        "harness_stage": "S3_invalid_manifest",
+        "artifact_contract": "invalid_report.json reports Core exit code 1 and no selected result, candidate or diagnostic fields.",
+        "verifier_gate": "A nonzero Core check on the wrong-schema manifest fails closed.",
+        "expected_patterns": [
+          "wrong-schema manifest rejected",
+          "no diagnostic selection"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
