@@ -1,0 +1,64 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Run the in-process sol-bindings route on a tiny Solidity source and assert its versioned lexical profile, an answer reference linked to its in-file declaration, and a separate unresolved missingName record. This is conservative lexical binding metadata, not a type check, compiler-backed resolution, proof, verdict, trusted-safe evidence, audit result, or Seal Grade.",
+    "artifact_contracts": [
+      "Step 1 writes binding_report.json and asserts the route profile, the in-file answer declaration/reference binding, and unresolved missingName."
+    ]
+  },
+  "name": "Solidity Lexical Binding Report (sol-bindings)",
+  "description": "Runs the in-process Solidity lexical binding route and checks its versioned profile, a reference bound to an in-file declaration, and an unresolved name. This is conservative lexical binding metadata, not a type check, compiler-backed resolution, proof, verdict, trusted-safe evidence, audit result, or Seal Grade.",
+  "narrative": {
+    "before": "No Solidity lexical binding metadata has been generated.",
+    "after": "Conservative lexical binding metadata only; no audit or grade claim.",
+    "audit_status": "LEXICAL-METADATA",
+    "moment": "No type check, compiler resolution, proof, verdict, or trusted-safe evidence.",
+    "intro": [
+      "This step reads conservative lexical binding metadata.",
+      "It is not a type check or compiler-backed resolution.",
+      "It is not proof, a verdict, or trusted-safe evidence.",
+      "It is not an audit result or Seal Grade."
+    ]
+  },
+  "result_message": "Result: Conservative lexical metadata; no verdict or Grade.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show the in-process Solidity route's lexical declaration/reference link and unresolved-name record without making a semantic or trust claim.",
+    "success_criteria": [
+      "binding_report.json has profile mumei.sol-lexical-bindings/v1, a reference span for answer linked by binding_id to its in-file declaration, and unresolved missingName with no matching binding."
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "inspect_sol_bindings",
+        "name": "Inspect Solidity lexical binding metadata",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent sol-bindings {root_dir}/scenarios/sol_bindings/demo_bindings.sol > {output_dir}/binding_report.json && {mumei_agent_python} -c \"import json,pathlib; report=json.load(open('{output_dir}/binding_report.json')); source=pathlib.Path('{root_dir}/scenarios/sol_bindings/demo_bindings.sol').read_text(); declaration=next(item for item in report['bindings'] if item['name']=='answer'); assert report['profile']=='mumei.sol-lexical-bindings/v1', report; assert source[declaration['span']['start']:declaration['span']['end']]=='answer', report; assert any(item['binding_id']==declaration['id'] and source[item['span']['start']:item['span']['end']]=='answer' for item in report['references']), report; assert any(item['name']=='missingName' for item in report['unresolved']), report; assert not any(item['name']=='missingName' for item in report['bindings']), report; print('profile=mumei.sol-lexical-bindings/v1; answer resolved; missingName unresolved')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "binding_report.json"
+        ],
+        "harness_stage": "S1_lexical_metadata",
+        "artifact_contract": "binding_report.json contains the observed Solidity route profile, an answer reference linked to the in-file declaration, and unresolved missingName.",
+        "verifier_gate": "Assertions require the exact versioned profile, matching declaration/reference binding IDs and spans, and missingName only in unresolved.",
+        "expected_patterns": [
+          "profile=mumei.sol-lexical-bindings/v1",
+          "answer resolved",
+          "missingName unresolved"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}

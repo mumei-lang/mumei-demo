@@ -159,6 +159,54 @@ def test_test_observation_demo_runs_agent_commands_from_repo_with_absolute_paths
         assert all(path in command for path in paths)
 
 
+def test_lexical_binding_scenarios_have_one_in_process_non_skipping_step():
+    root = Path(__file__).resolve().parents[1]
+    profiles = {
+        "rust_bindings": ("rust-bindings", "mumei.rust-lexical-bindings/v1", ".rs", "missing_name"),
+        "sol_bindings": ("sol-bindings", "mumei.sol-lexical-bindings/v1", ".sol", "missingName"),
+        "ts_bindings": ("ts-bindings", "mumei.ts-lexical-bindings/v1", ".ts", "missingName"),
+    }
+    makefile = (root / "Makefile").read_text(encoding="utf-8")
+
+    for name, (route, profile, extension, unresolved_name) in profiles.items():
+        scenario_dir = root / "scenarios" / name
+        scenario = json.loads(
+            (scenario_dir / "scenario.json").read_text(encoding="utf-8")
+        )
+        steps = scenario["l1_z3"]["steps"]
+        assert scenario["layers"] == ["l1_z3"]
+        assert scenario["harness_contract"]["acceptance_path"] == ["l1_z3"]
+        assert len(steps) == 1
+        step = steps[0]
+        command = step["command"]
+        fixture = next(scenario_dir.glob(f"*{extension}"))
+        source = fixture.read_text(encoding="utf-8")
+
+        assert "answer" in source
+        assert unresolved_name in source
+        assert step["expected_exit"] == 0
+        assert "skip" not in step
+        assert step["artifacts"] == ["binding_report.json"]
+        assert step["expected_patterns"] == [
+            f"profile={profile}",
+            "answer resolved",
+            f"{unresolved_name} unresolved",
+        ]
+        assert step["repo"] == "mumei-agent"
+        assert step["cwd"] == "{mumei_agent_repo}"
+        assert f"-m agent {route}" in command
+        assert f"report['profile']=='{profile}'" in command
+        assert "report['unresolved']" in command
+        assert f"'{unresolved_name}'" in command
+        assert "> {output_dir}/binding_report.json" in command
+        assert not any(tool in command for tool in ("cargo", "solc", "tsc"))
+        assert f"demo-{name.replace('_', '-')}" in makefile
+        assert f"./scripts/run_scenario.sh {name}" in makefile
+        readme = (scenario_dir / "README.md").read_text(encoding="utf-8")
+        assert "| Step | What it does | What it does not do |" in readme
+        assert "No external" in readme
+
+
 def test_in_code_fence_detection():
     lines = [
         "normal text",

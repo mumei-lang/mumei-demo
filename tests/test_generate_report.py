@@ -169,6 +169,77 @@ def test_evidence_route_reports_and_result_messages_are_bounded():
         assert "code-correctness proof" in narrative_text or "proof of code correctness" in narrative_text
 
 
+def test_lexical_binding_reports_are_bounded_and_failures_force_attention():
+    root = Path(__file__).resolve().parents[1]
+    scenarios = {
+        "rust_bindings": "mumei.rust-lexical-bindings/v1",
+        "sol_bindings": "mumei.sol-lexical-bindings/v1",
+        "ts_bindings": "mumei.ts-lexical-bindings/v1",
+    }
+    nonclaims = (
+        "type check",
+        "compiler-backed resolution",
+        "proof",
+        "verdict",
+        "trusted-safe evidence",
+        "audit result",
+        "Seal Grade",
+    )
+
+    for name, profile in scenarios.items():
+        scenario = json.loads(
+            (root / "scenarios" / name / "scenario.json").read_text(encoding="utf-8")
+        )
+        narrative = scenario["narrative"]
+        result_message = scenario["result_message"]
+        narrative_text = " ".join(
+            [
+                scenario["description"],
+                narrative["after"],
+                narrative["moment"],
+                *narrative["intro"],
+                result_message,
+            ]
+        )
+        assert narrative["audit_status"] == "LEXICAL-METADATA"
+        assert all(term.lower() in narrative_text.lower() for term in nonclaims)
+        assert f"profile {profile}" in scenario["intent_fidelity"]["success_criteria"][0]
+        assert result_message.startswith("Result:")
+        assert len(f"  {result_message}") <= 62
+        assert len(f"  Moment:        {narrative['moment']}") <= 116
+        assert all(len(line) <= 60 for line in narrative["intro"])
+        assert not any(
+            phrase in result_message.lower()
+            for phrase in ("trustless", "correct code proven", "proof")
+        )
+
+        passed = render_cli_report(
+            {
+                "scenario": name,
+                "scenario_name": scenario["name"],
+                "overall_status": "PASS",
+                "layers": {"l1_z3": {}},
+                "proof_density": {"verified": 1, "total": 1, "percentage": 100},
+                "narrative": narrative,
+            }
+        )
+        failed = render_cli_report(
+            {
+                "scenario": name,
+                "scenario_name": scenario["name"],
+                "overall_status": "FAIL",
+                "layers": {"l1_z3": {}},
+                "proof_density": {"verified": 0, "total": 1, "percentage": 0},
+                "narrative": narrative,
+            }
+        )
+        assert "Audit Status:  LEXICAL-METADATA" in passed
+        assert "Audit Status:  ATTENTION" in failed
+        assert "Audit Status:  LEXICAL-METADATA" not in failed
+        assert "TRUSTLESS" not in passed + failed
+        assert "Correct code proven" not in passed + failed
+
+
 def test_native_and_evidence_reports_have_bounded_route_summaries():
     root = Path(__file__).resolve().parents[1]
     scenario_dirs = sorted(
@@ -713,6 +784,7 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
     optional_line = next(line for line in makefile.read_text(encoding="utf-8").splitlines()
                          if line.startswith("OPTIONAL_SCENARIOS :="))
     assert OPTIONAL_SCENARIOS == app.OPTIONAL_SCENARIOS == optional_line.split(":=", 1)[1].split()
+    assert {"rust_bindings", "sol_bindings", "ts_bindings"} <= set(OPTIONAL_SCENARIOS)
     assert app.scenario_names().index("record_execution_demo") == len(SCENARIO_ORDER)
     assert app.scenario_names().count("record_execution_demo") == 1
     assert len(app.scenario_names()) == len(set(app.scenario_names()))
