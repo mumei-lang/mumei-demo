@@ -248,7 +248,7 @@ def test_native_evidence_and_spec_health_reports_have_bounded_route_summaries():
         if path.is_dir()
         and (
             path.name.startswith(("native_", "evidence_"))
-            or path.name == "check_spec_health"
+            or path.name in {"check_spec_health", "verify_plan"}
         )
         and (path / "scenario.json").exists()
     )
@@ -289,6 +289,7 @@ def test_native_evidence_and_spec_health_reports_have_bounded_route_summaries():
             "evidence_check_adapter",
             "evidence_check_attempt_acceptance",
             "check_spec_health",
+            "verify_plan",
         }:
             audit_status = scenario["narrative"]["audit_status"]
         elif name in {"evidence_compare", "evidence_identity", "evidence_producer"}:
@@ -879,6 +880,7 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
         "evidence_fold_eval",
         "check_spec_health",
         "summaries_reuse_attempt",
+        "verify_plan",
     } <= set(OPTIONAL_SCENARIOS)
     assert app.scenario_names().index("record_execution_demo") == len(SCENARIO_ORDER)
     assert app.scenario_names().count("record_execution_demo") == 1
