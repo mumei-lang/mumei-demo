@@ -19,6 +19,21 @@
   },
   "name": "Declared Evidence Accept-List (evidence-accept-list)",
   "description": "C11 Core evidence-accept-list demo: Core verifies a source record and checks its evidence-list envelope against a declared requirement. The agent selects only Core's accepted aggregate list verdict. This does not claim claim-truth, producer authenticity, historical execution, freshness, tool execution, or grade promotion.",
+  "narrative": {
+    "before": "A declared requirement has not yet been matched to Core's evidence list.",
+    "after": "Declared match only; no Evidence-acceptance/grade-promotion or code-correctness proof.",
+    "audit_status": "BOUNDED LIST-ACCEPTANCE",
+    "moment": "Requirement match checked; mismatch fails closed; no adapter execution.",
+    "intro": [
+      "Step 1: Produce Core evidence and matching requirement.",
+      "Step 2: Check the declared requirement match.",
+      "Step 3: Reject a pin mismatch without selection.",
+      "Scope: declared list matching only.",
+      "No Evidence acceptance or grade-promotion claim.",
+      "No adapter execution or proof of code correctness."
+    ]
+  },
+  "result_message": "Result: Requirement match only; pin mismatch fails closed.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,

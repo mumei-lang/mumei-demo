@@ -24,7 +24,10 @@ from generate_report import (  # noqa: E402
     write_highlights,
 )
 
-from dashboard.cli_report import claim_book_label as cli_claim_book_label  # noqa: E402
+from dashboard.cli_report import (  # noqa: E402
+    claim_book_label as cli_claim_book_label,
+    render as render_cli_report,
+)
 
 
 def test_claim_book_section_is_rendered_with_counts_and_detail(tmp_path):
@@ -100,6 +103,49 @@ def test_cli_report_uses_scenario_specific_bounded_audit_summary():
     assert "Moment:        Closed descriptor boundary evaluated" in report
     assert "TRUSTLESS" not in report
     assert "Proof failure → Bug found" not in report
+
+
+def test_evidence_route_reports_and_result_messages_are_bounded():
+    root = Path(__file__).resolve().parents[1]
+    scenarios = {
+        "evidence_accept_list": "BOUNDED LIST-ACCEPTANCE",
+        "evidence_check_adapter": "REPRESENTATION-CHECK",
+        "evidence_check_attempt_acceptance": "REPRESENTATION-CHECK",
+        "evidence_acceptance_eval": "DESCRIPTOR-ONLY",
+    }
+
+    for name, audit_status in scenarios.items():
+        scenario = json.loads(
+            (root / "scenarios" / name / "scenario.json").read_text(encoding="utf-8")
+        )
+        narrative = scenario["narrative"]
+        report = render_cli_report(
+            {
+                "scenario": name,
+                "scenario_name": scenario["name"],
+                "overall_status": "PASS",
+                "layers": {"l1_z3": {}},
+                "proof_density": {"verified": 3, "total": 3, "percentage": 100},
+                "narrative": narrative,
+            }
+        )
+        result_message = scenario["result_message"]
+        narrative_text = " ".join(
+            [narrative["after"], narrative["moment"], *narrative["intro"], result_message]
+        )
+
+        assert f"Audit Status:  {audit_status}" in report
+        assert narrative["after"] in report
+        assert "TRUSTLESS" not in report
+        assert "Proof failure → Bug found" not in report
+        assert result_message.startswith("Result:")
+        assert len(f"  {result_message}") <= 62
+        assert all(len(line) <= 60 for line in narrative["intro"])
+        assert "Correct code proven" not in result_message
+        assert "Evidence acceptance" in narrative_text
+        assert "grade-promotion" in narrative_text
+        assert "adapter execution" in narrative_text
+        assert "code-correctness proof" in narrative_text or "proof of code correctness" in narrative_text
 
 
 def test_charter_gate_section_renders_statuses_and_highlights(tmp_path):

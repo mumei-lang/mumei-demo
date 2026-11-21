@@ -21,16 +21,18 @@
   "description": "C11 descriptor-fold consumer: Core produces a real native acceptance descriptor, and mumei-agent evaluates its closed-shape membership and declared accepted value. The result is representation-level only; it does not rerun Core, bind an attempt without an expected fingerprint, promote Evidence acceptance, or make a grade-promotion claim.",
   "narrative": {
     "before": "A native acceptance descriptor has not yet been evaluated by the agent.",
-    "after": "The agent reports only whether the descriptor matches its closed shape.",
+    "after": "Descriptor-shape match only; no Evidence-acceptance/grade-promotion or code-correctness proof.",
     "audit_status": "DESCRIPTOR-ONLY",
-    "moment": "Closed descriptor boundary evaluated",
+    "moment": "Foreign schema fails closed; no adapter execution.",
     "intro": [
-      "Step 1: Core builds a native bundle and emits its acceptance descriptor.",
-      "Step 2: The agent evaluates the descriptor within its declared boundary.",
-      "Step 3: A foreign schema receives no acceptance credit."
+      "Step 1: Core builds a bundle and emits its descriptor.",
+      "Step 2: The agent checks the descriptor's closed shape.",
+      "Step 3: A foreign schema receives no acceptance credit.",
+      "No Evidence acceptance or grade-promotion claim.",
+      "No adapter execution or proof of code correctness."
     ]
   },
-  "result_message": "Result: Descriptor-only; no Evidence or grade promotion.",
+  "result_message": "Result: Descriptor shape only; foreign schema fails closed.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,

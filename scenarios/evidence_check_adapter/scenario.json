@@ -19,6 +19,21 @@
   },
   "name": "Declared Adapter Manifest Check (evidence-check-adapter)",
   "description": "C11 representation-only adapter-manifest check. The route selects only when Core's diagnostic matches the local manifest representation. Acceptance stays not_evaluated; the route does not execute adapter commands, enforce host policy or resources, accept Evidence, or promote a grade.",
+  "narrative": {
+    "before": "A Core adapter-manifest diagnostic has not yet been checked.",
+    "after": "Manifest representation only; no Evidence-acceptance/grade-promotion or code-correctness proof.",
+    "audit_status": "REPRESENTATION-CHECK",
+    "moment": "Invalid schema fails closed; adapter execution is not performed.",
+    "intro": [
+      "Step 1: Prepare a wrong-schema manifest.",
+      "Step 2: Check Core's valid manifest representation.",
+      "Step 3: Fail closed on the wrong schema.",
+      "Acceptance not evaluated; adapter commands are not run.",
+      "No Evidence acceptance or grade-promotion claim.",
+      "No proof of code correctness."
+    ]
+  },
+  "result_message": "Result: Manifest representation; invalid input fails closed.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,

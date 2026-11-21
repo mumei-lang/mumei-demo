@@ -19,6 +19,21 @@
   },
   "name": "Attempt Acceptance Representation Check (evidence-check-attempt-acceptance)",
   "description": "C11 representation-only attempt-acceptance consumer. Selection means only Core validated representation and producer consistency. candidate_match is not rechecked; the producer's accepted binding is not Core Evidence acceptance. No Evidence acceptance or grade promotion is claimed.",
+  "narrative": {
+    "before": "A Core attempt-acceptance record has not yet been checked.",
+    "after": "Attempt representation only; candidate_match not rechecked; no Evidence/grade promotion.",
+    "audit_status": "REPRESENTATION-CHECK",
+    "moment": "Inconsistent records fail closed; no adapter execution or code-correctness proof.",
+    "intro": [
+      "Step 1: Construct an inconsistent acceptance record.",
+      "Step 2: Check Core's valid attempt representation.",
+      "Step 3: Reject the inconsistent record without selection.",
+      "candidate_match is not rechecked.",
+      "No Evidence acceptance or grade-promotion claim.",
+      "No adapter execution or proof of code correctness."
+    ]
+  },
+  "result_message": "Result: Attempt representation; mismatch fails closed.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,
