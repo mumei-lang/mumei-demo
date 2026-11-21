@@ -15,18 +15,18 @@
       "Read inputs: scenarios/native_stdout_recheck/src/main.mm (the bounded native profile atom main() -> i64 requires: true).",
       "Step 1 runs `native-bundle build` and records sha256(native-bundle.json) as the trusted-channel build ID.",
       "Step 2 runs the declared `native-stdout-recheck` route and asserts report.stdout_recheck == 'reproduced' plus the discharged-check partition.",
-      "Step 3 reruns the route with a wrong build ID and asserts no claimed outcome and normalized exit_code 1."
+      "Step 3 reruns the route with a wrong build ID and asserts no claimed outcome, full C02/runtime checks_not_performed and normalized exit_code 1."
     ]
   },
   "name": "Declared Native Stdout Recheck (native-stdout-recheck)",
-  "description": "C02/C10 stdout recheck demo: the declared `native-stdout-recheck` route runs `native-bundle recheck-stdout` as one attempt — `stdout_recheck: reproduced` plus `artifact_semantics` + `claim_truth` discharged checks only on a clean run; a wrong build ID claims no outcome.",
+  "description": "C02/C10 stdout recheck demo: the declared `native-stdout-recheck` route runs `native-bundle recheck-stdout` as one attempt — `stdout_recheck: reproduced` plus `artifact_semantics` + `claim_truth` + `os_stdout_observation` discharged checks on a clean run; the other runtime checks stay unperformed, and a wrong build ID leaves the full C02/runtime family unperformed.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,
     "source_intent": "Show the declared native-stdout-recheck route executing a real bundle's byte-identical reproduced program once and matching its OS stdout stream against the record pin, then refusing to claim an outcome for a wrong build ID.",
     "success_criteria": [
-      "report.json carries mumei.native-stdout-recheck-report/v1 with stdout_recheck == 'reproduced', discharged_checks == ['artifact_semantics', 'claim_truth'] and a non-null selected_result",
-      "wrong_report.json carries no stdout_recheck, no selected_result and normalized exit_code 1"
+      "report.json carries mumei.native-stdout-recheck-report/v1 with stdout_recheck == 'reproduced', discharged_checks == ['artifact_semantics', 'claim_truth', 'os_stdout_observation'] and checks_not_performed == ['file_identity', 'freshness', 'os_exit_status_observation', 'os_stderr_observation', 'producer_authenticity', 'runtime_observation_semantics', 'semantic_correspondence'] and a non-null selected_result",
+      "wrong_report.json carries no stdout_recheck or discharged_checks, checks_not_performed == ['artifact_semantics', 'claim_truth', 'file_identity', 'freshness', 'os_exit_status_observation', 'os_stderr_observation', 'os_stdout_observation', 'producer_authenticity', 'runtime_observation_semantics', 'semantic_correspondence'], no selected_result and normalized exit_code 1"
     ]
   },
   "l1_z3": {
@@ -58,14 +58,14 @@
         "id": "reproduced",
         "name": "native-stdout-recheck reports reproduced + discharged checks",
         "repo": "mumei-agent",
-        "command": "{mumei_agent_python} -m agent native-stdout-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_stdout_recheck/src/main.mm --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/report.json > {output_dir}/recheck.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/recheck.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['schema_version']=='mumei.native-stdout-recheck-report/v1', r['schema_version']; assert r['stdout_recheck']=='reproduced', r; assert r['discharged_checks']==['artifact_semantics','claim_truth'], r; assert r['sequence'].get('selected_result') is not None; assert 'candidate' not in r; print('native-stdout-recheck: reproduced, artifact_semantics + claim_truth discharged')\"",
+        "command": "{mumei_agent_python} -m agent native-stdout-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_stdout_recheck/src/main.mm --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/report.json > {output_dir}/recheck.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/recheck.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/report.json')); assert r['schema_version']=='mumei.native-stdout-recheck-report/v1', r['schema_version']; assert r['stdout_recheck']=='reproduced', r; assert r['discharged_checks']==['artifact_semantics', 'claim_truth', 'os_stdout_observation'], r; assert r['checks_not_performed']==['file_identity', 'freshness', 'os_exit_status_observation', 'os_stderr_observation', 'producer_authenticity', 'runtime_observation_semantics', 'semantic_correspondence'], r; assert r['sequence'].get('selected_result') is not None; assert 'candidate' not in r; print('native-stdout-recheck: reproduced, artifact_semantics + claim_truth + os_stdout_observation discharged')\"",
         "expected_exit": 0,
         "artifacts": [
           "recheck.log",
           "report.json"
         ],
         "harness_stage": "S2_stdout_recheck",
-        "artifact_contract": "report.json holds mumei.native-stdout-recheck-report/v1 with stdout_recheck reproduced and discharged artifact_semantics + claim_truth.",
+        "artifact_contract": "report.json holds mumei.native-stdout-recheck-report/v1 with stdout_recheck reproduced and discharged artifact_semantics + claim_truth + os_stdout_observation; other runtime checks remain unperformed.",
         "verifier_gate": "native-stdout-recheck exits 0; the reproduced program's captured stdout digest matched the record pin.",
         "expected_patterns": [
           "mumei.native-stdout-recheck-report/v1",
@@ -79,14 +79,14 @@
         "id": "wrong_build_id",
         "name": "Wrong build ID claims no outcome",
         "repo": "mumei-agent",
-        "command": "{mumei_agent_python} -m agent native-stdout-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_stdout_recheck/src/main.mm --expected-build-id $(python3 -c \"import hashlib;print(hashlib.sha256(b'not-the-build-id').hexdigest())\") --output {output_dir}/wrong_report.json > {output_dir}/wrong.log 2>&1; rc=$?; cat {output_dir}/wrong_report.json; cat {output_dir}/wrong.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/wrong_report.json')); assert r['schema_version']=='mumei.native-stdout-recheck-report/v1'; assert 'stdout_recheck' not in r; assert 'discharged_checks' not in r; assert r['sequence'].get('selected_result') is None; assert r['normalized'].get('exit_code') == 1, r['normalized']; print('wrong build ID: no claimed outcome, exit 1')\"",
+        "command": "{mumei_agent_python} -m agent native-stdout-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_stdout_recheck/src/main.mm --expected-build-id $(python3 -c \"import hashlib;print(hashlib.sha256(b'not-the-build-id').hexdigest())\") --output {output_dir}/wrong_report.json > {output_dir}/wrong.log 2>&1; rc=$?; cat {output_dir}/wrong_report.json; cat {output_dir}/wrong.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/wrong_report.json')); assert r['schema_version']=='mumei.native-stdout-recheck-report/v1'; assert 'stdout_recheck' not in r; assert 'discharged_checks' not in r; assert r['checks_not_performed']==['artifact_semantics', 'claim_truth', 'file_identity', 'freshness', 'os_exit_status_observation', 'os_stderr_observation', 'os_stdout_observation', 'producer_authenticity', 'runtime_observation_semantics', 'semantic_correspondence'], r; assert r['sequence'].get('selected_result') is None; assert r['normalized'].get('exit_code') == 1, r['normalized']; print('wrong build ID: no claimed outcome, exit 1')\"",
         "expected_exit": 0,
         "artifacts": [
           "wrong.log",
           "wrong_report.json"
         ],
         "harness_stage": "S3_wrong_build_id",
-        "artifact_contract": "wrong_report.json holds no stdout_recheck, no selected_result and normalized exit_code 1.",
+        "artifact_contract": "wrong_report.json holds no stdout_recheck or discharged_checks, full C02/runtime checks_not_performed, no selected_result and normalized exit_code 1.",
         "verifier_gate": "The mismatched build ID exits 1, conflating mismatch with static failure — no claimed outcome.",
         "expected_patterns": [
           "mumei.native-stdout-recheck-report/v1"
