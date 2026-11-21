@@ -45,7 +45,7 @@ def scenario_names() -> list[str]:
 
 
 def verification_labels(data: dict) -> tuple[str, str, str]:
-    """Return (verification caption, density metric title, density unit)."""
+    """Classify proof layers or bounded routes for captions and density metrics."""
     narrative = data.get("narrative")
     if isinstance(narrative, dict):
         audit_status = narrative.get("audit_status")
@@ -66,7 +66,9 @@ def verification_labels(data: dict) -> tuple[str, str, str]:
         )
     if "l3_lean" in layer_names:
         return "Z3 + Lean 4", "Proof Density", "atoms"
-    return "Z3 Only", "Proof Density", "atoms"
+    if "l1_z3" in layer_names:
+        return "Z3 Only", "Proof Density", "atoms"
+    return "NO Z3/LEAN PROOF LAYER (route steps)", "Route Steps", "route steps"
 
 
 def cross_scenario_density_rows(

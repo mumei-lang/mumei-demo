@@ -957,6 +957,24 @@ def test_verification_labels_default_to_z3_only(monkeypatch):
     )
 
 
+@pytest.mark.parametrize(
+    "layers",
+    [
+        {"l1_audit": {}, "l2_migrate": {}, "l3_heal": {}},
+        {},
+    ],
+)
+def test_verification_labels_use_route_steps_without_a_proof_layer(
+    monkeypatch, layers
+):
+    app = _load_dashboard_app(monkeypatch)
+    assert app.verification_labels({"layers": layers}) == (
+        "NO Z3/LEAN PROOF LAYER (route steps)",
+        "Route Steps",
+        "route steps",
+    )
+
+
 def test_cross_scenario_density_rows_split_proofs_from_bounded_routes(monkeypatch):
     app = _load_dashboard_app(monkeypatch)
     proof_rows, route_rows = app.cross_scenario_density_rows([
@@ -998,6 +1016,25 @@ def test_scenarios_with_audit_status_do_not_use_z3_only_caption(monkeypatch):
             continue
         caption, _, _ = app.verification_labels({"narrative": narrative})
         assert "Z3 Only" not in caption
+        seen += 1
+    assert seen
+
+
+def test_scenario_proof_captions_require_a_proof_layer(monkeypatch):
+    app = _load_dashboard_app(monkeypatch)
+    scenarios = Path(__file__).resolve().parents[1] / "scenarios"
+    proof_captions = {"Z3 Only", "Z3 + Lean 4"}
+    seen = 0
+    for scenario_path in scenarios.glob("*/scenario.json"):
+        scenario = json.loads(scenario_path.read_text(encoding="utf-8"))
+        layer_names = set(scenario["layers"])
+        data = {
+            "narrative": scenario.get("narrative"),
+            "layers": {name: {} for name in layer_names},
+        }
+        caption, _, _ = app.verification_labels(data)
+        if caption in proof_captions:
+            assert {"l1_z3", "l3_lean"} & layer_names, scenario_path
         seen += 1
     assert seen
 
