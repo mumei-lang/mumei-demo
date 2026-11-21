@@ -264,6 +264,7 @@ def test_native_evidence_and_spec_health_reports_have_bounded_route_summaries():
                 "native_machine_tv_branch_call_recheck",
                 "native_machine_tv_bounded_loop_recheck",
                 "native_machine_tv_f64_recheck",
+                "native_machine_tv_composite_recheck",
             }:
                 audit_status = "BOUNDED MACHINE-TV"
             elif name == "native_object_accept":
@@ -370,6 +371,7 @@ def test_native_evidence_and_spec_health_reports_have_bounded_route_summaries():
         if name in {
             "native_machine_tv_bounded_loop_recheck",
             "native_machine_tv_f64_recheck",
+            "native_machine_tv_composite_recheck",
             "native_object_accept",
         }:
             bounded_text = " ".join(
@@ -881,6 +883,7 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
     assert {
         "native_machine_tv_bounded_loop_recheck",
         "native_machine_tv_f64_recheck",
+        "native_machine_tv_composite_recheck",
         "native_object_accept",
         "evidence_fold_eval",
         "check_spec_health",
