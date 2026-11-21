@@ -1,0 +1,114 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Run Core's bounded native-machine-tv-recheck on a parameterized loop_count(n) source, with main calling loop_count(3). Assert the bound-4 loop-function check, callee-saved preservation and supported entry-wrapper check only when Core lists them as performed. The register convention is assumed, not validated. OS exit-status observation stays separate and unperformed; no ABI, runtime, CRT/loader, universal object-TV, or Evidence-reuse claim is made.",
+    "artifact_contracts": [
+      "Read scenarios/native_machine_tv_bounded_loop_recheck/src/main.mm: loop_count(n) has a bounded while loop and main calls loop_count(3).",
+      "Step 1 builds a real native bundle and asserts its pinned exit status is 3 with empty stdout/stderr digests; build_id.txt records sha256(native-bundle.json).",
+      "Step 2 captures Core's machine-TV descriptor and the agent report. Assert the bound-4 loop-function, callee-saved-preservation and supported entry-wrapper checks are performed and discharged; check the wrapper and callee-saved claims against Core checks_performed. OS exit-status observation must be in Core checks_not_performed and absent from agent discharged_checks. Require object_translation_correspondence not discharged, zero callee-saved violations, and no function names in the report.",
+      "Step 3 supplies a wrong expected build ID and asserts Core exits nonzero, the agent's normalized child exit is nonzero, no machine-TV outcome or checks are discharged, and no result is selected."
+    ]
+  },
+  "name": "Declared Native Bounded-Loop Machine-TV Recheck (native-machine-tv-bounded-loop-recheck)",
+  "description": "A real Core and mumei-agent recheck of a parameterized bounded loop and its supported main entry wrapper. It asserts only checks Core lists as performed, including the LOOP_BOUND=4 function check, callee-saved preservation, and the wrapper check when applicable. The register convention is assumed, not validated; OS exit-status observation is separate. This is not an ABI, runtime, CRT/loader, universal object-TV, or Evidence-reuse claim.",
+  "narrative": {
+    "intro": [
+      "Build loop_count(3) as a native bundle.",
+      "Recheck bounded-loop and entry-wrapper machine TV.",
+      "Reject a mismatched build ID without discharges.",
+      "Register convention is assumed; ABI/runtime, CRT/loader, OS exit-status, universal TV and Evidence reuse remain outside."
+    ],
+    "before": "The bounded-loop machine-code checks have not yet been rechecked.",
+    "after": "Only bounded checks listed by Core ran. Register convention is assumed, not validated; no ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim is made.",
+    "audit_status": "BOUNDED MACHINE-TV",
+    "moment": "Register convention assumed; not verified ABI; object_translation_correspondence not performed."
+  },
+  "result_message": "Result: bounded loop TV only; no ABI/runtime/OS-exit claim.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Demonstrate Core's real bounded-loop machine-TV descriptor for loop_count(n) with main calling loop_count(3). Core checks loop executions exiting within bound 4, while executions beyond the bound and runtime cancellation remain outside. Entry-wrapper and callee-saved checks are consumed only when listed in checks_performed; OS exit-status observation is not discharged. Function names are not reported, the register convention is assumed rather than validated, and no ABI/runtime/CRT/loader, universal object-TV, or Evidence-reuse claim is made.",
+    "success_criteria": [
+      "report.json carries mumei.native-machine-tv-recheck-report/v1 with machine_tv_recheck == 'checked'; Core checks_performed contains machine_code_bounded_loop_function_tv, machine_code_callee_saved_register_preservation, and machine_code_entry_wrapper_tv; those checks are discharged; callee_saved_preservation counts are present with violated == 0; Core checks_not_performed contains os_exit_status_observation; agent discharged_checks contains neither os_exit_status_observation nor object_translation_correspondence; no function names are exposed.",
+      "wrong_report.json has no machine_tv_recheck or discharged_checks, normalized.exit_code is nonzero, the sequence has no selected_result, and no bounded-loop, callee-saved, or entry-wrapper check is discharged."
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_bundle",
+        "name": "Build the parameterized bounded-loop bundle",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle build {root_dir}/scenarios/native_machine_tv_bounded_loop_recheck/src/main.mm -o {output_dir}/bundle > {output_dir}/build.log 2>&1 && python3 -c \"import hashlib,json; r=json.load(open('{output_dir}/bundle/native-bundle.json')); p=r['link_build']; empty=hashlib.sha256(b'').hexdigest(); assert p['expected_exit_status']==3, p; assert p['expected_stdout_sha256']==empty, p; assert p['expected_stderr_sha256']==empty, p; print(hashlib.sha256(open('{output_dir}/bundle/native-bundle.json','rb').read()).hexdigest())\" > {output_dir}/build_id.txt; rc=$?; cat {output_dir}/build.log; cat {output_dir}/build_id.txt; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "build.log",
+          "build_id.txt",
+          "bundle/native-bundle.json",
+          "bundle/program.ll",
+          "bundle/program.o",
+          "bundle/proof-cert.json",
+          "bundle/program"
+        ],
+        "harness_stage": "S1_bundle_produce",
+        "artifact_contract": "The bundle is built from the parameterized loop_count(n) fixture; its recorded execution exits 3 with empty stdout/stderr, and build_id.txt holds sha256(native-bundle.json).",
+        "verifier_gate": "Core builds the declared bounded-loop source and the native bundle pins the expected process exit and output channels.",
+        "expected_patterns": [
+          "Build ID:"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "checked",
+        "name": "Recheck bounded-loop and wrapper TV",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle recheck-machine-tv --expected-build-id $(cat {output_dir}/build_id.txt) --json {output_dir}/bundle {root_dir}/scenarios/native_machine_tv_bounded_loop_recheck/src/main.mm > {output_dir}/core_descriptor.json && {mumei_agent_python} -m agent native-machine-tv-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_machine_tv_bounded_loop_recheck/src/main.mm --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/report.json > {output_dir}/recheck.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/recheck.log; test $rc -eq 0 && python3 -c \"import json; c=json.load(open('{output_dir}/core_descriptor.json')); r=json.load(open('{output_dir}/report.json')); performed=set(c['checks_performed']); discharged=set(r['discharged_checks']); required={'machine_code_bounded_loop_function_tv','machine_code_callee_saved_register_preservation','machine_code_entry_wrapper_tv'}; assert required <= performed, c; assert required <= discharged, r; assert all((check in performed)==(check in discharged) for check in ('machine_code_entry_wrapper_tv','machine_code_callee_saved_register_preservation')), (c,r); assert 'os_exit_status_observation' in c['checks_not_performed'], c; assert 'os_exit_status_observation' not in discharged and 'object_translation_correspondence' not in discharged, r; assert r['schema_version']=='mumei.native-machine-tv-recheck-report/v1', r; assert r['machine_tv_recheck']=='checked', r; assert r['machine_tv_schema']=='mumei.machine-code-tv/v1', r; assert r['expected_build_id']==open('{output_dir}/build_id.txt').read().strip(), r; assert r['input_domain'].endswith('_and_loops_exiting_within_bound_4'), r; counts=r['callee_saved_preservation']; assert set(counts)=={'preserved','violated','unknown'} and counts['violated']==0 and sum(counts.values())>0, r; text=json.dumps(r,sort_keys=True); assert all(json.dumps(name) not in text for name in ('__mumei_user_main','main')), text; assert r['sequence'].get('selected_result') is not None; assert 'candidate' not in r; print('bounded-loop, callee-saved and entry-wrapper checks performed; zero preservation violations; OS exit status remains unperformed')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "core_descriptor.json",
+          "recheck.log",
+          "report.json"
+        ],
+        "harness_stage": "S2_machine_tv_recheck",
+        "artifact_contract": "Core's raw descriptor and agent report agree on entry-wrapper and callee-saved checks_performed; the bounded loop check is discharged, callee_saved_preservation has zero violations, OS exit-status observation and object_translation_correspondence are not discharged, and function names are absent.",
+        "verifier_gate": "The matching Core descriptor lists the bound-4 loop, callee-saved-preservation and supported wrapper checks; the agent discharges only bounded checks and does not claim runtime exit status or object translation.",
+        "expected_patterns": [
+          "machine_code_bounded_loop_function_tv",
+          "zero preservation violations"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "wrong_build_id",
+        "name": "Reject a mismatched build ID",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle recheck-machine-tv --expected-build-id $(python3 -c \"import hashlib;print(hashlib.sha256(b'not-the-build-id').hexdigest())\") --json {output_dir}/bundle {root_dir}/scenarios/native_machine_tv_bounded_loop_recheck/src/main.mm > {output_dir}/wrong_core.log 2>&1; core_rc=$?; {mumei_agent_python} -m agent native-machine-tv-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_machine_tv_bounded_loop_recheck/src/main.mm --expected-build-id $(python3 -c \"import hashlib;print(hashlib.sha256(b'not-the-build-id').hexdigest())\") --output {output_dir}/wrong_report.json > {output_dir}/wrong.log 2>&1; rc=$?; cat {output_dir}/wrong_core.log; cat {output_dir}/wrong_report.json; cat {output_dir}/wrong.log; test $core_rc -ne 0 && test $rc -eq 0 && python3 -c \"import hashlib,json; r=json.load(open('{output_dir}/wrong_report.json')); assert r['schema_version']=='mumei.native-machine-tv-recheck-report/v1'; assert 'machine_tv_recheck' not in r and not r.get('discharged_checks'), r; assert r['expected_build_id']==hashlib.sha256(b'not-the-build-id').hexdigest(), r; assert r['normalized'].get('exit_code') != 0, r['normalized']; assert r['sequence'].get('selected_result') is None, r; assert {'machine_code_bounded_loop_function_tv','machine_code_callee_saved_register_preservation','machine_code_entry_wrapper_tv'} <= set(r['checks_not_performed']), r; print('wrong build ID: Core exited nonzero and no machine-TV checks were discharged')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "wrong_core.log",
+          "wrong.log",
+          "wrong_report.json"
+        ],
+        "depends_on": [
+          "checked"
+        ],
+        "harness_stage": "S3_wrong_build_id",
+        "artifact_contract": "The raw Core command exits nonzero; wrong_report.json has no machine-TV outcome or discharges, a nonzero normalized child exit, and no selected result.",
+        "verifier_gate": "A mismatched expected build ID is rejected by Core and produces no claimed machine-TV outcome.",
+        "expected_patterns": [
+          "Core exited nonzero"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
