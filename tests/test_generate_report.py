@@ -876,6 +876,7 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
         "native_machine_tv_bounded_loop_recheck",
         "native_machine_tv_f64_recheck",
         "native_object_accept",
+        "evidence_fold_eval",
         "summaries_reuse_attempt",
         "verify_plan",
     } <= set(OPTIONAL_SCENARIOS)
