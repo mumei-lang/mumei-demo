@@ -2,7 +2,7 @@ SCENARIOS := ownership_transfer rtgs_settlement regtech_compliance nl_to_verifie
 # Large-scale (Priority 16) targets. Kept out of SCENARIOS on purpose: they are
 # separate targets so the deterministic fixture-mode CI run stays unchanged.
 SCALE_SCENARIOS := medical_device_scale rtgs_settlement_scale regtech_compliance_scale defi_invariant_scale ownership_transfer_scale
-OPTIONAL_SCENARIOS := record_execution_demo go_summaries ts_summaries rust_summaries sol_summaries rust_bindings sol_bindings ts_bindings audit_summaries translation_validation verify_recheck verify_attempt native_recheck evidence_identity evidence_check_accept evidence_compare native_attempt native_check native_artifact_recheck native_refined_attempt native_refined_widened_attempt verify_accept evidence_acceptance_eval evidence_fold_eval evidence_accept_list evidence_check_adapter evidence_check_attempt_acceptance evidence_check_list evidence_check_consistency native_accept native_evidence_recheck native_evidence_accept native_source_recheck native_exit_status_recheck native_exit_status_accept native_stdout_recheck native_stdout_accept native_stderr_recheck native_stderr_accept native_observations_accept native_observations_recheck native_object_accept native_object_recheck native_machine_tv_recheck native_machine_tv_branch_call_recheck native_machine_tv_bounded_loop_recheck native_machine_tv_f64_recheck evidence_check_schedule native_observations_recovery native_composite_attempt evidence_check summaries_plan summaries_attempt summaries_reuse_attempt verify_plan evidence_producer producer_signature_recovery agent_signature_sign claimbook_acceptance_gate schedule_export_gate
+OPTIONAL_SCENARIOS := record_execution_demo go_summaries ts_summaries rust_summaries sol_summaries rust_bindings sol_bindings ts_bindings audit_summaries translation_validation verify_recheck verify_attempt native_recheck evidence_identity evidence_check_accept evidence_compare native_attempt native_check native_artifact_recheck native_refined_attempt native_refined_widened_attempt verify_accept evidence_acceptance_eval evidence_fold_eval check_spec_health evidence_accept_list evidence_check_adapter evidence_check_attempt_acceptance evidence_check_list evidence_check_consistency native_accept native_evidence_recheck native_evidence_accept native_source_recheck native_exit_status_recheck native_exit_status_accept native_stdout_recheck native_stdout_accept native_stderr_recheck native_stderr_accept native_observations_accept native_observations_recheck native_object_accept native_object_recheck native_machine_tv_recheck native_machine_tv_branch_call_recheck native_machine_tv_bounded_loop_recheck native_machine_tv_f64_recheck evidence_check_schedule native_observations_recovery native_composite_attempt evidence_check summaries_plan summaries_attempt summaries_reuse_attempt verify_plan evidence_producer producer_signature_recovery agent_signature_sign claimbook_acceptance_gate schedule_export_gate
 NO_MM_AUDIT_LANGUAGES := python rust typescript go
 MUMEI_REPO ?= ../mumei
 MUMEI_AGENT_REPO ?= ../mumei-agent
@@ -10,7 +10,7 @@ MUMEI_AGENT_REPO ?= ../mumei-agent
 .PHONY: demo demo-ownership demo-settlement demo-regtech demo-nl demo-no-mm demo-no-mm-multilang demo-spec-code demo-mumei-develop-audit demo-smart-contract demo-blockchain demo-medical demo-aviation demo-merkle demo-defi demo-arklib demo-charter demo-negative-controls demo-test-observation demo-self-correction demo-human-review demo-all demo-ci report setup help \
 	demo-scale demo-medical-scale demo-settlement-scale demo-regtech-scale demo-defi-scale demo-ownership-scale \
 	demo-go-summaries demo-ts-summaries demo-rust-summaries demo-sol-summaries demo-rust-bindings demo-sol-bindings demo-ts-bindings demo-audit-summaries \
-	demo-translation-validation demo-verify-recheck demo-verify-attempt demo-native-recheck demo-native-machine-tv-branch-call-recheck demo-evidence-acceptance-eval demo-evidence-fold-eval demo-evidence-accept-list demo-evidence-check-adapter demo-evidence-check-attempt-acceptance demo-evidence-identity demo-evidence-check-accept demo-evidence-compare demo-native-attempt demo-native-refined-attempt demo-native-refined-widened-attempt demo-evidence-check demo-summaries-plan demo-summaries-attempt demo-summaries-reuse-attempt demo-verify-plan demo-evidence-producer demo-producer-signature-recovery demo-agent-signature-sign demo-claimbook-acceptance-gate demo-schedule-export-gate
+	demo-translation-validation demo-verify-recheck demo-verify-attempt demo-native-recheck demo-native-machine-tv-branch-call-recheck demo-evidence-acceptance-eval demo-evidence-fold-eval demo-check-spec-health demo-evidence-accept-list demo-evidence-check-adapter demo-evidence-check-attempt-acceptance demo-evidence-identity demo-evidence-check-accept demo-evidence-compare demo-native-attempt demo-native-refined-attempt demo-native-refined-widened-attempt demo-evidence-check demo-summaries-plan demo-summaries-attempt demo-summaries-reuse-attempt demo-verify-plan demo-evidence-producer demo-producer-signature-recovery demo-agent-signature-sign demo-claimbook-acceptance-gate demo-schedule-export-gate
 
 demo: ## Run the default scenario set and regenerate summary reports.
 	@status=0; \
@@ -460,6 +460,11 @@ demo-agent-signature-sign: ## Agent-side producer lane: keygen, signature-sign, 
 
 demo-evidence-fold-eval: ## Representation-level signature, binding, and freshness folds.
 	@./scripts/run_scenario.sh evidence_fold_eval \
+		--mumei-repo "$(MUMEI_REPO)" \
+		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
+
+demo-check-spec-health: ## Core contradiction and vacuity diagnostic findings.
+	@./scripts/run_scenario.sh check_spec_health \
 		--mumei-repo "$(MUMEI_REPO)" \
 		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
 
