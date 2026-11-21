@@ -955,6 +955,30 @@ def test_verification_labels_default_to_z3_only(monkeypatch):
     )
 
 
+def test_cross_scenario_density_rows_split_proofs_from_bounded_routes(monkeypatch):
+    app = _load_dashboard_app(monkeypatch)
+    proof_rows, route_rows = app.cross_scenario_density_rows([
+        ("p", {"layers": {"l1_z3": {}}, "proof_density": {"percentage": 100}}),
+        (
+            "v",
+            {
+                "narrative": {"audit_status": "PLANNING-ONLY"},
+                "proof_density": {"percentage": 80},
+            },
+        ),
+        ("d", {"layers": {"l1_summaries": {}}}),
+        ("l", {"layers": {"l3_lean": {}}, "proof_density": {"percentage": 50}}),
+    ])
+    assert proof_rows == [
+        {"scenario": "p", "density": 100},
+        {"scenario": "l", "density": 50},
+    ]
+    assert route_rows == [
+        {"scenario": "v", "density": 80},
+        {"scenario": "d", "density": 0},
+    ]
+
+
 def test_scenarios_with_audit_status_do_not_use_z3_only_caption(monkeypatch):
     app = _load_dashboard_app(monkeypatch)
     scenarios = Path(__file__).resolve().parents[1] / "scenarios"

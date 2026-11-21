@@ -69,6 +69,24 @@ def verification_labels(data: dict) -> tuple[str, str, str]:
     return "Z3 Only", "Proof Density", "atoms"
 
 
+def cross_scenario_density_rows(
+    items: list[tuple[str, dict]],
+) -> tuple[list[dict], list[dict]]:
+    """Split (scenario, result) pairs into (proof-density rows, bounded route-step rows)."""
+    proof_rows = []
+    route_rows = []
+    for name, item in items:
+        row = {
+            "scenario": name,
+            "density": item.get("proof_density", {}).get("percentage", 0),
+        }
+        if verification_labels(item)[1] == "Proof Density":
+            proof_rows.append(row)
+        else:
+            route_rows.append(row)
+    return proof_rows, route_rows
+
+
 def latest_result(scenario: str) -> Path | None:
     latest = REPORTS / scenario / "latest" / "result.json"
     if latest.exists():
@@ -393,19 +411,19 @@ def main() -> None:
                 with st.expander(artifact):
                     st.json(load_json(path))
 
-    st.subheader("Cross-scenario Proof Density")
-    chart_rows = []
+    density_items = []
     for name in names:
         path = latest_result(name)
         if not path:
             continue
-        item = load_json(path)
-        chart_rows.append({
-            "scenario": name,
-            "density": item.get("proof_density", {}).get("percentage", 0),
-        })
-    if chart_rows:
-        st.bar_chart(chart_rows, x="scenario", y="density")
+        density_items.append((name, load_json(path)))
+    proof_rows, route_rows = cross_scenario_density_rows(density_items)
+    if proof_rows:
+        st.subheader("Cross-scenario Proof Density")
+        st.bar_chart(proof_rows, x="scenario", y="density")
+    if route_rows:
+        st.subheader("Cross-scenario Bounded Route Steps (not Z3/Lean proofs)")
+        st.bar_chart(route_rows, x="scenario", y="density")
 
     lean_chart_rows = []
     for name in names:
