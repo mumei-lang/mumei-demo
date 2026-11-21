@@ -1,0 +1,326 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Fold a signed record, its declared binding, and its freshness claim as representation-level observations only. Signature verification, key lookup, carrier authenticity, clock authenticity, and gating are not performed.",
+    "artifact_contracts": [
+      "Keygen writes the producer secret only to producer.secret; that file is removed immediately after signing and is never printed or listed as an artifact.",
+      "The pinned and wrong-pin signature evaluations report the declared envelope and pin observations while leaving signature verification, key authenticity, envelope freshness, and key revocation unperformed.",
+      "A foreign JSON object yields envelope_match false, both pins false, and no subject_digest field. A JSON array is malformed for this route and must fail statically.",
+      "Binding recomputes the record byte digest and reports the declared carrier relationship; carrier authenticity and binding enforcement remain unperformed.",
+      "Freshness compares timestamps only against the declared reference time; clock authenticity, producer-time authenticity, and freshness enforcement remain unperformed."
+    ]
+  },
+  "name": "Declared Evidence Fold Evaluation (signature-eval / binding-eval / freshness-eval)",
+  "description": "Representation-level folds over a declared signature envelope, evidence binding, and freshness claim. No signature verification, key lookup, or enforcement is performed.",
+  "narrative": {
+    "before": "A record and detached producer envelope await representation-level folds.",
+    "after": "Declared observations only; none of these routes gates anything.",
+    "audit_status": "REPRESENTATION-CHECK",
+    "moment": "Declared folds only; no signature verification or gating.",
+    "intro": [
+      "Step 1: Generate a demo keypair; keep its secret file-only.",
+      "Step 2: Sign the record bytes as a detached envelope.",
+      "Step 3: Fold matching and mismatched signature pins.",
+      "Step 4: A foreign JSON object is unmatched, not malformed.",
+      "Step 5: A non-object JSON envelope fails statically.",
+      "Step 6: Compare the declared subject with record bytes.",
+      "Step 7: A different record digest is not bound.",
+      "Step 8: Fold timestamps against a declared reference time.",
+      "Step 9: Stale and future timestamps are outside the window.",
+      "Step 10: Missing produced_at is an unclaimed timestamp.",
+      "These are representation-level folds only; none gates anything.",
+      "Signature verification and key lookup are not performed.",
+      "Binding trusts its evidence document as declared.",
+      "Freshness uses a declared clock, never system time."
+    ],
+    "steps": {
+      "keygen": {
+        "pass": {
+          "headline": "Producer keypair generated",
+          "follow_up": [
+            "  Next: sign the declared record bytes."
+          ]
+        }
+      },
+      "sign": {
+        "pass": {
+          "headline": "Detached envelope emitted",
+          "follow_up": [
+            "  Next: evaluate its declared envelope and pins."
+          ]
+        }
+      },
+      "freshness_within": {
+        "pass": {
+          "headline": "Declared timestamp is within the window",
+          "follow_up": []
+        }
+      }
+    }
+  },
+  "result_message": "Result: Representation-level folds; none gates anything.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Demonstrate the declared signature, binding, and freshness evaluator outputs without claiming cryptographic verification, key lookup, authenticity, system-clock use, or enforcement.",
+    "success_criteria": [
+      "Pinned signature evaluation reports envelope_match, subject_bound, and key_pinned true with the required checks not performed.",
+      "Wrong pins and the foreign object report false observations; malformed non-object input exits nonzero.",
+      "Binding reports a matching recomputed record digest and bound true, while a changed record reports bound false.",
+      "Freshness uses the supplied reference time and reports within-window, stale, future, and unclaimed cases as declared observations."
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "keygen",
+        "name": "Generate a demo producer keypair",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_bin} evidence keygen --secret-file {output_dir}/producer.secret > {output_dir}/keygen.log 2>&1; rc=$?; cat {output_dir}/keygen.log; test $rc -eq 0 && test -s {output_dir}/producer.secret && grep -q '^Public key: ' {output_dir}/keygen.log && echo 'keygen wrote the secret file; only the public key was printed'",
+        "expected_exit": 0,
+        "artifacts": [
+          "keygen.log"
+        ],
+        "harness_stage": "S1_keygen",
+        "artifact_contract": "The public key and status may appear in keygen.log; producer.secret is not printed or listed as an artifact and is removed after signing.",
+        "verifier_gate": "Keygen exits 0, creates the secret file, and prints a public key.",
+        "expected_patterns": [
+          "Public key:",
+          "only the public key was printed"
+        ]
+      },
+      {
+        "id": "sign",
+        "name": "Sign the declared record bytes",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent signature-sign --record {root_dir}/scenarios/evidence_fold_eval/src/record.json --key-file {output_dir}/producer.secret --producer-key-id demo-producer-key --output {output_dir}/envelope.json > {output_dir}/sign.log 2>&1; rc=$?; rm -f {output_dir}/producer.secret; cat {output_dir}/sign.log; cat {output_dir}/envelope.json; test $rc -eq 0 && test ! -e {output_dir}/producer.secret && python3 -c \"import hashlib,json; e=json.load(open('{output_dir}/envelope.json')); b=open('{root_dir}/scenarios/evidence_fold_eval/src/record.json','rb').read(); assert e['schema_version']=='mumei.producer-signature/v1', e; assert e['subject_digest']==hashlib.sha256(b).hexdigest(), e; assert e['producer_key_id']=='demo-producer-key', e; print('envelope is bound to the record byte digest; secret file removed')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "keygen"
+        ],
+        "artifacts": [
+          "envelope.json",
+          "sign.log"
+        ],
+        "harness_stage": "S2_signature_sign",
+        "artifact_contract": "envelope.json is the declared producer-signature envelope over the record's exact bytes. producer.secret is removed immediately after signing and is not an artifact.",
+        "verifier_gate": "The signature-sign route exits 0 and emits the expected schema, byte digest, and producer key identifier.",
+        "expected_patterns": [
+          "mumei.producer-signature/v1",
+          "secret file removed"
+        ]
+      },
+      {
+        "id": "signature_eval_pinned",
+        "name": "Evaluate matching signature pins",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent signature-eval --envelope {output_dir}/envelope.json --expected-subject $(sha256sum {root_dir}/scenarios/evidence_fold_eval/src/record.json | cut -d' ' -f1) --expected-producer-key demo-producer-key --output {output_dir}/signature_pinned.json > {output_dir}/signature_pinned.log 2>&1; rc=$?; cat {output_dir}/signature_pinned.log; cat {output_dir}/signature_pinned.json; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/signature_pinned.json')); assert r['schema_version']=='mumei.signature-envelope-evaluation/v1', r; assert r['envelope_match'] is True and r['subject_bound'] is True and r['key_pinned'] is True, r; assert {'signature_verification','key_authenticity','envelope_freshness','key_revocation'} <= set(r['checks_not_performed']), r; print('matching signature envelope and pins observed; verification remains unperformed')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "sign"
+        ],
+        "artifacts": [
+          "signature_pinned.json",
+          "signature_pinned.log"
+        ],
+        "harness_stage": "S3_signature_pinned",
+        "artifact_contract": "signature_pinned.json reports matching declared pins and leaves signature verification, key authenticity, freshness, and revocation unperformed.",
+        "verifier_gate": "The route exits 0 and its representation-level observations match the declared pins.",
+        "expected_patterns": [
+          "mumei.signature-envelope-evaluation/v1",
+          "verification remains unperformed"
+        ]
+      },
+      {
+        "id": "signature_eval_wrong_pins",
+        "name": "Evaluate mismatched signature pins",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent signature-eval --envelope {output_dir}/envelope.json --expected-subject $(sha256sum {root_dir}/scenarios/evidence_fold_eval/src/record_no_time.json | cut -d' ' -f1) --expected-producer-key not-the-producer --output {output_dir}/signature_wrong_pins.json > {output_dir}/signature_wrong_pins.log 2>&1; rc=$?; cat {output_dir}/signature_wrong_pins.log; cat {output_dir}/signature_wrong_pins.json; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/signature_wrong_pins.json')); assert r['envelope_match'] is True, r; assert r['subject_bound'] is False and r['key_pinned'] is False, r; print('wrong pins are reported as false observations')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "signature_eval_pinned"
+        ],
+        "artifacts": [
+          "signature_wrong_pins.json",
+          "signature_wrong_pins.log"
+        ],
+        "harness_stage": "S4_signature_wrong_pins",
+        "artifact_contract": "The envelope still matches its family; the mismatched subject and producer-key pins are reported false.",
+        "verifier_gate": "The route exits 0 and reports both pin mismatches without treating them as an error.",
+        "expected_patterns": [
+          "envelope_match",
+          "wrong pins are reported as false observations"
+        ]
+      },
+      {
+        "id": "signature_eval_foreign_object",
+        "name": "Evaluate a foreign JSON object",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent signature-eval --envelope {root_dir}/scenarios/evidence_fold_eval/src/record.json --expected-subject $(sha256sum {root_dir}/scenarios/evidence_fold_eval/src/record.json | cut -d' ' -f1) --expected-producer-key demo-producer-key --output {output_dir}/signature_foreign_object.json > {output_dir}/signature_foreign_object.log 2>&1; rc=$?; cat {output_dir}/signature_foreign_object.log; cat {output_dir}/signature_foreign_object.json; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/signature_foreign_object.json')); assert r['envelope_match'] is False, r; assert r['subject_bound'] is False and r['key_pinned'] is False, r; assert 'subject_digest' not in r, r; print('foreign JSON object is unmatched; no subject digest is echoed')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "signature_eval_wrong_pins"
+        ],
+        "artifacts": [
+          "signature_foreign_object.json",
+          "signature_foreign_object.log"
+        ],
+        "harness_stage": "S5a_signature_foreign_object",
+        "artifact_contract": "A well-formed JSON object outside the envelope family returns envelope_match false, both pins false, and no subject_digest field.",
+        "verifier_gate": "The route exits 0 and reports only the declared false observations for the foreign object.",
+        "expected_patterns": [
+          "envelope_match",
+          "no subject digest is echoed"
+        ]
+      },
+      {
+        "id": "signature_eval_malformed",
+        "name": "Reject a non-object JSON envelope",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "python3 -c \"from pathlib import Path; Path('{output_dir}/not_object.json').write_text('[1, 2]\\\\n', encoding='utf-8')\" && {mumei_agent_python} -m agent signature-eval --envelope {output_dir}/not_object.json --expected-subject $(sha256sum {root_dir}/scenarios/evidence_fold_eval/src/record.json | cut -d' ' -f1) --expected-producer-key demo-producer-key > {output_dir}/signature_malformed.log 2>&1; rc=$?; cat {output_dir}/signature_malformed.log; test -s {output_dir}/not_object.json && python3 -c \"from pathlib import Path; assert Path('{output_dir}/not_object.json').read_text(encoding='utf-8') == '[1, 2]\\\\n'\" && test $rc -ne 0 && ! grep -Eiq 'envelope_match[[:space:]]*:[[:space:]]*true' {output_dir}/signature_malformed.log && echo 'non-object envelope failed statically; no true match output'",
+        "expected_exit": 0,
+        "depends_on": [
+          "signature_eval_foreign_object"
+        ],
+        "artifacts": [
+          "not_object.json",
+          "signature_malformed.log"
+        ],
+        "harness_stage": "S5b_signature_malformed",
+        "artifact_contract": "not_object.json contains the JSON array [1, 2]. The route exits nonzero and its output contains no true envelope_match observation.",
+        "verifier_gate": "The non-object input fails statically; the step succeeds only after confirming the route's nonzero exit and absence of a true match.",
+        "expected_patterns": [
+          "declared document must be a JSON object",
+          "no true match output"
+        ]
+      },
+      {
+        "id": "binding_eval_bound",
+        "name": "Evaluate a matching evidence binding",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent binding-eval --record {root_dir}/scenarios/evidence_fold_eval/src/record.json --evidence {output_dir}/envelope.json --output {output_dir}/binding_bound.json > {output_dir}/binding_bound.log 2>&1; rc=$?; cat {output_dir}/binding_bound.log; cat {output_dir}/binding_bound.json; test $rc -eq 0 && python3 -c \"import hashlib,json; r=json.load(open('{output_dir}/binding_bound.json')); b=open('{root_dir}/scenarios/evidence_fold_eval/src/record.json','rb').read(); assert r['schema_version']=='mumei.evidence-binding/v1', r; assert r['record_digest']==hashlib.sha256(b).hexdigest(), r; assert r['carrier_match'] is True and r['subject_declared'] is True and r['bound'] is True, r; assert {'carrier_authenticity','binding_enforcement'} <= set(r['checks_not_performed']), r; print('record bytes match the declared envelope subject; enforcement remains unperformed')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "signature_eval_malformed"
+        ],
+        "artifacts": [
+          "binding_bound.json",
+          "binding_bound.log"
+        ],
+        "harness_stage": "S6_binding_bound",
+        "artifact_contract": "binding_bound.json reports the recomputed raw-byte digest, matching carrier and subject declarations, and bound true. Authenticity and enforcement remain unperformed.",
+        "verifier_gate": "The route exits 0 and the recomputed record digest matches the envelope's declared subject.",
+        "expected_patterns": [
+          "mumei.evidence-binding/v1",
+          "enforcement remains unperformed"
+        ]
+      },
+      {
+        "id": "binding_eval_mismatch",
+        "name": "Evaluate a different record against the envelope",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent binding-eval --record {root_dir}/scenarios/evidence_fold_eval/src/record_no_time.json --evidence {output_dir}/envelope.json --output {output_dir}/binding_mismatch.json > {output_dir}/binding_mismatch.log 2>&1; rc=$?; cat {output_dir}/binding_mismatch.log; cat {output_dir}/binding_mismatch.json; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/binding_mismatch.json')); assert r['bound'] is False, r; print('a changed record is reported as not bound')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "binding_eval_bound"
+        ],
+        "artifacts": [
+          "binding_mismatch.json",
+          "binding_mismatch.log"
+        ],
+        "harness_stage": "S7_binding_mismatch",
+        "artifact_contract": "binding_mismatch.json reports bound false for record_no_time.json and the unchanged envelope.",
+        "verifier_gate": "The route exits 0 and reports the declared digest mismatch as bound false.",
+        "expected_patterns": [
+          "bound",
+          "changed record is reported as not bound"
+        ]
+      },
+      {
+        "id": "freshness_within",
+        "name": "Evaluate a timestamp inside the declared window",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent freshness-eval --record {root_dir}/scenarios/evidence_fold_eval/src/record.json --reference-time 2026-11-18T01:00:00Z --max-age-seconds 86400 --output {output_dir}/freshness_within.json > {output_dir}/freshness_within.log 2>&1; rc=$?; cat {output_dir}/freshness_within.log; cat {output_dir}/freshness_within.json; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/freshness_within.json')); assert r['schema_version']=='mumei.freshness-evaluation/v1', r; assert r['freshness_claimed'] is True and r['within_window'] is True, r; assert {'clock_authenticity','producer_time_authenticity','freshness_enforcement'} <= set(r['checks_not_performed']), r; print('declared timestamp is within the declared window; no enforcement is performed')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "binding_eval_mismatch"
+        ],
+        "artifacts": [
+          "freshness_within.json",
+          "freshness_within.log"
+        ],
+        "harness_stage": "S8_freshness_within",
+        "artifact_contract": "freshness_within.json reports a claimed timestamp within the supplied reference window and leaves clock, producer-time, and enforcement checks unperformed.",
+        "verifier_gate": "The route exits 0 and evaluates only the record's timestamp against the supplied reference time.",
+        "expected_patterns": [
+          "mumei.freshness-evaluation/v1",
+          "no enforcement is performed"
+        ]
+      },
+      {
+        "id": "freshness_stale",
+        "name": "Evaluate stale and future timestamps",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent freshness-eval --record {root_dir}/scenarios/evidence_fold_eval/src/record.json --reference-time 2026-11-20T00:00:00Z --max-age-seconds 3600 --output {output_dir}/freshness_stale.json > {output_dir}/freshness_stale.log 2>&1; stale_rc=$?; cat {output_dir}/freshness_stale.log; cat {output_dir}/freshness_stale.json; test $stale_rc -eq 0 && python3 -c \"import json; assert json.load(open('{output_dir}/freshness_stale.json'))['within_window'] is False\" && {mumei_agent_python} -m agent freshness-eval --record {root_dir}/scenarios/evidence_fold_eval/src/record.json --reference-time 2026-11-17T00:00:00Z --max-age-seconds 86400 --output {output_dir}/freshness_future.json > {output_dir}/freshness_future.log 2>&1; future_rc=$?; cat {output_dir}/freshness_future.log; cat {output_dir}/freshness_future.json; test $future_rc -eq 0 && python3 -c \"import json; assert json.load(open('{output_dir}/freshness_future.json'))['within_window'] is False; print('stale and future timestamps are outside their declared windows')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "freshness_within"
+        ],
+        "artifacts": [
+          "freshness_stale.json",
+          "freshness_stale.log",
+          "freshness_future.json",
+          "freshness_future.log"
+        ],
+        "harness_stage": "S9_freshness_outside_window",
+        "artifact_contract": "freshness_stale.json and freshness_future.json each report within_window false against their respective declared reference times.",
+        "verifier_gate": "Both route invocations exit 0 and report timestamps outside the supplied windows.",
+        "expected_patterns": [
+          "within_window",
+          "stale and future timestamps are outside their declared windows"
+        ]
+      },
+      {
+        "id": "freshness_unclaimed",
+        "name": "Evaluate a record without produced_at",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "{mumei_agent_python} -m agent freshness-eval --record {root_dir}/scenarios/evidence_fold_eval/src/record_no_time.json --reference-time 2026-11-18T01:00:00Z --max-age-seconds 86400 --output {output_dir}/freshness_unclaimed.json > {output_dir}/freshness_unclaimed.log 2>&1; rc=$?; cat {output_dir}/freshness_unclaimed.log; cat {output_dir}/freshness_unclaimed.json; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/freshness_unclaimed.json')); assert r['freshness_claimed'] is False and r['within_window'] is not True, r; print('missing produced_at is reported as unclaimed')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "freshness_stale"
+        ],
+        "artifacts": [
+          "freshness_unclaimed.json",
+          "freshness_unclaimed.log"
+        ],
+        "harness_stage": "S10_freshness_unclaimed",
+        "artifact_contract": "freshness_unclaimed.json reports freshness_claimed false and does not claim within_window true.",
+        "verifier_gate": "The route exits 0 and reports no freshness claim for record_no_time.json.",
+        "expected_patterns": [
+          "freshness_claimed",
+          "missing produced_at is reported as unclaimed"
+        ]
+      }
+    ]
+  }
+}

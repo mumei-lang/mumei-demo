@@ -872,6 +872,7 @@ def test_dashboard_claim_book_labels_match(tmp_path, monkeypatch):
         "native_machine_tv_bounded_loop_recheck",
         "native_machine_tv_f64_recheck",
         "native_object_accept",
+        "evidence_fold_eval",
     } <= set(OPTIONAL_SCENARIOS)
     assert app.scenario_names().index("record_execution_demo") == len(SCENARIO_ORDER)
     assert app.scenario_names().count("record_execution_demo") == 1
