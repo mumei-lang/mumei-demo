@@ -1,0 +1,114 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Run Core's native-machine-tv-recheck on the exact scalar-f64 fixture. Assert the f64 check only when Core lists it as performed; MXCSR control state and NaN payload bits remain not performed. The XMM register convention is assumed, not validated, and direct calls with f64 arguments fail closed in Core. This makes no IEEE-754 conformance, ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim.",
+    "artifact_contracts": [
+      "Read scenarios/native_machine_tv_f64_recheck/src/main.mm: it is the exact fadd, feq, mixed, and main fixture from the scalar-f64 machine-TV test.",
+      "Step 1 builds a real native bundle and asserts its pinned exit status is 0 with empty stdout/stderr digests; build_id.txt records sha256(native-bundle.json).",
+      "Step 2 captures Core's machine-TV descriptor and the agent report. Require Core to list machine_code_f64_scalar_function_tv as performed and the agent to discharge it; MXCSR control state and NaN payload checks stay in checks_not_performed and are not discharged. The register-convention string is copied exactly, OS exit-status observation stays separate, and function names are not exposed.",
+      "Step 3 supplies a wrong expected build ID and asserts Core exits nonzero, the agent's normalized child exit is nonzero, no machine-TV outcome or checks are discharged, and no result is selected."
+    ]
+  },
+  "name": "Declared Native Scalar-f64 Machine-TV Recheck (native-machine-tv-f64-recheck)",
+  "description": "A real Core and mumei-agent recheck of the scalar-f64 fixture. It requires Core's f64 check to be performed and the agent to discharge it, while MXCSR control state and NaN payload bits remain not performed. The XMM register convention is assumed, not validated; direct calls with f64 arguments fail closed in Core. No IEEE-754 conformance, ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim is made.",
+  "narrative": {
+    "intro": [
+      "Build the exact scalar-f64 fixture as a native bundle.",
+      "Recheck Core's scalar-f64 machine-TV result.",
+      "Reject a mismatched build ID without a machine-TV outcome.",
+      "The XMM convention is assumed; MXCSR/NaN, ABI/runtime, CRT/loader and OS exit-status observations remain outside."
+    ],
+    "before": "The scalar-f64 machine-code check has not yet been rechecked.",
+    "after": "Only bounded scalar-f64 TV ran. The XMM register convention is assumed, not validated; MXCSR control state and NaN payload bits were not performed. Direct calls with f64 arguments fail closed in Core. No IEEE-754 conformance, ABI, runtime, CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim is made.",
+    "audit_status": "BOUNDED MACHINE-TV",
+    "moment": "Register convention assumed; not verified ABI; object_translation_correspondence not performed."
+  },
+  "result_message": "Result: bounded f64 TV only; no IEEE-754/ABI/runtime claim.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Demonstrate Core's real scalar-f64 machine-TV descriptor for the exact fadd, feq, mixed, and main source. The f64 function check is consumed only when listed in checks_performed; MXCSR control state and NaN payload bits remain not performed. The XMM register convention is assumed rather than validated, direct calls with f64 arguments fail closed in Core, and function names are not reported. No IEEE-754 conformance, ABI/runtime/CRT/loader, OS exit-status, universal object-TV, or Evidence-reuse claim is made.",
+    "success_criteria": [
+      "report.json carries mumei.native-machine-tv-recheck-report/v1 with machine_tv_recheck == 'checked'; Core checks_performed contains machine_code_f64_scalar_function_tv and the agent discharges it; Core and agent checks_not_performed contain machine_code_tv_mxcsr_control_state and machine_code_tv_nan_payload_bits, and neither is discharged; the register convention is copied verbatim; entry-wrapper and callee-saved checks are discharged only if Core lists them in checks_performed; Core lists os_exit_status_observation as not performed and the agent does not discharge it; object_translation_correspondence is not discharged; fadd, feq, and mixed do not appear in the report.",
+      "wrong_report.json has no machine_tv_recheck or discharged_checks, normalized.exit_code is nonzero, the sequence has no selected_result, and no f64 machine-TV check is discharged."
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_bundle",
+        "name": "Build the scalar-f64 bundle",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle build {root_dir}/scenarios/native_machine_tv_f64_recheck/src/main.mm -o {output_dir}/bundle > {output_dir}/build.log 2>&1 && python3 -c \"import hashlib,json; r=json.load(open('{output_dir}/bundle/native-bundle.json')); p=r['link_build']; empty=hashlib.sha256(b'').hexdigest(); assert p['expected_exit_status']==0, p; assert p['expected_stdout_sha256']==empty, p; assert p['expected_stderr_sha256']==empty, p; print(hashlib.sha256(open('{output_dir}/bundle/native-bundle.json','rb').read()).hexdigest())\" > {output_dir}/build_id.txt; rc=$?; cat {output_dir}/build.log; cat {output_dir}/build_id.txt; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "build.log",
+          "build_id.txt",
+          "bundle/native-bundle.json",
+          "bundle/program.ll",
+          "bundle/program.o",
+          "bundle/proof-cert.json",
+          "bundle/program"
+        ],
+        "harness_stage": "S1_bundle_produce",
+        "artifact_contract": "The bundle is built from the exact scalar-f64 fixture; its recorded execution exits 0 with empty stdout/stderr, and build_id.txt holds sha256(native-bundle.json).",
+        "verifier_gate": "Core builds the exact scalar-f64 source and the native bundle pins the expected process exit and output channels.",
+        "expected_patterns": [
+          "Build ID:"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "checked",
+        "name": "Recheck scalar-f64 machine TV",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle recheck-machine-tv --expected-build-id $(cat {output_dir}/build_id.txt) --json {output_dir}/bundle {root_dir}/scenarios/native_machine_tv_f64_recheck/src/main.mm > {output_dir}/core_descriptor.json && {mumei_agent_python} -m agent native-machine-tv-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_machine_tv_f64_recheck/src/main.mm --expected-build-id $(cat {output_dir}/build_id.txt) --output {output_dir}/report.json > {output_dir}/recheck.log 2>&1; rc=$?; cat {output_dir}/report.json; cat {output_dir}/recheck.log; test $rc -eq 0 && python3 -c \"import json; c=json.load(open('{output_dir}/core_descriptor.json')); r=json.load(open('{output_dir}/report.json')); performed=set(c['checks_performed']); discharged=set(r['discharged_checks']); f64='machine_code_f64_scalar_function_tv'; markers={'machine_code_tv_mxcsr_control_state','machine_code_tv_nan_payload_bits'}; convention='sysv_x86_64_integer_args_rdi_rsi_rdx_rcx_r8_r9_f64_args_xmm0_7_result_rax_or_xmm0'; assert f64 in performed and f64 in discharged, (c,r); assert markers <= set(c['checks_not_performed']), c; assert markers <= set(r['checks_not_performed']) and not (markers & discharged), r; external='machine_code_callee_saved_preservation_assumed_for_external_callees'; assert external not in discharged, r; assert r['register_convention_assumed']==convention==c['register_convention_assumed'], (c,r); assert 'os_exit_status_observation' in c['checks_not_performed'], c; assert 'os_exit_status_observation' not in discharged and 'object_translation_correspondence' not in discharged, r; assert all((check in performed)==(check in discharged) for check in ('machine_code_entry_wrapper_tv','machine_code_callee_saved_register_preservation')), (c,r); assert r['schema_version']=='mumei.native-machine-tv-recheck-report/v1' and r['machine_tv_recheck']=='checked', r; assert r['machine_tv_schema']=='mumei.machine-code-tv/v1' and r['expected_build_id']==open('{output_dir}/build_id.txt').read().strip(), r; text=json.dumps(r,sort_keys=True); assert all(name not in text for name in ('fadd','feq','mixed')), text; assert r['sequence'].get('selected_result') is not None; assert 'candidate' not in r; print('scalar-f64 check performed and discharged; MXCSR/NaN checks remain not performed')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "core_descriptor.json",
+          "recheck.log",
+          "report.json"
+        ],
+        "harness_stage": "S2_machine_tv_recheck",
+        "artifact_contract": "Core's raw descriptor and agent report list the scalar-f64 check as performed and discharged; MXCSR control state and NaN payload checks remain not performed; the XMM register-convention string is preserved, OS exit-status observation and object_translation_correspondence are not discharged, and function names are absent.",
+        "verifier_gate": "The matching Core descriptor lists machine_code_f64_scalar_function_tv in checks_performed; the agent discharges only that bounded check and does not claim IEEE-754, ABI, runtime, or OS exit-status behavior.",
+        "expected_patterns": [
+          "machine_code_f64_scalar_function_tv",
+          "scalar-f64 check performed and discharged"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "wrong_build_id",
+        "name": "Reject a mismatched build ID",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle recheck-machine-tv --expected-build-id $(python3 -c \"import hashlib;print(hashlib.sha256(b'not-the-build-id').hexdigest())\") --json {output_dir}/bundle {root_dir}/scenarios/native_machine_tv_f64_recheck/src/main.mm > {output_dir}/wrong_core.log 2>&1; core_rc=$?; {mumei_agent_python} -m agent native-machine-tv-recheck --core {mumei_bin} --bundle {output_dir}/bundle --source {root_dir}/scenarios/native_machine_tv_f64_recheck/src/main.mm --expected-build-id $(python3 -c \"import hashlib;print(hashlib.sha256(b'not-the-build-id').hexdigest())\") --output {output_dir}/wrong_report.json > {output_dir}/wrong.log 2>&1; rc=$?; cat {output_dir}/wrong_core.log; cat {output_dir}/wrong_report.json; cat {output_dir}/wrong.log; test $core_rc -ne 0 && test $rc -eq 0 && python3 -c \"import hashlib,json; r=json.load(open('{output_dir}/wrong_report.json')); assert r['schema_version']=='mumei.native-machine-tv-recheck-report/v1'; assert 'machine_tv_recheck' not in r and not r.get('discharged_checks'), r; assert r['expected_build_id']==hashlib.sha256(b'not-the-build-id').hexdigest(), r; assert r['normalized'].get('exit_code') != 0, r['normalized']; assert r['sequence'].get('selected_result') is None, r; assert 'machine_code_f64_scalar_function_tv' in r['checks_not_performed'], r; print('wrong build ID: Core exited nonzero and no machine-TV checks were discharged')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "wrong_core.log",
+          "wrong.log",
+          "wrong_report.json"
+        ],
+        "depends_on": [
+          "checked"
+        ],
+        "harness_stage": "S3_wrong_build_id",
+        "artifact_contract": "The raw Core command exits nonzero; wrong_report.json has no machine-TV outcome or discharges, a nonzero normalized child exit, and no selected result.",
+        "verifier_gate": "A mismatched expected build ID is rejected by Core and produces no claimed machine-TV outcome.",
+        "expected_patterns": [
+          "Core exited nonzero"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
