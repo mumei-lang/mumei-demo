@@ -2,7 +2,7 @@ SCENARIOS := ownership_transfer rtgs_settlement regtech_compliance nl_to_verifie
 # Large-scale (Priority 16) targets. Kept out of SCENARIOS on purpose: they are
 # separate targets so the deterministic fixture-mode CI run stays unchanged.
 SCALE_SCENARIOS := medical_device_scale rtgs_settlement_scale regtech_compliance_scale defi_invariant_scale ownership_transfer_scale
-OPTIONAL_SCENARIOS := record_execution_demo go_summaries ts_summaries rust_summaries sol_summaries audit_summaries translation_validation verify_recheck verify_attempt native_recheck evidence_identity evidence_check_accept evidence_compare native_attempt native_check native_artifact_recheck native_refined_attempt native_refined_widened_attempt verify_accept evidence_check_list evidence_check_consistency native_accept native_evidence_recheck native_evidence_accept native_source_recheck native_exit_status_recheck native_exit_status_accept native_stdout_recheck native_stdout_accept native_stderr_recheck native_stderr_accept native_observations_accept native_observations_recheck native_composite_attempt evidence_check summaries_plan summaries_attempt evidence_producer producer_signature_recovery agent_signature_sign claimbook_acceptance_gate schedule_export_gate
+OPTIONAL_SCENARIOS := record_execution_demo go_summaries ts_summaries rust_summaries sol_summaries audit_summaries translation_validation verify_recheck verify_attempt native_recheck evidence_identity evidence_check_accept evidence_compare native_attempt native_check native_artifact_recheck native_refined_attempt native_refined_widened_attempt verify_accept evidence_check_list evidence_check_consistency native_accept native_evidence_recheck native_evidence_accept native_source_recheck native_exit_status_recheck native_exit_status_accept native_stdout_recheck native_stdout_accept native_stderr_recheck native_stderr_accept native_observations_accept native_observations_recheck native_observations_recovery native_composite_attempt evidence_check summaries_plan summaries_attempt evidence_producer producer_signature_recovery agent_signature_sign claimbook_acceptance_gate schedule_export_gate
 NO_MM_AUDIT_LANGUAGES := python rust typescript go
 MUMEI_REPO ?= ../mumei
 MUMEI_AGENT_REPO ?= ../mumei-agent
@@ -285,6 +285,11 @@ demo-native-observations-accept: ## Declared native observations acceptance rout
 
 demo-native-observations-recheck: ## Declared native observations recheck route (real mumei + mumei-agent, native toolchain).
 	@./scripts/run_scenario.sh native_observations_recheck \
+		--mumei-repo "$(MUMEI_REPO)" \
+		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
+
+demo-native-observations-recovery: ## C13 native observations recovery-composition regression (real mumei + mumei-agent).
+	@./scripts/run_scenario.sh native_observations_recovery \
 		--mumei-repo "$(MUMEI_REPO)" \
 		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
 
