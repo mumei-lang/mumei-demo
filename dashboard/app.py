@@ -44,6 +44,51 @@ def scenario_names() -> list[str]:
     return ordered + [name for name in names if name not in ordered]
 
 
+def verification_labels(data: dict) -> tuple[str, str, str]:
+    """Classify proof layers or bounded routes for captions and density metrics."""
+    narrative = data.get("narrative")
+    if isinstance(narrative, dict):
+        audit_status = narrative.get("audit_status")
+        if isinstance(audit_status, str) and audit_status:
+            return (
+                f"{audit_status} (bounded route; not a Z3/Lean proof)",
+                "Route Steps",
+                "route steps",
+            )
+
+    layers = data.get("layers", {})
+    layer_names = set(layers) if isinstance(layers, dict) else set()
+    if layer_names and layer_names <= {"l1_summaries"}:
+        return (
+            "DECLARED EVIDENCE (not a Z3/Lean proof)",
+            "Route Steps",
+            "route steps",
+        )
+    if "l3_lean" in layer_names:
+        return "Z3 + Lean 4", "Proof Density", "atoms"
+    if "l1_z3" in layer_names:
+        return "Z3 Only", "Proof Density", "atoms"
+    return "NO Z3/LEAN PROOF LAYER (route steps)", "Route Steps", "route steps"
+
+
+def cross_scenario_density_rows(
+    items: list[tuple[str, dict]],
+) -> tuple[list[dict], list[dict]]:
+    """Split (scenario, result) pairs into (proof-density rows, bounded route-step rows)."""
+    proof_rows = []
+    route_rows = []
+    for name, item in items:
+        row = {
+            "scenario": name,
+            "density": item.get("proof_density", {}).get("percentage", 0),
+        }
+        if verification_labels(item)[1] == "Proof Density":
+            proof_rows.append(row)
+        else:
+            route_rows.append(row)
+    return proof_rows, route_rows
+
+
 def latest_result(scenario: str) -> Path | None:
     latest = REPORTS / scenario / "latest" / "result.json"
     if latest.exists():
@@ -316,8 +361,8 @@ def main() -> None:
     st.caption(f"Report: `{result_path}`")
     layers = data.get("layers", {})
     has_lean = "l3_lean" in layers
-    verification_type = "Z3 + Lean 4" if has_lean else "Z3 Only"
-    st.caption(f"Verification: **{verification_type}**")
+    caption, density_title, density_unit = verification_labels(data)
+    st.caption(f"Verification: **{caption}**")
     if "evidence_summary" in data:
         st.markdown(render_evidence(data))
 
@@ -328,9 +373,9 @@ def main() -> None:
     density = data.get("proof_density", {})
     metric_cols = st.columns(5 if has_lean else 4)
     metric_cols[0].metric(
-        "Proof Density",
+        density_title,
         f"{density.get('percentage', 0):g}%",
-        f"{density.get('verified', 0)}/{density.get('total', 0)} atoms",
+        f"{density.get('verified', 0)}/{density.get('total', 0)} {density_unit}",
     )
     metric_cols[1].metric("Harness Contract", compliance_label(data))
     metric_cols[2].metric("Intent Fidelity", intent_fidelity_label(data))
@@ -368,19 +413,19 @@ def main() -> None:
                 with st.expander(artifact):
                     st.json(load_json(path))
 
-    st.subheader("Cross-scenario Proof Density")
-    chart_rows = []
+    density_items = []
     for name in names:
         path = latest_result(name)
         if not path:
             continue
-        item = load_json(path)
-        chart_rows.append({
-            "scenario": name,
-            "density": item.get("proof_density", {}).get("percentage", 0),
-        })
-    if chart_rows:
-        st.bar_chart(chart_rows, x="scenario", y="density")
+        density_items.append((name, load_json(path)))
+    proof_rows, route_rows = cross_scenario_density_rows(density_items)
+    if proof_rows:
+        st.subheader("Cross-scenario Proof Density")
+        st.bar_chart(proof_rows, x="scenario", y="density")
+    if route_rows:
+        st.subheader("Cross-scenario Bounded Route Steps (not Z3/Lean proofs)")
+        st.bar_chart(route_rows, x="scenario", y="density")
 
     lean_chart_rows = []
     for name in names:
