@@ -1,0 +1,117 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Use Core's real native-bundle accept-evidence producer to emit a declared native acceptance descriptor, then fold it with evidence-acceptance-eval. A matching descriptor's accepted declaration is reported as a representation-level evaluation only; the route performs no new Core check, attempt binding, Evidence acceptance promotion, or grade promotion. A foreign schema is not matched or accepted.",
+    "artifact_contracts": [
+      "Step 1 builds the checked-in source with Core, emits saved native consumer evidence, runs Core accept-evidence, and derives a foreign-schema copy for the negative step.",
+      "Step 2 folds the real Core descriptor and asserts the observed exact evaluation fields: descriptor_match true, accepted true, and attempt_binding unperformed.",
+      "Step 3 folds the foreign-schema copy and asserts descriptor_match false and accepted false. This evaluator emits no selected-result field; the negative boundary is its unaccepted evaluation."
+    ]
+  },
+  "name": "Core Acceptance Descriptor Evaluation (evidence-acceptance-eval)",
+  "description": "C11 descriptor-fold consumer: Core produces a real native acceptance descriptor, and mumei-agent evaluates its closed-shape membership and declared accepted value. The result is representation-level only; it does not rerun Core, bind an attempt without an expected fingerprint, promote Evidence acceptance, or make a grade-promotion claim.",
+  "narrative": {
+    "before": "A native acceptance descriptor has not yet been evaluated by the agent.",
+    "after": "Descriptor-shape match only; no Evidence-acceptance/grade-promotion or code-correctness proof.",
+    "audit_status": "DESCRIPTOR-ONLY",
+    "moment": "Foreign schema fails closed; no adapter execution.",
+    "intro": [
+      "Step 1: Core builds a bundle and emits its descriptor.",
+      "Step 2: The agent checks the descriptor's closed shape.",
+      "Step 3: A foreign schema receives no acceptance credit.",
+      "No Evidence acceptance or grade-promotion claim.",
+      "No adapter execution or proof of code correctness."
+    ]
+  },
+  "result_message": "Result: Descriptor shape only; foreign schema fails closed.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show that a real Core native acceptance descriptor matches the evaluator's known closed shape and that a foreign schema receives no acceptance credit. Preserve the evaluator boundary: descriptor folding only, with attempt binding and grade promotion unperformed.",
+    "success_criteria": [
+      "evaluation.json is exactly mumei.core-acceptance-evaluation/v1 with descriptor_match == true, accepted == true, and checks_not_performed == ['attempt_binding','descriptor_authenticity','descriptor_freshness','unperformed_check_recovery']",
+      "foreign_evaluation.json is exactly mumei.core-acceptance-evaluation/v1 with descriptor_match == false and accepted == false, with the same checks_not_performed list"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_core_acceptance",
+        "name": "Produce a real Core native acceptance descriptor",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} native-bundle build {root_dir}/scenarios/evidence_acceptance_eval/src/main.mm -o {output_dir}/bundle > {output_dir}/build.log 2>&1; rc=$?; cat {output_dir}/build.log; test $rc -eq 0 && BUILD_ID=$(sed -n 's/^Build ID:[[:space:]]*//p' {output_dir}/build.log | head -n 1) && test -n \"$BUILD_ID\" && {mumei_bin} native-bundle recheck-llvm --expected-build-id \"$BUILD_ID\" --json {output_dir}/bundle {root_dir}/scenarios/evidence_acceptance_eval/src/main.mm > {output_dir}/saved_evidence.json && {mumei_bin} native-bundle accept-evidence {output_dir}/bundle {root_dir}/scenarios/evidence_acceptance_eval/src/main.mm {output_dir}/saved_evidence.json --expected-build-id \"$BUILD_ID\" --json > {output_dir}/core_acceptance.json && python3 -c \"import json; p='{output_dir}/core_acceptance.json'; r=json.load(open(p)); assert r['schema_version']=='mumei.native-evidence-acceptance/v1', r; assert r['acceptance']=='evaluated', r; assert r['accepted'] is True, r; assert r['scope']=='native_bundle_identity_source_llvm_and_saved_evidence_consistency', r; assert r['checks_performed']==['bundle_identity_binding','fresh_same_profile_source_recheck','llvm_snapshot_translation_recheck','saved_evidence_consistency'], r; assert r['checks_not_performed']==['producer_authenticity','historical_execution','object_linker_artifact_recheck','optimizer_semantics','abi_runtime_semantics','os_exit_status_observation','os_stdout_observation','os_stderr_observation','grade_promotion','lean_kernel_checks'], r; f=r['evidence_fingerprint']; assert len(f)==64 and all(c in '0123456789abcdef' for c in f), r; foreign=dict(r); foreign['schema_version']='mumei.probe-acceptance/v1'; json.dump(foreign,open('{output_dir}/foreign.json','w')); print('Core native acceptance descriptor produced; grade_promotion remains unperformed')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "build.log",
+          "bundle",
+          "saved_evidence.json",
+          "core_acceptance.json",
+          "foreign.json"
+        ],
+        "harness_stage": "S1_core_acceptance",
+        "artifact_contract": "Core builds a native bundle, emits and accepts saved recheck evidence, and writes a real mumei.native-evidence-acceptance/v1 descriptor. A foreign-schema copy changes only schema_version.",
+        "verifier_gate": "Core's descriptor has the observed accepted value, scope, exact performed/unperformed checks, and record fingerprint; grade_promotion is explicitly unperformed.",
+        "expected_patterns": [
+          "Build ID:",
+          "Core native acceptance descriptor",
+          "grade_promotion"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "evaluate_core_descriptor",
+        "name": "Fold the real Core descriptor",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent evidence-acceptance-eval --descriptor {output_dir}/core_acceptance.json --output {output_dir}/evaluation.json > {output_dir}/evaluation.log 2>&1; rc=$?; cat {output_dir}/evaluation.json; cat {output_dir}/evaluation.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/evaluation.json')); assert r=={'schema_version':'mumei.core-acceptance-evaluation/v1','descriptor_match':True,'accepted':True,'checks_not_performed':['attempt_binding','descriptor_authenticity','descriptor_freshness','unperformed_check_recovery']}, r; print('known descriptor matched; no Core rerun, attempt binding or grade promotion')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce_core_acceptance"
+        ],
+        "artifacts": [
+          "evaluation.log",
+          "evaluation.json"
+        ],
+        "harness_stage": "S2_descriptor_fold",
+        "artifact_contract": "evaluation.json is the observed closed-shape fold only. The native descriptor's accepted declaration is not promoted to a new Core check or grade result; attempt_binding remains unperformed without an expected fingerprint.",
+        "verifier_gate": "The evaluation exactly reports descriptor_match true, accepted true, and the observed unperformed checks.",
+        "expected_patterns": [
+          "mumei.core-acceptance-evaluation/v1",
+          "attempt_binding",
+          "unperformed_check_recovery"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "reject_foreign_descriptor",
+        "name": "Deny acceptance credit to a foreign schema",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent evidence-acceptance-eval --descriptor {output_dir}/foreign.json --output {output_dir}/foreign_evaluation.json > {output_dir}/foreign.log 2>&1; rc=$?; cat {output_dir}/foreign_evaluation.json; cat {output_dir}/foreign.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/foreign_evaluation.json')); assert r=={'schema_version':'mumei.core-acceptance-evaluation/v1','descriptor_match':False,'accepted':False,'checks_not_performed':['attempt_binding','descriptor_authenticity','descriptor_freshness','unperformed_check_recovery']}, r; print('foreign descriptor not matched or accepted')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "evaluate_core_descriptor"
+        ],
+        "artifacts": [
+          "foreign.log",
+          "foreign_evaluation.json"
+        ],
+        "harness_stage": "S3_foreign_descriptor",
+        "artifact_contract": "foreign_evaluation.json reports descriptor_match false and accepted false. The evaluator has no selected-result field; this is the observed no-acceptance result for the foreign descriptor.",
+        "verifier_gate": "Changing the descriptor schema prevents a closed-shape match and provides no acceptance credit.",
+        "expected_patterns": [
+          "foreign descriptor not matched or accepted",
+          "descriptor_match"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate Core's attempt-acceptance representation diagnostic through the agent route. Selection means only Core validated representation and producer consistency; candidate_match is not rechecked, and the producer's accepted binding is not Core Evidence acceptance. A Core-rejected inconsistent record yields no selection.",
+    "artifact_contracts": [
+      "Step 1 derives an inconsistent record from Core's valid acceptance fixture by setting candidate_match false while accepted remains true; no local acceptance checks are added.",
+      "Step 2 runs evidence-check-attempt-acceptance on the fixture and asserts its observed valid aggregate representation report, candidate_match_recheck unperformed, and selected result.",
+      "Step 3 sends the inconsistent record to Core and asserts exit code 1, with no diagnostic fields, candidate, or selected result."
+    ]
+  },
+  "name": "Attempt Acceptance Representation Check (evidence-check-attempt-acceptance)",
+  "description": "C11 representation-only attempt-acceptance consumer. Selection means only Core validated representation and producer consistency. candidate_match is not rechecked; the producer's accepted binding is not Core Evidence acceptance. No Evidence acceptance or grade promotion is claimed.",
+  "narrative": {
+    "before": "A Core attempt-acceptance record has not yet been checked.",
+    "after": "Attempt representation only; candidate_match not rechecked; no Evidence/grade promotion.",
+    "audit_status": "REPRESENTATION-CHECK",
+    "moment": "Inconsistent records fail closed; no adapter execution or code-correctness proof.",
+    "intro": [
+      "Step 1: Construct an inconsistent acceptance record.",
+      "Step 2: Check Core's valid attempt representation.",
+      "Step 3: Reject the inconsistent record without selection.",
+      "candidate_match is not rechecked.",
+      "No Evidence acceptance or grade-promotion claim.",
+      "No adapter execution or proof of code correctness."
+    ]
+  },
+  "result_message": "Result: Attempt representation; mismatch fails closed.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show that a valid Core attempt-acceptance representation can be selected without locally rechecking candidate_match or promoting the producer's accepted binding. An inconsistent record is rejected by Core and yields no selection.",
+    "success_criteria": [
+      "valid_report.json has schema_version == 'mumei.evidence-check-attempt-acceptance-report/v1', representation == 'valid', declared_outcome == 'valid', requirement_fingerprint == 'absent', exact checks lists with candidate_match_recheck and evidence_acceptance unperformed, a candidate and selected_result, and no candidate_match, accepted, acceptance, acceptance_schema_version or declared_field_meaning report fields",
+      "inconsistent_report.json has normalized.exit_code == 1, no candidate, no selected_result, and no representation diagnostic fields"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "prepare_inconsistent_record",
+        "name": "Construct a Core-inconsistent acceptance record",
+        "repo": "mumei-agent",
+        "command": "python3 -c \"import json; p='{root_dir}/scenarios/evidence_check_attempt_acceptance/fixtures/evidence_check_acceptance_valid.json'; r=json.load(open(p)); r['candidate_match']=False; r['accepted']=True; json.dump(r,open('{output_dir}/inconsistent.json','w')); print('inconsistent candidate/accepted record derived from Core valid fixture')\"",
+        "expected_exit": 0,
+        "artifacts": [
+          "inconsistent.json"
+        ],
+        "harness_stage": "S1_inconsistent_input",
+        "artifact_contract": "inconsistent.json is derived from Core's valid fixture with candidate_match false and accepted true, the contradictory record shape Core rejects.",
+        "verifier_gate": "The negative record is constructed from the read-only Core fixture and passed to Core; the agent does not perform local candidate_match or accepted checks.",
+        "expected_patterns": [
+          "inconsistent candidate/accepted record",
+          "Core valid fixture"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "select_valid_representation",
+        "name": "Select the valid representation without rechecking candidate_match",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent evidence-check-attempt-acceptance --core {mumei_bin} --acceptance {root_dir}/scenarios/evidence_check_attempt_acceptance/fixtures/evidence_check_acceptance_valid.json --output {output_dir}/valid_report.json > {output_dir}/valid.log 2>&1; rc=$?; cat {output_dir}/valid_report.json; cat {output_dir}/valid.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/valid_report.json')); assert r['schema_version']=='mumei.evidence-check-attempt-acceptance-report/v1', r; assert r['representation']=='valid', r; assert r['declared_outcome']=='valid', r; assert r['requirement_fingerprint']=='absent', r; assert r['checks_performed']==['representation_gate','acceptance_consistency'], r; assert r['checks_not_performed']==['candidate_match_recheck','core_check_rerun','evidence_acceptance','claim_truth','producer_authenticity','freshness','grade_promotion'], r; assert r['normalized']['exit_code']==0, r; assert r['sequence'].get('selected_result') is not None, r; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1', r; assert all(k not in r for k in ('candidate_match','accepted','acceptance','acceptance_schema_version','declared_field_meaning')), r; print('representation selected; candidate_match_recheck and evidence_acceptance remain unperformed')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "prepare_inconsistent_record"
+        ],
+        "artifacts": [
+          "valid.log",
+          "valid_report.json"
+        ],
+        "harness_stage": "S2_representation_selection",
+        "artifact_contract": "valid_report.json exposes only the observed aggregate representation/producer-consistency fields; candidate_match_recheck, Evidence acceptance and grade promotion remain unperformed.",
+        "verifier_gate": "Core's valid representation diagnostic selects. The agent does not emit candidate_match, accepted, acceptance_schema_version or declared_field_meaning.",
+        "expected_patterns": [
+          "candidate_match_recheck",
+          "evidence_acceptance",
+          "grade_promotion"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "reject_inconsistent_record",
+        "name": "Reject the inconsistent record without selection",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent evidence-check-attempt-acceptance --core {mumei_bin} --acceptance {output_dir}/inconsistent.json --output {output_dir}/inconsistent_report.json > {output_dir}/inconsistent.log 2>&1; rc=$?; cat {output_dir}/inconsistent_report.json; cat {output_dir}/inconsistent.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/inconsistent_report.json')); assert r['schema_version']=='mumei.evidence-check-attempt-acceptance-report/v1', r; assert r['normalized']['exit_code']==1, r; assert r['normalized']['stdout']['size_bytes']==0, r; assert r['sequence'].get('selected_result') is None, r; assert 'candidate' not in r, r; assert all(k not in r for k in ('representation','declared_outcome','requirement_fingerprint','checks_performed','checks_not_performed','candidate_match','accepted')), r; print('Core rejected inconsistent record; no diagnostic selection')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "select_valid_representation"
+        ],
+        "artifacts": [
+          "inconsistent.log",
+          "inconsistent_report.json"
+        ],
+        "harness_stage": "S3_consistency_rejection",
+        "artifact_contract": "inconsistent_report.json records Core's observed exit code 1, empty stdout, and no selected result or candidate.",
+        "verifier_gate": "Core rejects the inconsistent acceptance representation; the agent reports no acceptance diagnostic.",
+        "expected_patterns": [
+          "Core rejected inconsistent record",
+          "no diagnostic selection"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "version": "1.0.0",
+  "layers": [
+    "l1_z3"
+  ],
+  "harness_contract": {
+    "policy": "scenario-harness/v1",
+    "acceptance_path": [
+      "l1_z3"
+    ],
+    "state_dir": "{output_dir}",
+    "state_file": "{output_dir}/harness_state.json",
+    "intent": "Demonstrate the real Core evidence-accept-list route over a Core-produced source-evidence record and its declared requirement. A matching requirement produces Core's aggregate accepted list verdict; a pin mismatch is rejected without selection. Selection records only that declared list verdict, not claim truth, producer authenticity, freshness, historical execution, tool execution, or grade promotion.",
+    "artifact_contracts": [
+      "Step 1 runs Core verify-source on the checked-in source and derives a one-record evidence list plus matching and mismatched requirement documents from that real record.",
+      "Step 2 runs evidence-accept-list with the matching requirement and asserts the observed accepted list verdict, exact aggregate checks, candidate and selected result; no per-record details are exposed.",
+      "Step 3 runs the same list with an obligation-id-mismatched requirement and asserts Core's rejected verdict, normalized exit code 1, and no candidate or selected result."
+    ]
+  },
+  "name": "Declared Evidence Accept-List (evidence-accept-list)",
+  "description": "C11 Core evidence-accept-list demo: Core verifies a source record and checks its evidence-list envelope against a declared requirement. The agent selects only Core's accepted aggregate list verdict. This does not claim claim-truth, producer authenticity, historical execution, freshness, tool execution, or grade promotion.",
+  "narrative": {
+    "before": "A declared requirement has not yet been matched to Core's evidence list.",
+    "after": "Declared match only; no Evidence-acceptance/grade-promotion or code-correctness proof.",
+    "audit_status": "BOUNDED LIST-ACCEPTANCE",
+    "moment": "Requirement match checked; mismatch fails closed; no adapter execution.",
+    "intro": [
+      "Step 1: Produce Core evidence and matching requirement.",
+      "Step 2: Check the declared requirement match.",
+      "Step 3: Reject a pin mismatch without selection.",
+      "Scope: declared list matching only.",
+      "No Evidence acceptance or grade-promotion claim.",
+      "No adapter execution or proof of code correctness."
+    ]
+  },
+  "result_message": "Result: Requirement match only; pin mismatch fails closed.",
+  "intent_fidelity": {
+    "status": "TRACEABLE",
+    "score": 1.0,
+    "source_intent": "Show that evidence-accept-list selects Core's declared accepted verdict for a matching evidence list and requirement, while a mismatched obligation pin is rejected without selection. Report only aggregate fields; do not promote the verdict to claim truth or a grade.",
+    "success_criteria": [
+      "accepted_report.json has schema_version == 'mumei.evidence-accept-list-report/v1', acceptance_schema == 'mumei.evidence-list-acceptance/v1', verdict == 'accepted', consistent == true, conflict_count == 0, records_evaluated == 1, the observed exact checks_performed/checks_not_performed lists, a candidate, and a selected_result",
+      "rejected_report.json has verdict == 'rejected', normalized.exit_code == 1, the observed exact aggregate check lists, no candidate and no selected_result"
+    ]
+  },
+  "l1_z3": {
+    "steps": [
+      {
+        "id": "produce_inputs",
+        "name": "Produce Core source evidence and requirement inputs",
+        "repo": "mumei-agent",
+        "command": "{mumei_bin} evidence verify-source {root_dir}/scenarios/evidence_accept_list/src/main.mm --json > {output_dir}/evidence.json 2> {output_dir}/verify.log && python3 -c \"import json; r=json.load(open('{output_dir}/evidence.json')); assert r['schema_version']=='mumei.verification-evidence/v1', r; req={'schema_version':'mumei.evidence-requirement/v1','subject_sha256':r['subject']['sha256'],'obligation_id':r['obligation_id'],'semantics':{k:r['semantics'][k] for k in ('profile','integer_model','target_triple')},'minimum_assurance':'unbounded_proof','correspondence_status':['validated','assumed'],'excluded_assumptions':[]}; lst={'schema_version':'mumei.verification-evidence-list/v1','evidence':[r]}; json.dump(lst,open('{output_dir}/list.json','w')); json.dump(req,open('{output_dir}/requirement.json','w')); bad=dict(req); bad['obligation_id']='not-the-record-obligation'; json.dump(bad,open('{output_dir}/rejected-requirement.json','w')); print('Core verification-evidence record and matching/mismatched requirement inputs produced')\"; rc=$?; cat {output_dir}/verify.log; test $rc -eq 0",
+        "expected_exit": 0,
+        "artifacts": [
+          "evidence.json",
+          "verify.log",
+          "list.json",
+          "requirement.json",
+          "rejected-requirement.json"
+        ],
+        "harness_stage": "S1_evidence_produce",
+        "artifact_contract": "evidence.json is emitted by Core verify-source; list.json wraps that exact record, requirement.json pins its subject, obligation and semantics, and rejected-requirement.json changes only the obligation pin.",
+        "verifier_gate": "Core verify-source exits 0 and emits mumei.verification-evidence/v1; the derived requirement pins the emitted record.",
+        "expected_patterns": [
+          "Core verification-evidence record",
+          "matching/mismatched requirement"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "accept_list",
+        "name": "Accept the matching declared evidence list",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent evidence-accept-list --core {mumei_bin} --list {output_dir}/list.json --requirement {output_dir}/requirement.json --output {output_dir}/accepted_report.json > {output_dir}/accept.log 2>&1; rc=$?; cat {output_dir}/accepted_report.json; cat {output_dir}/accept.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/accepted_report.json')); assert r['schema_version']=='mumei.evidence-accept-list-report/v1', r; assert r['acceptance_schema']=='mumei.evidence-list-acceptance/v1', r; assert r['verdict']=='accepted', r; assert r['consistent'] is True, r; assert r['conflict_count']==0, r; assert r['records_evaluated']==1, r; assert r['checks_performed']==['representation_gate','declared_requirement_normalization','cross_record_pin_agreement'], r; assert r['checks_not_performed']==['claim_truth','producer_authenticity','historical_execution','record_freshness','independent_model_correspondence','artifact_semantics','tool_execution','grade_promotion'], r; assert r['normalized']['exit_code']==0, r; assert r['sequence'].get('selected_result') is not None, r; assert r['candidate']['schema_version']=='mumei.verifier-evidence-candidate/v1', r; assert 'records' not in r and 'requirements' not in r and 'conflicts' not in r, r; print('accepted Core list verdict; grade_promotion remains unperformed')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "produce_inputs"
+        ],
+        "artifacts": [
+          "accept.log",
+          "accepted_report.json"
+        ],
+        "harness_stage": "S2_declared_acceptance",
+        "artifact_contract": "accepted_report.json matches the observed Core list-acceptance descriptor: aggregate accepted verdict, one record, zero conflicts, exact performed/unperformed checks, a verifier-evidence candidate and selected result; no per-record details.",
+        "verifier_gate": "Core's matching declared requirement yields verdict accepted and exit code 0; the report does not claim grade promotion or claim truth.",
+        "expected_patterns": [
+          "mumei.evidence-accept-list-report/v1",
+          "mumei.evidence-list-acceptance/v1",
+          "grade_promotion"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "reject_pin_mismatch",
+        "name": "Reject a mismatched requirement pin without selection",
+        "repo": "mumei-agent",
+        "command": "{mumei_agent_python} -m agent evidence-accept-list --core {mumei_bin} --list {output_dir}/list.json --requirement {output_dir}/rejected-requirement.json --output {output_dir}/rejected_report.json > {output_dir}/reject.log 2>&1; rc=$?; cat {output_dir}/rejected_report.json; cat {output_dir}/reject.log; test $rc -eq 0 && python3 -c \"import json; r=json.load(open('{output_dir}/rejected_report.json')); assert r['schema_version']=='mumei.evidence-accept-list-report/v1', r; assert r['acceptance_schema']=='mumei.evidence-list-acceptance/v1', r; assert r['verdict']=='rejected', r; assert r['consistent'] is True, r; assert r['conflict_count']==0, r; assert r['records_evaluated']==1, r; assert r['checks_performed']==['representation_gate','declared_requirement_normalization','cross_record_pin_agreement'], r; assert r['checks_not_performed']==['claim_truth','producer_authenticity','historical_execution','record_freshness','independent_model_correspondence','artifact_semantics','tool_execution','grade_promotion'], r; assert r['normalized']['exit_code']==1, r; assert r['sequence'].get('selected_result') is None, r; assert 'candidate' not in r, r; print('mismatched obligation pin rejected; no selected result')\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "accept_list"
+        ],
+        "artifacts": [
+          "reject.log",
+          "rejected_report.json"
+        ],
+        "harness_stage": "S3_pin_rejection",
+        "artifact_contract": "rejected_report.json reports the observed aggregate rejected verdict and Core exit code 1, with no candidate or selected result.",
+        "verifier_gate": "The changed obligation pin is rejected and does not select a result.",
+        "expected_patterns": [
+          "verdict",
+          "rejected",
+          "no selected result"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      }
+    ]
+  }
+}
