@@ -77,6 +77,31 @@ def test_old_result_does_not_render_claim_book_section(tmp_path):
     assert "## Claim Book" not in report
 
 
+def test_cli_report_uses_scenario_specific_bounded_audit_summary():
+    from dashboard.cli_report import render
+
+    report = render(
+        {
+            "scenario": "evidence_acceptance_eval",
+            "scenario_name": "Core Acceptance Descriptor Evaluation",
+            "overall_status": "PASS",
+            "layers": {"l1_z3": {}},
+            "proof_density": {"verified": 3, "total": 3, "percentage": 100},
+            "narrative": {
+                "before": "Descriptor not evaluated",
+                "after": "Closed-shape result only",
+                "audit_status": "DESCRIPTOR-ONLY",
+                "moment": "Closed descriptor boundary evaluated",
+            },
+        }
+    )
+
+    assert "Audit Status:  DESCRIPTOR-ONLY" in report
+    assert "Moment:        Closed descriptor boundary evaluated" in report
+    assert "TRUSTLESS" not in report
+    assert "Proof failure → Bug found" not in report
+
+
 def test_charter_gate_section_renders_statuses_and_highlights(tmp_path):
     report = render_scenario_markdown(
         {

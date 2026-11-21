@@ -149,6 +149,11 @@ def render(data: dict) -> str:
         audit_status = "TRUSTLESS" if data.get("overall_status") == "PASS" else "ATTENTION"
     if "evidence_summary" in data and data.get("overall_status") == "PASS" and not declared_only:
         audit_status = "LIMITED MODEL EVIDENCE"
+    audit_status = narrative.get("audit_status", audit_status)
+    moment = narrative.get(
+        "moment",
+        "Declared summaries reused" if declared_only else "Proof failure → Bug found",
+    )
     table.extend([
         "",
         f"  Proof Density: [{proof_density_bar(float(pct))}] {pct:g}%",
@@ -162,11 +167,6 @@ def render(data: dict) -> str:
     table.append(f"  Intent Fidelity:  {intent_fidelity_label(data)}")
     table.append(f"  Claim Book:       {claim_book_label(data)}")
     table.append(f"  Harness State:    {data.get('harness_state_file', 'N/A')}")
-    moment = (
-        "Declared summaries reused"
-        if declared_only
-        else "Proof failure → Bug found"
-    )
     table.extend([
         f"  Audit Status:  {audit_status}",
         f"  Moment:        {moment}",
