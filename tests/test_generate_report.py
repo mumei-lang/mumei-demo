@@ -217,9 +217,13 @@ def test_native_and_evidence_reports_have_bounded_route_summaries():
         narrative = scenario.get("narrative", {})
         moment = narrative.get("moment")
         result_message = scenario.get("result_message")
+        intro = narrative.get("intro")
         assert narrative.get("audit_status") == audit_status, name
         assert isinstance(narrative.get("before"), str) and narrative["before"], name
         assert isinstance(narrative.get("after"), str) and narrative["after"], name
+        assert isinstance(intro, list) and intro, name
+        assert all(isinstance(line, str) and line for line in intro), name
+        assert not any("ownership transfer" in line.lower() for line in intro), name
         assert isinstance(moment, str) and moment, name
         assert isinstance(result_message, str) and result_message.startswith("Result:"), name
         assert len(f"  Moment:        {moment}") <= 116, name

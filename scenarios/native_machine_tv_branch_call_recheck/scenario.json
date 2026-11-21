@@ -21,6 +21,11 @@
   "name": "Declared Native Machine-TV Branch/Call Recheck (native-machine-tv-branch-call-recheck)",
   "description": "C10 Option B branch/call machine-code translation-validation demo: native-machine-tv-recheck runs Core's recheck-machine-tv route on a real bundle whose source includes conditional calls, forward branches, and an acyclic backward branch. The real Core descriptor performs machine_code_direct_call_site_tv, machine_code_forward_branch_function_tv, machine_code_acyclic_branch_function_tv, and machine_code_conditional_call_function_tv. Conditional calls in branching functions use per-path guarded call matching; direct calls remain uninterpreted call sites. The report exposes only aggregate function outcomes, assumes rather than verifies the register convention, and makes no ABI/runtime or full object-TV claim; cyclic control flow and loops stay outside and object_translation_correspondence remains unperformed.",
   "narrative": {
+    "intro": [
+      "Step 1: Build a bundle with branch/call inputs.",
+      "Step 2: Recheck the declared machine-TV fields.",
+      "Step 3: Try a mismatched build ID."
+    ],
     "before": "The declared route boundary has not yet been checked.",
     "after": "Only the route's declared fields are checked; broader guarantees are not claimed.",
     "audit_status": "BOUNDED MACHINE-TV",
