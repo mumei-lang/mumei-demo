@@ -428,7 +428,7 @@ demo-summaries-plan: ## Declared summary-route planning (probe boundary + resume
 		--mumei-repo "$(MUMEI_REPO)" \
 		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
 
-demo-summaries-attempt: ## Declared summary attempt routes (ts/rust/sol + timeout refusal).
+demo-summaries-attempt: ## Declared summary attempt routes (ts/rust/sol + optional Go + timeout refusal).
 	@./scripts/run_scenario.sh summaries_attempt \
 		--mumei-repo "$(MUMEI_REPO)" \
 		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"

@@ -1,7 +1,7 @@
 {
   "name": "Declared Summary Attempt Routes",
   "version": "1.0.0",
-  "description": "C06/C11 declared attempt-route demo: each language's produce route runs as one declared attempt through the C11 dispatch lifecycle and emits a mumei.<lang>-summaries-attempt-report/v1 lineage — an exited run's captured stdout is selected only when every declared input byte is unchanged, and a timed-out attempt selects nothing.",
+  "description": "C06/C11 declared attempt-route demo: TypeScript, Rust, Solidity and optional Go produce routes run as declared attempts and emit versioned lineage — exited runs select captured stdout only when declared inputs are unchanged, and a timed-out attempt selects nothing.",
   "layers": [
     "l1_attempt"
   ],
@@ -12,12 +12,12 @@
     ],
     "state_dir": "{output_dir}",
     "state_file": "{output_dir}/harness_state.json",
-    "intent": "Demonstrate the declared *-summaries-attempt routes end to end: run the TypeScript, Rust and Solidity produce routes inside the attempt lifecycle, observe an exited run select its captured stdout, and show a timed-out attempt selecting no result.",
+    "intent": "Demonstrate the declared *-summaries-attempt routes end to end: run TypeScript, Rust and Solidity plus Go when its optional helper can be built, observe exited runs select captured stdout, and show a timed-out attempt selecting no result.",
     "artifact_contracts": [
-      "Read inputs: the demo_counter fixtures in scenarios/ts_summaries, scenarios/rust_summaries and scenarios/sol_summaries plus the sibling mumei-agent *-summaries-attempt route commands.",
-      "No toolchain step: the analyzers run in-process on tree-sitter, so every step is deterministic and none is SKIPPED for a missing external tool.",
-      "Generate evidence: ts_attempt.log, rust_attempt.log, sol_attempt.log, timeout_refusal.log, ts_attempt.json, rust_attempt.json, sol_attempt.json, timeout_attempt.json, harness_state.json, result.json, and report.md.",
-      "Gate order: the three language attempts run first; the timeout refusal runs last and asserts only the reported outcome — a refusal emits the report at exit 0 with no candidate.",
+      "Read inputs: the demo_counter fixtures in scenarios/ts_summaries, scenarios/rust_summaries, scenarios/sol_summaries and scenarios/go_summaries plus the sibling mumei-agent *-summaries-attempt route commands.",
+      "The Go types helper build is optional; only the Go helper and Go attempt steps are skipped when Go is unavailable. The TypeScript, Rust and Solidity attempts do not depend on Go.",
+      "Generate evidence: ts_attempt.log, rust_attempt.log, sol_attempt.log, build_go_types.log, go_attempt.log, timeout_refusal.log, ts_attempt.json, rust_attempt.json, sol_attempt.json, go_attempt.json, go_attempt.stderr, timeout_attempt.json, bin/go-types when Go is available, harness_state.json, result.json, and report.md.",
+      "Gate order: TypeScript, Rust and Solidity attempts run independently of Go; the optional Go helper and attempt run before the timeout refusal, which asserts only the reported outcome — a refusal emits the report at exit 0 with no candidate.",
       "Every report is canonical lineage, not an accepted manifest: the candidate descriptor binds the selected output by fingerprint only."
     ],
     "gate_order": [
@@ -25,7 +25,8 @@
     ],
     "notes": [
       "The analyzers are source-analysis infrastructure, not verifiers; the demo routes them only through the declared *-summaries-attempt lifecycle.",
-      "Every step runs the real route commands — the analyzers need no provisioned toolchain, so no step fabricates output and no fixture payloads are recorded.",
+      "Every attempt runs the real route command. TypeScript, Rust and Solidity need no provisioned toolchain; Go uses the optional go-types helper build, and only Go steps skip when Go is unavailable.",
+      "The Go attempt report must use mumei.go-summaries-attempt-report/v1, show outcome exited and exit_code 0, include sequence.selected_result, and preserve the source and helper bytes.",
       "The timeout step uses --attempt-timeout 1 so the observed run cannot finish inside the bound; the report still exits 0 and asserts outcome timed_out with no candidate key.",
       "budget_policy_fingerprint is summaries-attempt-v1 for deterministic runs."
     ],
@@ -111,6 +112,49 @@
         "verifier_gate": "sol-summaries-attempt exits 0 (checked via rc) and the greps require outcome exited, exit_code 0 and a candidate key, so a failed or unselected run fails the step instead of passing."
       },
       {
+        "id": "build_go_types",
+        "name": "Provision: build the optional Go summary helper",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "optional_toolchain": "go",
+        "command": "mkdir -p {output_dir}/bin && cd {mumei_agent_repo}/tools/go-types && GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off GOWORK=off go build -o {output_dir}/bin/go-types . && echo 'go-types helper built'",
+        "expected_exit": 0,
+        "expected_patterns": [
+          "go-types helper built"
+        ],
+        "artifacts": [
+          "bin/go-types"
+        ],
+        "harness_stage": "S4_provision_go_types",
+        "artifact_contract": "Build the go-types helper into {output_dir}/bin/go-types when Go is available; otherwise this optional step and the dependent Go attempt are skipped.",
+        "verifier_gate": "The provisioned helper is available to the Go attempt route; this step does not gate TypeScript, Rust or Solidity."
+      },
+      {
+        "id": "go_attempt",
+        "name": "Attempt: Go summaries produce route under the C11 lifecycle",
+        "repo": "mumei-agent",
+        "cwd": "{mumei_agent_repo}",
+        "command": "before=$(sha256sum {root_dir}/scenarios/go_summaries/demo_counter.go {output_dir}/bin/go-types) && {mumei_agent_python} -m agent go-summaries-attempt --source {root_dir}/scenarios/go_summaries/demo_counter.go --go-types {output_dir}/bin/go-types --attempt-timeout 30000 --timeout 30 > {output_dir}/go_attempt.json 2> {output_dir}/go_attempt.stderr; rc=$?; after=$(sha256sum {root_dir}/scenarios/go_summaries/demo_counter.go {output_dir}/bin/go-types); cat {output_dir}/go_attempt.json; cat {output_dir}/go_attempt.stderr; test $rc -eq 0 && test \"$before\" = \"$after\" && {mumei_agent_python} -c 'import json,sys; r=json.load(open(sys.argv[1])); assert r[\"schema_version\"] == \"mumei.go-summaries-attempt-report/v1\"; n=r[\"normalized\"]; assert n[\"outcome\"] == \"exited\" and n[\"exit_code\"] == 0; assert r[\"sequence\"][\"selected_result\"] is not None; print(\"Go source and helper bytes unchanged\")' {output_dir}/go_attempt.json",
+        "expected_exit": 0,
+        "depends_on": [
+          "build_go_types"
+        ],
+        "expected_patterns": [
+          "mumei.go-summaries-attempt-report/v1",
+          "\"outcome\": \"exited\"",
+          "\"exit_code\": 0",
+          "selected_result",
+          "Go source and helper bytes unchanged"
+        ],
+        "artifacts": [
+          "go_attempt.json",
+          "go_attempt.stderr"
+        ],
+        "harness_stage": "S5_go_declared_attempt",
+        "artifact_contract": "go_attempt.json must hold mumei.go-summaries-attempt-report/v1 with outcome exited, exit_code 0 and a non-null sequence.selected_result; the source and helper bytes must match before and after the route.",
+        "verifier_gate": "go-summaries-attempt exits 0, reports the pinned schema and selected result, and source/helper hashes match before and after the run."
+      },
+      {
         "id": "timeout_refusal",
         "name": "Refusal: a timed-out attempt selects no result",
         "repo": "mumei-agent",
@@ -127,21 +171,24 @@
         "artifacts": [
           "timeout_attempt.json"
         ],
-        "harness_stage": "S4_timeout_refusal",
+        "harness_stage": "S6_timeout_refusal",
         "artifact_contract": "timeout_refusal step must write {output_dir}/timeout_attempt.json holding the report with outcome timed_out and no candidate key — a refused attempt claims nothing.",
         "verifier_gate": "ts-summaries-attempt exits 0 (the report is lineage, not failure) and the greps require outcome timed_out plus the absence of a candidate key, so a run that still selected output fails the step instead of passing."
       }
     ]
   },
   "narrative": {
+    "audit_status": "ATTEMPT-LINEAGE",
+    "moment": "Declared attempt lineage only; exited routes select output and timeout selects none.",
     "intro": [
       "Step 1: ts-summaries-attempt runs the TypeScript produce route as one declared attempt...",
       "Step 2: rust-summaries-attempt runs the Rust produce route the same way...",
       "Step 3: sol-summaries-attempt runs the Solidity produce route the same way...",
-      "Step 4: a 1ms-bound attempt times out and selects nothing — the report still exits 0 as lineage, claiming no result."
+      "Step 4: when Go is available, the optional helper is built and go-summaries-attempt selects the unchanged source analysis output...",
+      "Step 5: a 1ms-bound attempt times out and selects nothing — the report still exits 0 as lineage, claiming no result."
     ],
-    "before": "No declared attempt lineage exists for the summary produce routes; nothing records which observed run produced a manifest.",
-    "after": "ts_attempt.json, rust_attempt.json and sol_attempt.json record exited runs whose captured stdout was selected into a candidate descriptor, and timeout_attempt.json records a timed-out run that selected nothing.",
+    "before": "No declared attempt lineage exists for the TypeScript, Rust, Solidity and Go summary produce routes; nothing records which observed run produced a manifest.",
+    "after": "The TypeScript, Rust and Solidity reports, plus go_attempt.json when Go is available, record exited runs whose captured stdout was selected into candidate descriptors; timeout_attempt.json records a timed-out run that selected nothing.",
     "steps": {
       "ts_attempt": {
         "pass": {
@@ -175,7 +222,20 @@
           "follow_up": [
             "  Three languages, one lineage shape — canonical, never an accepted manifest.",
             "",
-            "  Step 4: Refusing a timed-out attempt..."
+            "  Step 4: Running the optional Go produce route when its helper is available..."
+          ]
+        }
+      },
+      "go_attempt": {
+        "pass": {
+          "icon": "✅",
+          "headline": "go-summaries-attempt: exited run selected",
+          "follow_up": [
+            "  The Go route reports mumei.go-summaries-attempt-report/v1 with outcome exited and exit_code 0.",
+            "  sequence.selected_result is present, and source/helper bytes match before and after the attempt.",
+            "  This optional step is skipped when Go is absent; the TypeScript, Rust and Solidity steps are independent.",
+            "",
+            "  Step 5: Refusing a timed-out attempt..."
           ]
         }
       },
@@ -187,7 +247,7 @@
             "  outcome timed_out at the 1ms bound — the observed run never finished.",
             "  No candidate key: a refused attempt claims nothing.",
             "",
-            "  Demo complete: declared attempt lineage recorded for all three produce routes."
+            "  Demo complete: declared attempt lineage recorded for available produce routes."
           ]
         }
       }
@@ -196,11 +256,12 @@
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,
-    "source_intent": "Show the declared *-summaries-attempt routes running each language's produce route inside the C11 lifecycle: exited runs select their captured stdout; timed-out runs select nothing.",
+    "source_intent": "Show TypeScript, Rust and Solidity *-summaries-attempt routes, plus optional Go when its helper is available, running inside the C11 lifecycle: exited runs select their captured stdout and timed-out runs select nothing.",
     "success_criteria": [
       "ts_attempt.json shows mumei.ts-summaries-attempt-report/v1 with outcome exited, exit_code 0 and a candidate",
       "rust_attempt.json shows mumei.rust-summaries-attempt-report/v1 with outcome exited, exit_code 0 and a candidate",
       "sol_attempt.json shows mumei.sol-summaries-attempt-report/v1 with outcome exited, exit_code 0 and a candidate",
+      "when Go is available, go_attempt.json shows mumei.go-summaries-attempt-report/v1 with outcome exited, exit_code 0 and sequence.selected_result; source and helper hashes are unchanged",
       "timeout_attempt.json shows outcome timed_out and no candidate key"
     ]
   },
@@ -208,6 +269,7 @@
     "ts_attempt.json shows mumei.ts-summaries-attempt-report/v1 with outcome exited, exit_code 0 and a candidate",
     "rust_attempt.json shows mumei.rust-summaries-attempt-report/v1 with outcome exited, exit_code 0 and a candidate",
     "sol_attempt.json shows mumei.sol-summaries-attempt-report/v1 with outcome exited, exit_code 0 and a candidate",
+    "when Go is available, go_attempt.json shows mumei.go-summaries-attempt-report/v1 with outcome exited, exit_code 0 and sequence.selected_result; source and helper hashes are unchanged",
     "timeout_attempt.json shows outcome timed_out and no candidate key"
   ],
   "gate_order": [
@@ -230,6 +292,18 @@
       ]
     },
     {
+      "gate": "build_go_types",
+      "user_wording": [
+        "The Go helper is built only when the optional Go toolchain is available"
+      ]
+    },
+    {
+      "gate": "go_attempt",
+      "user_wording": [
+        "The Go produce route runs under the same lifecycle when available; the other languages do not depend on Go"
+      ]
+    },
+    {
       "gate": "timeout_refusal",
       "user_wording": [
         "A timed-out attempt selects no result and claims nothing"
@@ -240,14 +314,19 @@
     "{output_dir}/ts_attempt.log",
     "{output_dir}/rust_attempt.log",
     "{output_dir}/sol_attempt.log",
+    "{output_dir}/build_go_types.log",
+    "{output_dir}/go_attempt.log",
     "{output_dir}/timeout_refusal.log",
     "{output_dir}/ts_attempt.json",
     "{output_dir}/rust_attempt.json",
     "{output_dir}/sol_attempt.json",
+    "{output_dir}/go_attempt.json",
+    "{output_dir}/go_attempt.stderr",
+    "{output_dir}/bin/go-types",
     "{output_dir}/timeout_attempt.json",
     "{output_dir}/harness_state.json",
     "{output_dir}/result.json"
   ],
   "budget_policy_fingerprint": "summaries-attempt-v1",
-  "result_message": "Result: declared attempt lineage recorded for ts/rust/sol produce routes — exited runs selected, timed-out run refused."
+  "result_message": "Result: Go optional; exited outputs selected; timeout none."
 }
