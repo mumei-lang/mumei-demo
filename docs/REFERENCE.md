@@ -72,7 +72,7 @@ Generated from the Makefile, argparse definitions, and environment registry.
 | `demo-native-machine-tv-bounded-loop-recheck` | Declared native bounded-loop machine-code TV recheck route (real mumei + mumei-agent). |
 | `demo-native-machine-tv-f64-recheck` | Declared native scalar-f64 machine-code TV recheck route (real mumei + mumei-agent). |
 | `demo-native-machine-tv-composite-recheck` | Declared native composite aggregate machine-code TV recheck route (real mumei + mumei-agent). |
-| `demo-evidence-check-schedule` | Declared Evidence attempt-schedule representation check (real mumei + mumei-agent). |
+| `demo-evidence-check-schedule` | Declared Evidence attempt-schedule representation and enforcement self-report shape check (real mumei + mumei-agent; no enforcement attestation). |
 | `demo-evidence-accept-list` | Declared Core Evidence-list acceptance route (real mumei + mumei-agent). |
 | `demo-evidence-check-adapter` | Declared adapter-manifest representation check (real mumei + mumei-agent). |
 | `demo-evidence-check-attempt-acceptance` | Declared attempt-acceptance representation check (real mumei + mumei-agent). |

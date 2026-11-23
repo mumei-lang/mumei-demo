@@ -336,7 +336,7 @@ demo-native-machine-tv-composite-recheck: ## Declared native composite aggregate
 		--mumei-repo "$(MUMEI_REPO)" \
 		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
 
-demo-evidence-check-schedule: ## Declared Evidence attempt-schedule representation check (real mumei + mumei-agent).
+demo-evidence-check-schedule: ## Declared Evidence attempt-schedule representation and enforcement self-report shape check (real mumei + mumei-agent; no enforcement attestation).
 	@./scripts/run_scenario.sh evidence_check_schedule \
 		--mumei-repo "$(MUMEI_REPO)" \
 		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
