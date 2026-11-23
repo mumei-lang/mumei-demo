@@ -10,34 +10,37 @@
     ],
     "state_dir": "{output_dir}",
     "state_file": "{output_dir}/harness_state.json",
-    "intent": "Demonstrate the C11 evidence-check-schedule route by producing a real mumei.attempt-schedule/v1 document with the agent's verify-schedule command and checking its representation and consistency with Core. The enforcement record is shape-checked self-report metadata, not an attestation that enforcement occurred. The check reports acceptance as not_evaluated: this does not execute adapters, establish reported-outcome truth, evaluate Evidence acceptance, or promote a grade. A schedule with a selected_adapter_id inconsistent with its final attempt must not be selected.",
+    "intent": "Demonstrate the C11 evidence-check-schedule route by producing a real mumei.attempt-schedule/v1 document with the agent's verify-schedule command and checking its representation and consistency with Core. Also demonstrate the opt-in chained tamper-evident plan-projection log and that a mismatched pinned head refuses to append. The history log is not Evidence, authentication, a dispatch record or grade promotion; a host must pin the head to detect truncation. The enforcement record is shape-checked self-report metadata, not an attestation that enforcement occurred. The check reports acceptance as not_evaluated: this does not execute adapters, establish reported-outcome truth, evaluate Evidence acceptance, or promote a grade. A schedule with a selected_adapter_id inconsistent with its final attempt must not be selected.",
     "artifact_contracts": [
       "Step 1 runs agent verify-schedule over the declared local adapter, saves its mumei.attempt-schedule/v1 output, and shape-checks enforcement as self-report metadata, not an attestation that enforcement occurred.",
       "Step 2 checks the saved schedule with evidence-check-schedule and asserts representation valid, acceptance not_evaluated, adapter_self_report meaning, exact performed/unperformed check lists, the schedule outcome and attempt count, and a candidate.",
-      "Step 3 changes selected_adapter_id so it disagrees with the final attempt; Core rejects the inconsistent document and the route emits no representation, schedule outcome or selected result."
+      "Step 3 changes selected_adapter_id so it disagrees with the final attempt; Core rejects the inconsistent document and the route emits no representation, schedule outcome or selected result.",
+      "Step 4 appends the schedule's plan projections to an opt-in chained tamper-evidence log, validates the emitted head, and confirms a mismatched pinned head refuses to append; the log is not Evidence, authentication, dispatch or grade promotion, and a host must pin the head to detect truncation."
     ]
   },
   "name": "Declared Evidence Attempt-Schedule Check (evidence-check-schedule)",
-  "description": "C11 Core attempt-schedule representation demo: agent verify-schedule produces a real schedule, then evidence-check-schedule selects only Core's representation and consistency diagnostic. Its enforcement record is shape-checked self-report metadata, not an attestation that enforcement occurred. Acceptance remains not_evaluated; no adapter execution, reported-outcome truth, Evidence acceptance, or grade promotion is claimed.",
+  "description": "C11 Core attempt-schedule representation demo: agent verify-schedule produces a real schedule, then evidence-check-schedule selects only Core's representation and consistency diagnostic. The fourth step checks the opt-in chained plan-projection tamper-evidence log and that a mismatched pinned head refuses to append. The log is not Evidence, authentication, a dispatch record or grade promotion; a host must pin the head to detect truncation. The enforcement record is shape-checked self-report metadata, not an attestation that enforcement occurred. Acceptance remains not_evaluated; no adapter execution, reported-outcome truth, Evidence acceptance, or grade promotion is claimed.",
   "narrative": {
     "intro": [
       "Step 1: Produce a declared attempt schedule.",
       "Step 2: Check schedule representation consistency.",
-      "Step 3: Test tampering for fail-closed output."
+      "Step 3: Test tampering for fail-closed output.",
+      "Step 4: Validate opt-in plan-history chaining and pinned-head fail-closed behavior."
     ],
-    "before": "The declared route boundary has not yet been checked.",
-    "after": "Only the route's declared fields are checked; broader guarantees are not claimed.",
+    "before": "The declared schedule and its plan-history chain have not yet been checked.",
+    "after": "Only the route's declared fields and the opt-in plan-history chain are checked; the log is not Evidence or authentication, and truncation detection requires a host-pinned head.",
     "audit_status": "REPRESENTATION-CHECK",
-    "moment": "Schedule consistency only; tampering fails closed; no adapter runs."
+    "moment": "Schedule consistency and plan-history chaining; pinned-head mismatch fails closed; no adapter runs."
   },
-  "result_message": "Result: Schedule shape only; tampering fails closed.",
+  "result_message": "Result: History chain; pinned-head mismatch fails closed.",
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,
-    "source_intent": "Show representation and schedule consistency only: produce a schedule with agent verify-schedule, check it with Core via evidence-check-schedule, and select the candidate only for Core's recognized valid diagnostic. Enforcement is shape-checked self-report metadata, not an attestation that enforcement occurred. Acceptance stays not_evaluated, with no Evidence acceptance or grade promotion; a tampered inconsistent schedule claims nothing.",
+    "source_intent": "Show representation and schedule consistency: produce a schedule with agent verify-schedule, check it with Core via evidence-check-schedule, and select the candidate only for Core's recognized valid diagnostic. Also validate an opt-in chained tamper-evident log over plan projections and show that a mismatched pinned head refuses to append. This log is not Evidence, authentication, a dispatch record or grade promotion, and a host must pin the head to detect truncation. Enforcement is shape-checked self-report metadata, not an attestation that enforcement occurred. Acceptance stays not_evaluated, with no Evidence acceptance or grade promotion; a tampered inconsistent schedule claims nothing.",
     "success_criteria": [
       "report.json carries mumei.evidence-check-schedule-report/v1 with representation == 'valid', acceptance == 'not_evaluated', schedule_outcome and attempt_count equal to Core's diagnostic for the generated schedule, reported_outcome_meaning == 'adapter_self_report', checks_performed == ['representation_gate', 'schedule_consistency'], checks_not_performed == ['adapter_execution', 'reported_outcome_truth', 'evidence_acceptance', 'embedded_acceptance_validation', 'claim_truth', 'producer_authenticity', 'freshness', 'resource_enforcement', 'grade_promotion'], and a candidate",
-      "tampered_report.json carries no representation or schedule_outcome and no selected_result after Core rejects a schedule whose selected_adapter_id disagrees with its final attempt"
+      "tampered_report.json carries no representation or schedule_outcome and no selected_result after Core rejects a schedule whose selected_adapter_id disagrees with its final attempt",
+      "schedule_history.json is selected mumei.attempt-schedule/v1; read_plan_history validates at least one chained mumei.verification-plan/v1 projection against the stderr head; a zero pinned head exits nonzero without changing plan_history.jsonl or creating schedule_badhead.json; this is tamper evidence, not Evidence, authentication, dispatch or grade promotion, and truncation detection requires the host to pin the head"
     ]
   },
   "l1_z3": {
@@ -106,6 +109,29 @@
         "expected_patterns": [
           "mumei.evidence-check-schedule-report/v1",
           "exit_code"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "history_log",
+        "name": "Validate chained schedule plan history",
+        "repo": "mumei-agent",
+        "command": "rm -f {output_dir}/plan_history.jsonl && {mumei_agent_python} -m agent verify-schedule --request {root_dir}/scenarios/evidence_check_schedule/src/request.json --adapters {root_dir}/scenarios/evidence_check_schedule/src/adapters.json --argv-map {root_dir}/scenarios/evidence_check_schedule/src/argv_map.json --policy {root_dir}/scenarios/evidence_check_schedule/src/policy.json --observations {root_dir}/scenarios/evidence_check_schedule/src/observations.json --source {root_dir}/scenarios/evidence_check_schedule/src/source.mm --history-log {output_dir}/plan_history.jsonl --output {output_dir}/schedule_history.json 2>{output_dir}/history.log; rc=$?; cat {output_dir}/schedule_history.json; cat {output_dir}/history.log; test $rc -eq 0 && env -u PYTHONOPTIMIZE {mumei_agent_python} -c 'import hashlib,json,re,subprocess,sys; from pathlib import Path; from agent.plan_history_log import read_plan_history; out=Path(\"{output_dir}\"); root=Path(\"{root_dir}\"); schedule=json.loads((out/\"schedule_history.json\").read_text()); assert schedule[\"schema_version\"]==\"mumei.attempt-schedule/v1\", schedule; assert schedule[\"outcome\"]==\"selected\", schedule; match=re.search(r\"^verify-schedule: history head ([0-9a-f]{64})$\", (out/\"history.log\").read_text(), re.M); assert match, (out/\"history.log\").read_text(); plans=read_plan_history(str(out/\"plan_history.jsonl\"), expected_head=match.group(1)); assert len(plans)>=1, plans; assert all(p.get(\"schema_version\")==\"mumei.verification-plan/v1\" for p in plans), plans; log=out/\"plan_history.jsonl\"; before=hashlib.sha256(log.read_bytes()).hexdigest(); bad=out/\"schedule_badhead.json\"; bad.unlink(missing_ok=True); base=root/\"scenarios/evidence_check_schedule/src\"; args=[sys.executable,\"-m\",\"agent\",\"verify-schedule\",\"--request\",str(base/\"request.json\"),\"--adapters\",str(base/\"adapters.json\"),\"--argv-map\",str(base/\"argv_map.json\"),\"--policy\",str(base/\"policy.json\"),\"--observations\",str(base/\"observations.json\"),\"--source\",str(base/\"source.mm\"),\"--history-log\",str(log),\"--expected-history-head\",\"0\"*64,\"--output\",str(bad)]; result=subprocess.run(args,capture_output=True,text=True); assert result.returncode!=0, result; assert \"plan history head mismatch\" in result.stderr, result.stderr; assert hashlib.sha256(log.read_bytes()).hexdigest()==before; assert not bad.exists(); print(\"plan history chained \"+str(len(plans))+\" plans; pinned-head mismatch fails closed; tamper evidence, not Evidence\")'",
+        "expected_exit": 0,
+        "depends_on": [
+          "check_tampered_schedule"
+        ],
+        "artifacts": [
+          "plan_history.jsonl",
+          "schedule_history.json",
+          "history.log"
+        ],
+        "harness_stage": "S4_history_log",
+        "artifact_contract": "plan_history.jsonl contains the schedule's chained plan projections and history.log carries the head used to validate them; a zero pinned head must fail without changing the log or creating schedule_badhead.json. This is opt-in tamper evidence, not Evidence, authentication, a dispatch record or grade promotion; a host must pin the head to detect truncation.",
+        "verifier_gate": "verify-schedule emits a selected schedule and a history head; read_plan_history validates at least one mumei.verification-plan/v1 plan, while a zero pinned head fails closed without appending.",
+        "expected_patterns": [
+          "plan history chained ",
+          "pinned-head mismatch fails closed; tamper evidence, not Evidence"
         ],
         "cwd": "{mumei_agent_repo}"
       }
