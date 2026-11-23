@@ -10,15 +10,15 @@
     ],
     "state_dir": "{output_dir}",
     "state_file": "{output_dir}/harness_state.json",
-    "intent": "Demonstrate the C11 evidence-check-schedule route by producing a real mumei.attempt-schedule/v1 document with the agent's verify-schedule command and checking its representation and consistency with Core. The check reports acceptance as not_evaluated: this does not execute adapters, establish reported-outcome truth, evaluate Evidence acceptance, or promote a grade. A schedule with a selected_adapter_id inconsistent with its final attempt must not be selected.",
+    "intent": "Demonstrate the C11 evidence-check-schedule route by producing a real mumei.attempt-schedule/v1 document with the agent's verify-schedule command and checking its representation and consistency with Core. The enforcement record is shape-checked self-report metadata, not an attestation that enforcement occurred. The check reports acceptance as not_evaluated: this does not execute adapters, establish reported-outcome truth, evaluate Evidence acceptance, or promote a grade. A schedule with a selected_adapter_id inconsistent with its final attempt must not be selected.",
     "artifact_contracts": [
-      "Step 1 runs agent verify-schedule over the declared local adapter and saves its mumei.attempt-schedule/v1 output.",
+      "Step 1 runs agent verify-schedule over the declared local adapter, saves its mumei.attempt-schedule/v1 output, and shape-checks enforcement as self-report metadata, not an attestation that enforcement occurred.",
       "Step 2 checks the saved schedule with evidence-check-schedule and asserts representation valid, acceptance not_evaluated, adapter_self_report meaning, exact performed/unperformed check lists, the schedule outcome and attempt count, and a candidate.",
       "Step 3 changes selected_adapter_id so it disagrees with the final attempt; Core rejects the inconsistent document and the route emits no representation, schedule outcome or selected result."
     ]
   },
   "name": "Declared Evidence Attempt-Schedule Check (evidence-check-schedule)",
-  "description": "C11 Core attempt-schedule representation demo: agent verify-schedule produces a real schedule, then evidence-check-schedule selects only Core's representation and consistency diagnostic. Acceptance remains not_evaluated; no adapter execution, reported-outcome truth, Evidence acceptance, or grade promotion is claimed.",
+  "description": "C11 Core attempt-schedule representation demo: agent verify-schedule produces a real schedule, then evidence-check-schedule selects only Core's representation and consistency diagnostic. Its enforcement record is shape-checked self-report metadata, not an attestation that enforcement occurred. Acceptance remains not_evaluated; no adapter execution, reported-outcome truth, Evidence acceptance, or grade promotion is claimed.",
   "narrative": {
     "intro": [
       "Step 1: Produce a declared attempt schedule.",
@@ -34,7 +34,7 @@
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,
-    "source_intent": "Show representation and schedule consistency only: produce a schedule with agent verify-schedule, check it with Core via evidence-check-schedule, and select the candidate only for Core's recognized valid diagnostic. Acceptance stays not_evaluated, with no Evidence acceptance or grade promotion; a tampered inconsistent schedule claims nothing.",
+    "source_intent": "Show representation and schedule consistency only: produce a schedule with agent verify-schedule, check it with Core via evidence-check-schedule, and select the candidate only for Core's recognized valid diagnostic. Enforcement is shape-checked self-report metadata, not an attestation that enforcement occurred. Acceptance stays not_evaluated, with no Evidence acceptance or grade promotion; a tampered inconsistent schedule claims nothing.",
     "success_criteria": [
       "report.json carries mumei.evidence-check-schedule-report/v1 with representation == 'valid', acceptance == 'not_evaluated', schedule_outcome and attempt_count equal to Core's diagnostic for the generated schedule, reported_outcome_meaning == 'adapter_self_report', checks_performed == ['representation_gate', 'schedule_consistency'], checks_not_performed == ['adapter_execution', 'reported_outcome_truth', 'evidence_acceptance', 'embedded_acceptance_validation', 'claim_truth', 'producer_authenticity', 'freshness', 'resource_enforcement', 'grade_promotion'], and a candidate",
       "tampered_report.json carries no representation or schedule_outcome and no selected_result after Core rejects a schedule whose selected_adapter_id disagrees with its final attempt"
@@ -46,18 +46,19 @@
         "id": "produce_schedule",
         "name": "Produce a schedule with agent verify-schedule",
         "repo": "mumei-agent",
-        "command": "{mumei_agent_python} -m agent verify-schedule --request {root_dir}/scenarios/evidence_check_schedule/src/request.json --adapters {root_dir}/scenarios/evidence_check_schedule/src/adapters.json --argv-map {root_dir}/scenarios/evidence_check_schedule/src/argv_map.json --policy {root_dir}/scenarios/evidence_check_schedule/src/policy.json --observations {root_dir}/scenarios/evidence_check_schedule/src/observations.json --source {root_dir}/scenarios/evidence_check_schedule/src/source.mm > {output_dir}/schedule.json 2>{output_dir}/produce.log; rc=$?; cat {output_dir}/schedule.json; cat {output_dir}/produce.log; test $rc -eq 0 && python3 -c \"import json; s=json.load(open('{output_dir}/schedule.json')); assert s['schema_version']=='mumei.attempt-schedule/v1', s; assert s['outcome']=='selected', s; assert s['selected_adapter_id']=='integration-adapter', s; print('agent verify-schedule produced selected schedule with', len(s['attempts']), 'attempt')\"",
+        "command": "{mumei_agent_python} -m agent verify-schedule --request {root_dir}/scenarios/evidence_check_schedule/src/request.json --adapters {root_dir}/scenarios/evidence_check_schedule/src/adapters.json --argv-map {root_dir}/scenarios/evidence_check_schedule/src/argv_map.json --policy {root_dir}/scenarios/evidence_check_schedule/src/policy.json --observations {root_dir}/scenarios/evidence_check_schedule/src/observations.json --source {root_dir}/scenarios/evidence_check_schedule/src/source.mm > {output_dir}/schedule.json 2>{output_dir}/produce.log; rc=$?; cat {output_dir}/schedule.json; cat {output_dir}/produce.log; test $rc -eq 0 && python3 -c \"import json; s=json.load(open('{output_dir}/schedule.json')); assert s['schema_version']=='mumei.attempt-schedule/v1', s; assert s['outcome']=='selected', s; assert s['selected_adapter_id']=='integration-adapter', s; keys={'environment','network','filesystem_write','filesystem_read','process_spawn','memory_bound_mb'}; resources={'network','filesystem_write','filesystem_read','process_spawn'}; values={'permitted','isolated','unenforced'}; valid_memory=lambda m: m is None or (isinstance(m,int) and not isinstance(m,bool) and m>=1); valid_enforcement=lambda e: isinstance(e,dict) and set(e)==keys and e['environment'] in {'inherited','minimal'} and all(e[k] in values for k in resources) and valid_memory(e['memory_bound_mb']); assert all((a['enforcement'] is None) if a['terminal_state']=='not_dispatched' else valid_enforcement(a['enforcement']) for a in s['attempts']), s; print('agent verify-schedule produced selected schedule with', len(s['attempts']), 'attempts; enforcement record shape-checked self-report, not Evidence')\"",
         "expected_exit": 0,
         "artifacts": [
           "schedule.json",
           "produce.log"
         ],
         "harness_stage": "S1_schedule_produce",
-        "artifact_contract": "schedule.json is the real mumei.attempt-schedule/v1 document emitted by the agent's verify-schedule route from the checked-in request, adapter, policy and observation fixtures.",
-        "verifier_gate": "agent verify-schedule exits 0 and emits a selected schedule for integration-adapter.",
+        "artifact_contract": "schedule.json is the real mumei.attempt-schedule/v1 document emitted by the agent's verify-schedule route from the checked-in request, adapter, policy and observation fixtures; enforcement is shape-checked self-report metadata, not an attestation that enforcement occurred.",
+        "verifier_gate": "agent verify-schedule exits 0 and emits a selected schedule for integration-adapter; enforcement shape is checked without asserting that enforcement occurred.",
         "expected_patterns": [
           "mumei.attempt-schedule/v1",
-          "selected"
+          "selected",
+          "enforcement record shape-checked self-report, not Evidence"
         ],
         "cwd": "{mumei_agent_repo}"
       },
