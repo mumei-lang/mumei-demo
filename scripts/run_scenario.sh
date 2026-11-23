@@ -307,7 +307,7 @@ def artifact_payloads(output_dir: Path, artifacts: list[str]) -> dict[str, objec
         try:
             if path.suffix == ".json":
                 payloads[artifact] = json.loads(path.read_text(encoding="utf-8"))
-            elif path.suffix in {".mm", ".md", ".txt", ".log"}:
+            elif path.suffix in {".mm", ".md", ".txt", ".log", ".jsonl"}:
                 text = path.read_text(encoding="utf-8")
                 payloads[artifact] = {
                     "type": "text",

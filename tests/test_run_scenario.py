@@ -19,6 +19,21 @@ def _load_runner() -> dict:
     return namespace
 
 
+def test_artifact_payloads_previews_jsonl_as_text(tmp_path: Path) -> None:
+    artifact = tmp_path / "plan_history.jsonl"
+    artifact.write_text('{"entry":1}\n', encoding="utf-8")
+
+    payloads = _load_runner()["artifact_payloads"](
+        tmp_path, ["plan_history.jsonl"]
+    )
+
+    assert payloads["plan_history.jsonl"] == {
+        "type": "text",
+        "preview": '{"entry":1}\n',
+        "truncated": False,
+    }
+
+
 def _book(
     claims: list[dict],
     *,
