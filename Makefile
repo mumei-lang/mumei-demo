@@ -387,8 +387,13 @@ DEMO_CI_JOBS ?= 4
 
 demo-ci: ## Run default scenarios in fixture mode and regenerate reports.
 	@status=0; \
+	jobs=$(DEMO_CI_JOBS); \
+	if command -v lake >/dev/null 2>&1; then \
+		jobs=1; \
+		echo "demo-ci: lake detected — running serially to avoid racing the shared Lean checkout"; \
+	fi; \
 	printf '%s\n' $(SCENARIOS) \
-		| xargs -P$(DEMO_CI_JOBS) -n1 sh -c 'CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh "$$0"' \
+		| xargs -P$$jobs -n1 sh -c 'CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh "$$0"' \
 		|| status=1; \
 	$(MAKE) report || status=1; \
 	exit "$$status"
