@@ -51,7 +51,6 @@ Gotchas worth reusing:
   "LLM_API_KEY ... is not set" or a `[missing expected patterns]` mismatch).
   This is pre-existing and reproducible on pre-change commits — verify by
   re-running the same scenarios at an older commit before blaming a change.
-- `scripts/generate_report.py` has a hardcoded `SCENARIO_ORDER` that omits
-  `spec_code_verification_suite`, so that scenario runs but never appears in
-  `dashboard/summary.md` even with `--require-all`. Pre-existing; don't treat it
-  as a scale regression.
+- `scripts/generate_report.py` hardcodes `SCENARIO_ORDER`; it now includes
+  `spec_code_verification_suite`, so expect that scenario in
+  `dashboard/summary.md` too.
