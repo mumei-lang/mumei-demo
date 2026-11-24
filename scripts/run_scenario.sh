@@ -187,6 +187,10 @@ def check_json_fields(stdout: str, step: dict) -> tuple[bool, list[str]]:
     without either key are unchecked. A non-JSON stdout fails the check."""
     contains = step.get("expected_json_contains") or {}
     empty_fields = step.get("expected_json_empty") or []
+    if not isinstance(contains, dict):
+        return False, ["expected_json_contains must be an object mapping field to substrings"]
+    if not isinstance(empty_fields, list):
+        return False, ["expected_json_empty must be a list of field names"]
     if not contains and not empty_fields:
         return True, []
     try:

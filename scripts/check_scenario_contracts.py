@@ -319,7 +319,11 @@ def _check_file(path: Path) -> list[str]:
                     failures.append(
                         f"{rel}: `detect_bug` expected_json_contains.cross_validation_gaps must pin the vacuity diagnostic"
                     )
-                if "verification_violations" not in (step.get("expected_json_empty") or []):
+                if not isinstance(step.get("expected_json_empty"), list) or not isinstance(step.get("expected_json_contains"), dict):
+                    failures.append(
+                        f"{rel}: `detect_bug` expected_json_empty must be a list and expected_json_contains an object"
+                    )
+                elif "verification_violations" not in (step.get("expected_json_empty") or []):
                     failures.append(
                         f"{rel}: `detect_bug` expected_json_empty must include verification_violations"
                     )
