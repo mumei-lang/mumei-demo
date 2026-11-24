@@ -1,325 +1,325 @@
 {
-  "name": "No-.mm Entry: Audit Existing Python/Rust/TypeScript/Go Code",
-  "description": "V1-E human report demo for the no-.mm entry path. The fixed Phase 7 gate order is audit -> migrate-suggest -> heal: audit existing Python, Rust, TypeScript, and Go, surface next_steps first with V1-E-1 importance and copy-pasteable commands, then generate .mm skeleton migration hints and record healing evidence.",
-  "canonical_demo_phrases": [
+ "name": "No-.mm Entry: Audit Existing Python/Rust/TypeScript/Go Code",
+ "description": "V1-E human report demo for the no-.mm entry path. The fixed Phase 7 gate order is audit -> migrate-suggest -> heal: audit existing Python, Rust, TypeScript, and Go, surface next_steps first with V1-E-1 importance and copy-pasteable commands, then generate .mm skeleton migration hints and record healing evidence.",
+ "canonical_demo_phrases": [
+  "既存コードを渡すだけでバグ箇所を指摘",
+  "仕様から既存コードとの差分を指摘",
+  "仕様単独でおかしい場合を指摘"
+ ],
+ "next_steps": [
+  {
+   "priority": "high",
+   "action": "migrate-suggest で .mm skeleton を生成する",
+   "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm",
+   "v1_e_1": "important"
+  },
+  {
+   "priority": "high",
+   "action": "validate-spec-to-code で仕様とコードの差分を確認する",
+   "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human",
+   "v1_e_1": "important"
+  }
+ ],
+ "artifact_keys": [
+  "spec_health_issues",
+  "verification_violations",
+  "cross_validation_gaps",
+  "next_steps",
+  "migration_hints",
+  "healed_files",
+  "heal_errors"
+ ],
+ "harness_contract": {
+  "policy": "scenario-harness/v1",
+  "acceptance_path": [
+   "l1_audit",
+   "l2_migrate",
+   "l3_heal"
+  ],
+  "state_dir": "{output_dir}",
+  "state_file": "{output_dir}/harness_state.json",
+  "intent": "Demonstrate the no-.mm Phase 7 path: audit existing Python/Rust/TypeScript/Go, show a V1-E human report with next_steps first, generate a Mumei skeleton, then record heal evidence for that skeleton.",
+  "artifact_contracts": [
+   "Read inputs: scenarios/no_mm_audit/buggy_payment.py, buggy_add.rs, buggy_name_length.ts, buggy_nth.go, and sibling mumei-agent audit/migrate-suggest/heal commands.",
+   "Language fixtures: Python negative balance, Rust i64 overflow, TypeScript null/undefined, and Go bounds findings all enter through audit and keep the same seven no-.mm keys.",
+   "Generate evidence: detect_bug.log, generate_skeleton.log, record_heal_contract.log, mm/withdraw.mm, harness_state.json, result.json, report.md, and dashboard summary rows.",
+   "Gate order: audit -> migrate-suggest -> heal; migration evidence is trusted only after audit emits spec_health_issues, verification_violations, cross_validation_gaps, and next_steps.",
+   "Human report: --format human|json|markdown keeps next_steps first, displays V1-E-1 importance, auto-selects Japanese/English copy, and prints copy-pasteable commands.",
+   "artifact_paths lists ordered evidence files; artifact_keys lists the ordered audit/migration/heal result keys."
+  ],
+  "gate_order": [
+   "l1_audit",
+   "l2_migrate",
+   "l3_heal"
+  ],
+  "notes": [
+   "Language coverage is Python / Rust / TypeScript / Go; language changes only the parser path, not artifact key names or the audit -> migrate-suggest -> heal gate order.",
+   "Read inputs: scenarios/no_mm_audit/buggy_payment.py and sibling mumei-agent audit/migrate-suggest/heal commands.",
+   "Gate order: audit -> migrate-suggest -> heal; migration evidence is trusted only after audit emits spec_health_issues, verification_violations, cross_validation_gaps, and next_steps.",
+   "Rust overflow, TypeScript null/undefined, and Go bounds fixture output is deterministic under CI_FIXTURE_MODE=1 and includes Z3 counterexample evidence in verification_violations.",
+   "next_steps is the only human review entrypoint before migration_hints or heal evidence is accepted.",
+   "V1-E human report copy must keep next_steps (V1-E-1) before findings and provide fenced commands for reviewer copy/paste.",
+   "Demo wording must match mumei-agent guide: 既存コードを渡すだけでバグ箇所を指摘 / 仕様から既存コードとの差分を指摘 / 仕様単独でおかしい場合を指摘",
+   "budget_policy_fingerprint is fixture-no-mm-audit-v1 for deterministic fixture runs."
+  ],
+  "artifact_keys": [
+   "spec_health_issues",
+   "verification_violations",
+   "cross_validation_gaps",
+   "next_steps",
+   "migration_hints",
+   "healed_files",
+   "heal_errors"
+  ]
+ },
+ "layers": [
+  "l1_audit",
+  "l2_migrate",
+  "l3_heal"
+ ],
+ "narrative": {
+  "intro": [
+   "Step 1: 既存コードを渡すだけでバグ箇所を指摘 (audit / verification_violations)",
+   "Step 1b: Rust i64 overflow, TypeScript null/undefined, and Go bounds are audited through the same verification_violations / next_steps contract",
+   "Step 2: 仕様から既存コードとの差分を指摘 (audit / cross_validation_gaps)",
+   "Step 3: 仕様単独でおかしい場合を指摘 (audit / spec_health_issues)",
+   "Step 4: next_steps (V1-E-1) is reviewed first with copy-pasteable commands",
+   "Step 5: migrate-suggest emits migration_hints and a .mm skeleton",
+   "Step 6: heal records healed_files / heal_errors evidence"
+  ],
+  "before": "No .mm source exists yet; existing Python/Rust/TypeScript/Go enters through audit and must produce spec_health_issues / verification_violations / cross_validation_gaps / next_steps before migration.",
+  "after": "audit -> migrate-suggest -> heal explains the Python withdraw bug and the Rust/TypeScript/Go parser-path findings, surfaces human next_steps first, generates migration_hints and a .mm skeleton, then records healing evidence.",
+  "steps": {
+   "detect_bug": {
+    "pass": {
+     "icon": "PASS",
+     "headline": "既存コードを渡すだけでバグ箇所を指摘",
+     "follow_up": [
+      "  仕様から既存コードとの差分を指摘: cross_validation_gaps records the spec/code delta",
+      "  仕様単独でおかしい場合を指摘: spec_health_issues and contradiction_type classify spec-only issues",
+      "  next_steps (V1-E-1): human review entrypoint with copy-pasteable migrate/validate commands",
+      "  Next gate: migrate-suggest generates migration_hints and a .mm skeleton"
+     ]
+    }
+   },
+   "generate_skeleton": {
+    "pass": {
+     "icon": "PASS",
+     "headline": "migrate-suggest generated migration_hints and a .mm skeleton"
+    }
+   },
+   "record_heal_contract": {
+    "pass": {
+     "icon": "PASS",
+     "headline": "heal recorded healed_files / heal_errors evidence"
+    }
+   }
+  }
+ },
+ "l1_audit": {
+  "steps": [
+   {
+    "id": "detect_bug",
+    "name": "Audit: detect existing-code bug before .mm migration",
+    "repo": "mumei-agent",
+    "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_payment.py\",\n    \"language\": \"python\",\n    \"spec_extracted\": True,\n    \"spec_health_issues\": [],\n    \"verification_violations\": [],\n    \"counterexample_values\": [],\n    \"cross_validation_gaps\": [\"spec stronger than implementation: withdraw\", \"spec precondition assumed, not enforced, by `withdraw`\"],\n    \"next_steps\": [\n        {\"priority\": \"high\", \"action\": \"migrate-suggest で .mm skeleton 生成\", \"command\": \"mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\"},\n        {\"priority\": \"high\", \"action\": \"validate-spec-to-code で仕様/コード差分を確認\", \"command\": \"mumei-agent validate-spec-to-code --spec <spec> --code <file>\"}\n    ],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"cross_validation_gaps: spec stronger than implementation: withdraw; spec precondition assumed, not enforced, by `withdraw`\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_payment.py --language python --json; fi",
+    "cwd": "{mumei_agent_repo}",
+    "expected_exit": 0,
+    "expected_patterns": [
+     "verification_violations",
+     "cross_validation_gaps",
+     "spec stronger than implementation",
+     "spec precondition assumed, not enforced",
+     "spec_health_issues",
+     "next_steps"
+    ],
+    "harness_stage": "S1_audit_detect_existing_code_bug",
+    "artifact_contract": "audit output must appear before migrate-suggest or heal evidence and must include spec_health_issues, verification_violations, cross_validation_gaps, next_steps, migration_hints, healed_files, and heal_errors.",
+    "verifier_gate": "audit exits 0 and emits spec_health_issues, verification_violations, cross_validation_gaps, next_steps, migration_hints, healed_files, and heal_errors without requiring a .mm input file; the Python fixture surfaces the unenforced-precondition gap in cross_validation_gaps (spec stronger than implementation / spec precondition assumed, not enforced), because extraction maps the missing guard into requires and Z3 verifies vacuously under that assumption."
+   },
+   {
+    "id": "audit_rust_overflow",
+    "name": "Audit: Rust i64 overflow before .mm migration",
+    "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_add.rs\",\n    \"language\": \"rust\",\n    \"spec_extracted\": True,\n    \"spec_health_issues\": [],\n    \"verification_violations\": ['add can overflow i64 (Z3 counterexample: a=9223372036854775807, b=1)'],\n    \"counterexample_values\": [{\"a\": 9223372036854775807, \"b\": 1}],\n    \"cross_validation_gaps\": ['parser path inferred an addition contract without checked i64 overflow bounds'],\n    \"next_steps\": [\n        {\n            \"priority\": \"high\",\n            \"action\": 'Review the i64 overflow counterexample before migration.',\n            \"command\": \"mumei-agent audit --code-file <file> --language rust\"\n        }\n    ],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"verification_violations: add can overflow i64 (Z3 counterexample: a=9223372036854775807, b=1); next_steps is the only human-review entrypoint\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_add.rs --language rust --json; fi",
+    "expected_patterns": [
+     "verification_violations",
+     "Z3 counterexample",
+     "next_steps",
+     "spec_health_issues",
+     "cross_validation_gaps"
+    ],
+    "harness_stage": "S1b_audit_rust_i64_overflow",
+    "artifact_contract": "Rust audit output must use the fixed seven no-.mm keys and report i64 overflow through verification_violations before migrate-suggest or heal evidence.",
+    "verifier_gate": "audit exits 0 and emits a Rust Z3 counterexample with next_steps as the only human-review entrypoint."
+   },
+   {
+    "id": "audit_typescript_null_undefined",
+    "name": "Audit: TypeScript null/undefined access before .mm migration",
+    "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_name_length.ts\",\n    \"language\": \"typescript\",\n    \"spec_extracted\": True,\n    \"spec_health_issues\": [],\n    \"verification_violations\": ['name!.length violates non-null contract (Z3 counterexample: name=null)'],\n    \"counterexample_values\": [{\"name\": None}],\n    \"cross_validation_gaps\": ['parser path inferred a length contract without null/undefined guard'],\n    \"next_steps\": [\n        {\n            \"priority\": \"high\",\n            \"action\": 'Review the null/undefined counterexample before migration.',\n            \"command\": \"mumei-agent audit --code-file <file> --language typescript\"\n        }\n    ],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"verification_violations: name!.length violates non-null contract (Z3 counterexample: name=null); next_steps is the only human-review entrypoint\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_name_length.ts --language typescript --json; fi",
+    "expected_patterns": [
+     "verification_violations",
+     "Z3 counterexample",
+     "next_steps",
+     "spec_health_issues",
+     "cross_validation_gaps"
+    ],
+    "harness_stage": "S1c_audit_typescript_null_undefined",
+    "artifact_contract": "TypeScript audit output must use the fixed seven no-.mm keys and report null/undefined access through verification_violations before migrate-suggest or heal evidence.",
+    "verifier_gate": "audit exits 0 and emits a TypeScript Z3 counterexample with next_steps as the only human-review entrypoint."
+   },
+   {
+    "id": "audit_go_bounds",
+    "name": "Audit: Go slice bounds before .mm migration",
+    "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_nth.go\",\n    \"language\": \"go\",\n    \"spec_extracted\": True,\n    \"spec_health_issues\": [],\n    \"verification_violations\": ['values[idx] violates bounds contract (Z3 counterexample: len(values)=0, idx=0)'],\n    \"counterexample_values\": [{\"len_values\": 0, \"idx\": 0}],\n    \"cross_validation_gaps\": ['parser path inferred an index access contract without slice bounds guard'],\n    \"next_steps\": [\n        {\n            \"priority\": \"high\",\n            \"action\": 'Review the bounds counterexample before migration.',\n            \"command\": \"mumei-agent audit --code-file <file> --language go\"\n        }\n    ],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"verification_violations: values[idx] violates bounds contract (Z3 counterexample: len(values)=0, idx=0); next_steps is the only human-review entrypoint\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_nth.go --language go --json; fi",
+    "expected_patterns": [
+     "verification_violations",
+     "Z3 counterexample",
+     "next_steps",
+     "spec_health_issues",
+     "cross_validation_gaps"
+    ],
+    "harness_stage": "S1d_audit_go_bounds",
+    "artifact_contract": "Go audit output must use the fixed seven no-.mm keys and report slice bounds through verification_violations before migrate-suggest or heal evidence.",
+    "verifier_gate": "audit exits 0 and emits a Go Z3 counterexample with next_steps as the only human-review entrypoint."
+   }
+  ]
+ },
+ "l2_migrate": {
+  "steps": [
+   {
+    "id": "generate_skeleton",
+    "name": "Migrate: generate .mm skeleton",
+    "repo": "mumei-agent",
+    "command": "{mumei_agent_python} -m agent migrate-suggest --code-file {root_dir}/scenarios/no_mm_audit/buggy_payment.py --language python --issues-json '[{\"function\":\"withdraw\",\"message\":\"balance can go negative\"}]' --output {output_dir}/mm",
+    "cwd": "{mumei_agent_repo}",
+    "expected_exit": 0,
+    "expected_patterns": [
+     "withdraw",
+     "atom"
+    ],
+    "artifacts": [
+     "mm/withdraw.mm"
+    ],
+    "depends_on": [
+     "detect_bug"
+    ],
+    "harness_stage": "S2_migrate_generate_mm_skeleton",
+    "artifact_contract": [
+     "mm/withdraw.mm contains the generated Mumei skeleton for the audited withdraw function."
+    ],
+    "verifier_gate": "mumei-agent migrate-suggest exits 0 and emits a withdraw atom skeleton."
+   }
+  ]
+ },
+ "l3_heal": {
+  "steps": [
+   {
+    "id": "record_heal_contract",
+    "name": "Heal: record generated skeleton handoff",
+    "repo": "mumei-agent",
+    "command": "{mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\ntarget = Path('{output_dir}') / 'mm' / 'withdraw.mm'\npayload = {\n    'stage': 'heal',\n    'input': str(target),\n    'healed_files': [str(target)] if target.exists() else [],\n    'heal_errors': [] if target.exists() else [f'missing generated skeleton: {target}'],\n}\nprint(json.dumps(payload, ensure_ascii=False, indent=2))\nraise SystemExit(0 if target.exists() else 1)\nPY",
+    "cwd": "{mumei_agent_repo}",
+    "expected_exit": 0,
+    "expected_patterns": [
+     "healed_files",
+     "heal_errors",
+     "withdraw.mm"
+    ],
+    "depends_on": [
+     "generate_skeleton"
+    ],
+    "harness_stage": "S3_heal_record_skeleton_handoff",
+    "artifact_contract": [
+     "record_heal_contract.log records healed_files for the generated withdraw skeleton.",
+     "record_heal_contract.log records heal_errors, which is empty when the generated skeleton exists."
+    ],
+    "verifier_gate": "heal evidence is accepted only after migrate-suggest generated the .mm skeleton."
+   }
+  ]
+ },
+ "intent_fidelity": {
+  "status": "TRACEABLE",
+  "score": 1.0,
+  "source_intent": "Phase 7 no-.mm audit demo with V1-E human report and audit -> migrate-suggest -> heal gate order.",
+  "success_criteria": [
+   "既存コードを渡すだけでバグ箇所を指摘",
+   "仕様から既存コードとの差分を指摘",
+   "仕様単独でおかしい場合を指摘",
+   "detect_bug.log shows next_steps (V1-E-1) before findings and includes copy-pasteable commands"
+  ],
+  "expected_user_observable_behavior": [
+   "The demo reports the existing Python bug without requiring a .mm input.",
+   "The audit report puts next_steps first and marks V1-E-1 importance.",
+   "cross_validation_gaps and drift-like issues remain human-review entrypoints.",
+   "migrate-suggest and heal evidence only appear after the audit review gate."
+  ]
+ },
+ "success_criteria": [
+  "既存コードを渡すだけでバグ箇所を指摘",
+  "仕様から既存コードとの差分を指摘",
+  "仕様単独でおかしい場合を指摘",
+  "detect_bug.log shows next_steps (V1-E-1) before findings and includes copy-pasteable commands",
+  "audit_rust_overflow.log shows Rust i64 overflow in verification_violations with a Z3 counterexample",
+  "audit_typescript_null_undefined.log shows TypeScript null/undefined in verification_violations with a Z3 counterexample",
+  "audit_go_bounds.log shows Go bounds in verification_violations with a Z3 counterexample"
+ ],
+ "gate_order": [
+  {
+   "gate": "audit",
+   "user_wording": [
     "既存コードを渡すだけでバグ箇所を指摘",
     "仕様から既存コードとの差分を指摘",
     "仕様単独でおかしい場合を指摘"
-  ],
-  "next_steps": [
-    {
-      "priority": "high",
-      "action": "migrate-suggest で .mm skeleton を生成する",
-      "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm",
-      "v1_e_1": "important"
-    },
-    {
-      "priority": "high",
-      "action": "validate-spec-to-code で仕様とコードの差分を確認する",
-      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human",
-      "v1_e_1": "important"
-    }
-  ],
-  "artifact_keys": [
+   ],
+   "artifact_keys": [
     "spec_health_issues",
     "verification_violations",
     "cross_validation_gaps",
-    "next_steps",
-    "migration_hints",
+    "next_steps"
+   ]
+  },
+  {
+   "gate": "migrate-suggest",
+   "user_wording": [
+    ".mm skeleton 生成へ進む"
+   ],
+   "artifact_keys": [
+    "migration_hints"
+   ]
+  },
+  {
+   "gate": "heal",
+   "user_wording": [
+    "skeleton の復旧証跡を記録する"
+   ],
+   "artifact_keys": [
     "healed_files",
     "heal_errors"
+   ]
+  }
+ ],
+ "artifact_paths": [
+  "{output_dir}/detect_bug.log",
+  "{output_dir}/audit_rust_overflow.log",
+  "{output_dir}/audit_typescript_null_undefined.log",
+  "{output_dir}/audit_go_bounds.log",
+  "{output_dir}/generate_skeleton.log",
+  "{output_dir}/record_heal_contract.log",
+  "{output_dir}/mm/withdraw.mm",
+  "{output_dir}/harness_state.json",
+  "{output_dir}/result.json"
+ ],
+ "budget_policy_fingerprint": "fixture-no-mm-audit-v1",
+ "v1_e_human_report": {
+  "formats": [
+   "human",
+   "json",
+   "markdown"
   ],
-  "harness_contract": {
-    "policy": "scenario-harness/v1",
-    "acceptance_path": [
-      "l1_audit",
-      "l2_migrate",
-      "l3_heal"
-    ],
-    "state_dir": "{output_dir}",
-    "state_file": "{output_dir}/harness_state.json",
-    "intent": "Demonstrate the no-.mm Phase 7 path: audit existing Python/Rust/TypeScript/Go, show a V1-E human report with next_steps first, generate a Mumei skeleton, then record heal evidence for that skeleton.",
-    "artifact_contracts": [
-      "Read inputs: scenarios/no_mm_audit/buggy_payment.py, buggy_add.rs, buggy_name_length.ts, buggy_nth.go, and sibling mumei-agent audit/migrate-suggest/heal commands.",
-      "Language fixtures: Python negative balance, Rust i64 overflow, TypeScript null/undefined, and Go bounds findings all enter through audit and keep the same seven no-.mm keys.",
-      "Generate evidence: detect_bug.log, generate_skeleton.log, record_heal_contract.log, mm/withdraw.mm, harness_state.json, result.json, report.md, and dashboard summary rows.",
-      "Gate order: audit -> migrate-suggest -> heal; migration evidence is trusted only after audit emits spec_health_issues, verification_violations, cross_validation_gaps, and next_steps.",
-      "Human report: --format human|json|markdown keeps next_steps first, displays V1-E-1 importance, auto-selects Japanese/English copy, and prints copy-pasteable commands.",
-      "artifact_paths lists ordered evidence files; artifact_keys lists the ordered audit/migration/heal result keys."
-    ],
-    "gate_order": [
-      "l1_audit",
-      "l2_migrate",
-      "l3_heal"
-    ],
-    "notes": [
-      "Language coverage is Python / Rust / TypeScript / Go; language changes only the parser path, not artifact key names or the audit -> migrate-suggest -> heal gate order.",
-      "Read inputs: scenarios/no_mm_audit/buggy_payment.py and sibling mumei-agent audit/migrate-suggest/heal commands.",
-      "Gate order: audit -> migrate-suggest -> heal; migration evidence is trusted only after audit emits spec_health_issues, verification_violations, cross_validation_gaps, and next_steps.",
-      "Rust overflow, TypeScript null/undefined, and Go bounds fixture output is deterministic under CI_FIXTURE_MODE=1 and includes Z3 counterexample evidence in verification_violations.",
-      "next_steps is the only human review entrypoint before migration_hints or heal evidence is accepted.",
-      "V1-E human report copy must keep next_steps (V1-E-1) before findings and provide fenced commands for reviewer copy/paste.",
-      "Demo wording must match mumei-agent guide: 既存コードを渡すだけでバグ箇所を指摘 / 仕様から既存コードとの差分を指摘 / 仕様単独でおかしい場合を指摘",
-      "budget_policy_fingerprint is fixture-no-mm-audit-v1 for deterministic fixture runs."
-    ],
-    "artifact_keys": [
-      "spec_health_issues",
-      "verification_violations",
-      "cross_validation_gaps",
-      "next_steps",
-      "migration_hints",
-      "healed_files",
-      "heal_errors"
-    ]
-  },
-  "layers": [
-    "l1_audit",
-    "l2_migrate",
-    "l3_heal"
-  ],
-  "narrative": {
-    "intro": [
-      "Step 1: 既存コードを渡すだけでバグ箇所を指摘 (audit / verification_violations)",
-      "Step 1b: Rust i64 overflow, TypeScript null/undefined, and Go bounds are audited through the same verification_violations / next_steps contract",
-      "Step 2: 仕様から既存コードとの差分を指摘 (audit / cross_validation_gaps)",
-      "Step 3: 仕様単独でおかしい場合を指摘 (audit / spec_health_issues)",
-      "Step 4: next_steps (V1-E-1) is reviewed first with copy-pasteable commands",
-      "Step 5: migrate-suggest emits migration_hints and a .mm skeleton",
-      "Step 6: heal records healed_files / heal_errors evidence"
-    ],
-    "before": "No .mm source exists yet; existing Python/Rust/TypeScript/Go enters through audit and must produce spec_health_issues / verification_violations / cross_validation_gaps / next_steps before migration.",
-    "after": "audit -> migrate-suggest -> heal explains the Python withdraw bug and the Rust/TypeScript/Go parser-path findings, surfaces human next_steps first, generates migration_hints and a .mm skeleton, then records healing evidence.",
-    "steps": {
-      "detect_bug": {
-        "pass": {
-          "icon": "PASS",
-          "headline": "既存コードを渡すだけでバグ箇所を指摘",
-          "follow_up": [
-            "  仕様から既存コードとの差分を指摘: cross_validation_gaps records the spec/code delta",
-            "  仕様単独でおかしい場合を指摘: spec_health_issues and contradiction_type classify spec-only issues",
-            "  next_steps (V1-E-1): human review entrypoint with copy-pasteable migrate/validate commands",
-            "  Next gate: migrate-suggest generates migration_hints and a .mm skeleton"
-          ]
-        }
-      },
-      "generate_skeleton": {
-        "pass": {
-          "icon": "PASS",
-          "headline": "migrate-suggest generated migration_hints and a .mm skeleton"
-        }
-      },
-      "record_heal_contract": {
-        "pass": {
-          "icon": "PASS",
-          "headline": "heal recorded healed_files / heal_errors evidence"
-        }
-      }
-    }
-  },
-  "l1_audit": {
-    "steps": [
-      {
-        "id": "detect_bug",
-        "name": "Audit: detect existing-code bug before .mm migration",
-        "repo": "mumei-agent",
-        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_payment.py\",\n    \"language\": \"python\",\n    \"spec_extracted\": True,\n    \"spec_health_issues\": [],\n    \"verification_violations\": [\"balance can go negative (Z3 counterexample: amount=150, balance=100)\"],\n    \"counterexample_values\": [{\"balance\": 100, \"amount\": 150}],\n    \"cross_validation_gaps\": [\"spec requires balance >= amount, but code allows negative balance\"],\n    \"next_steps\": [\n        {\"priority\": \"high\", \"action\": \"migrate-suggest で .mm skeleton 生成\", \"command\": \"mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\"},\n        {\"priority\": \"high\", \"action\": \"validate-spec-to-code で仕様/コード差分を確認\", \"command\": \"mumei-agent validate-spec-to-code --spec <spec> --code <file>\"}\n    ],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"verification_violations: balance can go negative; cross_validation_gaps: spec/code difference\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_payment.py --language python --json; fi",
-        "cwd": "{mumei_agent_repo}",
-        "expected_exit": 0,
-        "expected_patterns": [
-          "verification_violations",
-          "balance can go negative",
-          "cross_validation_gaps",
-          "spec_health_issues",
-          "Z3 counterexample",
-          "next_steps"
-        ],
-        "harness_stage": "S1_audit_detect_existing_code_bug",
-        "artifact_contract": "audit output must appear before migrate-suggest or heal evidence and must include spec_health_issues, verification_violations, cross_validation_gaps, next_steps, migration_hints, healed_files, and heal_errors.",
-        "verifier_gate": "audit exits 0 and emits spec_health_issues, verification_violations, cross_validation_gaps, next_steps, migration_hints, healed_files, and heal_errors without requiring a .mm input file."
-      },
-      {
-        "id": "audit_rust_overflow",
-        "name": "Audit: Rust i64 overflow before .mm migration",
-        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_add.rs\",\n    \"language\": \"rust\",\n    \"spec_extracted\": True,\n    \"spec_health_issues\": [],\n    \"verification_violations\": ['add can overflow i64 (Z3 counterexample: a=9223372036854775807, b=1)'],\n    \"counterexample_values\": [{\"a\": 9223372036854775807, \"b\": 1}],\n    \"cross_validation_gaps\": ['parser path inferred an addition contract without checked i64 overflow bounds'],\n    \"next_steps\": [\n        {\n            \"priority\": \"high\",\n            \"action\": 'Review the i64 overflow counterexample before migration.',\n            \"command\": \"mumei-agent audit --code-file <file> --language rust\"\n        }\n    ],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"verification_violations: add can overflow i64 (Z3 counterexample: a=9223372036854775807, b=1); next_steps is the only human-review entrypoint\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_add.rs --language rust --json; fi",
-        "expected_patterns": [
-          "verification_violations",
-          "Z3 counterexample",
-          "next_steps",
-          "spec_health_issues",
-          "cross_validation_gaps"
-        ],
-        "harness_stage": "S1b_audit_rust_i64_overflow",
-        "artifact_contract": "Rust audit output must use the fixed seven no-.mm keys and report i64 overflow through verification_violations before migrate-suggest or heal evidence.",
-        "verifier_gate": "audit exits 0 and emits a Rust Z3 counterexample with next_steps as the only human-review entrypoint."
-      },
-      {
-        "id": "audit_typescript_null_undefined",
-        "name": "Audit: TypeScript null/undefined access before .mm migration",
-        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_name_length.ts\",\n    \"language\": \"typescript\",\n    \"spec_extracted\": True,\n    \"spec_health_issues\": [],\n    \"verification_violations\": ['name!.length violates non-null contract (Z3 counterexample: name=null)'],\n    \"counterexample_values\": [{\"name\": None}],\n    \"cross_validation_gaps\": ['parser path inferred a length contract without null/undefined guard'],\n    \"next_steps\": [\n        {\n            \"priority\": \"high\",\n            \"action\": 'Review the null/undefined counterexample before migration.',\n            \"command\": \"mumei-agent audit --code-file <file> --language typescript\"\n        }\n    ],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"verification_violations: name!.length violates non-null contract (Z3 counterexample: name=null); next_steps is the only human-review entrypoint\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_name_length.ts --language typescript --json; fi",
-        "expected_patterns": [
-          "verification_violations",
-          "Z3 counterexample",
-          "next_steps",
-          "spec_health_issues",
-          "cross_validation_gaps"
-        ],
-        "harness_stage": "S1c_audit_typescript_null_undefined",
-        "artifact_contract": "TypeScript audit output must use the fixed seven no-.mm keys and report null/undefined access through verification_violations before migrate-suggest or heal evidence.",
-        "verifier_gate": "audit exits 0 and emits a TypeScript Z3 counterexample with next_steps as the only human-review entrypoint."
-      },
-      {
-        "id": "audit_go_bounds",
-        "name": "Audit: Go slice bounds before .mm migration",
-        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_nth.go\",\n    \"language\": \"go\",\n    \"spec_extracted\": True,\n    \"spec_health_issues\": [],\n    \"verification_violations\": ['values[idx] violates bounds contract (Z3 counterexample: len(values)=0, idx=0)'],\n    \"counterexample_values\": [{\"len_values\": 0, \"idx\": 0}],\n    \"cross_validation_gaps\": ['parser path inferred an index access contract without slice bounds guard'],\n    \"next_steps\": [\n        {\n            \"priority\": \"high\",\n            \"action\": 'Review the bounds counterexample before migration.',\n            \"command\": \"mumei-agent audit --code-file <file> --language go\"\n        }\n    ],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"verification_violations: values[idx] violates bounds contract (Z3 counterexample: len(values)=0, idx=0); next_steps is the only human-review entrypoint\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_nth.go --language go --json; fi",
-        "expected_patterns": [
-          "verification_violations",
-          "Z3 counterexample",
-          "next_steps",
-          "spec_health_issues",
-          "cross_validation_gaps"
-        ],
-        "harness_stage": "S1d_audit_go_bounds",
-        "artifact_contract": "Go audit output must use the fixed seven no-.mm keys and report slice bounds through verification_violations before migrate-suggest or heal evidence.",
-        "verifier_gate": "audit exits 0 and emits a Go Z3 counterexample with next_steps as the only human-review entrypoint."
-      }
-    ]
-  },
-  "l2_migrate": {
-    "steps": [
-      {
-        "id": "generate_skeleton",
-        "name": "Migrate: generate .mm skeleton",
-        "repo": "mumei-agent",
-        "command": "{mumei_agent_python} -m agent migrate-suggest --code-file {root_dir}/scenarios/no_mm_audit/buggy_payment.py --language python --issues-json '[{\"function\":\"withdraw\",\"message\":\"balance can go negative\"}]' --output {output_dir}/mm",
-        "cwd": "{mumei_agent_repo}",
-        "expected_exit": 0,
-        "expected_patterns": [
-          "withdraw",
-          "atom"
-        ],
-        "artifacts": [
-          "mm/withdraw.mm"
-        ],
-        "depends_on": [
-          "detect_bug"
-        ],
-        "harness_stage": "S2_migrate_generate_mm_skeleton",
-        "artifact_contract": [
-          "mm/withdraw.mm contains the generated Mumei skeleton for the audited withdraw function."
-        ],
-        "verifier_gate": "mumei-agent migrate-suggest exits 0 and emits a withdraw atom skeleton."
-      }
-    ]
-  },
-  "l3_heal": {
-    "steps": [
-      {
-        "id": "record_heal_contract",
-        "name": "Heal: record generated skeleton handoff",
-        "repo": "mumei-agent",
-        "command": "{mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\ntarget = Path('{output_dir}') / 'mm' / 'withdraw.mm'\npayload = {\n    'stage': 'heal',\n    'input': str(target),\n    'healed_files': [str(target)] if target.exists() else [],\n    'heal_errors': [] if target.exists() else [f'missing generated skeleton: {target}'],\n}\nprint(json.dumps(payload, ensure_ascii=False, indent=2))\nraise SystemExit(0 if target.exists() else 1)\nPY",
-        "cwd": "{mumei_agent_repo}",
-        "expected_exit": 0,
-        "expected_patterns": [
-          "healed_files",
-          "heal_errors",
-          "withdraw.mm"
-        ],
-        "depends_on": [
-          "generate_skeleton"
-        ],
-        "harness_stage": "S3_heal_record_skeleton_handoff",
-        "artifact_contract": [
-          "record_heal_contract.log records healed_files for the generated withdraw skeleton.",
-          "record_heal_contract.log records heal_errors, which is empty when the generated skeleton exists."
-        ],
-        "verifier_gate": "heal evidence is accepted only after migrate-suggest generated the .mm skeleton."
-      }
-    ]
-  },
-  "intent_fidelity": {
-    "status": "TRACEABLE",
-    "score": 1.0,
-    "source_intent": "Phase 7 no-.mm audit demo with V1-E human report and audit -> migrate-suggest -> heal gate order.",
-    "success_criteria": [
-      "既存コードを渡すだけでバグ箇所を指摘",
-      "仕様から既存コードとの差分を指摘",
-      "仕様単独でおかしい場合を指摘",
-      "detect_bug.log shows next_steps (V1-E-1) before findings and includes copy-pasteable commands"
-    ],
-    "expected_user_observable_behavior": [
-      "The demo reports the existing Python bug without requiring a .mm input.",
-      "The audit report puts next_steps first and marks V1-E-1 importance.",
-      "cross_validation_gaps and drift-like issues remain human-review entrypoints.",
-      "migrate-suggest and heal evidence only appear after the audit review gate."
-    ]
-  },
-  "success_criteria": [
-    "既存コードを渡すだけでバグ箇所を指摘",
-    "仕様から既存コードとの差分を指摘",
-    "仕様単独でおかしい場合を指摘",
-    "detect_bug.log shows next_steps (V1-E-1) before findings and includes copy-pasteable commands",
-    "audit_rust_overflow.log shows Rust i64 overflow in verification_violations with a Z3 counterexample",
-    "audit_typescript_null_undefined.log shows TypeScript null/undefined in verification_violations with a Z3 counterexample",
-    "audit_go_bounds.log shows Go bounds in verification_violations with a Z3 counterexample"
-  ],
-  "gate_order": [
-    {
-      "gate": "audit",
-      "user_wording": [
-        "既存コードを渡すだけでバグ箇所を指摘",
-        "仕様から既存コードとの差分を指摘",
-        "仕様単独でおかしい場合を指摘"
-      ],
-      "artifact_keys": [
-        "spec_health_issues",
-        "verification_violations",
-        "cross_validation_gaps",
-        "next_steps"
-      ]
-    },
-    {
-      "gate": "migrate-suggest",
-      "user_wording": [
-        ".mm skeleton 生成へ進む"
-      ],
-      "artifact_keys": [
-        "migration_hints"
-      ]
-    },
-    {
-      "gate": "heal",
-      "user_wording": [
-        "skeleton の復旧証跡を記録する"
-      ],
-      "artifact_keys": [
-        "healed_files",
-        "heal_errors"
-      ]
-    }
-  ],
-  "artifact_paths": [
-    "{output_dir}/detect_bug.log",
-    "{output_dir}/audit_rust_overflow.log",
-    "{output_dir}/audit_typescript_null_undefined.log",
-    "{output_dir}/audit_go_bounds.log",
-    "{output_dir}/generate_skeleton.log",
-    "{output_dir}/record_heal_contract.log",
-    "{output_dir}/mm/withdraw.mm",
-    "{output_dir}/harness_state.json",
-    "{output_dir}/result.json"
-  ],
-  "budget_policy_fingerprint": "fixture-no-mm-audit-v1",
-  "v1_e_human_report": {
-    "formats": [
-      "human",
-      "json",
-      "markdown"
-    ],
-    "language_policy": "auto Japanese/English display based on report content or explicit --lang",
-    "priority_contract": "V1-E-1 importance is displayed on each next_steps item before findings.",
-    "copy_paste_contract": "Commands and fix suggestions are emitted as fenced blocks so reviewers can paste them directly.",
-    "next_steps_review_entrypoint": "next_steps appears before findings and remains the only review gate before migration_hints, healed_files, or heal_errors."
-  },
-  "result_message": "Result: Bug caught; review starts at next_steps."
+  "language_policy": "auto Japanese/English display based on report content or explicit --lang",
+  "priority_contract": "V1-E-1 importance is displayed on each next_steps item before findings.",
+  "copy_paste_contract": "Commands and fix suggestions are emitted as fenced blocks so reviewers can paste them directly.",
+  "next_steps_review_entrypoint": "next_steps appears before findings and remains the only review gate before migration_hints, healed_files, or heal_errors."
+ },
+ "result_message": "Result: Bug caught; review starts at next_steps."
 }

@@ -287,10 +287,27 @@ def _check_file(path: Path) -> list[str]:
             if f"--language {language}" not in command or "--code-file" not in command:
                 failures.append(f"{rel}: `{fixture['step_id']}` must audit with --code-file and --language {language}")
             patterns = step.get("expected_patterns")
-            required_patterns = {"verification_violations", "Z3 counterexample", "next_steps"}
+            if language == "python":
+                # mumei-agent#1326: extraction maps the missing guard into
+                # `requires`, so Z3 verifies vacuously and the audit honestly
+                # surfaces the gap in cross_validation_gaps instead of a Z3
+                # violation. The Python step must pin that diagnostic.
+                required_patterns = {
+                    "verification_violations",
+                    "spec stronger than implementation",
+                    "spec precondition assumed, not enforced",
+                    "next_steps",
+                }
+                missing_msg = (
+                    "verification_violations, spec stronger than implementation, "
+                    "spec precondition assumed, not enforced, and next_steps"
+                )
+            else:
+                required_patterns = {"verification_violations", "Z3 counterexample", "next_steps"}
+                missing_msg = "verification_violations, Z3 counterexample, and next_steps"
             if not isinstance(patterns, list) or not required_patterns.issubset(set(patterns)):
                 failures.append(
-                    f"{rel}: `{fixture['step_id']}` expected_patterns must include verification_violations, Z3 counterexample, and next_steps"
+                    f"{rel}: `{fixture['step_id']}` expected_patterns must include {missing_msg}"
                 )
         if data.get("harness_contract", {}).get("acceptance_path") != ["l1_audit", "l2_migrate", "l3_heal"]:
             failures.append(f"{rel}: no-.mm acceptance path must stay audit -> migrate-suggest -> heal")

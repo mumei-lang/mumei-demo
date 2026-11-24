@@ -71,7 +71,7 @@ CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh no_mm_audit \
 - `l1_audit/audit_rust_overflow: PASS`
 - `l1_audit/audit_typescript_null_undefined: PASS`
 - `l1_audit/audit_go_bounds: PASS`
-- `detect_bug.log` contains `verification_violations` and `balance can go negative`
+- `detect_bug.log` contains `verification_violations` and the honest vacuity gap in `cross_validation_gaps` (`spec stronger than implementation` / `spec precondition assumed, not enforced`) — extraction maps the missing guard into `requires`, so Z3 verifies vacuously and the audit surfaces the unenforced precondition instead of a Z3 counterexample (mumei-agent#1326)
 - `audit_rust_overflow.log`, `audit_typescript_null_undefined.log`, and
   `audit_go_bounds.log` contain `verification_violations`, Z3 counterexample
   evidence, and `next_steps`
