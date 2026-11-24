@@ -1,0 +1,26 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-json
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.6
+    hooks:
+      - id: ruff
+  - repo: local
+    hooks:
+      - id: compileall
+        name: python compileall
+        entry: python3 -m compileall -q scripts dashboard
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: bash-syntax
+        name: bash -n scenario scripts
+        entry: bash -n scripts/setup_repos.sh scripts/run_scenario.sh scripts/run_all.sh
+        language: system
+        types: [shell]
+        pass_filenames: false
