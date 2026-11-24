@@ -7,6 +7,10 @@ on:
   push:
     branches: [main]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'pull_request' && format('pr-{0}-a{1}', github.event.pull_request.number, github.run_attempt) || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   charter-baseline-review:
     runs-on: ubuntu-24.04

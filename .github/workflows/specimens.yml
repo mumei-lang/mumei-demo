@@ -28,6 +28,13 @@ on:
       - ".github/workflows/specimens.yml"
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ github.run_attempt }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
