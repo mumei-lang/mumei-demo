@@ -73,6 +73,15 @@ jobs:
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      # C1 (mumei-lang/mumei#1449): reuse the sibling mumei target dir + cargo
+      # registry across runs. rust-cache restores the best-matching cache and
+      # saves under a fresh key each run, so dep changes never go stale.
+      - name: Cache mumei cargo build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: mumei
+          key: release
+
       - name: Build mumei compiler
         run: cargo build --release
         working-directory: mumei
