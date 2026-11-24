@@ -122,11 +122,12 @@
     "id": "detect_bug",
     "name": "Audit: detect existing-code bug before .mm migration",
     "repo": "mumei-agent",
-    "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_payment.py\",\n    \"language\": \"python\",\n    \"spec_extracted\": True,\n    \"spec_health_issues\": [],\n    \"verification_violations\": [],\n    \"counterexample_values\": [],\n    \"cross_validation_gaps\": [\"spec stronger than implementation: withdraw\", \"spec precondition assumed, not enforced, by `withdraw`\"],\n    \"next_steps\": [\n        {\"priority\": \"high\", \"action\": \"migrate-suggest で .mm skeleton 生成\", \"command\": \"mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\"},\n        {\"priority\": \"high\", \"action\": \"validate-spec-to-code で仕様/コード差分を確認\", \"command\": \"mumei-agent validate-spec-to-code --spec <spec> --code <file>\"}\n    ],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"cross_validation_gaps: spec stronger than implementation: withdraw; spec precondition assumed, not enforced, by `withdraw`\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_payment.py --language python --json; fi",
+    "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\npayload = {\n    \"success\": False,\n    \"source_file\": \"{root_dir}/scenarios/no_mm_audit/buggy_payment.py\",\n    \"language\": \"python\",\n    \"spec_extracted\": True,\n    \"verification_status\": \"refuted\",\n    \"spec_health_issues\": [],\n    \"verification_violations\": [\"withdraw: Python return violates the extracted postcondition (Z3 counterexample).\"],\n    \"counterexample_values\": [{\"function_name\": \"withdraw\", \"counterexample\": {\"amount\": \"1\", \"balance\": \"0\"}}],\n    \"cross_validation_gaps\": [\"spec stronger than implementation: withdraw\", \"spec precondition assumed, not enforced, by `withdraw`\"],\n    \"next_steps\": [\n        {\"priority\": \"high\", \"action\": \"migrate-suggest で .mm スケルトンを生成\", \"command\": \"mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\"},\n        {\"priority\": \"high\", \"action\": \"validate-spec-to-code で制約の対応を確認\", \"command\": \"mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\"}\n    ],\n    \"migration_hints\": [],\n    \"healed_files\": [],\n    \"heal_errors\": [],\n    \"report\": \"verification_violations: withdraw: Python return violates the extracted postcondition (Z3 counterexample). cross_validation_gaps: spec stronger than implementation: withdraw; spec precondition assumed, not enforced, by `withdraw`\",\n    \"errors\": []\n}\nprint(json.dumps(payload, indent=2))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/no_mm_audit/buggy_payment.py --language python --json; fi",
     "cwd": "{mumei_agent_repo}",
     "expected_exit": 0,
     "expected_patterns": [
      "verification_violations",
+     "Z3 counterexample",
      "cross_validation_gaps",
      "spec stronger than implementation",
      "spec precondition assumed, not enforced",
@@ -135,16 +136,16 @@
     ],
     "harness_stage": "S1_audit_detect_existing_code_bug",
     "artifact_contract": "audit output must appear before migrate-suggest or heal evidence and must include spec_health_issues, verification_violations, cross_validation_gaps, next_steps, migration_hints, healed_files, and heal_errors.",
-    "verifier_gate": "audit exits 0 and emits spec_health_issues, verification_violations, cross_validation_gaps, next_steps, migration_hints, healed_files, and heal_errors without requiring a .mm input file; the Python fixture surfaces the unenforced-precondition gap in cross_validation_gaps (spec stronger than implementation / spec precondition assumed, not enforced), because extraction maps the missing guard into requires and Z3 verifies vacuously under that assumption.",
+    "verifier_gate": "audit exits 0 and reports the Python postcondition as refuted with a Z3 counterexample while retaining the unenforced-precondition gap in cross_validation_gaps.",
     "expected_json_contains": {
+     "verification_status": ["\"refuted\""],
+     "verification_violations": ["Python return violates the extracted postcondition"],
+     "counterexample_values": ["\"function_name\": \"withdraw\"", "\"balance\": \"0\"", "\"amount\": \"1\""],
      "cross_validation_gaps": [
       "spec stronger than implementation",
       "spec precondition assumed, not enforced"
      ]
-    },
-    "expected_json_empty": [
-     "verification_violations"
-    ]
+    }
    },
    {
     "id": "audit_rust_overflow",
