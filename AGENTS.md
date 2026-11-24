@@ -18,7 +18,7 @@ Known gotchas:
 
 - Status vocabulary: `PASS` / `REJECTED` (expected failure failed correctly) / `CERTIFIED` / `SKIPPED` / `FAIL`. A `REJECTED` step is a pass condition, not a bug.
 - CI checks out sibling repos at their integration branches, so upstream changes can break this repo — reproduce on a matching checkout before blaming a local diff.
-- CI runs explicit pytest file lists in `integration.yml`; new test files must be added there or they never run.
+- CI runs explicit pytest file lists per workflow (`integration.yml`, `specimens.yml`, `contract-vocabulary.yml`, `record-execution.yml`); new tests must be added to the workflow that owns them or they never run.
 - `specimens/` is a planted-defect corpus; don't "fix" the planted defects, and don't run LLM audits unasked.
 - Reports regenerate under `reports/<scenario>/latest/`; keep generated output out of diffs.
 - `LLVM_SYS_170_PREFIX=/usr/lib/llvm-17` may be needed when the mumei binary is rebuilt locally.
