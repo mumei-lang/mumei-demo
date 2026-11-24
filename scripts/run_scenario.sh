@@ -177,6 +177,35 @@ def check_patterns(output: str, patterns: list[str]) -> tuple[bool, list[str]]:
     return not missing, missing
 
 
+def check_json_fields(stdout: str, step: dict) -> tuple[bool, list[str]]:
+    """Structural assertions on a JSON stdout payload.
+
+    `expected_json_contains` maps a top-level field to substrings that must
+    appear in that field's own JSON encoding (so a diagnostic cannot pass by
+    landing in an unrelated field such as `report`). `expected_json_empty`
+    lists top-level fields that must be an empty list, dict, or null. Steps
+    without either key are unchecked. A non-JSON stdout fails the check."""
+    contains = step.get("expected_json_contains") or {}
+    empty_fields = step.get("expected_json_empty") or []
+    if not contains and not empty_fields:
+        return True, []
+    try:
+        payload = json.loads(stdout)
+    except (json.JSONDecodeError, ValueError):
+        return False, ["stdout is not valid JSON"]
+    failures: list[str] = []
+    for field, needles in contains.items():
+        encoded = json.dumps(payload.get(field), ensure_ascii=False)
+        for needle in needles:
+            if needle not in encoded:
+                failures.append(f"{field} missing {needle!r}")
+    for field in empty_fields:
+        value = payload.get(field)
+        if value not in (None, [], {}):
+            failures.append(f"{field} expected empty, got {json.dumps(value, ensure_ascii=False)[:120]}")
+    return not failures, failures
+
+
 def flatten_spec_text(value: object) -> str:
     if isinstance(value, str):
         return value
@@ -1308,10 +1337,11 @@ def main(argv: list[str]) -> int:
                 duration_ms = int((time.monotonic() - start) * 1000)
                 combined = stdout + stderr
                 ok_patterns, missing = check_patterns(combined, list(step.get("expected_patterns", [])))
+                ok_json, json_failures = check_json_fields(stdout, step)
                 status = expected_status(step, returncode)
                 if status == "PASS" and layer == "l3_lean" and "build" in step_id:
                     status = "CERTIFIED"
-                if not ok_patterns:
+                if not ok_patterns or not ok_json:
                     status = "FAIL"
                 exit_code = returncode
                 log_path.write_text(
@@ -1323,6 +1353,11 @@ def main(argv: list[str]) -> int:
                         handle.write("\n[missing expected patterns]\n")
                         handle.write("\n".join(missing) + "\n")
                     print(f"[missing expected patterns] {step_id}: {', '.join(missing)}", file=sys.stderr)
+                if json_failures:
+                    with log_path.open("a", encoding="utf-8") as handle:
+                        handle.write("\n[failed json field assertions]\n")
+                        handle.write("\n".join(json_failures) + "\n")
+                    print(f"[failed json field assertions] {step_id}: {', '.join(json_failures)}", file=sys.stderr)
                 if status == "FAIL":
                     overall_status = "FAIL"
                     if stderr:

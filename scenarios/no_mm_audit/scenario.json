@@ -135,7 +135,16 @@
     ],
     "harness_stage": "S1_audit_detect_existing_code_bug",
     "artifact_contract": "audit output must appear before migrate-suggest or heal evidence and must include spec_health_issues, verification_violations, cross_validation_gaps, next_steps, migration_hints, healed_files, and heal_errors.",
-    "verifier_gate": "audit exits 0 and emits spec_health_issues, verification_violations, cross_validation_gaps, next_steps, migration_hints, healed_files, and heal_errors without requiring a .mm input file; the Python fixture surfaces the unenforced-precondition gap in cross_validation_gaps (spec stronger than implementation / spec precondition assumed, not enforced), because extraction maps the missing guard into requires and Z3 verifies vacuously under that assumption."
+    "verifier_gate": "audit exits 0 and emits spec_health_issues, verification_violations, cross_validation_gaps, next_steps, migration_hints, healed_files, and heal_errors without requiring a .mm input file; the Python fixture surfaces the unenforced-precondition gap in cross_validation_gaps (spec stronger than implementation / spec precondition assumed, not enforced), because extraction maps the missing guard into requires and Z3 verifies vacuously under that assumption.",
+    "expected_json_contains": {
+     "cross_validation_gaps": [
+      "spec stronger than implementation",
+      "spec precondition assumed, not enforced"
+     ]
+    },
+    "expected_json_empty": [
+     "verification_violations"
+    ]
    },
    {
     "id": "audit_rust_overflow",
