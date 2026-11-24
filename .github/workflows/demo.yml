@@ -73,6 +73,20 @@ jobs:
       - name: Set up Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      # C1 (mumei-lang/mumei#1449): reuse the sibling mumei target dir + cargo
+      # registry across runs. mumei deps change rarely, so keying on its
+      # Cargo.lock keeps the release build incremental.
+      - name: Cache mumei cargo build
+        uses: actions/cache@v4
+        with:
+          path: |
+            mumei/target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-mumei-release-${{ hashFiles('mumei/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-mumei-release-
+
       - name: Build mumei compiler
         run: cargo build --release
         working-directory: mumei
