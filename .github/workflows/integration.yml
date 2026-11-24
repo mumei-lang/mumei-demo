@@ -44,6 +44,8 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install pytest
+      - name: Ruff check (baseline rules; see ruff.toml)
+        run: pipx run ruff==0.17.6 check
       - name: Check Make is available for reference tests
         run: make --version
       - run: python -m pytest tests/test_scenario_evidence.py tests/test_run_scenario.py tests/test_generate_report.py tests/test_evidence_regressions.py tests/test_review_charter_baseline.py tests/test_record_scenario.py tests/test_record_model_evidence.py tests/test_reference.py -q --junitxml=reports/evidence-tests.xml

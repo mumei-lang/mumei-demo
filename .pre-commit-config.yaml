@@ -1,0 +1,32 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+        # Hash-recorded artifacts (proofs/, reports/) and the planted-defect
+        # corpus (specimens/) must never be rewritten: a whitespace change
+        # after hashing invalidates verification.
+        exclude: '^(proofs/|specimens/|reports/)'
+      - id: trailing-whitespace
+        exclude: '^(proofs/|specimens/|reports/)'
+
+      - id: check-json
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.6
+    hooks:
+      - id: ruff
+  - repo: local
+    hooks:
+      - id: compileall
+        name: python compileall
+        entry: python3 -m compileall -q scripts dashboard
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: bash-syntax
+        name: bash -n scenario scripts
+        entry: bash -c 'for f in scripts/*.sh; do bash -n "$f"; done' bash
+        language: system
+        types: [shell]
+        pass_filenames: false
