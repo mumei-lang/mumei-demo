@@ -45,292 +45,30 @@ python3 -m json.tool scenarios/aviation_control/scenario.json >/dev/null
 python3 -m json.tool scenarios/nl_to_verified/expected/extracted_spec.json >/dev/null
 ```
 
+## Quick start
 
-## No-.mm audit scenario validation
-
-Use this focused fixture run when changes touch `scenarios/no_mm_audit/*`, mumei-agent no-`.mm` audit vocabulary, or cross-repo `audit -> migrate-suggest -> heal` contract docs. It requires no browser session or API secrets.
-
-```bash
-cd /home/ubuntu/repos/mumei-demo
-rm -rf reports/no_mm_audit
-CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh no_mm_audit \
-  --mumei-repo ../mumei \
-  --mumei-agent-repo ../mumei-agent
-```
-
-Expected assertions:
-
-- Command exits `0`.
-- Output includes `l1_audit/detect_bug: PASS`, `l2_migrate/generate_skeleton: PASS`, and `l3_heal/record_heal_contract: PASS`.
-- Output includes `Harness Contract: COMPLIANT (8/8)`.
-- `reports/no_mm_audit/latest/result.json` has `overall_status == "PASS"`.
-- `reports/no_mm_audit/latest/result.json` has `harness_contract.acceptance_path == ["l1_audit", "l2_migrate", "l3_heal"]`.
-- `reports/no_mm_audit/latest/mm/withdraw.mm` exists and contains both `atom` and `withdraw`.
-- `reports/no_mm_audit/latest/record_heal_contract.log` contains `healed_files`, `heal_errors`, and `withdraw.mm`.
-
-Clean up generated reports after collecting evidence if you are going to commit repo changes:
+1. Run the static checks above.
+2. Run the deterministic fixture-mode pipeline (no API keys needed):
 
 ```bash
-rm -rf reports/no_mm_audit
-```
-
-
-## Phase 7 Spec-Code Verification Suite validation
-
-Use this focused fixture run when changes touch `scenarios/spec_code_verification_suite/*`, no-`.mm` spec/code verification docs, or V1-A through V1-D mode mapping. It requires no browser session or API secrets.
-
-```bash
-cd /home/ubuntu/repos/mumei-demo
-rm -rf reports/spec_code_verification_suite
-CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh spec_code_verification_suite \
-  --mumei-repo ../mumei \
-  --mumei-agent-repo ../mumei-agent
-python3 dashboard/cli_report.py reports/spec_code_verification_suite/latest/result.json
-```
-
-Expected assertions:
-
-- Command exits `0`.
-- Output includes `mode_a/validate_spec_health: PASS`, `mode_b/verify_existing_code: PASS`, `mode_c/verify_spec_to_code_conformance: PASS`, and `mode_d/validate_code_to_spec_traceability: PASS`.
-- Output includes `Harness Contract: COMPLIANT (8/8)`.
-- `reports/spec_code_verification_suite/latest/result.json` has `overall_status == "PASS"`.
-- `reports/spec_code_verification_suite/latest/result.json` has `harness_contract.acceptance_path == ["mode_a", "mode_b", "mode_c", "mode_d"]`.
-- `reports/spec_code_verification_suite/latest/result.json` has `proof_density.percentage == 100`.
-- `dashboard/cli_report.py reports/spec_code_verification_suite/latest/result.json` renders the four mode rows and 100% proof density.
-
-Clean up generated reports after collecting evidence if you are going to commit repo changes:
-
-```bash
-rm -rf reports/spec_code_verification_suite
-```
-
-## Full CI-equivalent validation (`make demo-ci`)
-
-This is the fastest way to validate the complete pipeline without live LLM credentials. It runs all seven scenarios with fixture mode enabled by the Makefile target, then generates a cross-scenario summary.
-
-```bash
-# Clean stale reports first
 rm -rf reports/ dashboard/summary.md dashboard/highlights.md
-
-# Fixture mode is enabled internally by make demo-ci
 make demo-ci
 ```
 
-Expected assertions:
+3. Pick the focused flow for what you changed (table below) and check its expected assertions in the linked reference.
+4. Clean `reports/<scenario>` before committing repo changes.
 
-- Command exits `0`.
-- `reports/{scenario}/latest/result.json` exists for all seven scenarios: `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`, `nl_to_verified`, `smart_contract_audit`, `medical_device`, and `aviation_control`.
-- Each `result.json` has `overall_status == "PASS"`.
-- Each `result.json` has `proof_density.percentage == 100` with these densities: ownership_transfer 6/6, rtgs_settlement 6/6, regtech_compliance 5/5, nl_to_verified 3/3, smart_contract_audit 4/4, medical_device 4/4, aviation_control 3/3.
-- `dashboard/summary.md` exists with a markdown table containing all seven scenario rows.
-- `dashboard/summary.md` has no "Missing results" section.
+## Which flow to run
 
-### Cross-scenario summary validation
-
-After `demo-ci`, verify the generated summary:
-
-```bash
-cat dashboard/summary.md
-```
-
-Expected table rows:
-
-```text
-| `ownership_transfer` | PASS | 6 | 6 | 100% |
-| `rtgs_settlement` | PASS | 6 | 6 | 100% |
-| `regtech_compliance` | PASS | 5 | 5 | 100% |
-| `nl_to_verified` | PASS | 3 | 3 | 100% |
-| `smart_contract_audit` | PASS | 4 | 4 | 100% |
-| `medical_device` | PASS | 4 | 4 | 100% |
-| `aviation_control` | PASS | 3 | 3 | 100% |
-```
-
-You can also generate the summary standalone:
-
-```bash
-python3 scripts/generate_report.py --summary --require-all
-```
-
-### Negative test for `demo-ci` non-zero exit
-
-To verify that `demo-ci` returns non-zero on failure, set `MUMEI_BIN` to a non-existent path:
-
-```bash
-rm -rf reports/ dashboard/summary.md
-MUMEI_BIN=/nonexistent/mumei make demo-ci; echo "EXIT_CODE=$?"
-```
-
-Expected: exit code is non-zero. All seven scenarios still run with continue-on-failure behavior and `dashboard/summary.md` is still generated.
-
-Tip: Corrupting `.mm` source files may not trigger a failure because `mumei verify` can report "0 item(s) verified" with exit code 0 when the file contains no atoms. Use a missing binary or missing scenario config to force a definitive failure instead.
-
-## Primary RegTech Compliance demo
-
-Run:
-
-```bash
-MUMEI_BIN=/home/ubuntu/repos/mumei/target/debug/mumei \
-MUMEI_AGENT_PYTHON="$(command -v python3)" \
-make demo-regtech
-```
-
-Expected assertions:
-
-- Command exits `0`.
-- Output includes `Mumei Demo: RegTech Compliance Protocol`.
-- Output includes `Step 1: LLM generates KYC/AML compliance code...` and `Step 2: mumei verify checks match exhaustiveness...`.
-- Output includes `l1_z3/detect_bug: REJECTED`, `BUG DETECTED! Match exhaustiveness violation`, `Match is not exhaustive`, and `Counter-example: CustomerType::PEP (tag=3)`.
-- Output includes `l1_z3/verify_negative_suite: REJECTED` to confirm the negative test suite still catches a missing PEP match arm.
-- Output includes `l1_z3/verify_correct: PASS`, `All atoms verified`, and `forall quantifier proves limit compliance`.
-- Output includes `l1_z3/verify_e2e: PASS` and `l2_agent/forge_dryrun: PASS`.
-- Output does not include any `l3_lean` step because RegTech is intentionally a 2-layer Z3 + Agent scenario.
-- Final success line is exactly `Result: Bug caught. Correct code proven. Zero human review.` with the trailing period.
-- `reports/regtech_compliance/latest/result.json` has `overall_status == "PASS"` and exactly the `l1_z3` and `l2_agent` layer keys.
-- RegTech step statuses are `detect_bug == "REJECTED"`, `verify_negative_suite == "REJECTED"`, `verify_correct == "PASS"`, `verify_e2e == "PASS"`, and `forge_dryrun == "PASS"`.
-- RegTech proof density is `100% (5/5 atoms or layer steps verified)`.
-- `reports/regtech_compliance/latest/detect_bug.log` contains `Match is not exhaustive` and `CustomerType::PEP (tag=3)`.
-- `reports/regtech_compliance/latest/compliance.proof.json` exists and contains the demo wrapper atoms `demo_classify_all_customer_types`, `demo_get_transaction_limit`, `demo_check_transaction`, `demo_verify_all_transactions_compliant`, and `demo_approval_level`, which delegate to the imported `std/compliance.mm` atoms.
-
-## Primary Natural Language to Verified demo
-
-Run with an `OPENAI_API_KEY` available in the environment when not using fixture mode:
-
-```bash
-OPENAI_API_KEY="$OPENAI_API_KEY" \
-MUMEI_BIN=/home/ubuntu/repos/mumei/target/debug/mumei \
-MUMEI_AGENT_PYTHON="$(command -v python3)" \
-./scripts/run_scenario.sh nl_to_verified \
-  --mumei-repo /home/ubuntu/repos/mumei \
-  --mumei-agent-repo /home/ubuntu/repos/mumei-agent \
-  --mumei-bin /home/ubuntu/repos/mumei/target/debug/mumei \
-  --mumei-agent-python "$(command -v python3)"
-```
-
-Expected assertions:
-
-- Command exits `0`.
-- Output includes `Mumei Demo: Natural Language to Verified Mumei`.
-- Output includes `l2_agent/extract_spec: PASS`, `l2_agent/generate_code: PASS`, and `l1_z3/verify_code: PASS` in that order.
-- Final success line is exactly `Result: Bug caught. Correct code proven. Zero human review.` with the trailing period.
-- `reports/nl_to_verified/latest/result.json` has `overall_status == "PASS"` and layer keys `l2_agent` and `l1_z3`.
-- Proof density is `100% (3/3 atoms)`.
-
-### NL fixture mode verification
-
-When `CI_FIXTURE_MODE=1` is set, `nl_to_verified` loads `scenarios/nl_to_verified/expected/extracted_spec.json` instead of calling the live LLM. To verify fixture artifacts:
-
-```bash
-test -f reports/nl_to_verified/latest/extracted_spec.json && echo "EXISTS" || echo "MISSING"
-test -f reports/nl_to_verified/latest/generated.mm && echo "EXISTS" || echo "MISSING"
-rg "Verification passed" reports/nl_to_verified/latest/verify_code.log
-```
-
-## Primary RTGS Settlement demo
-
-Run:
-
-```bash
-./scripts/run_scenario.sh rtgs_settlement \
-  --mumei-repo /home/ubuntu/repos/mumei \
-  --mumei-lean-repo /home/ubuntu/repos/mumei-lean \
-  --mumei-agent-repo /home/ubuntu/repos/mumei-agent \
-  --mumei-bin /home/ubuntu/repos/mumei/target/debug/mumei \
-  --mumei-agent-python "$(command -v python3)"
-```
-
-Expected assertions:
-
-- Command exits `0`.
-- Output includes `Step 1: LLM generates RTGS settlement code...` and `BUG DETECTED!`.
-- Output includes `InvalidPreState: 'settle' requires 'Validated'` and current state `Pending`.
-- Output includes `All 4 atoms verified by Z3`.
-- Output includes the visible certified headline prefix `CERTIFIED: no_settlement_without_validate` when Lake is available.
-- Output does not include ownership-only strings like `PendingTransfer`, `All 5 atoms`, or `no_transfer_without_accept`.
-- `reports/rtgs_settlement/latest/result.json` has `overall_status == "PASS"`, L1/L2/L3 layer status `PASS`, and proof density `100% (6/6 atoms)`.
-- `reports/rtgs_settlement/latest/settlement.proof.json` contains exactly the RTGS atoms: `validate_transaction`, `execute_settlement`, `safe_settlement`, `full_settlement`.
-- `reports/rtgs_settlement/latest/settlement.lean-cert.json` exists and is listed in `result.json.artifacts`; `lean_bridge.log` should mention writing the lean cert.
-
-## Primary ownership transfer demo
-
-Run:
-
-```bash
-MUMEI_BIN=/home/ubuntu/repos/mumei/target/debug/mumei make demo-ownership
-```
-
-Expected assertions:
-
-- Command exits `0`.
-- Output includes Step 1 through Step 4 narration.
-- Output includes `BUG DETECTED!`.
-- Output includes `InvalidPreState: 'accept' requires 'PendingTransfer'`.
-- Output includes `All 5 atoms verified by Z3`.
-- Output includes `CERTIFIED: no_transfer_without_accept` when Lake is available, or an explicit Lake-toolchain skip when unavailable.
-- Final success line is exactly `Result: Bug caught. Correct code proven. Zero human review.` with the trailing period.
-- `reports/ownership_transfer/latest/result.json` has `overall_status` equal to `PASS`.
-- `detect_bug.status` is `REJECTED`, `verify_correct.status` is `PASS`, and `artifacts` contains `ownership.proof.json`.
-- `reports/ownership_transfer/latest/detect_bug.log` contains `InvalidPreState`.
-
-## CLI report
-
-After running a scenario, render its latest report:
-
-```bash
-python3 dashboard/cli_report.py reports/regtech_compliance/latest/result.json
-python3 dashboard/cli_report.py reports/rtgs_settlement/latest/result.json
-python3 dashboard/cli_report.py reports/ownership_transfer/latest/result.json
-python3 dashboard/cli_report.py reports/nl_to_verified/latest/result.json
-```
-
-Expected assertions:
-
-- Output includes `BEFORE: LLM alone`, `AFTER: LLM + mumei`, `Audit Status:  TRUSTLESS`, and `Moment:        Proof failure → Bug found`.
-- RegTech output includes `buggy_classify_risk misses PEP customer type in match`, `Non-exhaustive match catches the bug before deployment`, `Z3 Negative Test Suite`, and `Proof Density: 100% (5/5 atoms or layer steps verified)`.
-- RegTech output must not contain `L3: Lean`.
-- RTGS output includes the visible prefix `hostile_settlement skips validate and tries Pending → Settle` and `Proof Density: 100% (6/6 atoms)`.
-- Ownership output includes `hostile_takeover skips accept and tries Idle → Transferred`.
-- Natural-language output includes `Mumei Verification Report: Natural Language to Verified Mumei`, all three PASS steps, and `Proof Density: 100% (3/3 atoms)`.
-- The CLI box is fixed-width, so long visible narrative may be truncated; verify full untruncated narrative strings in `result.json`.
-
-## Lean bridge failure regression
-
-Create a fake failing Lake executable and run the ownership scenario with it first in `PATH`:
-
-```bash
-mkdir -p /home/ubuntu/fake-lake
-printf '#!/usr/bin/env bash\necho fake lake failure >&2\nexit 42\n' > /home/ubuntu/fake-lake/lake
-chmod +x /home/ubuntu/fake-lake/lake
-PATH=/home/ubuntu/fake-lake:$PATH MUMEI_BIN=/home/ubuntu/repos/mumei/target/debug/mumei make demo-ownership
-```
-
-Expected assertions:
-
-- Command exits non-zero.
-- Output includes `l3_lean/lean_build: FAIL`.
-- Output includes `l3_lean/lean_bridge: SKIPPED`.
-- Output includes `Lean bridge skipped: proof build failed`.
-- Output includes `Result: Demo failed. Inspect result.json for details.`.
-- After `l3_lean/lean_bridge: SKIPPED`, output must not include `CERTIFIED: no_transfer_without_accept`.
-
-## Dashboard recording flow
-
-After generating a successful latest report, start the dashboard:
-
-```bash
-streamlit run dashboard/app.py
-```
-
-Open the local Streamlit page in the browser and verify:
-
-- Sidebar scenario can be changed between `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`, `nl_to_verified`, `smart_contract_audit`, `medical_device`, and `aviation_control`.
-- Natural-language dashboard evidence should show `l2_agent=PASS`, `l1_z3=PASS`, and Proof Density `100%` with `3/3 atoms`.
-- RegTech dashboard evidence should show `l1_z3=PASS`, `l2_agent=PASS`, no `l3_lean` metric, and Proof Density `100%` with `5/5 atoms or layer steps verified`.
-- RTGS/ownership dashboard evidence should show expected L1/L2/L3 metrics; proof density is usually `100%` and `6/6 atoms` for RTGS in a Lake-available environment.
-- Expanding the RegTech rejected steps shows log text containing `Match is not exhaustive` and `CustomerType::PEP (tag=3)`.
-- Expanding the ownership rejected step shows log text containing `InvalidPreState`.
-- Expanding proof certificate artifacts shows generated JSON. RegTech should show `compliance.proof.json`; RTGS should show both `settlement.proof.json` and `settlement.lean-cert.json`.
-
-If recording dashboard evidence, maximize the browser first where possible and annotate scenario selection, layer metrics, proof density, expanded step logs, and verification/proof evidence. Save and attach the processed mp4 in the final testing report.
+| Change touches | Run | Reference |
+| --- | --- | --- |
+| Anything / full pipeline without LLM credentials | `make demo-ci` | [references/demo-ci.md](references/demo-ci.md) |
+| `scenarios/no_mm_audit/*`, `scenarios/spec_code_verification_suite/*`, no-`.mm` audit docs, V1-A..V1-D mode mapping | `CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh <scenario>` | [references/focused-fixture-scenarios.md](references/focused-fixture-scenarios.md) |
+| One primary scenario (RegTech, NL to Verified, RTGS, ownership) | `make demo-regtech`, `make demo-ownership`, or `./scripts/run_scenario.sh <scenario>` | [references/primary-demos.md](references/primary-demos.md) |
+| CLI report rendering | `python3 dashboard/cli_report.py reports/<scenario>/latest/result.json` | [references/cli-report.md](references/cli-report.md) |
+| Lean bridge / L3 path | fake failing `lake` + `make demo-ownership` | [references/lean-bridge-regression.md](references/lean-bridge-regression.md) |
+| Streamlit dashboard | `streamlit run dashboard/app.py` | [references/dashboard.md](references/dashboard.md) |
+| Scale scenarios (Priority 16) | `make demo-scale` | [references/scale-scenarios.md](references/scale-scenarios.md) |
 
 ## General tips
 
@@ -340,58 +78,12 @@ If recording dashboard evidence, maximize the browser first where possible and a
 - When running `demo-ci`, always clean `reports/` and `dashboard/summary.md` first to avoid stale data from previous runs.
 - If running `./scripts/run_scenario.sh nl_to_verified` directly without `CI_FIXTURE_MODE=1`, expect a live LLM call and require `OPENAI_API_KEY`.
 
-## Large-scale scenarios (`SCALE_SCENARIOS`, Priority 16)
+## Reference files
 
-The five scale cases (`medical_device_scale`, `rtgs_settlement_scale`,
-`regtech_compliance_scale`, `defi_invariant_scale`, `ownership_transfer_scale`)
-are deliberately kept out of the `SCENARIOS` list in the Makefile, so they must
-never appear in `make demo-ci` / `make demo` output or in `dashboard/summary.md`.
-They run through separate targets: `make demo-scale` plus per-case targets
-`demo-medical-scale`, `demo-settlement-scale`, `demo-regtech-scale`,
-`demo-defi-scale`, `demo-ownership-scale`.
-
-Cross-repo prerequisites (default branch is `develop`, not `main`, in both
-sibling repos):
-
-- `../mumei` must provide `scripts/measure_composability.py` and
-  `scripts/scale_trust_surface.py`.
-- `../mumei-agent` must provide the `scale-report` subcommand and a populated
-  `.venv` — `scripts/run_scenario.sh` resolves `mumei_agent_python` to
-  `{mumei_agent_repo}/.venv/bin/python` when `MUMEI_AGENT_PYTHON` is unset, so a
-  missing agent venv silently degrades to system python.
-
-Expected per-case chain and metrics (all steps PASS, proof density 5/5 = 100%):
-`verify_scale` (`--proof-cert`) → `verify_cert_strict` → `trust_surface` →
-`composability` → `agent_scale_report`. Atom counts: rtgs 30, defi 32, medical 34,
-ownership 35, regtech 41 (172 total). `verify_cert_strict.log` should end with
-`All verified: true` and `Results: <N> proven, 0 changed, 0 unproven, 0 missing`.
-`*.trust-surface.json` should report `std_trusted_atoms == 0`,
-`application_trusted_atoms == 0`, `certified_atoms == atom_count`, and
-`budget_policy_fingerprint == sha256:scale-default`. In `*.scale-report.json`,
-the per-classification counts in `next_steps` should sum to
-`composability.totals.composition_breaks`.
-
-Timing: `make demo-scale` takes ~17 min wall on a 2-vCPU box; the
-clause-ablation `composability` step alone is ~150 s per case. Do not kill it.
-
-Gotchas worth reusing:
-
-- `mumei verify` caches per-atom results in `<scenario_dir>/.mumei_cache` and
-  `.mumei` (both gitignored). A re-run therefore logs
-  `Verification passed: 0 verified, N skipped (unchanged)` — that is NOT proof of
-  fresh Z3 work. To prove real verification, move those two directories aside
-  first; the log should then read `Verification passed: N item(s) verified`.
-- Good negative test for the strict certificate gate: copy the emitted
-  `*.proof-cert.json`, overwrite one atom's `content_hash` with zeros, and run
-  `mumei verify-cert --strict <tampered> correct_code.mm`. Expect exit 1 with
-  `1 changed atom(s)` and a `--strict: certificate ... no longer matches` error.
-- Non-fixture `make demo` requires `OPENAI_API_KEY`/`LLM_API_KEY`; without it
-  `nl_to_verified`, `no_mm_audit`, `mumei_develop_audit` and
-  `spec_code_verification_suite` fail (either an explicit
-  "LLM_API_KEY ... is not set" or a `[missing expected patterns]` mismatch).
-  This is pre-existing and reproducible on pre-change commits — verify by
-  re-running the same scenarios at an older commit before blaming a change.
-- `scripts/generate_report.py` has a hardcoded `SCENARIO_ORDER` that omits
-  `spec_code_verification_suite`, so that scenario runs but never appears in
-  `dashboard/summary.md` even with `--require-all`. Pre-existing; don't treat it
-  as a scale regression.
+- Read [references/demo-ci.md](references/demo-ci.md) when validating the full fixture-mode pipeline, the cross-scenario summary, or the `demo-ci` non-zero exit.
+- Read [references/focused-fixture-scenarios.md](references/focused-fixture-scenarios.md) when changing `no_mm_audit` or `spec_code_verification_suite`.
+- Read [references/primary-demos.md](references/primary-demos.md) when running a primary scenario (RegTech, NL to Verified incl. fixture mode, RTGS, ownership) on its own.
+- Read [references/cli-report.md](references/cli-report.md) when checking `dashboard/cli_report.py` output.
+- Read [references/lean-bridge-regression.md](references/lean-bridge-regression.md) when touching the Lean bridge failure path.
+- Read [references/dashboard.md](references/dashboard.md) when testing or recording the Streamlit dashboard.
+- Read [references/scale-scenarios.md](references/scale-scenarios.md) when running scale targets or debugging verify caching and known non-fixture failures.
