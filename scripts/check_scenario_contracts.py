@@ -313,20 +313,22 @@ def _check_file(path: Path) -> list[str]:
                 # Substring patterns alone cannot pin WHERE the diagnostic
                 # lands: the vacuity gap must sit in cross_validation_gaps and
                 # verification_violations must stay empty.
-                json_contains = step.get("expected_json_contains") or {}
-                gaps_needles = set(json_contains.get("cross_validation_gaps") or [])
-                if not {"spec stronger than implementation", "spec precondition assumed, not enforced"}.issubset(gaps_needles):
-                    failures.append(
-                        f"{rel}: `detect_bug` expected_json_contains.cross_validation_gaps must pin the vacuity diagnostic"
-                    )
-                if not isinstance(step.get("expected_json_empty"), list) or not isinstance(step.get("expected_json_contains"), dict):
+                json_contains = step.get("expected_json_contains")
+                json_empty = step.get("expected_json_empty")
+                if not isinstance(json_empty, list) or not isinstance(json_contains, dict):
                     failures.append(
                         f"{rel}: `detect_bug` expected_json_empty must be a list and expected_json_contains an object"
                     )
-                elif "verification_violations" not in (step.get("expected_json_empty") or []):
-                    failures.append(
-                        f"{rel}: `detect_bug` expected_json_empty must include verification_violations"
-                    )
+                else:
+                    gaps_needles = set(json_contains.get("cross_validation_gaps") or [])
+                    if not {"spec stronger than implementation", "spec precondition assumed, not enforced"}.issubset(gaps_needles):
+                        failures.append(
+                            f"{rel}: `detect_bug` expected_json_contains.cross_validation_gaps must pin the vacuity diagnostic"
+                        )
+                    if "verification_violations" not in json_empty:
+                        failures.append(
+                            f"{rel}: `detect_bug` expected_json_empty must include verification_violations"
+                        )
         if data.get("harness_contract", {}).get("acceptance_path") != ["l1_audit", "l2_migrate", "l3_heal"]:
             failures.append(f"{rel}: no-.mm acceptance path must stay audit -> migrate-suggest -> heal")
     return failures
