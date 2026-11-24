@@ -9,7 +9,7 @@ make setup        # clone/refresh sibling repos (../mumei ../mumei-lean ../mumei
 make demo         # integrated all-scenario run
 CI_FIXTURE_MODE=1 make demo-ci   # deterministic fixture-mode validation (what CI runs)
 python3 -m pytest tests/ -q      # Python test suite
-uvx ruff check                   # lint baseline (ruff.toml)
+uvx ruff@0.17.6 check            # lint baseline (ruff.toml), pinned to match pre-commit/CI
 ```
 
 Lightweight validation without full runs: `python3 -m compileall -q scripts dashboard`, `bash -n` on `scripts/*.sh`, `python3 -m json.tool` on each `scenarios/*/scenario.json` (pre-commit runs the equivalents; `pre-commit install` once).
