@@ -297,7 +297,7 @@ def _check_file(path: Path) -> list[str]:
                 required_fields = {
                     "verification_status": ['"refuted"'],
                     "verification_violations": ["Python return violates the extracted postcondition"],
-                    "counterexample_values": ['"function_name": "withdraw"', '"balance":', '"amount":'],
+                    "counterexample_values": ['"function_name": "withdraw"', '"balance": "', '"amount": "'],
                     "cross_validation_gaps": ["spec stronger than implementation", "spec precondition assumed, not enforced"],
                 }
                 json_contains = step.get("expected_json_contains", {})

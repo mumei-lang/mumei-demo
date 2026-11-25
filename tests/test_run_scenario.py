@@ -44,6 +44,9 @@ def test_python_audit_gates_accept_different_counterexample_values(scenario: str
         value = witness.pop(binding)
         passed, _ = check(json.dumps(payload), gate)
         assert not passed
+        for non_string in (None, 2):
+            witness[binding] = non_string
+            assert check(json.dumps(payload), gate)[0] is False
         witness[binding] = value
 
 
