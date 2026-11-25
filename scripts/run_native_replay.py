@@ -518,25 +518,29 @@ def unresolved_counts(verdicts: list[dict]) -> dict:
     return {kind: counts[kind] for kind in rb.FAILURE_KINDS}
 
 
-def measurement_verdicts(doc: dict) -> tuple[list[dict], list[dict]]:
+def measurement_verdicts(doc: dict) -> tuple[list[dict], list[dict], list[dict]]:
     reference = [rec["port"][v] for rec in doc["reference"] for v in rb.VARIANTS]
+    witness = [rec["port"]["reference"] for rec in doc["witnesses"]
+               if isinstance(rec.get("port"), dict) and "reference" in rec["port"]]
     llm_ports = [rec["port"]["llm"] for rec in doc["ports"] if "llm" in rec["port"]]
-    return reference, llm_ports
+    return reference, witness, llm_ports
 
 
 def summarize(doc: dict) -> dict:
     ref = doc["reference"]
     wit = Counter((w["variant"], w["classification"]) for w in doc["witnesses"])
     prt = Counter((p["variant"], p["status"]) for p in doc["ports"])
-    reference_verdicts, llm_verdicts = measurement_verdicts(doc)
+    reference_verdicts, witness_verdicts, llm_verdicts = measurement_verdicts(doc)
     return {
         "reference": {"inputs": len(ref), "agree": sum(r["agree"] for r in ref),
                       "cases": len({r["case"] for r in ref})},
         "witnesses": {f"{v}/{c}": n for (v, c), n in sorted(wit.items())},
         "ports": {f"{v}/{s}": n for (v, s), n in sorted(prt.items())},
         "unresolved": {"reference": unresolved_counts(reference_verdicts),
+                       "witness_references": unresolved_counts(witness_verdicts),
                        "llm_ports": unresolved_counts(llm_verdicts)},
         "measurement": {"reference": measurement_stats(reference_verdicts),
+                        "witness_references": measurement_stats(witness_verdicts),
                         "llm_ports": measurement_stats(llm_verdicts)},
     }
 
@@ -593,7 +597,8 @@ def render_markdown(doc: dict) -> str:
               "measured-versus-expected coverage instead of looking fully instrumented.", "",
               "| Lane | Unsupported | Inconclusive | Env failure | Budget exhausted | Time | Budget |",
               "|---|---:|---:|---:|---:|---:|---:|"]
-    for key, label in (("reference", "reference ports"), ("llm_ports", "LLM ports")):
+    for key, label in (("reference", "reference ports"), ("witness_references", "LLM witness references"),
+                       ("llm_ports", "LLM ports")):
         unresolved = s["unresolved"][key]
         measured = s["measurement"][key]
         lines.append(f"| {label} | {unresolved['unsupported']} | {unresolved['inconclusive']} | "

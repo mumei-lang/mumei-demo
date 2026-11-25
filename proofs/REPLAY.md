@@ -60,4 +60,5 @@ Verifier time and declared timeout budget cover the port verification calls belo
 | Lane | Unsupported | Inconclusive | Env failure | Budget exhausted | Time | Budget |
 |---|---:|---:|---:|---:|---:|---:|
 | reference ports | 0 | 0 | 0 | 0 | — / 0 of 142 calls | — / 0 of 142 calls |
+| LLM witness references | 0 | 0 | 0 | 0 | — / 0 of 177 calls | — / 0 of 177 calls |
 | LLM ports | 2 | 0 | 0 | 0 | — / 0 of 426 calls | — / 0 of 426 calls |
