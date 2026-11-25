@@ -84,8 +84,16 @@ hashes. Both used fresh builds of the corresponding Core revisions
 (Mumei 0.6.23, GCC 11.4.0), with four workers, a 120-second per-command
 timeout, and no model calls. The command prints the Z3-versus-native cross-tab and
 writes per-variant outcomes, stages, timings, input hashes and tool
-identity to `reports/machine_tv_bench.json` by default. Use a separate
-output path for the repeat so the first report is preserved:
+identity to `reports/machine_tv_bench.json` by default. Its summary separates
+accepted refuted buggy ports (false acceptance), fresh source rejection of a
+proven fixed port (false positive), LLVM/object translation mismatches,
+unsupported profile outcomes, inconclusive outcomes, environment failures and
+budget exhaustion. `measurement.source_verification` covers the Z3 variant
+checks and vacuity control; `measurement.native_pipeline` covers the executed
+native build, acceptance and diagnostic-recheck commands. Both report measured
+seconds and declared per-command timeout budget with measured-versus-expected
+call coverage, so older or partial rows do not look fully instrumented. Use a
+separate output path for the repeat so the first report is preserved:
 
 ```sh
 python3 scripts/run_machine_tv_bench.py --mumei-bin ../mumei/target/debug/mumei \

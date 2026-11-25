@@ -131,6 +131,38 @@ def test_diagnostic_recheck_never_substitutes_for_acceptance(monkeypatch, functi
     assert bench.run_native("/bin/mumei", PORT, "target", "proven", 10)["outcome"] == expected
 
 
+def test_native_failure_kind_and_stage_budget_are_recorded(monkeypatch):
+    def command(args, cwd, timeout):
+        return {"error": "environment_error", "seconds": 0.25}
+
+    monkeypatch.setattr(bench, "command", command)
+    measured = bench.run_native("/bin/mumei", PORT, "target", "proven", 10)
+    assert measured["outcome"] == "environment_error"
+    assert measured["failure_kind"] == "environment_failure"
+    assert measured["stages"]["build"]["budget_seconds"] == 10
+    assert measured["stages"]["build"]["seconds"] == 0.25
+
+
+def test_run_case_preserves_source_measurements_and_vacuity_control(monkeypatch):
+    case = {"id": "A", "atom": "target", "language": "python", "case_hash": "case", "source_hash": "source",
+            "ports": {"buggy": "buggy", "fixed": "fixed"}}
+    control = {"outcome": "refuted", "status": "failed", "diagnostics": [{"message": "not reported"}],
+               "seconds": 0.5, "budget_seconds": 10}
+
+    def verify_text(binary, source, timeout):
+        return {"outcome": "inconclusive", "status": "failed",
+                "failure_kind": "inconclusive", "diagnostics": [], "seconds": 1.0, "budget_seconds": timeout}
+
+    monkeypatch.setattr(bench.cb, "verify_text", verify_text)
+    monkeypatch.setattr(bench.cb, "vacuity_result", lambda *args: ("ok", control))
+    monkeypatch.setattr(bench, "run_native", lambda *args: {"outcome": "accepted", "stages": {}})
+    measured = bench.run_case(case, "/bin/mumei", 10)
+    assert measured["buggy"]["z3"]["seconds"] == 1.0
+    assert measured["buggy"]["z3"]["budget_seconds"] == 10
+    assert measured["buggy"]["z3"]["failure_kind"] == "inconclusive"
+    assert measured["vacuity_control"] == {k: control[k] for k in ("outcome", "status", "seconds", "budget_seconds")}
+
+
 def test_summary_does_not_turn_non_acceptance_into_rejection():
     def variant(z3, native):
         return {"z3": {"outcome": z3}, "native": {"outcome": native}}
@@ -151,6 +183,46 @@ def test_summary_does_not_turn_non_acceptance_into_rejection():
     assert summary["native"]["buggy"]["rejected"] == 1
     assert summary["native"]["buggy"]["outside_profile"] == summary["native"]["fixed"]["outside_profile"] == 1
     assert summary["native"]["fixed"]["outcomes"]["timeout"] == 1
+    assert summary["native"]["buggy"]["false_acceptance"] == 1
+    assert summary["native"]["buggy"]["unsupported"] == 1
+    assert summary["native"]["fixed"]["budget_exhausted"] == 1
+
+
+def test_summary_separates_assurance_outcomes_from_time_and_budget():
+    def variant(z3, native, stage):
+        return {
+            "z3": {"outcome": z3, "seconds": 1.0, "budget_seconds": 5},
+            "native": {"outcome": native, "stages": {"build": stage}},
+        }
+
+    def record(buggy_native, fixed_native, fixed_stage):
+        return {
+            "buggy": variant("refuted", buggy_native, {"seconds": 2.0, "budget_seconds": 10}),
+            "fixed": variant("proven", fixed_native, fixed_stage),
+            "vacuity": "ok",
+            "vacuity_control": {"seconds": 0.5, "budget_seconds": 5},
+        }
+
+    records = [
+        record("accepted", "llvm_different", {"seconds": 2.0, "budget_seconds": 10}),
+        record("machine_outside_profile", "timeout", {}),
+        record("timeout", "source_recheck_refuted", {"seconds": 1.0, "budget_seconds": 10}),
+    ]
+    summary = bench.summarize(records)
+    assert summary["native"]["buggy"]["false_acceptance"] == 1
+    assert summary["native"]["buggy"]["unsupported"] == 1
+    assert summary["native"]["buggy"]["budget_exhausted"] == 1
+    assert summary["native"]["fixed"]["false_positive"] == 1
+    assert summary["native"]["fixed"]["translation_mismatch"] == 1
+    assert summary["native"]["fixed"]["budget_exhausted"] == 1
+    assert summary["measurement"]["source_verification"] == {
+        "seconds": 7.5, "timed_calls": 9, "expected_calls": 9,
+        "budget_seconds": 45.0, "budgeted_calls": 9,
+    }
+    assert summary["measurement"]["native_pipeline"] == {
+        "seconds": 9.0, "timed_calls": 5, "expected_calls": 6,
+        "budget_seconds": 50.0, "budgeted_calls": 5,
+    }
 
 
 def test_filtered_report_defaults_to_separate_path(monkeypatch, tmp_path):

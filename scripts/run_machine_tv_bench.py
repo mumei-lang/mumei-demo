@@ -28,6 +28,16 @@ atom main() -> i64
 CHECKED = "checked_source_machine_tv_within_profile"
 OUTCOMES = ("accepted", "source_refuted", "source_recheck_refuted", "llvm_different", "object_different", "source_outside_profile",
             "machine_outside_profile", "inconclusive", "environment_error", "timeout")
+SOURCE_FALSE_POSITIVE_OUTCOMES = ("source_refuted", "source_recheck_refuted")
+TRANSLATION_MISMATCH_OUTCOMES = ("llvm_different", "object_different")
+REJECTION_OUTCOMES = SOURCE_FALSE_POSITIVE_OUTCOMES + TRANSLATION_MISMATCH_OUTCOMES
+NATIVE_FAILURE_KINDS = {
+    "source_outside_profile": "unsupported",
+    "machine_outside_profile": "unsupported",
+    "inconclusive": "inconclusive",
+    "environment_error": "environment_failure",
+    "timeout": "budget_exhausted",
+}
 SOURCE_ADMISSION = ("unsupported or invalid module source", "source outside bounded module profile")
 TOOLCHAIN_FAILURES = ("unsupported host for first native profile", "native link or toolchain observation failed")
 ARTIFACT_DIFFERENCE = "pinned artifact differs from the toolchain's output for the pinned inputs"
@@ -146,10 +156,13 @@ def run_native(mumei_bin: str, source: str, atom: str, z3: str, timeout: int) ->
     def call(stage: str, *args: str) -> dict:
         result = command([mumei_bin, "native-bundle", *args], work, timeout)
         stages[stage] = {k: result[k] for k in ("seconds", "exit", "error") if k in result}
+        stages[stage]["budget_seconds"] = timeout
         return result
 
     def record(verdict: tuple[str, str], **details) -> dict:
-        return {"outcome": verdict[0], "reason": verdict[1], "stages": stages, **details}
+        failure_kind = NATIVE_FAILURE_KINDS.get(verdict[0])
+        measured = {"failure_kind": failure_kind} if failure_kind else {}
+        return {"outcome": verdict[0], "reason": verdict[1], "stages": stages, **measured, **details}
 
     with tempfile.TemporaryDirectory(prefix="machine-tv-bench-") as directory:
         work = Path(directory)
@@ -181,11 +194,47 @@ def run_case(case: dict, mumei_bin: str, timeout: int) -> dict:
         source = case["ports"][variant]
         z3 = source_verdicts[variant] = cb.verify_text(mumei_bin, source, timeout)
         result[variant] = {
-            "z3": {k: z3[k] for k in ("outcome", "status")},
+            "z3": {k: z3[k] for k in ("outcome", "status", "failure_kind", "seconds", "budget_seconds") if k in z3},
             "native": run_native(mumei_bin, source, case["atom"], z3["outcome"], timeout),
         }
-    result["vacuity"] = cb.vacuity(case, source_verdicts, mumei_bin, timeout)
+    result["vacuity"], control = cb.vacuity_result(case, source_verdicts, mumei_bin, timeout)
+    result["vacuity_control"] = {k: control[k]
+                                 for k in ("outcome", "status", "failure_kind", "seconds", "budget_seconds")
+                                 if k in control}
     return result
+
+
+def measurement_stats(slots: list[dict]) -> dict:
+    seconds, budget, timed, budgeted = 0.0, 0.0, 0, 0
+    for slot in slots:
+        if cb.numeric_measurement(slot.get("seconds")):
+            timed += 1
+            seconds += slot["seconds"]
+        if cb.numeric_measurement(slot.get("budget_seconds")):
+            budgeted += 1
+            budget += slot["budget_seconds"]
+    return {"seconds": round(seconds, 1), "timed_calls": timed, "expected_calls": len(slots),
+            "budget_seconds": round(budget, 1), "budgeted_calls": budgeted}
+
+
+def source_measurement_slots(record: dict) -> list[dict]:
+    slots = []
+    for variant in cb.VARIANTS:
+        z3 = record.get(variant, {}).get("z3")
+        if isinstance(z3, dict):
+            slots.append(z3)
+    if "vacuity" in record:
+        control = record.get("vacuity_control")
+        slots.append(control if isinstance(control, dict) else {})
+    return slots
+
+
+def native_measurement_slots(record: dict) -> list[dict]:
+    slots = []
+    for variant in cb.VARIANTS:
+        stages = record.get(variant, {}).get("native", {}).get("stages", {})
+        slots.extend(stage for stage in stages.values() if isinstance(stage, dict))
+    return slots
 
 
 def summarize(records: list[dict]) -> dict:
@@ -195,9 +244,17 @@ def summarize(records: list[dict]) -> dict:
         comparison = Counter((r[variant]["z3"]["outcome"], r[variant]["native"]["outcome"]) for r in records)
         by_variant[variant] = {
             "outcomes": {outcome: counts[outcome] for outcome in OUTCOMES},
-            "rejected": sum(counts[outcome] for outcome in ("source_refuted", "source_recheck_refuted",
-                                                           "llvm_different", "object_different")),
+            "rejected": sum(counts[outcome] for outcome in REJECTION_OUTCOMES),
             "outside_profile": counts["source_outside_profile"] + counts["machine_outside_profile"],
+            "false_acceptance": sum(r[variant]["z3"]["outcome"] == "refuted"
+                                    and r[variant]["native"]["outcome"] == "accepted" for r in records),
+            "false_positive": sum(r[variant]["z3"]["outcome"] == "proven"
+                                  and r[variant]["native"]["outcome"] in SOURCE_FALSE_POSITIVE_OUTCOMES for r in records),
+            "translation_mismatch": sum(counts[outcome] for outcome in TRANSLATION_MISMATCH_OUTCOMES),
+            "unsupported": counts["source_outside_profile"] + counts["machine_outside_profile"],
+            "inconclusive": counts["inconclusive"],
+            "environment_failure": counts["environment_error"],
+            "budget_exhausted": counts["timeout"],
             "z3_vs_native": {z3: {native: n for (source, native), n in sorted(comparison.items()) if source == z3}
                              for z3 in ("refuted", "proven", "inconclusive")},
         }
@@ -209,6 +266,10 @@ def summarize(records: list[dict]) -> dict:
             "vacuity": dict(sorted(Counter(r["vacuity"] for r in records).items())),
         },
         "native": by_variant,
+        "measurement": {
+            "source_verification": measurement_stats([slot for r in records for slot in source_measurement_slots(r)]),
+            "native_pipeline": measurement_stats([slot for r in records for slot in native_measurement_slots(r)]),
+        },
     }
 
 
