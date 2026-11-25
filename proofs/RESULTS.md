@@ -20,7 +20,7 @@ Outcome taxonomy: false acceptance is a buggy body proven; false positive is a f
 | mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 2896.1s | — / 0 of 426 calls | — / 0 of 426 calls |
 | mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 1464.5s | — / 0 of 639 calls | — / 0 of 639 calls |
 
-Verification time and budget are wall seconds and the declared per-attempt timeout aggregated over recorded outcome-determining verifier calls, including vacuity controls. Certificate emission/rechecks and harness overhead are outside that measurement. Older committed rows show the measured fraction of expected verifier calls, so partial `--only` refreshes cannot look fully instrumented. Model time/cost come only from provider usage metadata.
+Verification time and budget are wall seconds and the declared per-attempt timeout aggregated over recorded outcome-determining verifier calls, including vacuity controls and the per-call input/output glue inside `verify_text`. Certificate emission/rechecks, case-level orchestration and provider calls are outside that measurement. Older committed rows show the measured fraction of expected verifier calls, so partial `--only` refreshes cannot look fully instrumented. Model time/cost come only from provider usage metadata.
 
 [REPLAY.md](REPLAY.md) replays concrete inputs, the LLM witnesses and the LLM ports on the native code (`scripts/run_native_replay.py`). [REGRESSION.md](REGRESSION.md) reads the same results as a pull-request gate for changes under a pinned contract (`scripts/run_regression_gate.py`).
 

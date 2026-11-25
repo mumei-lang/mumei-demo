@@ -856,8 +856,9 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
            "outcomes.", "",
            render_measurement_table(rows), "",
            "Verification time and budget are wall seconds and the declared per-attempt timeout aggregated over "
-           "recorded outcome-determining verifier calls, including vacuity controls. Certificate emission/rechecks "
-           "and harness overhead are outside that measurement. Older committed rows show the measured fraction of "
+           "recorded outcome-determining verifier calls, including vacuity controls and the per-call input/output "
+           "glue inside `verify_text`. Certificate emission/rechecks, case-level orchestration and provider calls "
+           "are outside that measurement. Older committed rows show the measured fraction of "
            "expected verifier calls, so partial `--only` refreshes cannot look fully instrumented. Model time/cost "
            "come only from provider usage metadata.", "",
            "[REPLAY.md](REPLAY.md) replays concrete inputs, the LLM witnesses and the LLM ports on the native "
