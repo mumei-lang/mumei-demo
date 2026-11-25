@@ -27,7 +27,8 @@ def test_replays_only_misaccepts_with_same_input_and_contract(monkeypatch):
 
     def verify(path, text, timeout):
         calls.append((path, text, timeout))
-        return {"outcome": "refuted" if "0 - 1" in text else "proven", "status": "", "diagnostics": []}
+        return {"outcome": "refuted" if "0 - 1" in text else "proven", "status": "", "diagnostics": [],
+                "seconds": 1.0, "budget_seconds": timeout}
 
     monkeypatch.setattr(pd.bench, "verify_text", verify)
     doc = {"model": "test", "runs": [
@@ -40,6 +41,12 @@ def test_replays_only_misaccepts_with_same_input_and_contract(monkeypatch):
     assert [r["run"] for r in report["misaccepts"]] == [1, 3]
     assert report["misaccepts"][0]["inputs"][0]["values"] == WITNESS["values"]
     assert len(calls) == 3  # The reference is checked once, then reused.
+    assert report["measurement"]["reference"] == {
+        "seconds": 1.0, "timed_calls": 1, "expected_calls": 1,
+        "budget_seconds": 7.0, "budgeted_calls": 1}
+    assert report["measurement"]["llm_ports"] == {
+        "seconds": 2.0, "timed_calls": 2, "expected_calls": 2,
+        "budget_seconds": 14.0, "budgeted_calls": 2}
     for path, text, timeout in calls:
         assert (path, timeout) == ("/bin/mumei", 7)
         assert "requires: (n >= 0) && n == 0;" in text
