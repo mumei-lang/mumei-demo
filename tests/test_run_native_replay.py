@@ -154,11 +154,16 @@ def test_port_verdict_tells_an_input_outside_requires_apart(monkeypatch, outcome
 
     def fake(_bin, text, _timeout):
         seen.append(text)
-        return {"outcome": outcome, "status": "s", "diagnostics": [{"message": message}] if message else []}
+        result = {"outcome": outcome, "status": "s", "diagnostics": [{"message": message}] if message else [],
+                  "seconds": 1.0, "budget_seconds": 7}
+        if outcome == "inconclusive":
+            result["failure_kind"] = "inconclusive"
+        return result
 
     monkeypatch.setattr(nr.rb, "verify_text", fake)
     got = nr.port_verdict("mumei", PORT, "take", {"parts": [], "n": 1, "strict": True})
     assert got["verdict"] == expected
+    assert got["seconds"] == 1.0 and got["budget_seconds"] == 7
     assert len(seen) == 1 and "requires: (n >= 0) && len(parts) == 0" in seen[0]
 
 
@@ -245,6 +250,31 @@ def test_finish_is_idempotent():
     assert once == twice
 
 
+def test_summary_separates_unresolved_taxonomy_and_measurement_coverage():
+    doc = small_doc()
+    doc["reference"][0]["port"]["fixed"] = {"verdict": "inconclusive", "status": "bad input", "diagnostics": [],
+                                            "verification_attempted": False}
+    doc["reference"][1]["port"]["fixed"] = {"verdict": "inconclusive", "status": "timeout", "diagnostics": [],
+                                            "seconds": 1.0, "budget_seconds": 5}
+    doc["ports"][0]["port"]["llm"].update(seconds=2.0, budget_seconds=5)
+    doc["witnesses"][0]["port"] = {"reference": {"verdict": "inconclusive", "status": "timeout", "diagnostics": [],
+                                                 "seconds": 3.0, "budget_seconds": 3}}
+    finished = nr.finish(doc, [{"id": "A", "case_hash": "h"}])
+    assert finished["summary"]["unresolved"]["reference"] == {
+        "unsupported": 1, "inconclusive": 0, "environment_failure": 0, "budget_exhausted": 1}
+    assert finished["summary"]["unresolved"]["llm_ports"]["inconclusive"] == 1
+    assert finished["summary"]["unresolved"]["witness_references"]["budget_exhausted"] == 1
+    assert finished["summary"]["measurement"]["witness_references"] == {
+        "seconds": 3.0, "timed_calls": 1, "expected_calls": 1,
+        "budget_seconds": 3.0, "budgeted_calls": 1}
+    assert finished["summary"]["measurement"]["reference"] == {
+        "seconds": 1.0, "timed_calls": 1, "expected_calls": 5,
+        "budget_seconds": 5.0, "budgeted_calls": 1}
+    assert finished["summary"]["measurement"]["llm_ports"] == {
+        "seconds": 2.0, "timed_calls": 1, "expected_calls": 6,
+        "budget_seconds": 5.0, "budgeted_calls": 1}
+
+
 def test_render_markdown_lists_mismatches_and_fixed_witnesses():
     doc = nr.finish(small_doc(), [{"id": "A", "case_hash": "h"}])
     md = nr.render_markdown(doc)
@@ -296,6 +326,14 @@ def test_check_catches_tampering(committed, cases, tamper, message):
     tamper(doc)
     problems = nr.check(doc, cases)
     assert any(message in p for p in problems), problems
+
+
+def test_check_reports_a_legacy_summary_instead_of_crashing(committed, cases):
+    doc = copy.deepcopy(committed)
+    doc["summary"].pop("unresolved")
+    doc["summary"].pop("measurement")
+    problems = nr.check(doc, cases)
+    assert any("stored classifications" in p for p in problems), problems
 
 
 def test_check_catches_an_outdated_markdown(committed, cases, monkeypatch, tmp_path):

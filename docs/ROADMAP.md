@@ -73,6 +73,15 @@ recheck commands, with measured-versus-expected coverage explicit for older or
 partial rows. This is measurement and regression control only — not proof
 truth, Evidence acceptance or grade promotion.
 
+C13 progress: the native replay lane now keeps replay evidence measurement
+separate as well. Unresolved reference-port, LLM-witness reference-port and
+LLM-port verdicts are counted independently as unsupported input/capability,
+residual inconclusive outcome, environment failure or budget exhaustion. Port
+verification wall time and declared timeout budget are measured separately from native driver execution,
+replay input preparation and report rendering, with measured-versus-expected
+coverage explicit for historical rows. This is measurement and regression
+control only — not proof truth, Evidence acceptance or grade promotion.
+
 [C08](https://github.com/mumei-lang/mumei/issues/788) checks native evidence
 binding; [C09](https://github.com/mumei-lang/mumei/issues/789) checks only the
 declared translation subset; [C10](https://github.com/mumei-lang/mumei/issues/790)
