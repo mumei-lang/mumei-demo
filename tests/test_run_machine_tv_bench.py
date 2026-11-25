@@ -225,6 +225,46 @@ def test_summary_separates_assurance_outcomes_from_time_and_budget():
     }
 
 
+def test_summary_attributes_unresolved_reasons_and_stage_measurements():
+    def variant(z3, native_outcome, reason, stages):
+        return {
+            "z3": {"outcome": z3, "seconds": 1.0, "budget_seconds": 5},
+            "native": {"outcome": native_outcome, "reason": reason, "stages": stages},
+        }
+
+    records = [
+        {
+            "buggy": variant("refuted", "inconclusive", "machine_tv_needs_profile_diagnosis",
+                             {"build": {"seconds": 2.0, "budget_seconds": 10},
+                              "accept_object": {"seconds": 3.0, "budget_seconds": 10}}),
+            "fixed": variant("proven", "machine_outside_profile", "instruction outside profile",
+                             {"build": {"seconds": 1.0, "budget_seconds": 10}}),
+            "vacuity": "ok",
+        },
+        {
+            "buggy": variant("refuted", "environment_error", "build_command",
+                             {"build": {"error": "environment_error", "seconds": 0.5, "budget_seconds": 10}}),
+            "fixed": variant("proven", "timeout", "accept_object_command",
+                             {"build": {"seconds": 1.5, "budget_seconds": 10},
+                              "accept_object": {"error": "timeout", "budget_seconds": 10}}),
+            "vacuity": "ok",
+        },
+    ]
+    summary = bench.summarize(records)
+    assert summary["native"]["buggy"]["unresolved_reasons"]["inconclusive"] == {
+        "machine_tv_needs_profile_diagnosis": 1,
+    }
+    assert summary["native"]["buggy"]["unresolved_reasons"]["environment_failure"] == {"build_command": 1}
+    assert summary["native"]["fixed"]["unresolved_reasons"]["unsupported"] == {"instruction outside profile": 1}
+    assert summary["native"]["fixed"]["unresolved_reasons"]["budget_exhausted"] == {"accept_object_command": 1}
+    assert summary["measurement"]["native_pipeline_by_stage"] == {
+        "accept_object": {"seconds": 3.0, "timed_calls": 1, "expected_calls": 2,
+                          "budget_seconds": 20.0, "budgeted_calls": 2},
+        "build": {"seconds": 5.0, "timed_calls": 4, "expected_calls": 4,
+                  "budget_seconds": 40.0, "budgeted_calls": 4},
+    }
+
+
 def test_filtered_report_defaults_to_separate_path(monkeypatch, tmp_path):
     cases = [{"id": "A"}, {"id": "B"}]
 

@@ -254,6 +254,40 @@ def host_environment() -> dict:
             "loadavg_15m": round(load15, 2)}
 
 
+UNRESOLVED_OUTCOME_GROUPS = {
+    "unsupported": ("source_outside_profile", "machine_outside_profile"),
+    "inconclusive": ("inconclusive",),
+    "environment_failure": ("environment_error",),
+    "budget_exhausted": ("timeout",),
+}
+
+
+def unresolved_reasons(records: list[dict], variant: str) -> dict:
+    """Reason counts for non-acceptance limiting factors, kept separate from
+    assurance outcomes so unsupported/inconclusive/environment/budget are not
+    collapsed into pass/fail or into each other."""
+    grouped = {}
+    for label, outcomes in UNRESOLVED_OUTCOME_GROUPS.items():
+        counts = Counter(
+            r[variant]["native"].get("reason") or "missing_reason"
+            for r in records
+            if r[variant]["native"]["outcome"] in outcomes
+        )
+        grouped[label] = dict(sorted(counts.items()))
+    return grouped
+
+
+def native_stage_measurements(records: list[dict]) -> dict:
+    by_stage: dict[str, list[dict]] = {}
+    for record in records:
+        for variant in cb.VARIANTS:
+            stages = record.get(variant, {}).get("native", {}).get("stages", {})
+            for name, slot in stages.items():
+                if isinstance(slot, dict):
+                    by_stage.setdefault(name, []).append(slot)
+    return {name: measurement_stats(slots) for name, slots in sorted(by_stage.items())}
+
+
 def summarize(records: list[dict]) -> dict:
     by_variant = {}
     for variant in cb.VARIANTS:
@@ -274,6 +308,7 @@ def summarize(records: list[dict]) -> dict:
             "budget_exhausted": counts["timeout"],
             "z3_vs_native": {z3: {native: n for (source, native), n in sorted(comparison.items()) if source == z3}
                              for z3 in ("refuted", "proven", "inconclusive")},
+            "unresolved_reasons": unresolved_reasons(records, variant),
         }
     return {
         "cases": len(records),
@@ -286,6 +321,7 @@ def summarize(records: list[dict]) -> dict:
         "measurement": {
             "source_verification": measurement_stats([slot for r in records for slot in source_measurement_slots(r)]),
             "native_pipeline": measurement_stats([slot for r in records for slot in native_measurement_slots(r)]),
+            "native_pipeline_by_stage": native_stage_measurements(records),
         },
     }
 
