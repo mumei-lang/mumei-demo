@@ -326,6 +326,14 @@ def test_check_catches_tampering(committed, cases, tamper, message):
     assert any(message in p for p in problems), problems
 
 
+def test_check_reports_a_legacy_summary_instead_of_crashing(committed, cases):
+    doc = copy.deepcopy(committed)
+    doc["summary"].pop("unresolved")
+    doc["summary"].pop("measurement")
+    problems = nr.check(doc, cases)
+    assert any("stored classifications" in p for p in problems), problems
+
+
 def test_check_catches_an_outdated_markdown(committed, cases, monkeypatch, tmp_path):
     stale = tmp_path / "REPLAY.md"
     stale.write_text("old\n")

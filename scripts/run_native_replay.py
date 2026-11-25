@@ -642,9 +642,10 @@ def check(doc: dict | None, cases: list[dict]) -> list[str]:
     if keys != want:
         problems.append("port records do not match the mumei + LLM results one to one")
     stored = json.dumps(doc, sort_keys=True)
-    if json.dumps(finish(json.loads(stored), cases), sort_keys=True) != stored:
+    consistent = json.dumps(finish(json.loads(stored), cases), sort_keys=True) == stored
+    if not consistent:
         problems.append("stored classifications do not follow from the stored observations")
-    if not REPLAY_MD.is_file() or REPLAY_MD.read_text() != render_markdown(doc):
+    elif not REPLAY_MD.is_file() or REPLAY_MD.read_text() != render_markdown(doc):
         problems.append(f"{rel(REPLAY_MD)} is out of date")
     return problems
 
