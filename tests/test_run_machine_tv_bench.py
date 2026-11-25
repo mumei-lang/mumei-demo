@@ -89,6 +89,28 @@ def test_native_route_uses_same_source_and_pins_the_manifest(monkeypatch):
     ]
 
 
+@pytest.mark.parametrize(("recheck", "expected"), [
+    (result(1, stderr="native bundle rejected: native LLVM body differs from source"), "llvm_different"),
+    (result(0), "object_different"),
+    (result(3), "inconclusive"),
+])
+def test_ambiguous_artifact_mismatch_rechecks_llvm_before_assigning_stage(monkeypatch, recheck, expected):
+    def command(args, cwd, timeout):
+        if args[2] == "build":
+            (cwd / "bundle").mkdir()
+            (cwd / "bundle/native-bundle.json").write_bytes(MANIFEST)
+            return result(0)
+        if args[2] == "accept-object":
+            return result(1, stderr=f"native bundle rejected: {bench.ARTIFACT_DIFFERENCE}")
+        assert args[2:] == ["recheck-llvm", "--expected-build-id", BUILD_ID, "bundle", "case.mm"]
+        return recheck
+
+    monkeypatch.setattr(bench, "command", command)
+    measured = bench.run_native("/bin/mumei", PORT, "target", "proven", 10)
+    assert measured["outcome"] == expected
+    assert set(measured["stages"]) == {"build", "accept_object", "recheck_llvm"}
+
+
 @pytest.mark.parametrize(("functions", "expected"), [
     ({"target": {"outcome": "outside_profile", "reason": "instruction"}}, "machine_outside_profile"),
     ({"target": {"outcome": "equivalent_within_profile"}}, "inconclusive"),

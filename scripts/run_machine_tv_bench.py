@@ -26,12 +26,14 @@ atom main() -> i64
     body: { 0 };
 """
 CHECKED = "checked_source_machine_tv_within_profile"
-OUTCOMES = ("accepted", "source_refuted", "source_recheck_refuted", "object_different", "source_outside_profile",
+OUTCOMES = ("accepted", "source_refuted", "source_recheck_refuted", "llvm_different", "object_different", "source_outside_profile",
             "machine_outside_profile", "inconclusive", "environment_error", "timeout")
 SOURCE_ADMISSION = ("unsupported or invalid module source", "source outside bounded module profile")
 TOOLCHAIN_FAILURES = ("unsupported host for first native profile", "native link or toolchain observation failed")
-DIFFERENCES = ("pinned artifact differs from the toolchain's output for the pinned inputs",
-               "native object symbol surface differs from LLVM IR", "native object call edges differ from LLVM IR",
+ARTIFACT_DIFFERENCE = "pinned artifact differs from the toolchain's output for the pinned inputs"
+LLVM_DIFFERENCES = ("native LLVM body differs from source",
+                    "native LLVM body reaches undefined behavior on an input the source defines")
+DIFFERENCES = ("native object symbol surface differs from LLVM IR", "native object call edges differ from LLVM IR",
                "linked executable function bytes or call targets differ from the object",
                "reproduced object machine code differs from the verified source",
                "object translation correspondence inconsistent with the pinned LLVM IR (")
@@ -91,6 +93,8 @@ def acceptance_verdict(result: dict, build_id: str, atom: str) -> tuple[str, str
         return "inconclusive", "missing or unbound machine-TV acceptance"
     if result["exit"] == 1 and (reason := diagnostic(result, DIFFERENCES)):
         return "object_different", reason
+    if result["exit"] == 1 and diagnostic(result, (ARTIFACT_DIFFERENCE,)):
+        return "inconclusive", "artifact_needs_llvm_diagnosis"
     if result["exit"] == 1 and diagnostic(result, ("native bundle rejected: source postcondition refuted",)):
         return "source_recheck_refuted", "source postcondition refuted during object acceptance"
     if result["exit"] == 1 and (reason := diagnostic(result, ("native LLVM snapshot outside bounded module profile",))):
@@ -108,6 +112,16 @@ def acceptance_verdict(result: dict, build_id: str, atom: str) -> tuple[str, str
                                "Canonical link argument vector not reproduced")):
             return "inconclusive", "object correspondence not fully checked"
     return "inconclusive", "accept-object did not establish a verdict"
+
+
+def llvm_verdict(result: dict) -> tuple[str, str]:
+    if result.get("error"):
+        return result["error"], "recheck_llvm_command"
+    if result["exit"] == 1 and (reason := diagnostic(result, LLVM_DIFFERENCES)):
+        return "llvm_different", reason
+    if result["exit"] == 0:
+        return "object_different", ARTIFACT_DIFFERENCE
+    return "inconclusive", "pinned artifact differs; LLVM recheck did not identify the stage"
 
 
 def profile_verdict(result: dict, build_id: str) -> tuple[str, str]:
@@ -154,6 +168,9 @@ def run_native(mumei_bin: str, source: str, atom: str, z3: str, timeout: int) ->
         verdict = acceptance_verdict(acceptance, build_id, atom)
         if verdict[1] == "machine_tv_needs_profile_diagnosis":
             verdict = profile_verdict(call("recheck_machine_tv", "recheck-machine-tv", *pinned), build_id)
+        elif verdict[1] == "artifact_needs_llvm_diagnosis":
+            verdict = llvm_verdict(call("recheck_llvm", "recheck-llvm", "--expected-build-id", build_id,
+                                        "bundle", "case.mm"))
         return record(verdict, build_id=build_id, profile=profile)
 
 
@@ -178,7 +195,8 @@ def summarize(records: list[dict]) -> dict:
         comparison = Counter((r[variant]["z3"]["outcome"], r[variant]["native"]["outcome"]) for r in records)
         by_variant[variant] = {
             "outcomes": {outcome: counts[outcome] for outcome in OUTCOMES},
-            "rejected": counts["source_refuted"] + counts["source_recheck_refuted"] + counts["object_different"],
+            "rejected": sum(counts[outcome] for outcome in ("source_refuted", "source_recheck_refuted",
+                                                           "llvm_different", "object_different")),
             "outside_profile": counts["source_outside_profile"] + counts["machine_outside_profile"],
             "z3_vs_native": {z3: {native: n for (source, native), n in sorted(comparison.items()) if source == z3}
                              for z3 in ("refuted", "proven", "inconclusive")},
