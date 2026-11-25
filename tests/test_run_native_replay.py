@@ -154,11 +154,16 @@ def test_port_verdict_tells_an_input_outside_requires_apart(monkeypatch, outcome
 
     def fake(_bin, text, _timeout):
         seen.append(text)
-        return {"outcome": outcome, "status": "s", "diagnostics": [{"message": message}] if message else []}
+        result = {"outcome": outcome, "status": "s", "diagnostics": [{"message": message}] if message else [],
+                  "seconds": 1.0, "budget_seconds": 7}
+        if outcome == "inconclusive":
+            result["failure_kind"] = "inconclusive"
+        return result
 
     monkeypatch.setattr(nr.rb, "verify_text", fake)
     got = nr.port_verdict("mumei", PORT, "take", {"parts": [], "n": 1, "strict": True})
     assert got["verdict"] == expected
+    assert got["seconds"] == 1.0 and got["budget_seconds"] == 7
     assert len(seen) == 1 and "requires: (n >= 0) && len(parts) == 0" in seen[0]
 
 
@@ -243,6 +248,23 @@ def test_finish_is_idempotent():
     once = nr.finish(small_doc(), [{"id": "A", "case_hash": "h"}])
     twice = nr.finish(copy.deepcopy(once), [{"id": "A", "case_hash": "h"}])
     assert once == twice
+
+
+def test_summary_separates_unresolved_taxonomy_and_measurement_coverage():
+    doc = small_doc()
+    doc["reference"][0]["port"]["fixed"] = {"verdict": "inconclusive", "status": "bad input", "diagnostics": [],
+                                            "seconds": 1.0, "budget_seconds": 5}
+    doc["ports"][0]["port"]["llm"].update(seconds=2.0, budget_seconds=5)
+    finished = nr.finish(doc, [{"id": "A", "case_hash": "h"}])
+    assert finished["summary"]["unresolved"]["reference"] == {
+        "unsupported": 1, "inconclusive": 0, "environment_failure": 0, "budget_exhausted": 0}
+    assert finished["summary"]["unresolved"]["llm_ports"]["inconclusive"] == 1
+    assert finished["summary"]["measurement"]["reference"] == {
+        "seconds": 1.0, "timed_calls": 1, "expected_calls": 6,
+        "budget_seconds": 5.0, "budgeted_calls": 1}
+    assert finished["summary"]["measurement"]["llm_ports"] == {
+        "seconds": 2.0, "timed_calls": 1, "expected_calls": 6,
+        "budget_seconds": 5.0, "budgeted_calls": 1}
 
 
 def test_render_markdown_lists_mismatches_and_fixed_witnesses():

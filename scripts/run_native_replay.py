@@ -96,8 +96,9 @@ def port_verdict(mumei_bin: str, port_text: str, atom: str, values: dict, timeou
     verdict = {"refuted": "breaks", "proven": "holds"}.get(res["outcome"], "inconclusive")
     if verdict == "inconclusive" and any(REQUIRES_CONTRADICTION.search(d["message"]) for d in res["diagnostics"]):
         verdict = "outside requires"
+    measured = {k: res[k] for k in ("failure_kind", "seconds", "budget_seconds") if k in res}
     return {"verdict": verdict, "status": res["status"],
-            "diagnostics": [d["message"][:200] for d in res["diagnostics"]][:2]}
+            "diagnostics": [d["message"][:200] for d in res["diagnostics"]][:2], **measured}
 
 
 REPLAY_DIR = rb.PROOFS_ROOT / "replay"
@@ -486,15 +487,57 @@ def finish(doc: dict, cases: list[dict]) -> dict:
     return doc
 
 
+def measurement_stats(verdicts: list[dict]) -> dict:
+    seconds, budget, timed, budgeted = 0.0, 0.0, 0, 0
+    for verdict in verdicts:
+        if rb.numeric_measurement(verdict.get("seconds")):
+            timed += 1
+            seconds += verdict["seconds"]
+        if rb.numeric_measurement(verdict.get("budget_seconds")):
+            budgeted += 1
+            budget += verdict["budget_seconds"]
+    return {"seconds": round(seconds, 1), "timed_calls": timed, "expected_calls": len(verdicts),
+            "budget_seconds": round(budget, 1), "budgeted_calls": budgeted}
+
+
+def verdict_failure_kind(verdict: dict) -> str | None:
+    if verdict.get("verdict") != "inconclusive":
+        return None
+    explicit = verdict.get("failure_kind")
+    if explicit in rb.FAILURE_KINDS:
+        return explicit
+    if verdict.get("status") == "bad input":
+        return "unsupported"
+    synthetic = {"outcome": "inconclusive", "status": verdict.get("status", ""),
+                 "diagnostics": [{"message": message} for message in verdict.get("diagnostics", [])]}
+    return rb.failure_kind(synthetic) or "inconclusive"
+
+
+def unresolved_counts(verdicts: list[dict]) -> dict:
+    counts = Counter(kind for verdict in verdicts if (kind := verdict_failure_kind(verdict)))
+    return {kind: counts[kind] for kind in rb.FAILURE_KINDS}
+
+
+def measurement_verdicts(doc: dict) -> tuple[list[dict], list[dict]]:
+    reference = [rec["port"][v] for rec in doc["reference"] for v in rb.VARIANTS]
+    llm_ports = [rec["port"]["llm"] for rec in doc["ports"] if "llm" in rec["port"]]
+    return reference, llm_ports
+
+
 def summarize(doc: dict) -> dict:
     ref = doc["reference"]
     wit = Counter((w["variant"], w["classification"]) for w in doc["witnesses"])
     prt = Counter((p["variant"], p["status"]) for p in doc["ports"])
+    reference_verdicts, llm_verdicts = measurement_verdicts(doc)
     return {
         "reference": {"inputs": len(ref), "agree": sum(r["agree"] for r in ref),
                       "cases": len({r["case"] for r in ref})},
         "witnesses": {f"{v}/{c}": n for (v, c), n in sorted(wit.items())},
         "ports": {f"{v}/{s}": n for (v, s), n in sorted(prt.items())},
+        "unresolved": {"reference": unresolved_counts(reference_verdicts),
+                       "llm_ports": unresolved_counts(llm_verdicts)},
+        "measurement": {"reference": measurement_stats(reference_verdicts),
+                        "llm_ports": measurement_stats(llm_verdicts)},
     }
 
 
@@ -537,6 +580,26 @@ def render_markdown(doc: dict) -> str:
     changed = sorted({(p["case"], p["variant"]) for p in doc["ports"] if p["status"] == "behaviour changed"})
     if changed:
         lines += ["", "Behaviour changed in: " + ", ".join(f"{c} ({v})" for c, v in changed) + "."]
+
+    def cell(measured: dict, amount_key: str, count_key: str) -> str:
+        if measured["expected_calls"] == 0:
+            return "—"
+        amount = "—" if measured[count_key] == 0 else f"{measured[amount_key]:.1f}s"
+        return f"{amount} / {measured[count_key]} of {measured['expected_calls']} calls"
+
+    lines += ["", "## Verification measurement", "",
+              "Verifier time and declared timeout budget cover the port verification calls below; native driver "
+              "execution, replay input preparation and report rendering stay outside. Historical rows expose "
+              "measured-versus-expected coverage instead of looking fully instrumented.", "",
+              "| Lane | Unsupported | Inconclusive | Env failure | Budget exhausted | Time | Budget |",
+              "|---|---:|---:|---:|---:|---:|---:|"]
+    for key, label in (("reference", "reference ports"), ("llm_ports", "LLM ports")):
+        unresolved = s["unresolved"][key]
+        measured = s["measurement"][key]
+        lines.append(f"| {label} | {unresolved['unsupported']} | {unresolved['inconclusive']} | "
+                     f"{unresolved['environment_failure']} | {unresolved['budget_exhausted']} | "
+                     f"{cell(measured, 'seconds', 'timed_calls')} | "
+                     f"{cell(measured, 'budget_seconds', 'budgeted_calls')} |")
     return "\n".join(lines) + "\n"
 
 

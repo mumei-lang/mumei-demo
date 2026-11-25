@@ -52,3 +52,12 @@ native code does, typically because the bug was fixed while translating.
 | fixed | 212 | 0 | 0 | 1 | 0 |
 
 Behaviour changed in: GO01-D04 (buggy), GO02-D01 (buggy), GO02-D03 (buggy), PY02-D04 (buggy), PY03-D02 (buggy), PY03-D05 (buggy), PY04-D11 (buggy), RS03-D03 (buggy), RS03-D04 (buggy), SOL01-D03 (buggy), SOL03-D07 (buggy), TS01-D03 (buggy), TS01-D07 (buggy), TS02-D11 (buggy).
+
+## Verification measurement
+
+Verifier time and declared timeout budget cover the port verification calls below; native driver execution, replay input preparation and report rendering stay outside. Historical rows expose measured-versus-expected coverage instead of looking fully instrumented.
+
+| Lane | Unsupported | Inconclusive | Env failure | Budget exhausted | Time | Budget |
+|---|---:|---:|---:|---:|---:|---:|
+| reference ports | 0 | 0 | 0 | 0 | — / 0 of 142 calls | — / 0 of 142 calls |
+| LLM ports | 2 | 0 | 0 | 0 | — / 0 of 426 calls | — / 0 of 426 calls |
