@@ -98,7 +98,12 @@ def success_flag_paths(body: str) -> set[tuple]:
     return flags
 
 
-def lint(case: dict, body: str) -> list[str]:
+def lint_findings(case: dict, body: str) -> list[dict]:
+    """Structured fidelity warnings for an accepted LLM port.
+
+    `lint()` keeps the human-readable strings for compatibility; these records
+    make the mechanism machine-countable instead of requiring prose parsing.
+    """
     source = scrub(case["functions"]["buggy"] or "", case["language"])
     _, _, reference_body = bench.split_port(case["ports"]["buggy"], case["atom"])
     reference = scrub(reference_body)
@@ -111,19 +116,28 @@ def lint(case: dict, body: str) -> list[str]:
          else r"\*\s*\w+", r"\bderef\s*\("),
         ("narrow cast", NARROW, NARROW),
     )
-    warnings = [f"missing modeled {name}" for name, native, modeled in rules
-                if re.search(native, source) and re.search(modeled, reference) and not re.search(modeled, port)]
+    findings = [
+        {"kind": "missing_modeled_operation", "operation": name,
+         "message": f"missing modeled {name}"}
+        for name, native, modeled in rules
+        if re.search(native, source) and re.search(modeled, reference) and not re.search(modeled, port)
+    ]
     if len(re.findall(r"\bif\b", port)) > len(re.findall(r"\bif\b", reference)):
-        warnings.append("possible added guard")
+        findings.append({"kind": "added_guard", "message": "possible added guard"})
     ensures = bench.header_ensures(case["header"]) or ""
     if re.match(r"^\(*\s*result\.ok\s*=>", ensures):
         reference_flags = success_flag_paths(reference)
         new_flags = success_flag_paths(port) - reference_flags
         if reference_flags and any(expr != ("true",) for _, expr in new_flags):
-            warnings.append("success flag can mask a postcondition clause")
+            findings.append({"kind": "success_flag_rewrite",
+                             "message": "success flag can mask a postcondition clause"})
     if re.search(rf"\b{re.escape(case['atom'])}\s*\(", port):
-        warnings.append("target atom calls itself")
-    return warnings
+        findings.append({"kind": "self_call", "message": "target atom calls itself"})
+    return findings
+
+
+def lint(case: dict, body: str) -> list[str]:
+    return [finding["message"] for finding in lint_findings(case, body)]
 
 
 def replay_verdict(mumei_bin: str, case: dict, port: str, values: dict, timeout: int) -> dict:
@@ -169,12 +183,19 @@ def collect(cases: list[dict], doc: dict, mumei_bin: str, timeout: int) -> dict:
                     llm = {"verdict": "inconclusive", "status": "missing or invalid body", "diagnostics": [],
                            "verification_attempted": False}
                 inputs.append({**witness, "llm": llm})
+            linted = lint_findings(case, body) if port is not None else []
             rows.append({"case": case_id, "run": run, "outcome": outcome(inputs),
-                         "lint": lint(case, body) if port is not None else [], "inputs": inputs})
+                         "lint": [finding["message"] for finding in linted],
+                         "lint_findings": linted, "inputs": inputs})
     reference_verdicts = [witness["reference"] for inputs in reference.values() for witness in inputs]
     llm_verdicts = [witness["llm"] for row in rows for witness in row["inputs"]]
+    lint_counts = Counter(
+        f"{finding['kind']}:{finding['operation']}" if finding.get("operation") else finding["kind"]
+        for row in rows for finding in row["lint_findings"]
+    )
     return {"model": doc["model"], "runs": len(doc["runs"]), "cases": len(reference),
             "outcomes": dict(sorted(Counter(row["outcome"] for row in rows).items())),
+            "lint_counts": dict(sorted(lint_counts.items())),
             "unresolved": {"reference": replay.unresolved_counts(reference_verdicts),
                            "llm_ports": replay.unresolved_counts(llm_verdicts)},
             "measurement": {"reference": replay.measurement_stats(reference_verdicts),
@@ -187,6 +208,9 @@ def render(report: dict) -> str:
     lines = [f"{report['model']}: {len(rows)} buggy accepts across {report['cases']} cases "
              f"({report['runs']} runs)"]
     lines += [f"{name}: {total}" for name, total in report["outcomes"].items()]
+    if report.get("lint_counts"):
+        lines.append("lint findings: " + ", ".join(
+            f"{kind} {count}" for kind, count in report["lint_counts"].items()))
     for key, label in (("reference", "reference"), ("llm_ports", "LLM port")):
         unresolved = report["unresolved"][key]
         measured = report["measurement"][key]
