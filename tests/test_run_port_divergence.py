@@ -93,6 +93,38 @@ def test_outcome_needs_a_refuted_reference(reference, llm, expected):
     assert pd.outcome([{"reference": {"verdict": reference}, "llm": {"verdict": llm}}]) == expected
 
 
+def test_collect_separates_unresolved_taxonomy_from_verifier_measurement(monkeypatch):
+    case = stub_case("0 - 1")
+    monkeypatch.setattr(pd.replay, "replay_inputs", lambda _case: ([WITNESS], "digest"))
+
+    def verify(_path, text, _timeout):
+        if "0 - 1" in text:
+            return {"outcome": "inconclusive", "status": "timeout", "diagnostics": [],
+                    "seconds": 1.5, "budget_seconds": 7}
+        return {"outcome": "inconclusive", "status": "input_error", "diagnostics": [],
+                "seconds": 2.5, "budget_seconds": 8}
+
+    monkeypatch.setattr(pd.bench, "verify_text", verify)
+    doc = {"model": "test", "runs": [[
+        {"id": "X", "buggy": {"outcome": "proven", "body": "0"}},
+        {"id": "X", "buggy": {"outcome": "proven", "body": None}},
+    ]]}
+    report = pd.collect([case], doc, "/bin/mumei", 7)
+    assert report["unresolved"]["reference"] == {
+        "unsupported": 0, "inconclusive": 0, "environment_failure": 0, "budget_exhausted": 1}
+    assert report["unresolved"]["llm_ports"] == {
+        "unsupported": 2, "inconclusive": 0, "environment_failure": 0, "budget_exhausted": 0}
+    assert report["measurement"]["reference"] == {
+        "seconds": 1.5, "timed_calls": 1, "expected_calls": 1,
+        "budget_seconds": 7.0, "budgeted_calls": 1}
+    assert report["measurement"]["llm_ports"] == {
+        "seconds": 2.5, "timed_calls": 1, "expected_calls": 1,
+        "budget_seconds": 8.0, "budgeted_calls": 1}
+    rendered = pd.render(report)
+    assert "reference unresolved: unsupported 0, inconclusive 0, environment failure 0, budget exhausted 1" in rendered
+    assert "LLM port verifier measurement: 2.5s across 1 of 1 calls; budget 8.0s across 1 of 1 calls" in rendered
+
+
 def test_replays_candidate_even_without_a_reference_violation(monkeypatch):
     monkeypatch.setattr(pd.replay, "replay_inputs", lambda _case: ([WITNESS], "digest"))
     case = stub_case("n")

@@ -82,6 +82,18 @@ replay input preparation and report rendering, with measured-versus-expected
 coverage explicit for historical rows. This is measurement and regression
 control only — not proof truth, Evidence acceptance or grade promotion.
 
+C13 progress: the port-divergence translation diagnostic now keeps verifier
+measurement separate as well. Diverged, still-refuting and inconclusive rows
+remain distinct assurance diagnostics; unresolved reference-port and LLM-port
+verdicts are counted independently as unsupported input/generated output or
+capability, residual inconclusive outcome, environment failure or budget
+exhaustion. Reference ports are measured once per case/input because their
+verdicts are reused, while each accepted LLM port is measured per replayed
+row/input. Missing or invalid generated bodies and pre-verifier input
+failures stay unsupported but do not create expected verifier-call measurement
+slots. This is measurement and regression control only — not proof truth,
+Evidence acceptance or grade promotion.
+
 [C08](https://github.com/mumei-lang/mumei/issues/788) checks native evidence
 binding; [C09](https://github.com/mumei-lang/mumei/issues/789) checks only the
 declared translation subset; [C10](https://github.com/mumei-lang/mumei/issues/790)

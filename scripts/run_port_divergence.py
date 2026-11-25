@@ -130,7 +130,8 @@ def replay_verdict(mumei_bin: str, case: dict, port: str, values: dict, timeout:
     try:
         return replay.port_verdict(mumei_bin, port, case["atom"], values, timeout)
     except ValueError as error:
-        return {"verdict": "inconclusive", "status": "bad input", "diagnostics": [str(error)]}
+        return {"verdict": "inconclusive", "status": "bad input", "diagnostics": [str(error)],
+                "verification_attempted": False}
 
 
 def outcome(inputs: list[dict]) -> str:
@@ -165,12 +166,20 @@ def collect(cases: list[dict], doc: dict, mumei_bin: str, timeout: int) -> dict:
                 if port is not None:
                     llm = replay_verdict(mumei_bin, case, port, witness["values"], timeout)
                 else:
-                    llm = {"verdict": "inconclusive", "status": "missing or invalid body", "diagnostics": []}
+                    llm = {"verdict": "inconclusive", "status": "missing or invalid body", "diagnostics": [],
+                           "verification_attempted": False}
                 inputs.append({**witness, "llm": llm})
             rows.append({"case": case_id, "run": run, "outcome": outcome(inputs),
                          "lint": lint(case, body) if port is not None else [], "inputs": inputs})
+    reference_verdicts = [witness["reference"] for inputs in reference.values() for witness in inputs]
+    llm_verdicts = [witness["llm"] for row in rows for witness in row["inputs"]]
     return {"model": doc["model"], "runs": len(doc["runs"]), "cases": len(reference),
-            "outcomes": dict(sorted(Counter(row["outcome"] for row in rows).items())), "misaccepts": rows}
+            "outcomes": dict(sorted(Counter(row["outcome"] for row in rows).items())),
+            "unresolved": {"reference": replay.unresolved_counts(reference_verdicts),
+                           "llm_ports": replay.unresolved_counts(llm_verdicts)},
+            "measurement": {"reference": replay.measurement_stats(reference_verdicts),
+                            "llm_ports": replay.measurement_stats(llm_verdicts)},
+            "misaccepts": rows}
 
 
 def render(report: dict) -> str:
@@ -178,6 +187,17 @@ def render(report: dict) -> str:
     lines = [f"{report['model']}: {len(rows)} buggy accepts across {report['cases']} cases "
              f"({report['runs']} runs)"]
     lines += [f"{name}: {total}" for name, total in report["outcomes"].items()]
+    for key, label in (("reference", "reference"), ("llm_ports", "LLM port")):
+        unresolved = report["unresolved"][key]
+        measured = report["measurement"][key]
+        lines.append(f"{label} unresolved: unsupported {unresolved['unsupported']}, "
+                     f"inconclusive {unresolved['inconclusive']}, "
+                     f"environment failure {unresolved['environment_failure']}, "
+                     f"budget exhausted {unresolved['budget_exhausted']}")
+        lines.append(f"{label} verifier measurement: {measured['seconds']:.1f}s across "
+                     f"{measured['timed_calls']} of {measured['expected_calls']} calls; budget "
+                     f"{measured['budget_seconds']:.1f}s across {measured['budgeted_calls']} of "
+                     f"{measured['expected_calls']} calls")
     lines += [f"{r['case']} run {r['run']}: {r['outcome']}" + (f" ({'; '.join(r['lint'])})" if r["lint"] else "")
               for r in rows]
     return "\n".join(lines)
