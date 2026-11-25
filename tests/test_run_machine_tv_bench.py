@@ -253,3 +253,18 @@ def test_filtered_report_defaults_to_separate_path(monkeypatch, tmp_path):
     assert [case["id"] for case in json.loads(filtered.read_text())["cases"]] == ["A"]
     assert bench.main(args + ["--only", "B", "--output", str(tmp_path / "custom.json")]) == 0
     assert [case["id"] for case in json.loads((tmp_path / "custom.json").read_text())["cases"]] == ["B"]
+
+
+def test_host_environment_is_bounded_and_serializable(monkeypatch):
+    monkeypatch.setattr(bench.os, "getloadavg", lambda: (1.234, 2.345, 3.456), raising=False)
+    env = bench.host_environment()
+    assert set(env) <= {"os", "arch", "cpu_count", "loadavg_1m", "loadavg_5m", "loadavg_15m"}
+    assert env["loadavg_1m"] == 1.23 and env["loadavg_15m"] == 3.46
+    json.dumps(env)
+
+
+def test_host_environment_tolerates_missing_loadavg(monkeypatch):
+    monkeypatch.delattr(bench.os, "getloadavg", raising=False)
+    env = bench.host_environment()
+    assert "loadavg_1m" not in env
+    assert {"os", "arch", "cpu_count"} <= set(env)

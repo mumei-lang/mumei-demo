@@ -7,6 +7,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -237,6 +238,22 @@ def native_measurement_slots(record: dict) -> list[dict]:
     return slots
 
 
+def host_environment() -> dict:
+    """Bounded host-pressure diagnostics for interpreting repeat-run variance.
+
+    This intentionally records only capacity/load metadata, never the process
+    environment, because machine-TV verdicts can be timing- and budget-sensitive.
+    """
+    env = {"os": platform.system().lower(), "arch": platform.machine(),
+           "cpu_count": os.cpu_count()}
+    try:
+        load1, load5, load15 = os.getloadavg()
+    except (AttributeError, OSError):
+        return env
+    return {**env, "loadavg_1m": round(load1, 2), "loadavg_5m": round(load5, 2),
+            "loadavg_15m": round(load15, 2)}
+
+
 def summarize(records: list[dict]) -> dict:
     by_variant = {}
     for variant in cb.VARIANTS:
@@ -316,6 +333,7 @@ def main(argv: list[str]) -> int:
         "recorded_at": started.replace(microsecond=0).isoformat(),
         "demo": cb.git_identity(str(cb.REPO_ROOT)),
         "verifier": cb.verifier_identity(mumei_bin),
+        "environment": host_environment(),
         "settings": {"jobs": args.jobs, "timeout_seconds": args.timeout, "model_calls": 0},
         "seconds": round(time.monotonic() - clock, 3),
         "summary": summary,
