@@ -96,6 +96,20 @@ def test_possible_added_guard_and_success_rewrite_ignore_comments_and_strings():
         "possible added guard", "target atom calls itself"]
 
 
+def test_priority_fallback_does_not_change_the_success_flag():
+    reference = ("if missing { Parsed { ok: true, value: 3 } } "
+                 "else { if numeric && (value < 1 || value > 5) { Parsed { ok: false, value: 0 } } "
+                 "else { Parsed { ok: true, value: value } } }")
+    candidate = ("if missing { Parsed { ok: true, value: 3 } } "
+                 "else if numeric && (value < 1 || value > 5) { Parsed { ok: false, value: 0 } } "
+                 "else if numeric { Parsed { ok: true, value: value } } else { Parsed { ok: true, value: 3 } }")
+    case = stub_case(reference)
+    case["header"] = HEADER.replace("result >= 0", "result.ok => result.value >= 0")
+    assert pd.lint(case, candidate) == ["possible added guard"]
+    assert "success flag can mask a postcondition clause" in pd.lint(
+        case, candidate.replace("else if numeric &&", "else if !numeric &&"))
+
+
 @pytest.mark.parametrize("body", [None, "", "}", "if true { 0", "0\n}\natom extra()", "trusted atom x()"])
 def test_body_must_not_escape_pinned_contract(body):
     assert not pd.usable_body(body)

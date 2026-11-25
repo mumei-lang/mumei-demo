@@ -50,7 +50,8 @@ counterexamples outside the fixture. The diagnostic does not change bench scores
 Risky-op lint looks for index/slice, division/modulo, dereference and narrow-cast
 patterns represented in both the source function and its buggy reference port.
 It warns if no operation of that kind remains in the LLM body, and separately
-notes extra conditionals relative to the reference, changes to an `ok` flag used
-as a postcondition guard, and direct self-calls. These are syntactic clues, not
+notes extra conditionals relative to the reference, new ways for an `ok` flag to
+be false compared with the reference flag expressions and their branch conditions,
+and direct self-calls. These are syntactic clues, not
 a language-aware source diff or proof of a silent repair: the model may omit
 unrelated source operations, and it may encode a source operation differently.

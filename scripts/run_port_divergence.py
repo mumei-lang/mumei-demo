@@ -46,6 +46,58 @@ def usable_body(body: object) -> bool:
     return depth == 0
 
 
+def success_flag_paths(body: str) -> set[tuple]:
+    """Collect explicit ok expressions with the enclosing if/else predicates."""
+    tokens = re.findall(r"\w+|[^\s]", body)
+    braces = {}
+    stack = []
+    for i, token in enumerate(tokens):
+        if token == "{":
+            stack.append(i)
+        elif token == "}" and stack:
+            braces[stack.pop()] = i
+
+    flags = set()
+
+    def branch(i: int, end: int, path: tuple) -> int:
+        if i >= end:
+            return i
+        if tokens[i] == "if":
+            start = next((j for j in range(i + 1, end) if tokens[j] in ("{", ";")), end)
+            if start not in braces:
+                return i + 1
+            predicate = tuple(tokens[i + 1:start])
+            close = braces[start]
+            scan(start + 1, close, (*path, (predicate, True)))
+            after = close + 1
+            if after < end and tokens[after] == "else":
+                return branch(after + 1, end, (*path, (predicate, False)))
+            return after
+        if i in braces:
+            scan(i + 1, braces[i], path)
+            return braces[i] + 1
+        return i + 1
+
+    def scan(i: int, end: int, path: tuple) -> None:
+        while i < end:
+            if tokens[i:i + 2] == ["ok", ":"]:
+                start = i + 2
+                i = start
+                depth = 0
+                while i < end:
+                    token = tokens[i]
+                    if token == "," and depth == 0:
+                        break
+                    depth += (token in ("(", "[", "{")) - (token in (")", "]", "}"))
+                    i += 1
+                flags.add((path, tuple(tokens[start:i])))
+            else:
+                i = branch(i, end, path)
+
+    scan(0, len(tokens), ())
+    return flags
+
+
 def lint(case: dict, body: str) -> list[str]:
     source = scrub(case["functions"]["buggy"] or "", case["language"])
     _, _, reference_body = bench.split_port(case["ports"]["buggy"], case["atom"])
@@ -64,9 +116,11 @@ def lint(case: dict, body: str) -> list[str]:
     if len(re.findall(r"\bif\b", port)) > len(re.findall(r"\bif\b", reference)):
         warnings.append("possible added guard")
     ensures = bench.header_ensures(case["header"]) or ""
-    if (re.match(r"^\(*\s*result\.ok\s*=>", ensures) and re.search(r"\bok\s*:\s*true\b", reference)
-            and re.search(r"\bok\s*:\s*(?!true\b)[\w!(]", port)):
-        warnings.append("success flag can mask a postcondition clause")
+    if re.match(r"^\(*\s*result\.ok\s*=>", ensures):
+        reference_flags = success_flag_paths(reference)
+        new_flags = success_flag_paths(port) - reference_flags
+        if reference_flags and any(expr != ("true",) for _, expr in new_flags):
+            warnings.append("success flag can mask a postcondition clause")
     if re.search(rf"\b{re.escape(case['atom'])}\s*\(", port):
         warnings.append("target atom calls itself")
     return warnings
