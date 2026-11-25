@@ -12,7 +12,7 @@ The 71 contract-benchmark cases read as a pull-request gate. The contract was pi
 
 ## Unresolved outcome taxonomy
 
-Regressions let through are false acceptance and good changes blocked are false positives. The unresolved outcomes below are mutually exclusive per checked change; medians use the same run aggregation as the gate table. Unsupported means the input, generated port or verifier capability cannot represent the case; inconclusive means no evidence either way; environment failure means tool or transport failure; budget exhausted means the declared timeout was consumed.
+Regressions let through are false acceptance and good changes blocked are false positives. The unresolved outcomes below are mutually exclusive per checked change; medians use the same run aggregation as the gate table. Subtype medians are aggregated independently, so they need not sum to the unresolved-count median when the subtype alternates across runs. Unsupported means the input, generated port or verifier capability cannot represent the case; inconclusive means no evidence either way; environment failure means tool or transport failure; budget exhausted means the declared timeout was consumed.
 
 | Gate | Model | Change | Unsupported | Inconclusive | Env failure | Budget exhausted |
 |---|---|---|---:|---:|---:|---:|
