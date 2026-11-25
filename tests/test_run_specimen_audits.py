@@ -1373,6 +1373,13 @@ def test_readme_blocks_show_fixed_variants():
     assert "8 false alarms on fixed code (7 specimens)" in top
 
 
+def test_readme_specimens_explains_rescore_does_not_rewrite_history():
+    spec = rsa.readme_block_specimens({"schema": 2, "runs": [_run()]})
+    assert "appends a new history entry" in spec
+    assert "older rows remain historical" in spec
+    assert "stay `unknown` when they predate readiness recording" in spec
+
+
 def test_readme_blocks_show_adjudication_states():
     complete = {**_run(date="2025-01-01", llm=False),
                 "adjudication": {"state": "complete", "unreviewed_findings": 0,
