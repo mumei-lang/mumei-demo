@@ -866,7 +866,7 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
            "pull-request gate for changes under a pinned contract (`scripts/run_regression_gate.py`).", ""]
     failed = [r for r in rows if r["errors"]]
     if failed:
-        out += ["Requests that failed in the tool or transport layer are not counted as answers: " +
+        out += ["Variant outcomes blocked by tool or transport failure are not counted as answers: " +
                 ", ".join(f"{r['arm']} {fmt(r, 'errors')}" for r in failed) + ".", ""]
     out += ["The reference ports were written by hand with knowledge of the defects, so the first row shows "
             "that the contracts can express each requirement and how often the checker tells the two versions apart. "
