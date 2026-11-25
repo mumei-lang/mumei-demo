@@ -16,6 +16,11 @@ or missing evidence, adapter incompatibility, explicit selection and denied
 fallback. Track false acceptance, false positives, unsupported/inconclusive
 outcomes and environment errors separately.
 
+[Benchmark lanes](BENCHMARKS.md) ([#189](https://github.com/mumei-lang/mumei-demo/issues/189))
+extend this C13 regression surface: the same buggy/fixed source-contract pairs exercise
+native-object acceptance, but a source proof, an unchecked native attempt, and an audit
+finding cannot substitute for a successful machine-TV acceptance.
+
 [C08](https://github.com/mumei-lang/mumei/issues/788) checks native evidence
 binding; [C09](https://github.com/mumei-lang/mumei/issues/789) checks only the
 declared translation subset; [C10](https://github.com/mumei-lang/mumei/issues/790)

@@ -43,6 +43,11 @@ The `mumei_develop_audit` scenario now passes all three layers with zero origina
 
 ![Mumei Develop Audit live re-run — 0/0 findings, scenario PASS](docs/assets/mumei-develop-audit-result.png)
 
+## Benchmark lanes
+
+The [three-lane benchmark baseline](docs/BENCHMARKS.md) reports source-contract verification,
+source-to-machine translation validation, and existing-code audit separately, with dates and tool commits.
+
 <!-- scoreboard:start -->
 ## Specimen benchmark
 
