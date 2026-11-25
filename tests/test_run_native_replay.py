@@ -253,20 +253,22 @@ def test_finish_is_idempotent():
 def test_summary_separates_unresolved_taxonomy_and_measurement_coverage():
     doc = small_doc()
     doc["reference"][0]["port"]["fixed"] = {"verdict": "inconclusive", "status": "bad input", "diagnostics": [],
+                                            "verification_attempted": False}
+    doc["reference"][1]["port"]["fixed"] = {"verdict": "inconclusive", "status": "timeout", "diagnostics": [],
                                             "seconds": 1.0, "budget_seconds": 5}
     doc["ports"][0]["port"]["llm"].update(seconds=2.0, budget_seconds=5)
     doc["witnesses"][0]["port"] = {"reference": {"verdict": "inconclusive", "status": "timeout", "diagnostics": [],
                                                  "seconds": 3.0, "budget_seconds": 3}}
     finished = nr.finish(doc, [{"id": "A", "case_hash": "h"}])
     assert finished["summary"]["unresolved"]["reference"] == {
-        "unsupported": 1, "inconclusive": 0, "environment_failure": 0, "budget_exhausted": 0}
+        "unsupported": 1, "inconclusive": 0, "environment_failure": 0, "budget_exhausted": 1}
     assert finished["summary"]["unresolved"]["llm_ports"]["inconclusive"] == 1
     assert finished["summary"]["unresolved"]["witness_references"]["budget_exhausted"] == 1
     assert finished["summary"]["measurement"]["witness_references"] == {
         "seconds": 3.0, "timed_calls": 1, "expected_calls": 1,
         "budget_seconds": 3.0, "budgeted_calls": 1}
     assert finished["summary"]["measurement"]["reference"] == {
-        "seconds": 1.0, "timed_calls": 1, "expected_calls": 6,
+        "seconds": 1.0, "timed_calls": 1, "expected_calls": 5,
         "budget_seconds": 5.0, "budgeted_calls": 1}
     assert finished["summary"]["measurement"]["llm_ports"] == {
         "seconds": 2.0, "timed_calls": 1, "expected_calls": 6,

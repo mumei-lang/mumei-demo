@@ -451,7 +451,8 @@ def collect(cases: list[dict], mumei_bin: str, jobs: int, timeout: int) -> dict:
         try:
             target[key] = port_verdict(mumei_bin, text, atom, values, timeout)
         except ValueError as error:
-            target[key] = {"verdict": "inconclusive", "status": "bad input", "diagnostics": [str(error)[:200]]}
+            target[key] = {"verdict": "inconclusive", "status": "bad input", "diagnostics": [str(error)[:200]],
+                           "verification_attempted": False}
 
     with ThreadPoolExecutor(max_workers=jobs) as pool:
         list(pool.map(mm, mm_jobs))
@@ -487,16 +488,25 @@ def finish(doc: dict, cases: list[dict]) -> dict:
     return doc
 
 
+def verification_call(verdict: dict) -> bool:
+    if "verification_attempted" in verdict:
+        return bool(verdict["verification_attempted"])
+    return verdict.get("status") not in {"bad input", "missing or invalid body"}
+
+
 def measurement_stats(verdicts: list[dict]) -> dict:
-    seconds, budget, timed, budgeted = 0.0, 0.0, 0, 0
+    seconds, budget, timed, budgeted, expected = 0.0, 0.0, 0, 0, 0
     for verdict in verdicts:
+        if not verification_call(verdict):
+            continue
+        expected += 1
         if rb.numeric_measurement(verdict.get("seconds")):
             timed += 1
             seconds += verdict["seconds"]
         if rb.numeric_measurement(verdict.get("budget_seconds")):
             budgeted += 1
             budget += verdict["budget_seconds"]
-    return {"seconds": round(seconds, 1), "timed_calls": timed, "expected_calls": len(verdicts),
+    return {"seconds": round(seconds, 1), "timed_calls": timed, "expected_calls": expected,
             "budget_seconds": round(budget, 1), "budgeted_calls": budgeted}
 
 
