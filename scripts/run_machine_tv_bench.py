@@ -197,7 +197,10 @@ def run_case(case: dict, mumei_bin: str, timeout: int) -> dict:
             "z3": {k: z3[k] for k in ("outcome", "status", "failure_kind", "seconds", "budget_seconds") if k in z3},
             "native": run_native(mumei_bin, source, case["atom"], z3["outcome"], timeout),
         }
-    result["vacuity"], result["vacuity_control"] = cb.vacuity_result(case, source_verdicts, mumei_bin, timeout)
+    result["vacuity"], control = cb.vacuity_result(case, source_verdicts, mumei_bin, timeout)
+    result["vacuity_control"] = {k: control[k]
+                                 for k in ("outcome", "status", "failure_kind", "seconds", "budget_seconds")
+                                 if k in control}
     return result
 
 

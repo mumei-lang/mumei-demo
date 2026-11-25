@@ -146,10 +146,11 @@ def test_native_failure_kind_and_stage_budget_are_recorded(monkeypatch):
 def test_run_case_preserves_source_measurements_and_vacuity_control(monkeypatch):
     case = {"id": "A", "atom": "target", "language": "python", "case_hash": "case", "source_hash": "source",
             "ports": {"buggy": "buggy", "fixed": "fixed"}}
-    control = {"outcome": "refuted", "status": "failed", "diagnostics": [], "seconds": 0.5, "budget_seconds": 10}
+    control = {"outcome": "refuted", "status": "failed", "diagnostics": [{"message": "not reported"}],
+               "seconds": 0.5, "budget_seconds": 10}
 
     def verify_text(binary, source, timeout):
-        return {"outcome": "refuted" if source == "buggy" else "proven", "status": "failed",
+        return {"outcome": "inconclusive", "status": "failed",
                 "failure_kind": "inconclusive", "diagnostics": [], "seconds": 1.0, "budget_seconds": timeout}
 
     monkeypatch.setattr(bench.cb, "verify_text", verify_text)
@@ -159,7 +160,7 @@ def test_run_case_preserves_source_measurements_and_vacuity_control(monkeypatch)
     assert measured["buggy"]["z3"]["seconds"] == 1.0
     assert measured["buggy"]["z3"]["budget_seconds"] == 10
     assert measured["buggy"]["z3"]["failure_kind"] == "inconclusive"
-    assert measured["vacuity_control"] == control
+    assert measured["vacuity_control"] == {k: control[k] for k in ("outcome", "status", "seconds", "budget_seconds")}
 
 
 def test_summary_does_not_turn_non_acceptance_into_rejection():
