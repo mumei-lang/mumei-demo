@@ -238,6 +238,17 @@ def test_verify_text_timeout_is_inconclusive(monkeypatch):
     assert type(result["seconds"]) is float and result["budget_seconds"] == 5
 
 
+def test_verify_text_verifier_startup_failure_is_environment_failure(monkeypatch):
+    def boom(*a, **k):
+        raise FileNotFoundError("missing verifier")
+    monkeypatch.setattr(cb.subprocess, "run", boom)
+    result = cb.verify_text("mumei", FIXED, 5)
+    assert result["outcome"] == "inconclusive"
+    assert result["status"] == "verifier startup failed (FileNotFoundError)"
+    assert result["failure_kind"] == "environment_failure" and result["diagnostics"] == []
+    assert type(result["seconds"]) is float and result["budget_seconds"] == 5
+
+
 # --- reference arm and vacuity control ---------------------------------------
 
 def test_vacuity_text_replaces_only_target_ensures(repo):
@@ -452,6 +463,34 @@ def run_reference(repo, monkeypatch):
     monkeypatch.setattr(cb, "verify_text", fake_verify(REFERENCE))
     monkeypatch.setattr(cb, "verifier_identity", lambda _bin: dict(VERIFIER))
     assert cb.main(["--arm", "mumei", "--mumei-bin", "mumei"]) == 0
+
+
+def startup_failure_result():
+    return {"outcome": "inconclusive", "status": "verifier startup failed (FileNotFoundError)",
+            "failure_kind": "environment_failure", "diagnostics": [], "seconds": 0.0, "budget_seconds": 5}
+
+
+def test_startup_failure_preserves_reference_certificate(repo, monkeypatch):
+    (case,) = cb.load_cases()[0]
+    cert = repo / case["dir"] / cb.CERT_FILE
+    cert.write_text("existing certificate")
+    monkeypatch.setattr(cb, "verify_text", lambda *_args: startup_failure_result())
+    with pytest.raises(RuntimeError, match="certificates were not updated"):
+        cb.run_mumei_case(case, "mumei", 5)
+    assert cert.read_text() == "existing certificate"
+
+
+def test_startup_failure_preserves_llm_certificate(repo, monkeypatch):
+    (case,) = cb.load_cases()[0]
+    provider = StubProvider(lambda *_args: json.dumps({"body": "0"}))
+    cert = repo / case["dir"] / cb.llm_cert_file(provider.model, 0)
+    cert.parent.mkdir(parents=True, exist_ok=True)
+    cert.write_text("existing certificate")
+    monkeypatch.setattr(cb, "verify_text", lambda *_args: startup_failure_result())
+    with pytest.raises(RuntimeError, match="certificates were not updated"):
+        cb.run_llm_case(case, provider, "mumei-llm", 0, "mumei", 5)
+    assert cert.read_text() == "existing certificate"
+    assert len(provider.prompts) == 1
 
 
 def test_reference_run_writes_results_and_renders(repo, monkeypatch):

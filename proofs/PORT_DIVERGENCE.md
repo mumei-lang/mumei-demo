@@ -47,6 +47,15 @@ inputs include both solver counterexamples and hand-picked counterexamples
 rechecked by the verifier; this is not an equivalence proof or a search for
 counterexamples outside the fixture. The diagnostic does not change bench scores.
 
+The JSON report also keeps unresolved verifier outcomes and measurement separate:
+unsupported input/generated output or capability, residual inconclusive outcome,
+environment failure and budget exhaustion are independent counts. Reference-port
+verdicts are recorded once per case/input because they are reused across accepted
+rows; LLM-port verdicts are recorded per accepted row/input. Missing or invalid
+generated bodies and pre-verifier input failures remain unsupported but are not
+expected verifier-call measurement slots. Verifier wall time and declared timeout
+budget exclude report rendering and replay orchestration.
+
 Risky-op lint looks for index/slice, division/modulo, dereference and narrow-cast
 patterns represented in both the source function and its buggy reference port.
 It warns if no operation of that kind remains in the LLM body, and separately

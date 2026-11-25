@@ -516,7 +516,7 @@ def verdict_failure_kind(verdict: dict) -> str | None:
     explicit = verdict.get("failure_kind")
     if explicit in rb.FAILURE_KINDS:
         return explicit
-    if verdict.get("status") == "bad input":
+    if verdict.get("status") in {"bad input", "missing or invalid body"}:
         return "unsupported"
     synthetic = {"outcome": "inconclusive", "status": verdict.get("status", ""),
                  "diagnostics": [{"message": message} for message in verdict.get("diagnostics", [])]}

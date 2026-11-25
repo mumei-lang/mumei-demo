@@ -27,7 +27,8 @@ def test_replays_only_misaccepts_with_same_input_and_contract(monkeypatch):
 
     def verify(path, text, timeout):
         calls.append((path, text, timeout))
-        return {"outcome": "refuted" if "0 - 1" in text else "proven", "status": "", "diagnostics": []}
+        return {"outcome": "refuted" if "0 - 1" in text else "proven", "status": "", "diagnostics": [],
+                "seconds": 1.0, "budget_seconds": timeout}
 
     monkeypatch.setattr(pd.bench, "verify_text", verify)
     doc = {"model": "test", "runs": [
@@ -40,6 +41,12 @@ def test_replays_only_misaccepts_with_same_input_and_contract(monkeypatch):
     assert [r["run"] for r in report["misaccepts"]] == [1, 3]
     assert report["misaccepts"][0]["inputs"][0]["values"] == WITNESS["values"]
     assert len(calls) == 3  # The reference is checked once, then reused.
+    assert report["measurement"]["reference"] == {
+        "seconds": 1.0, "timed_calls": 1, "expected_calls": 1,
+        "budget_seconds": 7.0, "budgeted_calls": 1}
+    assert report["measurement"]["llm_ports"] == {
+        "seconds": 2.0, "timed_calls": 2, "expected_calls": 2,
+        "budget_seconds": 14.0, "budgeted_calls": 2}
     for path, text, timeout in calls:
         assert (path, timeout) == ("/bin/mumei", 7)
         assert "requires: (n >= 0) && n == 0;" in text
@@ -91,6 +98,52 @@ def test_recorded_corpus_requests_every_reference_and_accepted_port(monkeypatch)
 ])
 def test_outcome_needs_a_refuted_reference(reference, llm, expected):
     assert pd.outcome([{"reference": {"verdict": reference}, "llm": {"verdict": llm}}]) == expected
+
+
+def test_collect_separates_unresolved_taxonomy_from_verifier_measurement(monkeypatch):
+    case = stub_case("0 - 1")
+    monkeypatch.setattr(pd.replay, "replay_inputs", lambda _case: ([WITNESS], "digest"))
+
+    def verify(_path, text, _timeout):
+        if "0 - 1" in text:
+            return {"outcome": "inconclusive", "status": "timeout", "diagnostics": [],
+                    "seconds": 1.5, "budget_seconds": 7}
+        return {"outcome": "inconclusive", "status": "input_error", "diagnostics": [],
+                "seconds": 2.5, "budget_seconds": 8}
+
+    monkeypatch.setattr(pd.bench, "verify_text", verify)
+    doc = {"model": "test", "runs": [[
+        {"id": "X", "buggy": {"outcome": "proven", "body": "0"}},
+        {"id": "X", "buggy": {"outcome": "proven", "body": None}},
+    ]]}
+    report = pd.collect([case], doc, "/bin/mumei", 7)
+    assert report["unresolved"]["reference"] == {
+        "unsupported": 0, "inconclusive": 0, "environment_failure": 0, "budget_exhausted": 1}
+    assert report["unresolved"]["llm_ports"] == {
+        "unsupported": 2, "inconclusive": 0, "environment_failure": 0, "budget_exhausted": 0}
+    assert report["measurement"]["reference"] == {
+        "seconds": 1.5, "timed_calls": 1, "expected_calls": 1,
+        "budget_seconds": 7.0, "budgeted_calls": 1}
+    assert report["measurement"]["llm_ports"] == {
+        "seconds": 2.5, "timed_calls": 1, "expected_calls": 1,
+        "budget_seconds": 8.0, "budgeted_calls": 1}
+    rendered = pd.render(report)
+    assert "reference unresolved: unsupported 0, inconclusive 0, environment failure 0, budget exhausted 1" in rendered
+    assert "LLM port verifier measurement: 2.5s across 1 of 1 calls; budget 8.0s across 1 of 1 calls" in rendered
+
+
+def test_collect_counts_verifier_startup_failure_as_environment_failure(monkeypatch):
+    case = stub_case("0 - 1")
+    monkeypatch.setattr(pd.replay, "replay_inputs", lambda _case: ([WITNESS], "digest"))
+    monkeypatch.setattr(pd.bench, "verify_text", lambda *_args: {
+        "outcome": "inconclusive", "status": "verifier startup failed (FileNotFoundError)",
+        "failure_kind": "environment_failure", "diagnostics": [], "seconds": 0.1, "budget_seconds": 7})
+    doc = {"model": "test", "runs": [[{"id": "X", "buggy": {"outcome": "proven", "body": "0"}}]]}
+    report = pd.collect([case], doc, "/bin/mumei", 7)
+    for lane in ("reference", "llm_ports"):
+        assert report["unresolved"][lane]["environment_failure"] == 1
+        assert report["measurement"][lane]["expected_calls"] == 1
+        assert report["measurement"][lane]["timed_calls"] == 1
 
 
 def test_replays_candidate_even_without_a_reference_violation(monkeypatch):
