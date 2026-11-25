@@ -445,6 +445,30 @@ def aggregate_adjudication(agg: dict, stale_count: int) -> dict:
     return adjudication_state(unreviewed, stale_count)
 
 
+def entry_adjudication(run: dict) -> dict:
+    """Adjudication state for a history entry, keeping pre-schema runs unknown.
+
+    Legacy entries do not record how much of the fixed-variant false-alarm count
+    was unreviewed, so `--render-only` must not reconstruct or upgrade them.
+    """
+    return run.get("adjudication") or {
+        "state": "unknown",
+        "unreviewed_findings": None,
+        "stale_finding_reviews": run.get("stale_finding_reviews"),
+        "review_basis": "legacy_history_rescore_required",
+    }
+
+
+def fmt_adjudication(run: dict) -> str:
+    adjudication = entry_adjudication(run)
+    if adjudication["state"] == "complete":
+        return "complete"
+    if adjudication["state"] == "incomplete":
+        return (f"incomplete ({adjudication['unreviewed_findings']} unreviewed, "
+                f"{adjudication['stale_finding_reviews']} stale)")
+    return "unknown — rescore"
+
+
 def fmt_fixed(fx: dict | None) -> str:
     if not fx:
         return "—"
@@ -1474,8 +1498,8 @@ def readme_block_specimens(history: dict) -> str:
             "",
             "Recent runs:",
             "",
-            "| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code |",
-            "|---|---|---|---|---|---:|---:|---:|---:|---:|",
+            "| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code | Adjudication |",
+            "|---|---|---|---|---|---:|---:|---:|---:|---:|---|",
         ]
         for r in reversed(runs[-10:]):
             rt = r["totals"]
@@ -1490,7 +1514,8 @@ def readme_block_specimens(history: dict) -> str:
                 f"{pct(rt['detected'], rt['total'])} | "
                 f"{pct(rt['target_detected'], rt['target_total'])} | "
                 f"{pct(rt['detected'] + rt['function_flagged'], rt['total'])} | "
-                f"{fmt_precision(r.get('findings'))} | {fmt_fixed(r.get('fixed'))} |"
+                f"{fmt_precision(r.get('findings'))} | {fmt_fixed(r.get('fixed'))} | "
+                f"{fmt_adjudication(r)} |"
             )
         lines.append("")
     lines += [
@@ -1517,7 +1542,9 @@ def readme_block_specimens(history: dict) -> str:
         "verdicts live under `finding_reviews` in `scoreboard/adjudications.json`; after editing them, run",
         "`python3 scripts/run_specimen_audits.py --rescore` to re-score the committed audit output.",
         "When the generated adjudication readiness is incomplete, precision and fixed-alarm totals are",
-        "runner scores rather than fresh human-confirmed adjudications.",
+        "runner scores rather than fresh human-confirmed adjudications. Runs recorded before readiness was",
+        "stored show `unknown — rescore`; `--render-only` does not infer them, so run `--rescore` after",
+        "reviewing findings to replace the legacy state with current readiness.",
         "",
         "False alarms on fixed code count findings on specimens with their `fixed.patch` applied (every",
         "planted defect repaired) that no ruling marks as real, shown as false alarms / specimens covered.",
@@ -1549,6 +1576,11 @@ def readme_block_top(history: dict) -> str:
             fc = run.get("findings")
             if fc and fc.get("total"):
                 frag += f", precision {fmt_precision(fc)} of {fc['total']} findings"
+            adjudication = entry_adjudication(run)
+            if adjudication["state"] == "incomplete":
+                frag += f", adjudication {fmt_adjudication(run)}"
+            elif adjudication["state"] == "unknown":
+                frag += ", adjudication unknown (rescore required)"
             fx = run.get("fixed")
             if fx:
                 frag += (f", {fx['false_alarms']} false alarms on fixed code "

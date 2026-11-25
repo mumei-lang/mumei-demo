@@ -1368,9 +1368,27 @@ def test_readme_blocks_show_fixed_variants():
     assert "Fixed variants — no LLM: 7 specimens (70 defects fixed)" in spec
     assert "8 false alarms in 9 findings on fixed code" in spec
     old_row = [ln for ln in spec.splitlines() if ln.startswith("| 2025-01-01")][0]
-    assert old_row.endswith("| — |")
+    assert old_row.endswith("| — | unknown — rescore |")
     top = rsa.readme_block_top({"schema": 2, "runs": [old, new]})
     assert "8 false alarms on fixed code (7 specimens)" in top
+
+
+def test_readme_blocks_show_adjudication_states():
+    complete = {**_run(date="2025-01-01", llm=False),
+                "adjudication": {"state": "complete", "unreviewed_findings": 0,
+                                  "stale_finding_reviews": 0,
+                                  "review_basis": "current_reviewed_rulings"}}
+    incomplete = {**_run(date="2025-01-02", llm=True),
+                  "adjudication": {"state": "incomplete", "unreviewed_findings": 2,
+                                    "stale_finding_reviews": 1,
+                                    "review_basis": "runner_score"}}
+    spec = rsa.readme_block_specimens({"schema": 2, "runs": [complete, incomplete]})
+    assert "| Adjudication |" in spec
+    assert "| complete |" in spec
+    assert "| incomplete (2 unreviewed, 1 stale) |" in spec
+    top = rsa.readme_block_top({"schema": 2, "runs": [complete, incomplete]})
+    assert "adjudication incomplete (2 unreviewed, 1 stale)" in top
+    assert "adjudication complete" not in top
 
 
 def test_readme_block_top_omits_fixed_for_runs_without_it():
