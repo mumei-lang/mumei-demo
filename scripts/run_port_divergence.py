@@ -162,12 +162,10 @@ def collect(cases: list[dict], doc: dict, mumei_bin: str, timeout: int) -> dict:
             port = bench.assemble(case, body) if usable_body(body) else None
             inputs = []
             for witness in reference[case_id]:
-                llm = None
-                if witness["reference"]["verdict"] == "breaks":
-                    if port is not None:
-                        llm = replay_verdict(mumei_bin, case, port, witness["values"], timeout)
-                    else:
-                        llm = {"verdict": "inconclusive", "status": "missing or invalid body", "diagnostics": []}
+                if port is not None:
+                    llm = replay_verdict(mumei_bin, case, port, witness["values"], timeout)
+                else:
+                    llm = {"verdict": "inconclusive", "status": "missing or invalid body", "diagnostics": []}
                 inputs.append({**witness, "llm": llm})
             rows.append({"case": case_id, "run": run, "outcome": outcome(inputs),
                          "lint": lint(case, body) if port is not None else [], "inputs": inputs})

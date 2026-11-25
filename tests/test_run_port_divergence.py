@@ -49,15 +49,14 @@ def test_replays_only_misaccepts_with_same_input_and_contract(monkeypatch):
     ("breaks", "breaks", "still_refutes"),
     ("breaks", "inconclusive", "inconclusive"),
     ("breaks", "outside requires", "inconclusive"),
-    ("holds", None, "inconclusive"),
-    ("inconclusive", None, "inconclusive"),
+    ("holds", "holds", "inconclusive"),
+    ("inconclusive", "holds", "inconclusive"),
 ])
 def test_outcome_needs_a_refuted_reference(reference, llm, expected):
-    assert pd.outcome([{"reference": {"verdict": reference},
-                        "llm": {"verdict": llm} if llm else None}]) == expected
+    assert pd.outcome([{"reference": {"verdict": reference}, "llm": {"verdict": llm}}]) == expected
 
 
-def test_does_not_replay_candidate_without_a_reference_violation(monkeypatch):
+def test_replays_candidate_even_without_a_reference_violation(monkeypatch):
     monkeypatch.setattr(pd.replay, "replay_inputs", lambda _case: ([WITNESS], "digest"))
     case = stub_case("n")
     calls = []
@@ -70,7 +69,9 @@ def test_does_not_replay_candidate_without_a_reference_violation(monkeypatch):
     doc = {"model": "test", "runs": [[{"id": "X", "buggy": {"outcome": "proven", "body": "0"}}]]}
     report = pd.collect([case], doc, "/bin/mumei", 7)
     assert report["outcomes"] == {"inconclusive": 1}
-    assert len(calls) == 1
+    witness = report["misaccepts"][0]["inputs"][0]
+    assert witness["reference"]["verdict"] == witness["llm"]["verdict"] == "holds"
+    assert len(calls) == 2
 
 
 @pytest.mark.parametrize(("source", "reference", "warning"), [
