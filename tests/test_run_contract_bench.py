@@ -465,6 +465,33 @@ def run_reference(repo, monkeypatch):
     assert cb.main(["--arm", "mumei", "--mumei-bin", "mumei"]) == 0
 
 
+def startup_failure_result():
+    return {"outcome": "inconclusive", "status": "verifier startup failed (FileNotFoundError)",
+            "failure_kind": "environment_failure", "diagnostics": [], "seconds": 0.0, "budget_seconds": 5}
+
+
+def test_startup_failure_preserves_reference_certificate(repo, monkeypatch):
+    (case,) = cb.load_cases()[0]
+    cert = repo / case["dir"] / cb.CERT_FILE
+    cert.write_text("existing certificate")
+    monkeypatch.setattr(cb, "verify_text", lambda *_args: startup_failure_result())
+    with pytest.raises(RuntimeError, match="certificates were not updated"):
+        cb.run_mumei_case(case, "mumei", 5)
+    assert cert.read_text() == "existing certificate"
+
+
+def test_startup_failure_preserves_llm_certificate(repo, monkeypatch):
+    (case,) = cb.load_cases()[0]
+    provider = StubProvider(lambda *_args: json.dumps({"body": "0"}))
+    cert = repo / case["dir"] / cb.llm_cert_file(provider.model, 0)
+    cert.parent.mkdir(parents=True, exist_ok=True)
+    cert.write_text("existing certificate")
+    monkeypatch.setattr(cb, "verify_text", lambda *_args: startup_failure_result())
+    with pytest.raises(RuntimeError, match="certificates were not updated"):
+        cb.run_llm_case(case, provider, "mumei-llm", 0, "mumei", 5)
+    assert cert.read_text() == "existing certificate"
+
+
 def test_reference_run_writes_results_and_renders(repo, monkeypatch):
     run_reference(repo, monkeypatch)
     doc = json.loads((repo / "proofs" / "results" / "mumei.json").read_text())

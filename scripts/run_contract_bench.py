@@ -453,11 +453,22 @@ def vacuity(case: dict, out: dict, mumei_bin: str, timeout: int, header: str | N
     return vacuity_result(case, out, mumei_bin, timeout, header)[0]
 
 
+def verifier_startup_failure(result: dict) -> bool:
+    return (result.get("failure_kind") == "environment_failure"
+            and str(result.get("status", "")).startswith("verifier startup failed"))
+
+
+def fail_on_verifier_startup(results: list[dict]) -> None:
+    if any(verifier_startup_failure(result) for result in results):
+        raise RuntimeError("verifier startup failed; benchmark results and certificates were not updated")
+
+
 def run_mumei_case(case: dict, mumei_bin: str, timeout: int) -> dict:
     out = {k: case[k] for k in ("id", "language", "specimen", "category", "function", "case_hash", "source_hash")}
     for v in VARIANTS:
         out[v] = verify_text(mumei_bin, case["ports"][v], timeout)
     out["vacuity"], out["vacuity_control"] = vacuity_result(case, out, mumei_bin, timeout)
+    fail_on_verifier_startup([out["buggy"], out["fixed"], out["vacuity_control"]])
     path = REPO_ROOT / case["dir"] / CERT_FILE
     path.unlink(missing_ok=True)
     if out["fixed"]["outcome"] == "proven":
@@ -658,6 +669,7 @@ def run_llm_case(case: dict, provider, arm: str, seed: int, mumei_bin: str | Non
             result = verify_text(mumei_bin, assemble(case, body), timeout)
             out[v] = {**result, "body": body, "usage": usage}
     if arm == "mumei-llm":
+        fail_on_verifier_startup([out[v] for v in VARIANTS])
         file = llm_cert_file(provider.model, seed)
         path = REPO_ROOT / case["dir"] / file
         path.unlink(missing_ok=True)
