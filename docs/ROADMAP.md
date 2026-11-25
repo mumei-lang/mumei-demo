@@ -32,6 +32,22 @@ taxonomy but show unavailable verifier timing as unknown. This is measurement
 and regression control only — not proof truth, Evidence acceptance or grade
 promotion.
 
+C13 progress: the mutation-control lane now applies the same separation to
+negative-control coverage. A surviving mutant is reported as potential false
+acceptance for that mutation, while invalid mutant outcomes are counted
+independently as unsupported input/capability, residual inconclusive outcome,
+environment failure or budget exhaustion. The regression-gate summary carries
+the same invalid-outcome breakdown. Baseline fixed-port results are counted
+separately, and a non-proven baseline still yields no mutation score for that
+case, so missing coverage cannot make the control pass. New runs retain wall
+time and declared timeout budget for the baseline and mutant verifier calls;
+committed rows recorded before that instrumentation report measured-call
+coverage as unknown instead of appearing fully measured. Per-call temporary
+source preparation, verifier execution and result classification are included;
+mutation generation, report rendering and runner orchestration remain outside.
+This is measurement and regression control only — not proof truth, Evidence
+acceptance or grade promotion.
+
 [C08](https://github.com/mumei-lang/mumei/issues/788) checks native evidence
 binding; [C09](https://github.com/mumei-lang/mumei/issues/789) checks only the
 declared translation subset; [C10](https://github.com/mumei-lang/mumei/issues/790)

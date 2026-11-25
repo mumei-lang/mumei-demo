@@ -67,8 +67,20 @@ def test_flaky_cases_are_listed_by_id():
 def test_mutation_summary_scores_killed_over_scored():
     m = rg.mutation_summary({"cases": [{"mutants": [{"outcome": "killed"}, {"outcome": "survived"},
                                                     {"outcome": "killed"}, {"outcome": "invalid"}]}]})
-    assert m == {"killed": 2, "survived": 1, "invalid": 1, "score": 67}
-    assert "blocks 2 of 3 scored mutants (67%)" in rg.render([], m)
+    assert m == {"killed": 2, "survived": 1, "invalid": 1, "unsupported": 0, "inconclusive": 1,
+                 "environment_failure": 0, "budget_exhausted": 0, "score": 67}
+    text = rg.render([], m)
+    assert "blocks 2 of 3 scored mutants (67%)" in text
+    assert "1 do not verify either way: 0 unsupported, 1 residual inconclusive" in text
+
+
+def test_mutation_summary_separates_invalid_failure_kinds():
+    m = rg.mutation_summary({"cases": [{"mutants": [
+        {"outcome": "invalid", "status": "input_error", "message": ""},
+        {"outcome": "invalid", "status": "timeout", "message": ""},
+        {"outcome": "invalid", "status": "no-json (exit 2)", "message": ""},
+    ]}]})
+    assert (m["unsupported"], m["budget_exhausted"], m["environment_failure"], m["inconclusive"]) == (1, 1, 1, 0)
 
 
 def test_committed_report_is_up_to_date(capsys):

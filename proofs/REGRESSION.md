@@ -22,4 +22,4 @@ Flaky under LLM review: `GO02-D03`, `GO03-D06`, `GO03-D07`, `PY03-D05`, `RS03-D0
 
 ## Beyond the planted defect
 
-[MUTATION.md](MUTATION.md) makes first-order mutants of the fixed ports (relational, logical, arithmetic and constant changes) and verifies them under the pinned contracts. mumei blocks 154 of 341 scored mutants (45%); 187 pass, either because the contract does not constrain that part of the body or because the mutant is equivalent. 0 do not verify either way. A pinned contract only gates what it states: the planted-defect rows above are an upper bound for an arbitrary later change.
+[MUTATION.md](MUTATION.md) makes first-order mutants of the fixed ports (relational, logical, arithmetic and constant changes) and verifies them under the pinned contracts. mumei blocks 154 of 341 scored mutants (45%); 187 pass, either because the contract does not constrain that part of the body or because the mutant is equivalent. 0 do not verify either way: 0 unsupported, 0 residual inconclusive, 0 environment failure and 0 budget exhaustion. A pinned contract only gates what it states: the planted-defect rows above are an upper bound for an arbitrary later change.

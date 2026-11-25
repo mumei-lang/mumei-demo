@@ -152,6 +152,122 @@ def test_tally(outcomes, score):
     assert t["killed"] + t["survived"] + t["invalid"] == len(outcomes)
 
 
+@pytest.mark.parametrize("status, message, expected", [
+    ("input_error", "", "unsupported"),
+    ("failed", "Unknown function `missing`", "unsupported"),
+    ("timeout", "", "budget_exhausted"),
+    ("no-json (exit 2)", "", "environment_failure"),
+    ("failed", "", "inconclusive"),
+])
+def test_mutation_failure_kind_infers_legacy_rows(status, message, expected):
+    row = {"outcome": "invalid", "status": status, "message": message}
+    assert mc.mutation_failure_kind(row) == expected
+
+
+def test_mutation_failure_kind_honors_explicit_values_and_decided_rows():
+    assert mc.mutation_failure_kind({"outcome": "invalid", "failure_kind": "environment_failure"}) == "environment_failure"
+    assert mc.mutation_failure_kind({"outcome": "invalid", "failure_kind": "bogus"}) == "inconclusive"
+    assert mc.mutation_failure_kind({"outcome": "killed"}) is None
+
+
+def test_tally_separates_invalid_failure_kinds():
+    rows = [
+        {"outcome": "killed"},
+        {"outcome": "survived"},
+        {"outcome": "invalid", "status": "input_error", "message": ""},
+        {"outcome": "invalid", "status": "timeout", "message": ""},
+        {"outcome": "invalid", "status": "no-json (exit 2)", "message": ""},
+        {"outcome": "invalid", "status": "failed", "message": ""},
+    ]
+    t = mc.tally(rows)
+    assert t["invalid"] == 4
+    assert (t["unsupported"], t["budget_exhausted"], t["environment_failure"], t["inconclusive"]) == (1, 1, 1, 1)
+
+
+def test_run_case_preserves_baseline_and_mutant_measurement(monkeypatch):
+    case = CASES[0]
+    fixed = case["ports"]["fixed"]
+
+    def verify(_bin, text, timeout):
+        outcome = "proven" if text == fixed else "inconclusive"
+        result = {"outcome": outcome, "status": "success" if outcome == "proven" else "input_error",
+                  "diagnostics": [], "seconds": 0.25, "budget_seconds": timeout}
+        if outcome == "inconclusive":
+            result["failure_kind"] = "unsupported"
+        return result
+
+    monkeypatch.setattr(mc.cb, "verify_text", verify)
+    record = mc.run_case(case, "mumei", 7)
+    assert record["baseline_check"]["seconds"] == 0.25
+    assert record["baseline_check"]["budget_seconds"] == 7
+    assert record["mutants"]
+    assert {m["failure_kind"] for m in record["mutants"]} == {"unsupported"}
+    assert all(m["seconds"] == 0.25 and m["budget_seconds"] == 7 for m in record["mutants"])
+
+
+def test_baseline_tally_separates_false_positive_and_failure_kinds():
+    cases = [
+        {"baseline": "proven"},
+        {"baseline": "refuted"},
+        {"baseline": "inconclusive",
+         "baseline_check": {"outcome": "inconclusive", "status": "timeout", "diagnostics": []}},
+        {"baseline": "inconclusive",
+         "baseline_check": {"outcome": "inconclusive", "status": "input_error", "diagnostics": []}},
+        {"baseline": "inconclusive"},
+    ]
+    got = mc.baseline_tally(cases)
+    assert got["proven"] == 1 and got["false_positive"] == 1
+    assert got["budget_exhausted"] == 1 and got["unsupported"] == 1 and got["inconclusive"] == 1
+
+
+def test_verification_measurements_count_legacy_slots_without_inventing_time():
+    cases = [{
+        "baseline": "proven",
+        "baseline_check": {"outcome": "proven", "seconds": 1.25, "budget_seconds": 5},
+        "mutants": [
+            {"outcome": "killed", "seconds": 0.75, "budget_seconds": 5},
+            {"outcome": "invalid", "status": "failed"},
+            {"outcome": "invalid", "status": "timeout", "seconds": True, "budget_seconds": 5},
+        ],
+    }]
+    got = mc.verification_measurements(cases)
+    assert got == {"seconds": 2.0, "timed_calls": 2, "expected_calls": 4,
+                   "budget_seconds": 15.0, "budgeted_calls": 3}
+
+
+def test_render_exposes_failure_taxonomy_and_measurement_coverage():
+    doc = {"verifier": {"version": "mumei test", "commit": "a" * 40},
+           "cases": [{"id": "X", "language": "python", "function": "f", "baseline": "proven",
+                      "baseline_check": {"outcome": "proven", "seconds": 1.0, "budget_seconds": 5},
+                      "mutants": [{"op": "relational", "at": 0, "from": "<", "to": "<=",
+                                   "outcome": "invalid", "status": "timeout", "message": "",
+                                   "failure_kind": "budget_exhausted", "seconds": 5.0, "budget_seconds": 5}]}]}
+    text = mc.render(doc)
+    assert "| | Mutants | Killed | Potential false acceptance | Unsupported | Inconclusive | Env failure | Budget exhausted | Score |" in text
+    assert "| **all** | 1 | 0 | 0 | 0 | 0 | 0 | 1 | — |" in text
+    assert "Baseline fixed ports: 1 proven, 0 false positive" in text
+    assert "| Verifier calls | 6.0s / 2 of 2 calls | 10.0s / 2 of 2 calls |" in text
+
+
+def test_render_keeps_legacy_verifier_timing_unknown():
+    doc = {"cases": [{"id": "X", "language": "python", "function": "f", "baseline": "proven",
+                      "mutants": [{"op": "relational", "at": 0, "from": "<", "to": "<=",
+                                   "outcome": "killed", "status": "failed", "message": ""}]}]}
+    text = mc.render(doc)
+    assert "| Verifier calls | — / 0 of 2 calls | — / 0 of 2 calls |" in text
+
+
+def test_render_distinguishes_unscored_baseline_from_no_mutable_token():
+    doc = {"cases": [
+        {"id": "NO-TOKEN", "language": "python", "function": "f", "baseline": "proven", "mutants": []},
+        {"id": "TIMEOUT", "language": "python", "function": "g", "baseline": "inconclusive", "mutants": []},
+    ]}
+    text = mc.render(doc)
+    assert "Ports with no mutable token: `NO-TOKEN`." in text
+    assert "Cases with no mutant verifier calls because the baseline fixed port was not proven: `TIMEOUT`." in text
+    assert "Ports with no mutable token: `NO-TOKEN`, `TIMEOUT`" not in text
+
+
 @pytest.fixture
 def results(tmp_path, monkeypatch):
     monkeypatch.setattr(mc, "RESULT", tmp_path / "mutation.json")
@@ -189,6 +305,13 @@ def test_report_lists_survivors_with_their_line(results, monkeypatch):
     (lambda d: d["cases"][0]["mutants"].pop(), "recorded mutants differ"),
     (lambda d: d["cases"][0]["mutants"][0].update(at=d["cases"][0]["mutants"][0]["at"] + 1), "recorded mutants differ"),
     (lambda d: d["cases"][0]["mutants"][0].update(outcome="maybe"), "without a valid outcome"),
+    (lambda d: d["cases"][0]["mutants"][0].update(failure_kind="maybe"), "without a valid failure kind"),
+    (lambda d: d["cases"][0]["mutants"][0].update(outcome="killed", failure_kind="inconclusive"),
+     "without a valid failure kind"),
+    (lambda d: d["cases"][0]["baseline_check"].update(outcome="refuted"), "does not match the recorded baseline"),
+    (lambda d: d["cases"][0]["baseline_check"].update(failure_kind="inconclusive"),
+     "baseline measurement has an invalid failure kind"),
+    (lambda d: d["cases"][0]["baseline_check"].update(seconds=True), "time or budget is not numeric"),
     (lambda d: d["cases"].append({**d["cases"][0], "id": "XX99-D99"}), "no longer exists"),
     (lambda d: d.pop("verifier"), "does not record the mumei commit"),
     (lambda d: d["cases"].append(dict(d["cases"][0])), "recorded more than once"),
