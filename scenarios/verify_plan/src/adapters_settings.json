@@ -1,0 +1,74 @@
+[
+  {
+    "schema_version": "mumei.verifier-adapter/v1",
+    "adapter_id": "alpha",
+    "adapter_version": "1.0.0",
+    "profiles": [
+      "mumei.demo/v1"
+    ],
+    "methods": [
+      "deductive_proof"
+    ],
+    "result_contracts": [
+      {
+        "profile": "mumei.demo/v1",
+        "method": "deductive_proof",
+        "scope": "unbounded",
+        "correspondence_relation": "exact_model",
+        "correspondence_status": "assumed"
+      }
+    ],
+    "input_formats": [
+      "mumei.source-text/v1"
+    ],
+    "required_permissions": [],
+    "setting_specs": [
+      {
+        "name": "cache",
+        "kind": "boolean",
+        "default": false
+      },
+      {
+        "name": "rounds",
+        "kind": "integer",
+        "default": 3,
+        "minimum": 1,
+        "maximum": 10
+      },
+      {
+        "name": "strategy",
+        "kind": "choice",
+        "default": "balanced",
+        "choices": [
+          "balanced",
+          "eager"
+        ]
+      }
+    ]
+  },
+  {
+    "schema_version": "mumei.verifier-adapter/v1",
+    "adapter_id": "beta",
+    "adapter_version": "1.0.0",
+    "profiles": [
+      "mumei.demo/v1"
+    ],
+    "methods": [
+      "deductive_proof"
+    ],
+    "result_contracts": [
+      {
+        "profile": "mumei.demo/v1",
+        "method": "deductive_proof",
+        "scope": "unbounded",
+        "correspondence_relation": "exact_model",
+        "correspondence_status": "assumed"
+      }
+    ],
+    "input_formats": [
+      "mumei.source-text/v1"
+    ],
+    "required_permissions": [],
+    "priority": 5
+  }
+]

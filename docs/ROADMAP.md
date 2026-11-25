@@ -55,13 +55,18 @@ This remains a regression gate only — not Evidence truth, adapter adoption or
 grade promotion.
 
 C13 progress: the optional `verify_plan` regression now also pins planner
-selection policy. An explicit available adapter records `selected_explicit`
-without fallback; a missing explicit adapter with fallback denied leaves
-`selected` null and blocks the automatic route; and a pinned tool-version
-mismatch excludes the affected adapter while a compatible priority candidate
-may still be selected. Integration CI runs the scenario through
-`make demo-verify-plan`. These are selection/exclusion regressions only — not
-adapter execution, output meaning, Evidence truth or grade promotion.
+selection and configuration policy. An explicit available adapter records
+`selected_explicit` without fallback; a missing explicit adapter with fallback
+denied leaves `selected` null and blocks the automatic route; and a pinned
+tool-version mismatch excludes the affected adapter while a compatible priority
+candidate may still be selected. Host-declared schema-valid adapter settings
+are recorded exactly with a pinned configuration fingerprint, while
+out-of-schema settings and sensitive setting channels reject the planning
+command before any route or partial plan and do not echo the submitted fake
+sentinel value. Integration CI runs the scenario through
+`make demo-verify-plan`. These are selection/configuration/exclusion
+regressions only — not adapter execution, output meaning, Evidence truth or
+grade promotion.
 
 C13 progress: required claims may pin `evidence_kind` (exact match over the
 claim and its dependency coverage), so a requirement written for model proof

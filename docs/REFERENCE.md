@@ -96,7 +96,7 @@ Generated from the Makefile, argparse definitions, and environment registry.
 | `demo-summaries-plan` | Declared summary-route planning (probe boundary + resume). |
 | `demo-summaries-attempt` | Declared summary attempt routes (ts/rust/sol + optional Go + timeout refusal). |
 | `demo-summaries-reuse-attempt` | Declared summary reuse-attempt routes (go/rust/sol/ts, stale TS manifest, timeout). |
-| `demo-verify-plan` | Planning-only adapter selection, fallback denial and version exclusion regressions. |
+| `demo-verify-plan` | Planning-only adapter selection, fallback denial, version and settings regressions. |
 | `demo-evidence-producer` | Declared evidence producer-identity route (real mumei + mumei-agent). |
 | `demo-producer-signature-recovery` | Producer-authenticity lane: keygen, sign, pinned verify, recovery (real mumei + mumei-agent). |
 | `demo-agent-signature-sign` | Agent-side producer lane: keygen, signature-sign, pinned verify, recovery (real mumei + mumei-agent). |

@@ -1,7 +1,7 @@
 {
   "name": "Planning-Only Verification Route",
   "version": "1.0.0",
-  "description": "Run verify-plan against declared adapter manifests, policy and observations; it records priority, explicit selection, fallback denial and version-exclusion decisions only, without spawning, dispatching or accepting an adapter.",
+  "description": "Run verify-plan against declared adapter manifests, policy and observations; it records priority, explicit selection, fallback denial, version-exclusion and adapter-settings decisions only, without spawning, dispatching or accepting an adapter.",
   "layers": [
     "l1_planning"
   ],
@@ -12,10 +12,11 @@
     ],
     "state_dir": "{output_dir}",
     "state_file": "{output_dir}/harness_state.json",
-    "intent": "Plan adapter selection from host-declared documents only. Explicit selection, denied fallback, version pins and permission exclusions are planning decisions. No adapter is spawned, dispatched or accepted, and the selected adapter is not a verification result.",
+    "intent": "Plan adapter selection from host-declared documents only. Explicit selection, denied fallback, version pins, adapter settings and permission exclusions are planning decisions. No adapter is spawned, dispatched or accepted, and the selected adapter is not a verification result.",
     "artifact_contracts": [
       "Read the request, policy, adapter manifests and host-declared observations under scenarios/verify_plan/src/.",
-      "The priority plan selects beta by declared priority; explicit lower-priority alpha selection records selected_explicit; beta-unavailable fallback selects alpha only when policy permits fallback; denied fallback selects nothing; a pinned tool-version mismatch excludes beta.",
+      "The priority plan selects beta by declared priority; explicit lower-priority alpha selection records selected_explicit; beta-unavailable fallback selects alpha only when policy permits fallback; denied fallback selects nothing; a pinned tool-version mismatch excludes beta; schema-valid adapter settings are recorded for the explicit alpha route.",
+      "Out-of-schema adapter settings and sensitive setting channels reject the planning command before any route or output plan is produced, without echoing the submitted value.",
       "A gamma adapter requiring network.connect is excluded by the policy that allows only process.spawn, with its tested exclusion reason.",
       "A request with an unsupported profile emits a plan whose selected field is null; the planning command exits 0.",
       "Input fixture hashes match before and after planning. Plans contain no injected environment sentinel or adapter execution, dispatch or acceptance record."
@@ -27,7 +28,8 @@
       "PLANNING-ONLY: adapter selection is planning metadata, not a verification result.",
       "Availability and tool versions are host-declared observations; this route does not probe or invoke adapters.",
       "The permission-exclusion case uses network.connect against the declared process.spawn-only policy.",
-      "The unsupported-profile case has no compatible adapter and is reported with selected: null."
+      "The unsupported-profile case has no compatible adapter and is reported with selected: null.",
+      "Adapter settings are planning metadata only: they are not passed to child argv, stdin or environment."
     ],
     "artifact_keys": [
       "schema_version",
@@ -44,7 +46,7 @@
         "id": "input_hashes_before",
         "name": "Snapshot declared planner input bytes",
         "repo": "mumei-demo",
-        "command": "sha256sum {root_dir}/scenarios/verify_plan/src/request.json {root_dir}/scenarios/verify_plan/src/policy.json {root_dir}/scenarios/verify_plan/src/adapters.json {root_dir}/scenarios/verify_plan/src/observations.json {root_dir}/scenarios/verify_plan/src/policy_fallback.json {root_dir}/scenarios/verify_plan/src/observations_beta_missing.json {root_dir}/scenarios/verify_plan/src/adapters_permissions.json {root_dir}/scenarios/verify_plan/src/observations_permissions.json {root_dir}/scenarios/verify_plan/src/request_no_compatible.json {root_dir}/scenarios/verify_plan/src/policy_explicit.json {root_dir}/scenarios/verify_plan/src/policy_version_pin.json {root_dir}/scenarios/verify_plan/src/observations_beta_version_mismatch.json {root_dir}/scenarios/verify_plan/src/observations_alpha_missing.json > {output_dir}/input_hashes.before && cat {output_dir}/input_hashes.before",
+        "command": "sha256sum {root_dir}/scenarios/verify_plan/src/request.json {root_dir}/scenarios/verify_plan/src/policy.json {root_dir}/scenarios/verify_plan/src/adapters.json {root_dir}/scenarios/verify_plan/src/observations.json {root_dir}/scenarios/verify_plan/src/policy_fallback.json {root_dir}/scenarios/verify_plan/src/observations_beta_missing.json {root_dir}/scenarios/verify_plan/src/adapters_permissions.json {root_dir}/scenarios/verify_plan/src/observations_permissions.json {root_dir}/scenarios/verify_plan/src/request_no_compatible.json {root_dir}/scenarios/verify_plan/src/policy_explicit.json {root_dir}/scenarios/verify_plan/src/policy_version_pin.json {root_dir}/scenarios/verify_plan/src/observations_beta_version_mismatch.json {root_dir}/scenarios/verify_plan/src/observations_alpha_missing.json {root_dir}/scenarios/verify_plan/src/adapters_settings.json {root_dir}/scenarios/verify_plan/src/policy_adapter_settings.json {root_dir}/scenarios/verify_plan/src/policy_settings_out_of_schema.json {root_dir}/scenarios/verify_plan/src/policy_settings_sensitive_channel.json > {output_dir}/input_hashes.before && cat {output_dir}/input_hashes.before",
         "expected_exit": 0,
         "expected_patterns": [
           "request.json",
@@ -56,7 +58,7 @@
           "input_hashes.before"
         ],
         "harness_stage": "S0_input_hash_snapshot",
-        "artifact_contract": "Record SHA-256 hashes for every source fixture used by the four plans.",
+        "artifact_contract": "Record SHA-256 hashes for every source fixture used by the plans.",
         "verifier_gate": "The final integrity step must reproduce this exact hash listing."
       },
       {
@@ -178,6 +180,75 @@
         "cwd": "{mumei_agent_repo}"
       },
       {
+        "id": "plan_adapter_settings",
+        "name": "Plan: record schema-valid adapter settings",
+        "repo": "mumei-agent",
+        "command": "MUMEI_TEST_SECRET=FAKE_SECRET_SENTINEL_VALUE_9f2c1d {mumei_agent_python} -m agent verify-plan --request {root_dir}/scenarios/verify_plan/src/request.json --adapters {root_dir}/scenarios/verify_plan/src/adapters_settings.json --policy {root_dir}/scenarios/verify_plan/src/policy_adapter_settings.json --observations {root_dir}/scenarios/verify_plan/src/observations.json --output {output_dir}/plan_adapter_settings.json > {output_dir}/plan_adapter_settings.stdout 2> {output_dir}/plan_adapter_settings.stderr; rc=$?; cat {output_dir}/plan_adapter_settings.json; cat {output_dir}/plan_adapter_settings.stdout; cat {output_dir}/plan_adapter_settings.stderr; test $rc -eq 0 && {mumei_agent_python} -c 'import json,sys\np=sys.argv[1]\nd=json.load(open(p))\nreasons=dict((x[\"adapter_id\"],x[\"reasons\"]) for x in d[\"decisions\"])\nselected=d.get(\"selected\") or {}\nok=(d.get(\"schema_version\") == \"mumei.verification-plan/v1\" and selected.get(\"adapter_id\") == \"alpha\" and \"fallback_from\" in d and d[\"fallback_from\"] is None and reasons.get(\"alpha\") == [\"selected_explicit\"] and reasons.get(\"beta\") == [\"compatible_not_selected\"] and selected.get(\"adapter_settings\") == {\"cache\": True, \"rounds\": 7, \"strategy\": \"eager\"} and type(selected[\"adapter_settings\"].get(\"cache\")) is bool and type(selected[\"adapter_settings\"].get(\"rounds\")) is int and type(selected[\"adapter_settings\"].get(\"strategy\")) is str and selected.get(\"configuration_fingerprint\") == \"0ed8a2d447ac8d7e38963594b98b70d2b2495c237a50c27fb39858c7af7ec6f8\" and \"adapter_settings\" not in d.get(\"policy\",{}))\nif not ok:\n    raise SystemExit(\"adapter settings selection mismatch\")\nprint(\"adapter settings recorded as planning metadata\")' {output_dir}/plan_adapter_settings.json",
+        "expected_exit": 0,
+        "depends_on": [
+          "input_hashes_before"
+        ],
+        "artifacts": [
+          "plan_adapter_settings.json",
+          "plan_adapter_settings.stdout",
+          "plan_adapter_settings.stderr"
+        ],
+        "harness_stage": "S2e_adapter_settings",
+        "artifact_contract": "plan_adapter_settings.json selects explicit alpha with schema-valid cache, rounds and strategy settings plus the pinned configuration fingerprint; raw adapter_settings policy overrides are not echoed in policy output.",
+        "verifier_gate": "The route exits 0 and settings remain planning metadata only, not process input, adapter execution or Evidence.",
+        "expected_patterns": [
+          "adapter settings recorded as planning metadata",
+          "0ed8a2d447ac8d7e38963594b98b70d2b2495c237a50c27fb39858c7af7ec6f8"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "plan_settings_out_of_schema",
+        "name": "Plan: reject out-of-schema adapter settings",
+        "repo": "mumei-agent",
+        "command": "MUMEI_TEST_SECRET=FAKE_SECRET_SENTINEL_VALUE_9f2c1d {mumei_agent_python} -m agent verify-plan --request {root_dir}/scenarios/verify_plan/src/request.json --adapters {root_dir}/scenarios/verify_plan/src/adapters_settings.json --policy {root_dir}/scenarios/verify_plan/src/policy_settings_out_of_schema.json --observations {root_dir}/scenarios/verify_plan/src/observations.json --output {output_dir}/plan_settings_out_of_schema.json > {output_dir}/plan_settings_out_of_schema.stdout 2> {output_dir}/plan_settings_out_of_schema.stderr; rc=$?; cat {output_dir}/plan_settings_out_of_schema.stdout; cat {output_dir}/plan_settings_out_of_schema.stderr; test $rc -eq 1 && test ! -e {output_dir}/plan_settings_out_of_schema.json && grep -q \"setting value outside declared schema\" {output_dir}/plan_settings_out_of_schema.stderr && {mumei_agent_python} -c 'import sys\ntexts=[open(p).read() for p in sys.argv[1:]]\nmarkers=(\"mumei.verification-plan/v1\",\"\\\"schema_version\\\"\",\"\\\"selected\\\"\",\"\\\"decisions\\\"\")\nif any(marker in text for text in texts for marker in markers):\n    raise SystemExit(\"partial plan appeared on rejection streams\")\nprint(\"rejection streams contain no plan document\")' {output_dir}/plan_settings_out_of_schema.stdout {output_dir}/plan_settings_out_of_schema.stderr && echo \"out-of-schema adapter settings reject planning\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "input_hashes_before"
+        ],
+        "artifacts": [
+          "plan_settings_out_of_schema.stdout",
+          "plan_settings_out_of_schema.stderr"
+        ],
+        "harness_stage": "S2f_invalid_adapter_settings",
+        "artifact_contract": "rounds=0 is outside the declared 1..10 schema, so verify-plan exits 1 before producing plan_settings_out_of_schema.json.",
+        "verifier_gate": "Rejection is tied to the exact schema error; no fallback route, partial plan file or plan output on either stream is produced.",
+        "expected_patterns": [
+          "out-of-schema adapter settings reject planning",
+          "setting value outside declared schema",
+          "rejection streams contain no plan document"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
+        "id": "plan_settings_sensitive_channel",
+        "name": "Plan: reject sensitive adapter setting channels",
+        "repo": "mumei-agent",
+        "command": "MUMEI_TEST_SECRET=FAKE_SECRET_SENTINEL_VALUE_9f2c1d {mumei_agent_python} -m agent verify-plan --request {root_dir}/scenarios/verify_plan/src/request.json --adapters {root_dir}/scenarios/verify_plan/src/adapters_settings.json --policy {root_dir}/scenarios/verify_plan/src/policy_settings_sensitive_channel.json --observations {root_dir}/scenarios/verify_plan/src/observations.json --output {output_dir}/plan_settings_sensitive_channel.json > {output_dir}/plan_settings_sensitive_channel.stdout 2> {output_dir}/plan_settings_sensitive_channel.stderr; rc=$?; cat {output_dir}/plan_settings_sensitive_channel.stdout; cat {output_dir}/plan_settings_sensitive_channel.stderr; test $rc -eq 1 && test ! -e {output_dir}/plan_settings_sensitive_channel.json && grep -q \"setting channel is not permitted\" {output_dir}/plan_settings_sensitive_channel.stderr && ! grep -q FAKE_SECRET_SENTINEL_VALUE_9f2c1d {output_dir}/plan_settings_sensitive_channel.stdout {output_dir}/plan_settings_sensitive_channel.stderr && {mumei_agent_python} -c 'import sys\ntexts=[open(p).read() for p in sys.argv[1:]]\nmarkers=(\"mumei.verification-plan/v1\",\"\\\"schema_version\\\"\",\"\\\"selected\\\"\",\"\\\"decisions\\\"\")\nif any(marker in text for text in texts for marker in markers):\n    raise SystemExit(\"partial plan appeared on rejection streams\")\nprint(\"rejection streams contain no plan document\")' {output_dir}/plan_settings_sensitive_channel.stdout {output_dir}/plan_settings_sensitive_channel.stderr && echo \"sensitive setting channel rejects without echoing the value\"",
+        "expected_exit": 0,
+        "depends_on": [
+          "input_hashes_before"
+        ],
+        "artifacts": [
+          "plan_settings_sensitive_channel.stdout",
+          "plan_settings_sensitive_channel.stderr"
+        ],
+        "harness_stage": "S2g_sensitive_adapter_settings",
+        "artifact_contract": "api_key is a forbidden sensitive channel, so verify-plan exits 1 before producing plan_settings_sensitive_channel.json and neither stream echoes the submitted fake sentinel value.",
+        "verifier_gate": "Rejection is tied to the exact sensitive-channel error; no fallback route, partial plan file, plan output on either stream or value disclosure is produced.",
+        "expected_patterns": [
+          "sensitive setting channel rejects without echoing the value",
+          "setting channel is not permitted",
+          "rejection streams contain no plan document"
+        ],
+        "cwd": "{mumei_agent_repo}"
+      },
+      {
         "id": "plan_permission_excluded",
         "name": "Plan: exclude an adapter outside the permission policy",
         "repo": "mumei-agent",
@@ -230,7 +301,7 @@
         "id": "inputs_unchanged",
         "name": "Check input integrity and planning-only output",
         "repo": "mumei-demo",
-        "command": "before=$(cat {output_dir}/input_hashes.before); after=$(sha256sum {root_dir}/scenarios/verify_plan/src/request.json {root_dir}/scenarios/verify_plan/src/policy.json {root_dir}/scenarios/verify_plan/src/adapters.json {root_dir}/scenarios/verify_plan/src/observations.json {root_dir}/scenarios/verify_plan/src/policy_fallback.json {root_dir}/scenarios/verify_plan/src/observations_beta_missing.json {root_dir}/scenarios/verify_plan/src/adapters_permissions.json {root_dir}/scenarios/verify_plan/src/observations_permissions.json {root_dir}/scenarios/verify_plan/src/request_no_compatible.json {root_dir}/scenarios/verify_plan/src/policy_explicit.json {root_dir}/scenarios/verify_plan/src/policy_version_pin.json {root_dir}/scenarios/verify_plan/src/observations_beta_version_mismatch.json {root_dir}/scenarios/verify_plan/src/observations_alpha_missing.json); test \"$before\" = \"$after\" && {mumei_agent_python} -c 'import json,sys\nsentinel=\"FAKE_SECRET_SENTINEL_VALUE_9f2c1d\"\nexecution=set((\"candidate\",\"acceptance\",\"dispatch\",\"selected_result\",\"accepted\"))\ntexts=[open(p).read() for p in sys.argv[1:]]\nleaked=any(sentinel in text for text in texts)\nexecuted=any(execution.intersection(json.loads(text).keys()) for p,text in zip(sys.argv[1:],texts) if p.endswith(\".json\"))\nif leaked or executed:\n    raise SystemExit(\"planning boundary scan mismatch\")\nprint(\"input hashes unchanged; no secret/environment values or execution records\")' {output_dir}/plan_priority.json {output_dir}/plan_priority.stdout {output_dir}/plan_priority.stderr {output_dir}/plan_unavailable_fallback.json {output_dir}/plan_unavailable_fallback.stdout {output_dir}/plan_unavailable_fallback.stderr {output_dir}/plan_explicit_selection.json {output_dir}/plan_explicit_selection.stdout {output_dir}/plan_explicit_selection.stderr {output_dir}/plan_denied_fallback.json {output_dir}/plan_denied_fallback.stdout {output_dir}/plan_denied_fallback.stderr {output_dir}/plan_tool_version_mismatch.json {output_dir}/plan_tool_version_mismatch.stdout {output_dir}/plan_tool_version_mismatch.stderr {output_dir}/plan_permission_excluded.json {output_dir}/plan_permission_excluded.stdout {output_dir}/plan_permission_excluded.stderr {output_dir}/plan_no_compatible.json {output_dir}/plan_no_compatible.stdout {output_dir}/plan_no_compatible.stderr",
+        "command": "before=$(cat {output_dir}/input_hashes.before); after=$(sha256sum {root_dir}/scenarios/verify_plan/src/request.json {root_dir}/scenarios/verify_plan/src/policy.json {root_dir}/scenarios/verify_plan/src/adapters.json {root_dir}/scenarios/verify_plan/src/observations.json {root_dir}/scenarios/verify_plan/src/policy_fallback.json {root_dir}/scenarios/verify_plan/src/observations_beta_missing.json {root_dir}/scenarios/verify_plan/src/adapters_permissions.json {root_dir}/scenarios/verify_plan/src/observations_permissions.json {root_dir}/scenarios/verify_plan/src/request_no_compatible.json {root_dir}/scenarios/verify_plan/src/policy_explicit.json {root_dir}/scenarios/verify_plan/src/policy_version_pin.json {root_dir}/scenarios/verify_plan/src/observations_beta_version_mismatch.json {root_dir}/scenarios/verify_plan/src/observations_alpha_missing.json {root_dir}/scenarios/verify_plan/src/adapters_settings.json {root_dir}/scenarios/verify_plan/src/policy_adapter_settings.json {root_dir}/scenarios/verify_plan/src/policy_settings_out_of_schema.json {root_dir}/scenarios/verify_plan/src/policy_settings_sensitive_channel.json); test \"$before\" = \"$after\" && {mumei_agent_python} -c 'import json,sys\nsentinel=\"FAKE_SECRET_SENTINEL_VALUE_9f2c1d\"\nexecution=set((\"candidate\",\"acceptance\",\"dispatch\",\"selected_result\",\"accepted\"))\ntexts=[open(p).read() for p in sys.argv[1:]]\nleaked=any(sentinel in text for text in texts)\nexecuted=any(execution.intersection(json.loads(text).keys()) for p,text in zip(sys.argv[1:],texts) if p.endswith(\".json\"))\nif leaked or executed:\n    raise SystemExit(\"planning boundary scan mismatch\")\nprint(\"input hashes unchanged; no secret/environment values or execution records\")' {output_dir}/plan_priority.json {output_dir}/plan_priority.stdout {output_dir}/plan_priority.stderr {output_dir}/plan_unavailable_fallback.json {output_dir}/plan_unavailable_fallback.stdout {output_dir}/plan_unavailable_fallback.stderr {output_dir}/plan_explicit_selection.json {output_dir}/plan_explicit_selection.stdout {output_dir}/plan_explicit_selection.stderr {output_dir}/plan_denied_fallback.json {output_dir}/plan_denied_fallback.stdout {output_dir}/plan_denied_fallback.stderr {output_dir}/plan_tool_version_mismatch.json {output_dir}/plan_tool_version_mismatch.stdout {output_dir}/plan_tool_version_mismatch.stderr {output_dir}/plan_permission_excluded.json {output_dir}/plan_permission_excluded.stdout {output_dir}/plan_permission_excluded.stderr {output_dir}/plan_no_compatible.json {output_dir}/plan_no_compatible.stdout {output_dir}/plan_no_compatible.stderr {output_dir}/plan_adapter_settings.json {output_dir}/plan_adapter_settings.stdout {output_dir}/plan_adapter_settings.stderr {output_dir}/plan_settings_out_of_schema.stdout {output_dir}/plan_settings_out_of_schema.stderr {output_dir}/plan_settings_sensitive_channel.stdout {output_dir}/plan_settings_sensitive_channel.stderr",
         "expected_exit": 0,
         "depends_on": [
           "plan_priority",
@@ -239,6 +310,9 @@
           "plan_explicit_selection",
           "plan_denied_fallback",
           "plan_tool_version_mismatch",
+          "plan_adapter_settings",
+          "plan_settings_out_of_schema",
+          "plan_settings_sensitive_channel",
           "plan_no_compatible"
         ],
         "expected_patterns": [
@@ -256,19 +330,22 @@
   },
   "narrative": {
     "audit_status": "PLANNING-ONLY",
-    "moment": "Planning only: explicit selection, denied fallback and version pins fail closed.",
+    "moment": "Planning only: explicit selection, denied fallback, version pins and adapter settings fail closed.",
     "intro": [
       "Step 1: plan_priority selects beta by declared priority.",
       "Step 2: missing beta falls back to alpha when permitted.",
       "Step 3: explicit alpha selection is pinned.",
       "Step 4: denied fallback selects nothing.",
       "Step 5: pinned tool-version mismatch excludes beta.",
-      "Step 6: gamma is excluded by policy permissions.",
-      "Step 7: no supported profile yields selected: null.",
-      "Step 8: inputs unchanged; no adapter is executed."
+      "Step 6: schema-valid alpha adapter settings are recorded.",
+      "Step 7: out-of-schema adapter settings reject planning.",
+      "Step 8: sensitive adapter setting channels reject planning without echoing values.",
+      "Step 9: gamma is excluded by policy permissions.",
+      "Step 10: no supported profile yields selected: null.",
+      "Step 11: inputs unchanged; no adapter is executed."
     ],
-    "before": "No local plan records the declared adapter choice or exclusion reasons.",
-    "after": "Plans record selection, fallback and exclusion reasons without executing an adapter; selection is not a verification result.",
+    "before": "No local plan records the declared adapter choice, configuration or exclusion reasons.",
+    "after": "Plans record selection, configuration, fallback and exclusion reasons without executing an adapter; selection is not a verification result.",
     "steps": {
       "plan_priority": {
         "pass": {
@@ -289,6 +366,66 @@
             "  Host-declared missing availability selects alpha as the fallback.",
             "  fallback_from names beta, the requested adapter.",
             "  Selection is not a verifier execution or result."
+          ]
+        }
+      },
+      "plan_explicit_selection": {
+        "pass": {
+          "icon": "✅",
+          "headline": "verify-plan: explicit alpha selected",
+          "follow_up": [
+            "  Explicit policy selects lower-priority alpha with selected_explicit.",
+            "  fallback_from is null; compatible beta is not executed or accepted."
+          ]
+        }
+      },
+      "plan_denied_fallback": {
+        "pass": {
+          "icon": "✅",
+          "headline": "verify-plan: fallback denied",
+          "follow_up": [
+            "  Missing explicit alpha leaves selected null when fallback is denied.",
+            "  Beta records explicit_selection_blocks_automatic_route instead of a silent automatic route."
+          ]
+        }
+      },
+      "plan_tool_version_mismatch": {
+        "pass": {
+          "icon": "✅",
+          "headline": "verify-plan: version mismatch excludes beta",
+          "follow_up": [
+            "  The pinned beta version differs from the host-declared observation.",
+            "  Beta records tool_version_mismatch while alpha remains the priority selection."
+          ]
+        }
+      },
+      "plan_adapter_settings": {
+        "pass": {
+          "icon": "✅",
+          "headline": "verify-plan: adapter settings recorded",
+          "follow_up": [
+            "  Schema-valid cache, rounds and strategy values appear only as selected planning metadata.",
+            "  The pinned configuration fingerprint binds the approved settings projection."
+          ]
+        }
+      },
+      "plan_settings_out_of_schema": {
+        "pass": {
+          "icon": "✅",
+          "headline": "verify-plan: invalid settings rejected",
+          "follow_up": [
+            "  rounds=0 is outside the declared integer bounds.",
+            "  The command exits 1 before producing a route or partial plan."
+          ]
+        }
+      },
+      "plan_settings_sensitive_channel": {
+        "pass": {
+          "icon": "✅",
+          "headline": "verify-plan: sensitive settings rejected",
+          "follow_up": [
+            "  api_key is outside the permitted non-secret setting channel vocabulary.",
+            "  The command exits 1 without echoing the fake sentinel value or producing a plan."
           ]
         }
       },
@@ -327,12 +464,15 @@
   "intent_fidelity": {
     "status": "TRACEABLE",
     "score": 1.0,
-    "source_intent": "Plan adapter selection and exclusion from declared manifests, policy and observations only, including explicit selection, denied fallback and version pins; do not execute adapters or treat a selected adapter as a verification result.",
+    "source_intent": "Plan adapter selection, configuration and exclusion from declared manifests, policy and observations only, including explicit selection, denied fallback, version pins and schema-validated non-secret adapter settings; do not execute adapters or treat a selected adapter as a verification result.",
     "success_criteria": [
       "Priority plan selects beta with selected_priority, alpha compatible_not_selected and null fallback_from",
       "Explicit lower-priority alpha selects alpha with selected_explicit and null fallback_from",
       "Missing explicit alpha with fallback denied exits 0 with selected null and beta explicit_selection_blocks_automatic_route",
       "Pinned beta version mismatch excludes beta with tool_version_mismatch while alpha remains selected_priority",
+      "Schema-valid alpha settings record cache=true, rounds=7, strategy=eager and the pinned configuration fingerprint",
+      "Out-of-schema rounds=0 exits 1 before producing a plan",
+      "Sensitive api_key settings exit 1 before producing a plan and do not echo the fake sentinel value",
       "Missing beta selects alpha and records beta as fallback_from",
       "Gamma requiring network.connect is excluded with permissions_not_allowed",
       "No-compatible request exits 0 with selected null",
@@ -341,6 +481,11 @@
   },
   "success_criteria": [
     "Priority plan uses mumei.verification-plan/v1, selects beta, reports the exact decision reasons and null fallback_from",
+    "Explicit lower-priority alpha selects alpha with selected_explicit and null fallback_from",
+    "Missing explicit alpha with fallback denied exits 0 with selected null",
+    "Pinned beta version mismatch excludes beta with tool_version_mismatch",
+    "Schema-valid alpha adapter settings are recorded exactly with the pinned configuration fingerprint",
+    "Out-of-schema and sensitive adapter settings exit 1 before producing a plan",
     "Missing beta selects alpha and records beta as fallback_from",
     "Gamma requiring network.connect is excluded with permissions_not_allowed",
     "No-compatible request exits 0 with selected null",
@@ -357,6 +502,42 @@
       "gate": "plan_unavailable_fallback",
       "user_wording": [
         "When beta is declared missing, alpha is selected and beta is recorded as fallback_from"
+      ]
+    },
+    {
+      "gate": "plan_explicit_selection",
+      "user_wording": [
+        "Explicit alpha selection is recorded without fallback or execution"
+      ]
+    },
+    {
+      "gate": "plan_denied_fallback",
+      "user_wording": [
+        "Denied fallback leaves selected null instead of silently rerouting"
+      ]
+    },
+    {
+      "gate": "plan_tool_version_mismatch",
+      "user_wording": [
+        "A pinned tool-version mismatch excludes the affected adapter"
+      ]
+    },
+    {
+      "gate": "plan_adapter_settings",
+      "user_wording": [
+        "Schema-valid adapter settings are recorded as planning metadata only"
+      ]
+    },
+    {
+      "gate": "plan_settings_out_of_schema",
+      "user_wording": [
+        "Out-of-schema adapter settings reject planning before any route"
+      ]
+    },
+    {
+      "gate": "plan_settings_sensitive_channel",
+      "user_wording": [
+        "Sensitive adapter setting channels reject planning without value disclosure"
       ]
     },
     {
@@ -386,6 +567,22 @@
     "{output_dir}/plan_unavailable_fallback.json",
     "{output_dir}/plan_unavailable_fallback.stdout",
     "{output_dir}/plan_unavailable_fallback.stderr",
+    "{output_dir}/plan_explicit_selection.json",
+    "{output_dir}/plan_explicit_selection.stdout",
+    "{output_dir}/plan_explicit_selection.stderr",
+    "{output_dir}/plan_denied_fallback.json",
+    "{output_dir}/plan_denied_fallback.stdout",
+    "{output_dir}/plan_denied_fallback.stderr",
+    "{output_dir}/plan_tool_version_mismatch.json",
+    "{output_dir}/plan_tool_version_mismatch.stdout",
+    "{output_dir}/plan_tool_version_mismatch.stderr",
+    "{output_dir}/plan_adapter_settings.json",
+    "{output_dir}/plan_adapter_settings.stdout",
+    "{output_dir}/plan_adapter_settings.stderr",
+    "{output_dir}/plan_settings_out_of_schema.stdout",
+    "{output_dir}/plan_settings_out_of_schema.stderr",
+    "{output_dir}/plan_settings_sensitive_channel.stdout",
+    "{output_dir}/plan_settings_sensitive_channel.stderr",
     "{output_dir}/plan_permission_excluded.json",
     "{output_dir}/plan_permission_excluded.stdout",
     "{output_dir}/plan_permission_excluded.stderr",
