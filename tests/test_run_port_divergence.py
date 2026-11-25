@@ -125,6 +125,20 @@ def test_collect_separates_unresolved_taxonomy_from_verifier_measurement(monkeyp
     assert "LLM port verifier measurement: 2.5s across 1 of 1 calls; budget 8.0s across 1 of 1 calls" in rendered
 
 
+def test_collect_counts_verifier_startup_failure_as_environment_failure(monkeypatch):
+    case = stub_case("0 - 1")
+    monkeypatch.setattr(pd.replay, "replay_inputs", lambda _case: ([WITNESS], "digest"))
+    monkeypatch.setattr(pd.bench, "verify_text", lambda *_args: {
+        "outcome": "inconclusive", "status": "verifier startup failed (FileNotFoundError)",
+        "failure_kind": "environment_failure", "diagnostics": [], "seconds": 0.1, "budget_seconds": 7})
+    doc = {"model": "test", "runs": [[{"id": "X", "buggy": {"outcome": "proven", "body": "0"}}]]}
+    report = pd.collect([case], doc, "/bin/mumei", 7)
+    for lane in ("reference", "llm_ports"):
+        assert report["unresolved"][lane]["environment_failure"] == 1
+        assert report["measurement"][lane]["expected_calls"] == 1
+        assert report["measurement"][lane]["timed_calls"] == 1
+
+
 def test_replays_candidate_even_without_a_reference_violation(monkeypatch):
     monkeypatch.setattr(pd.replay, "replay_inputs", lambda _case: ([WITNESS], "digest"))
     case = stub_case("n")

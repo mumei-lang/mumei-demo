@@ -321,6 +321,11 @@ def verify_text(mumei_bin: str, text: str, timeout: int) -> dict:
                     "failure_kind": "budget_exhausted", "diagnostics": [],
                     "seconds": round(time.monotonic() - started, 3),
                     "budget_seconds": timeout}
+        except OSError as error:
+            return {"outcome": "inconclusive", "status": f"verifier startup failed ({type(error).__name__})",
+                    "failure_kind": "environment_failure", "diagnostics": [],
+                    "seconds": round(time.monotonic() - started, 3),
+                    "budget_seconds": timeout}
         try:
             doc = json.loads(proc.stdout[proc.stdout.index("{"):]) if "{" in proc.stdout else None
         except json.JSONDecodeError:

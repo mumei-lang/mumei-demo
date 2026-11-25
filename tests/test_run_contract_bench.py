@@ -238,6 +238,17 @@ def test_verify_text_timeout_is_inconclusive(monkeypatch):
     assert type(result["seconds"]) is float and result["budget_seconds"] == 5
 
 
+def test_verify_text_verifier_startup_failure_is_environment_failure(monkeypatch):
+    def boom(*a, **k):
+        raise FileNotFoundError("missing verifier")
+    monkeypatch.setattr(cb.subprocess, "run", boom)
+    result = cb.verify_text("mumei", FIXED, 5)
+    assert result["outcome"] == "inconclusive"
+    assert result["status"] == "verifier startup failed (FileNotFoundError)"
+    assert result["failure_kind"] == "environment_failure" and result["diagnostics"] == []
+    assert type(result["seconds"]) is float and result["budget_seconds"] == 5
+
+
 # --- reference arm and vacuity control ---------------------------------------
 
 def test_vacuity_text_replaces_only_target_ensures(repo):
