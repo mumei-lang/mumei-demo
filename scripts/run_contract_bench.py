@@ -54,6 +54,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from collections import Counter
 from pathlib import Path
 
@@ -254,10 +255,35 @@ def load_cases(cache: dict | None = None) -> tuple[list[dict], list[str]]:
     return cases, errors
 
 
+FAILURE_KINDS = ("unsupported", "inconclusive", "environment_failure", "budget_exhausted")
+
+
+def failure_kind(result: dict) -> str | None:
+    """Conservative reason an outcome is inconclusive, derived when old records lack one."""
+    if result.get("outcome") != "inconclusive":
+        return None
+    explicit = result.get("failure_kind")
+    if explicit in FAILURE_KINDS:
+        return explicit
+    status = str(result.get("status", ""))
+    diagnostics = result.get("diagnostics") or []
+    messages = " ".join(str(d.get("message", "")) for d in diagnostics if isinstance(d, dict))
+    codes = {str(d.get("code", "")) for d in diagnostics if isinstance(d, dict)}
+    if status == "timeout":
+        return "budget_exhausted"
+    if status.startswith(TRANSPORT_ERROR) or status.startswith("no-json"):
+        return "environment_failure"
+    if (status in {"input_error", "no-contract", "no-body"} or "input_error" in codes
+            or "Unknown function" in messages):
+        return "unsupported"
+    return "inconclusive"
+
+
 def classify(doc: dict | None, returncode: int) -> dict:
     """proven / refuted / inconclusive from `mumei verify --json` output."""
     if doc is None:
-        return {"outcome": "inconclusive", "status": f"no-json (exit {returncode})", "diagnostics": []}
+        return {"outcome": "inconclusive", "status": f"no-json (exit {returncode})",
+                "failure_kind": "environment_failure", "diagnostics": []}
     status = str(doc.get("status", ""))
     diags = [{"atom": d.get("atom", ""), "code": d.get("code", ""),
               "message": str(d.get("message", ""))[:300]}
@@ -269,10 +295,21 @@ def classify(doc: dict | None, returncode: int) -> dict:
         outcome = "refuted" if diags and all(REFUTATION.search(d["message"]) for d in diags) else "inconclusive"
     else:
         outcome = "inconclusive"
-    return {"outcome": outcome, "status": status, "diagnostics": diags}
+    out = {"outcome": outcome, "status": status, "diagnostics": diags}
+    if outcome == "inconclusive":
+        if int(doc.get("infra_errors", 0) or 0):
+            kind = "environment_failure"
+        elif int(doc.get("unverifiable", 0) or 0) or status == "input_error" or any(
+                d.get("code") == "input_error" or "Unknown function" in d.get("message", "") for d in diags):
+            kind = "unsupported"
+        else:
+            kind = "inconclusive"
+        out["failure_kind"] = kind
+    return out
 
 
 def verify_text(mumei_bin: str, text: str, timeout: int) -> dict:
+    started = time.monotonic()
     with tempfile.TemporaryDirectory(prefix="contract-bench-") as tmp:
         path = Path(tmp) / "case.mm"
         path.write_text(text)
@@ -280,12 +317,17 @@ def verify_text(mumei_bin: str, text: str, timeout: int) -> dict:
             proc = subprocess.run([mumei_bin, "verify", "--json", path.name], cwd=tmp,
                                   capture_output=True, text=True, timeout=timeout)
         except subprocess.TimeoutExpired:
-            return {"outcome": "inconclusive", "status": "timeout", "diagnostics": []}
+            return {"outcome": "inconclusive", "status": "timeout",
+                    "failure_kind": "budget_exhausted", "diagnostics": [],
+                    "seconds": round(time.monotonic() - started, 3),
+                    "budget_seconds": timeout}
         try:
             doc = json.loads(proc.stdout[proc.stdout.index("{"):]) if "{" in proc.stdout else None
         except json.JSONDecodeError:
             doc = None
-        return classify(doc, proc.returncode)
+        return {**classify(doc, proc.returncode),
+                "seconds": round(time.monotonic() - started, 3),
+                "budget_seconds": timeout}
 
 
 def vacuity_text(case: dict, header: str | None = None) -> str:
@@ -390,21 +432,27 @@ def git_identity(path: str) -> dict:
     return {"commit": commit, "dirty": bool(git("status", "--porcelain", "--untracked-files=no")) if commit else None}
 
 
-def vacuity(case: dict, out: dict, mumei_bin: str, timeout: int, header: str | None = None) -> str:
+def vacuity_result(case: dict, out: dict, mumei_bin: str, timeout: int,
+                   header: str | None = None) -> tuple[str, dict]:
     control = verify_text(mumei_bin, vacuity_text(case, header), timeout)
     # mumei may reject `ensures: false` up front as contradicting `requires`. That alone would also pass an
     # unsatisfiable `requires`, so it only counts when the buggy port was refuted, i.e. some input meets `requires`.
     contradiction = control["status"] == "failed" and control["diagnostics"] and all(
         "Spec contradiction" in d["message"] or REFUTATION.search(d["message"]) for d in control["diagnostics"])
     rejected = control["outcome"] == "refuted" or (contradiction and out["buggy"]["outcome"] == "refuted")
-    return "ok" if rejected else ("vacuous" if control["outcome"] == "proven" else "inconclusive")
+    status = "ok" if rejected else ("vacuous" if control["outcome"] == "proven" else "inconclusive")
+    return status, control
+
+
+def vacuity(case: dict, out: dict, mumei_bin: str, timeout: int, header: str | None = None) -> str:
+    return vacuity_result(case, out, mumei_bin, timeout, header)[0]
 
 
 def run_mumei_case(case: dict, mumei_bin: str, timeout: int) -> dict:
     out = {k: case[k] for k in ("id", "language", "specimen", "category", "function", "case_hash", "source_hash")}
     for v in VARIANTS:
         out[v] = verify_text(mumei_bin, case["ports"][v], timeout)
-    out["vacuity"] = vacuity(case, out, mumei_bin, timeout)
+    out["vacuity"], out["vacuity_control"] = vacuity_result(case, out, mumei_bin, timeout)
     path = REPO_ROOT / case["dir"] / CERT_FILE
     path.unlink(missing_ok=True)
     if out["fixed"]["outcome"] == "proven":
@@ -564,7 +612,7 @@ def run_contract_case(case: dict, provider, seed: int, mumei_bin: str, timeout: 
     header = contract_header(case, *clauses)
     for v in VARIANTS:
         out[v] = verify_text(mumei_bin, case["prelude"] + header + split_port(case["ports"][v], case["atom"])[2], timeout)
-    out["vacuity"] = vacuity(case, out, mumei_bin, timeout, header)
+    out["vacuity"], out["vacuity_control"] = vacuity_result(case, out, mumei_bin, timeout, header)
     return out
 
 
@@ -618,7 +666,9 @@ def run_llm_case(case: dict, provider, arm: str, seed: int, mumei_bin: str | Non
 
 def score(records: list[dict]) -> dict:
     s = {"cases": len(records), "buggy_refuted": 0, "fixed_proven": 0, "both": 0,
-         "wrong_accept": 0, "wrong_reject": 0, "inconclusive": 0, "errors": 0, "vacuous": 0}
+         "wrong_accept": 0, "wrong_reject": 0, "false_acceptance": 0, "false_positive": 0,
+         "unsupported": 0, "inconclusive": 0, "environment_failure": 0,
+         "budget_exhausted": 0, "errors": 0, "vacuous": 0}
     for r in records:
         b, f = r["buggy"]["outcome"], r["fixed"]["outcome"]
         s["buggy_refuted"] += b == "refuted"
@@ -626,19 +676,54 @@ def score(records: list[dict]) -> dict:
         s["both"] += b == "refuted" and f == "proven"
         s["wrong_accept"] += b == "proven"
         s["wrong_reject"] += f == "refuted"
-        # A record-level request (llm-contract) that failed is one failed request, not one per variant.
-        shared = "usage" in r and r["usage"] is None
+        s["false_acceptance"] += b == "proven"
+        s["false_positive"] += f == "refuted"
         for v in VARIANTS:
             if r[v]["outcome"] == "inconclusive":
-                failed = str(r[v].get("status", "")).startswith(TRANSPORT_ERROR)
-                s["errors" if failed else "inconclusive"] += 0 if failed and shared and v != VARIANTS[0] else 1
+                kind = failure_kind(r[v]) or "inconclusive"
+                s[kind] += 1
+                if kind == "environment_failure":
+                    s["errors"] += 1
         s["vacuous"] += r.get("vacuity") == "vacuous"
     return s
 
 
+def verification_measurement_slots(record: dict) -> list[dict]:
+    """Verifier outcome/control slots, including uninstrumented historical records.
+
+    Verifier outcomes always carry `diagnostics`; direct-LLM outcomes do not. Transport or
+    generation failures before the verifier starts therefore do not create a slot. A record
+    with a vacuity verdict did run the control even when old JSON lacks its measurement.
+    """
+    slots = []
+    for v in VARIANTS:
+        result = record.get(v)
+        if isinstance(result, dict) and any(k in result for k in ("diagnostics", "seconds", "budget_seconds")):
+            slots.append(result)
+    if "vacuity" in record:
+        control = record.get("vacuity_control")
+        slots.append(control if isinstance(control, dict) else {})
+    return slots
+
+
+def numeric_measurement(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
 def usage_total(records: list[dict]) -> dict:
     cost, seconds, calls, unknown = 0.0, 0.0, 0, 0
+    verification_seconds, verification_budget = 0.0, 0.0
+    verification_timed, verification_budgeted, verification_expected = 0, 0, 0
     for r in records:
+        slots = verification_measurement_slots(r)
+        verification_expected += len(slots)
+        for result in slots:
+            if numeric_measurement(result.get("seconds")):
+                verification_timed += 1
+                verification_seconds += result["seconds"]
+            if numeric_measurement(result.get("budget_seconds")):
+                verification_budgeted += 1
+                verification_budget += result["budget_seconds"]
         for u in [r[v].get("usage") for v in VARIANTS] + [r.get("usage")]:
             if not u:
                 continue
@@ -648,7 +733,13 @@ def usage_total(records: list[dict]) -> dict:
                 unknown += 1
             else:
                 cost += u["cost_usd"]
-    return {"calls": calls, "cost_usd": round(cost, 4), "model_seconds": round(seconds, 1), "cost_unknown_calls": unknown}
+    return {"calls": calls, "cost_usd": round(cost, 4), "model_seconds": round(seconds, 1),
+            "cost_unknown_calls": unknown,
+            "verification_seconds": round(verification_seconds, 1),
+            "verification_timed_calls": verification_timed,
+            "verification_expected_calls": verification_expected,
+            "verification_budget_seconds": round(verification_budget, 1),
+            "verification_budgeted_calls": verification_budgeted}
 
 
 def result_path(arm: str, model: str | None) -> Path:
@@ -717,13 +808,35 @@ def fmt(row: dict, key: str) -> str:
 
 
 def render_table(rows: list[dict]) -> str:
-    lines = ["| Arm | Model | Runs | Buggy refuted | Fixed proven | Both right | Buggy accepted | Fixed rejected | Inconclusive | Cost |",
-             "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|"]
+    lines = ["| Arm | Model | Runs | Buggy refuted | Fixed proven | Both right | False acceptance | False positive | Unsupported | Inconclusive | Env failure | Budget exhausted | Cost |",
+             "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
     for r in rows:
         cost = "—" if r["arm"] == "mumei" else f"${r['usage']['cost_usd']:.2f}"
         lines.append(f"| {ARM_LABEL.get(r['arm'], r['arm'])} | {r['model'] or '—'} | {r['runs']} | "
                      f"{fmt(r, 'buggy_refuted')} / {r['cases']} | {fmt(r, 'fixed_proven')} / {r['cases']} | "
-                     f"{fmt(r, 'both')} | {fmt(r, 'wrong_accept')} | {fmt(r, 'wrong_reject')} | {fmt(r, 'inconclusive')} | {cost} |")
+                     f"{fmt(r, 'both')} | {fmt(r, 'false_acceptance')} | {fmt(r, 'false_positive')} | "
+                     f"{fmt(r, 'unsupported')} | {fmt(r, 'inconclusive')} | {fmt(r, 'environment_failure')} | "
+                     f"{fmt(r, 'budget_exhausted')} | {cost} |")
+    return "\n".join(lines)
+
+
+def render_measurement_table(rows: list[dict]) -> str:
+    lines = ["| Arm | Model | Model time | Verification time | Verification budget |",
+             "|---|---|---:|---:|---:|"]
+    for r in rows:
+        usage = r["usage"]
+        model_time = "—" if r["arm"] == "mumei" else f"{usage['model_seconds']:.1f}s"
+        expected = usage["verification_expected_calls"]
+        if expected:
+            seconds = f"{usage['verification_seconds']:.1f}s" if usage["verification_timed_calls"] else "—"
+            verification_time = f"{seconds} / {usage['verification_timed_calls']} of {expected} calls"
+            budget = f"{usage['verification_budget_seconds']:.1f}s" if usage["verification_budgeted_calls"] else "—"
+            verification_budget = f"{budget} / {usage['verification_budgeted_calls']} of {expected} calls"
+        else:
+            verification_time = "—"
+            verification_budget = "—"
+        lines.append(f"| {ARM_LABEL.get(r['arm'], r['arm'])} | {r['model'] or '—'} | {model_time} | "
+                     f"{verification_time} | {verification_budget} |")
     return "\n".join(lines)
 
 
@@ -735,12 +848,25 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
            "The right answer is: buggy version refuted, fixed version proven. "
            "Values are medians over runs, with the range in brackets.", "",
            render_table(rows), "",
+           "Outcome taxonomy: false acceptance is a buggy body proven; false positive is a fixed body refuted; "
+           "unsupported means the input, generated port/contract or verifier capability cannot represent the case; "
+           "inconclusive means no evidence either way; environment failure means tool/transport failure; budget "
+           "exhausted means the declared timeout was consumed. These categories are mutually exclusive per-variant "
+           "outcomes, not proof grades; one shared LLM request failure can therefore produce two environment-failure "
+           "outcomes.", "",
+           render_measurement_table(rows), "",
+           "Verification time and budget are wall seconds and the declared per-attempt timeout aggregated over "
+           "recorded outcome-determining verifier calls, including vacuity controls and the per-call input/output "
+           "glue inside `verify_text`. Certificate emission/rechecks, case-level orchestration and provider calls "
+           "are outside that measurement. Older committed rows show the measured fraction of "
+           "expected verifier calls, so partial `--only` refreshes cannot look fully instrumented. Model time/cost "
+           "come only from provider usage metadata.", "",
            "[REPLAY.md](REPLAY.md) replays concrete inputs, the LLM witnesses and the LLM ports on the native "
            "code (`scripts/run_native_replay.py`). [REGRESSION.md](REGRESSION.md) reads the same results as a "
            "pull-request gate for changes under a pinned contract (`scripts/run_regression_gate.py`).", ""]
     failed = [r for r in rows if r["errors"]]
     if failed:
-        out += ["Requests that failed (rate limits, timeouts) are not counted as answers: " +
+        out += ["Variant outcomes blocked by tool or transport failure are not counted as answers: " +
                 ", ".join(f"{r['arm']} {fmt(r, 'errors')}" for r in failed) + ".", ""]
     out += ["The reference ports were written by hand with knowledge of the defects, so the first row shows "
             "that the contracts can express each requirement and how often the checker tells the two versions apart. "

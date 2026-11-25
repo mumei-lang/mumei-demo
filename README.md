@@ -66,12 +66,12 @@ The specimen benchmark measures finding bugs in existing code. This one measures
 
 <!-- contract-bench:start -->
 
-| Arm | Model | Runs | Buggy refuted | Fixed proven | Both right | Buggy accepted | Fixed rejected | Inconclusive | Cost |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| mumei (reference ports) | — | 1 | 71 / 71 | 71 / 71 | 71 | 0 | 0 | 0 | — |
-| LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | $0.11 |
-| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 63 (60–63) / 71 | 71 (70–71) / 71 | 62 (60–63) | 8 (8–10) | 0 | 1 (0–1) | $0.15 |
-| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 3 | 68 (67–68) / 71 | 60 (59–62) / 71 | 58 (58–59) | 2 (1–3) | 9 (9–10) | 4 (0–4) | $0.06 |
+| Arm | Model | Runs | Buggy refuted | Fixed proven | Both right | False acceptance | False positive | Unsupported | Inconclusive | Env failure | Budget exhausted | Cost |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| mumei (reference ports) | — | 1 | 71 / 71 | 71 / 71 | 71 | 0 | 0 | 0 | 0 | 0 | 0 | — |
+| LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | 0 | 0 | 0 | $0.11 |
+| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 63 (60–63) / 71 | 71 (70–71) / 71 | 62 (60–63) | 8 (8–10) | 0 | 1 (0–1) | 0 | 0 | 0 | $0.15 |
+| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 3 | 68 (67–68) / 71 | 60 (59–62) / 71 | 58 (58–59) | 2 (1–3) | 9 (9–10) | 4 (0–4) | 0 | 0 | 0 | $0.06 |
 
 Details, per-language results and caveats: [proofs/RESULTS.md](proofs/RESULTS.md).
 

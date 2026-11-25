@@ -21,6 +21,17 @@ extend this C13 regression surface: the same buggy/fixed source-contract pairs e
 native-object acceptance, but a source proof, an unchecked native attempt, and an audit
 finding cannot substitute for a successful machine-TV acceptance.
 
+C13 progress: the contract benchmark now keeps the assurance outcome taxonomy
+separate instead of using one inconclusive bucket: false acceptance, false
+positive, unsupported input/generated output/capability, undetermined
+inconclusive outcome, environment failure and budget exhaustion are counted
+independently. Verifier runs also record per-attempt wall time and declared
+timeout budget, while provider usage keeps model time and cost distinct.
+Committed rows recorded before that instrumentation keep their outcome
+taxonomy but show unavailable verifier timing as unknown. This is measurement
+and regression control only — not proof truth, Evidence acceptance or grade
+promotion.
+
 [C08](https://github.com/mumei-lang/mumei/issues/788) checks native evidence
 binding; [C09](https://github.com/mumei-lang/mumei/issues/789) checks only the
 declared translation subset; [C10](https://github.com/mumei-lang/mumei/issues/790)
