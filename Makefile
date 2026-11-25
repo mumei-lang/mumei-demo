@@ -450,7 +450,7 @@ demo-summaries-reuse-attempt: ## Declared summary reuse-attempt routes (go/rust/
 		--mumei-repo "$(MUMEI_REPO)" \
 		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
 
-demo-verify-plan: ## Planning-only adapter selection, fallback denial and version exclusion regressions.
+demo-verify-plan: ## Planning-only adapter selection, fallback denial, version and settings regressions.
 	@./scripts/run_scenario.sh verify_plan \
 		--mumei-repo "$(MUMEI_REPO)" \
 		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
