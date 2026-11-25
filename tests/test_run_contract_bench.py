@@ -419,10 +419,24 @@ def test_arm_rows_order_reference_first():
     assert [r["arm"] for r in cb.arm_rows(docs)] == ["mumei", "llm", "mumei-llm"]
 
 
-def test_render_table_shows_ranges_and_cost():
+def test_render_table_shows_ranges_cost_and_taxonomy():
     runs = [[rec("a", "go", "refuted", "proven", cost=0.1)], [rec("a", "go", "proven", "proven", cost=0.1)]]
     table = cb.render_table(cb.arm_rows([{"arm": "llm", "model": "m", "runs": runs}]))
     assert "| LLM only (judges the source) | m | 2 |" in table and "(0–1)" in table and "$0.40" in table
+    for heading in ("False acceptance", "False positive", "Unsupported", "Inconclusive", "Env failure", "Budget exhausted"):
+        assert heading in table
+
+
+def test_render_measurement_table_shows_verification_time_and_budget():
+    r = rec("a", "go", "refuted", "proven")
+    r["buggy"].update({"seconds": 0.25, "budget_seconds": 5})
+    r["fixed"].update({"seconds": 0.75, "budget_seconds": 5})
+    rows = cb.arm_rows([{"arm": "mumei", "model": None, "runs": [[r]]}])
+    table = cb.render_measurement_table(rows)
+    assert "| Arm | Model | Model time | Verification time | Verification budget |" in table
+    assert "1.0s / 2 calls" in table and "10.0s / 2 calls" in table
+    md = cb.render_markdown(rows, [{"arm": "mumei", "model": None, "runs": [[r]]}], [])
+    assert "Outcome taxonomy" in md and "Verification time and budget" in md
 
 
 # --- staleness, offline check, rendering --------------------------------------
