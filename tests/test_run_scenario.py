@@ -19,6 +19,37 @@ def _load_runner() -> dict:
     return namespace
 
 
+@pytest.mark.parametrize(
+    ("scenario", "layer"),
+    [("no_mm_audit", "l1_audit"), ("spec_code_verification_suite", "mode_b")],
+)
+def test_python_audit_gates_accept_different_counterexample_values(scenario: str, layer: str) -> None:
+    scenario_path = SCRIPT.parents[1] / "scenarios" / scenario / "scenario.json"
+    gate = json.loads(scenario_path.read_text(encoding="utf-8"))[layer]["steps"][0]
+    payload = {
+        "verification_status": "refuted",
+        "verification_violations": ["withdraw: Python return violates the extracted postcondition (Z3 counterexample)."],
+        "counterexample_values": [
+            {"function_name": "withdraw", "counterexample": {"balance": "0", "amount": "2"}},
+        ],
+        "cross_validation_gaps": [
+            "spec stronger than implementation: withdraw",
+            "spec precondition assumed, not enforced, by `withdraw`",
+        ],
+    }
+    check = _load_runner()["check_json_fields"]
+    assert check(json.dumps(payload), gate) == (True, [])
+    for binding in ("balance", "amount"):
+        witness = payload["counterexample_values"][0]["counterexample"]
+        value = witness.pop(binding)
+        passed, _ = check(json.dumps(payload), gate)
+        assert not passed
+        for non_string in (None, 2):
+            witness[binding] = non_string
+            assert check(json.dumps(payload), gate)[0] is False
+        witness[binding] = value
+
+
 def test_artifact_payloads_previews_jsonl_as_text(tmp_path: Path) -> None:
     artifact = tmp_path / "plan_history.jsonl"
     artifact.write_text('{"entry":1}\n', encoding="utf-8")

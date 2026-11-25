@@ -129,7 +129,7 @@
         "id": "verify_existing_code",
         "name": "Mode B: existing-code audit",
         "repo": "mumei-agent",
-        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\nout = Path('{output_dir}') / 'mode_b_verify_code.json'\npayload = {\n    'mode': 'mode_b',\n    'v1_mode': 'V1-B',\n    'source_file': '{root_dir}/scenarios/spec_code_verification_suite/buggy_payment.py',\n    'language': 'python',\n    'spec_health_issues': [],\n    'verification_violations': [\n        {'function': 'withdraw', 'message': 'balance can go negative when amount=150 and balance=100'}\n    ],\n    'counterexample_values': [{'balance': 100, 'amount': 150}],\n    'cross_validation_gaps': [],\n    'next_steps': [\n        {'priority': 'high', 'action': 'Review the missing amount <= balance guard before migration.', 'command': 'mumei-agent validate-code --input buggy_payment.py --language python'}\n    ],\n    'migration_hints': [],\n    'healed_files': [],\n    'heal_errors': [],\n    'harness_contract': 'mode_b requires verification_violations and next_steps before migration_hints.',\n    'intent_fidelity': {'status': 'TRACEABLE', 'score': 1.0},\n    'artifact_paths': [str(out)],\n    'budget_policy_fingerprint': 'fixture-spec-code-suite-v1'\n}\nout.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\\n', encoding='utf-8')\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/spec_code_verification_suite/buggy_payment.py --language python --json | tee {output_dir}/mode_b_verify_code.json || true; fi",
+        "command": "if [ \"${CI_FIXTURE_MODE:-0}\" = \"1\" ]; then {mumei_agent_python} - <<'PY'\nimport json\nfrom pathlib import Path\nout = Path('{output_dir}') / 'mode_b_verify_code.json'\npayload = {\n    'mode': 'mode_b',\n    'v1_mode': 'V1-B',\n    'success': False,\n    'spec_extracted': True,\n    'verification_status': 'refuted',\n    'source_file': '{root_dir}/scenarios/spec_code_verification_suite/buggy_payment.py',\n    'language': 'python',\n    'spec_health_issues': [],\n    'verification_violations': ['withdraw: Python return violates the extracted postcondition (Z3 counterexample).'],\n    'counterexample_values': [{'function_name': 'withdraw', 'counterexample': {'amount': '1', 'balance': '0'}}],\n    'cross_validation_gaps': ['spec stronger than implementation: withdraw', 'spec precondition assumed, not enforced, by `withdraw`'],\n    'next_steps': [\n        {'priority': 'high', 'action': 'migrate-suggest で .mm スケルトンを生成', 'command': 'mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm'},\n        {'priority': 'high', 'action': 'validate-spec-to-code で制約の対応を確認', 'command': 'mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human'}\n    ],\n    'migration_hints': [],\n    'healed_files': [],\n    'heal_errors': [],\n    'harness_contract': 'mode_b requires verification_violations and next_steps before migration_hints.',\n    'intent_fidelity': {'status': 'TRACEABLE', 'score': 1.0},\n    'artifact_paths': [str(out)],\n    'budget_policy_fingerprint': 'fixture-spec-code-suite-v1'\n}\nout.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + '\\n', encoding='utf-8')\nprint(json.dumps(payload, indent=2, ensure_ascii=False))\nPY\nelse {mumei_agent_python} -m agent audit --code-file {root_dir}/scenarios/spec_code_verification_suite/buggy_payment.py --language python --json | tee {output_dir}/mode_b_verify_code.json; fi",
         "cwd": "{mumei_agent_repo}",
         "expected_exit": 0,
         "expected_patterns": [
@@ -139,6 +139,11 @@
           "next_steps",
           "migration_hints"
         ],
+        "expected_json_contains": {
+          "verification_status": ["\"refuted\""],
+          "verification_violations": ["Python return violates the extracted postcondition"],
+          "counterexample_values": ["\"function_name\": \"withdraw\"", "\"balance\": \"", "\"amount\": \""]
+        },
         "artifacts": [
           "mode_b_verify_code.json"
         ],
@@ -147,7 +152,7 @@
         ],
         "harness_stage": "mode_b_v1_b_existing_code_audit",
         "artifact_contract": "mode_b output must expose verification_violations, next_steps, migration_hints, healed_files, heal_errors, and the shared harness vocabulary without aliases.",
-        "verifier_gate": "Existing-code audit exits 0 and emits verification_violations with next_steps before conformance evidence is reviewed."
+        "verifier_gate": "Existing-code audit exits 0 and reports a refuted postcondition, its Z3 counterexample, and next_steps before conformance evidence is reviewed."
       }
     ]
   },

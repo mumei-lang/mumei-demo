@@ -287,47 +287,25 @@ def _check_file(path: Path) -> list[str]:
             if f"--language {language}" not in command or "--code-file" not in command:
                 failures.append(f"{rel}: `{fixture['step_id']}` must audit with --code-file and --language {language}")
             patterns = step.get("expected_patterns")
-            if language == "python":
-                # mumei-agent#1326: extraction maps the missing guard into
-                # `requires`, so Z3 verifies vacuously and the audit honestly
-                # surfaces the gap in cross_validation_gaps instead of a Z3
-                # violation. The Python step must pin that diagnostic.
-                required_patterns = {
-                    "verification_violations",
-                    "spec stronger than implementation",
-                    "spec precondition assumed, not enforced",
-                    "next_steps",
-                }
-                missing_msg = (
-                    "verification_violations, spec stronger than implementation, "
-                    "spec precondition assumed, not enforced, and next_steps"
-                )
-            else:
-                required_patterns = {"verification_violations", "Z3 counterexample", "next_steps"}
-                missing_msg = "verification_violations, Z3 counterexample, and next_steps"
+            required_patterns = {"verification_violations", "Z3 counterexample", "next_steps"}
             if not isinstance(patterns, list) or not required_patterns.issubset(set(patterns)):
                 failures.append(
-                    f"{rel}: `{fixture['step_id']}` expected_patterns must include {missing_msg}"
+                    f"{rel}: `{fixture['step_id']}` expected_patterns must include "
+                    "verification_violations, Z3 counterexample, and next_steps"
                 )
             if language == "python":
-                # Substring patterns alone cannot pin WHERE the diagnostic
-                # lands: the vacuity gap must sit in cross_validation_gaps and
-                # verification_violations must stay empty.
-                json_contains = step.get("expected_json_contains")
-                json_empty = step.get("expected_json_empty")
-                if not isinstance(json_empty, list) or not isinstance(json_contains, dict):
-                    failures.append(
-                        f"{rel}: `detect_bug` expected_json_empty must be a list and expected_json_contains an object"
-                    )
-                else:
-                    gaps_needles = set(json_contains.get("cross_validation_gaps") or [])
-                    if not {"spec stronger than implementation", "spec precondition assumed, not enforced"}.issubset(gaps_needles):
+                required_fields = {
+                    "verification_status": ['"refuted"'],
+                    "verification_violations": ["Python return violates the extracted postcondition"],
+                    "counterexample_values": ['"function_name": "withdraw"', '"balance": "', '"amount": "'],
+                    "cross_validation_gaps": ["spec stronger than implementation", "spec precondition assumed, not enforced"],
+                }
+                json_contains = step.get("expected_json_contains", {})
+                for field, required in required_fields.items():
+                    needles = json_contains.get(field) if isinstance(json_contains, dict) else None
+                    if not isinstance(needles, list) or any(needle not in needles for needle in required):
                         failures.append(
-                            f"{rel}: `detect_bug` expected_json_contains.cross_validation_gaps must pin the vacuity diagnostic"
-                        )
-                    if "verification_violations" not in json_empty:
-                        failures.append(
-                            f"{rel}: `detect_bug` expected_json_empty must include verification_violations"
+                            f"{rel}: `detect_bug` expected_json_contains.{field} must include {required!r}"
                         )
         if data.get("harness_contract", {}).get("acceptance_path") != ["l1_audit", "l2_migrate", "l3_heal"]:
             failures.append(f"{rel}: no-.mm acceptance path must stay audit -> migrate-suggest -> heal")

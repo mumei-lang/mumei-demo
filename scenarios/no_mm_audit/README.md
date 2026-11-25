@@ -71,7 +71,7 @@ CI_FIXTURE_MODE=1 ./scripts/run_scenario.sh no_mm_audit \
 - `l1_audit/audit_rust_overflow: PASS`
 - `l1_audit/audit_typescript_null_undefined: PASS`
 - `l1_audit/audit_go_bounds: PASS`
-- `detect_bug.log` contains `verification_violations` and the honest vacuity gap in `cross_validation_gaps` (`spec stronger than implementation` / `spec precondition assumed, not enforced`) — extraction maps the missing guard into `requires`, so Z3 verifies vacuously and the audit surfaces the unenforced precondition instead of a Z3 counterexample (mumei-agent#1326)
+- `detect_bug.log` reports `verification_status: refuted` and the violation “Python return violates the extracted postcondition”. The Z3 counterexample `balance=0, amount=1` returns `-1`: the implementation check no longer assumes the missing guard from the extracted `requires` ([mumei-agent#1343](https://github.com/mumei-lang/mumei-agent/pull/1343)). The `cross_validation_gaps` still explain that the spec precondition is assumed, not enforced.
 - `audit_rust_overflow.log`, `audit_typescript_null_undefined.log`, and
   `audit_go_bounds.log` contain `verification_violations`, Z3 counterexample
   evidence, and `next_steps`

@@ -43,6 +43,7 @@ python dashboard/cli_report.py reports/spec_code_verification_suite/latest/resul
 ```
 
 Set `CI_FIXTURE_MODE=0` to exercise the live mumei-agent commands shown in the table above.
+Mode B runs `audit --json` for the shared audit report format. Its fixture mirrors the live Python result from [mumei-agent#1343](https://github.com/mumei-lang/mumei-agent/pull/1343): a refuted postcondition and a Z3 counterexample with `balance=0, amount=1`.
 
 ## Expected output
 
