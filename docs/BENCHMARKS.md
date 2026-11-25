@@ -84,7 +84,13 @@ hashes. Both used fresh builds of the corresponding Core revisions
 (Mumei 0.6.23, GCC 11.4.0), with four workers, a 120-second per-command
 timeout, and no model calls. The command prints the Z3-versus-native cross-tab and
 writes per-variant outcomes, stages, timings, input hashes and tool
-identity to `reports/machine_tv_bench.json`.
+identity to `reports/machine_tv_bench.json` by default. Use a separate
+output path for the repeat so the first report is preserved:
+
+```sh
+python3 scripts/run_machine_tv_bench.py --mumei-bin ../mumei/target/debug/mumei \
+  --output reports/machine_tv_bench_repeat.json
+```
 
 The native path appends only a constant, unrelated `main` to satisfy the
 bundle entry requirement; the original contract and target atom are unchanged.
