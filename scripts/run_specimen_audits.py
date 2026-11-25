@@ -790,7 +790,7 @@ def write_summary(coverages: list[dict], meta: dict, path: Path,
     ]
     adjudication = aggregate_adjudication(agg, len(stale or []))
     if adjudication["state"] == "complete":
-        readiness = ("complete — all current findings have up-to-date rulings. Precision and "
+        readiness = ("complete — all non-evidence findings have up-to-date rulings. Precision and "
                      "fixed-code false-alarm counts use current human rulings; detection counts "
                      "remain matcher outputs.")
     else:

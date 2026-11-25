@@ -919,7 +919,7 @@ def test_write_summary_without_stale_has_no_stale_section(tmp_path):
     text = out.read_text()
     assert "Stale" not in text and "stale finding" not in text.lower()
     assert "precision n/a" in text
-    assert "Finding adjudication: complete — all current findings have up-to-date rulings." in text
+    assert "Finding adjudication: complete — all non-evidence findings have up-to-date rulings." in text
 
 
 def test_history_entry_records_findings_and_rescore():
