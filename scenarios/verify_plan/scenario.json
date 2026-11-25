@@ -206,7 +206,7 @@
         "id": "plan_settings_out_of_schema",
         "name": "Plan: reject out-of-schema adapter settings",
         "repo": "mumei-agent",
-        "command": "MUMEI_TEST_SECRET=FAKE_SECRET_SENTINEL_VALUE_9f2c1d {mumei_agent_python} -m agent verify-plan --request {root_dir}/scenarios/verify_plan/src/request.json --adapters {root_dir}/scenarios/verify_plan/src/adapters_settings.json --policy {root_dir}/scenarios/verify_plan/src/policy_settings_out_of_schema.json --observations {root_dir}/scenarios/verify_plan/src/observations.json --output {output_dir}/plan_settings_out_of_schema.json > {output_dir}/plan_settings_out_of_schema.stdout 2> {output_dir}/plan_settings_out_of_schema.stderr; rc=$?; cat {output_dir}/plan_settings_out_of_schema.stdout; cat {output_dir}/plan_settings_out_of_schema.stderr; test $rc -eq 1 && test ! -e {output_dir}/plan_settings_out_of_schema.json && grep -q \"setting value outside declared schema\" {output_dir}/plan_settings_out_of_schema.stderr && echo \"out-of-schema adapter settings reject planning\"",
+        "command": "MUMEI_TEST_SECRET=FAKE_SECRET_SENTINEL_VALUE_9f2c1d {mumei_agent_python} -m agent verify-plan --request {root_dir}/scenarios/verify_plan/src/request.json --adapters {root_dir}/scenarios/verify_plan/src/adapters_settings.json --policy {root_dir}/scenarios/verify_plan/src/policy_settings_out_of_schema.json --observations {root_dir}/scenarios/verify_plan/src/observations.json --output {output_dir}/plan_settings_out_of_schema.json > {output_dir}/plan_settings_out_of_schema.stdout 2> {output_dir}/plan_settings_out_of_schema.stderr; rc=$?; cat {output_dir}/plan_settings_out_of_schema.stdout; cat {output_dir}/plan_settings_out_of_schema.stderr; test $rc -eq 1 && test ! -e {output_dir}/plan_settings_out_of_schema.json && grep -q \"setting value outside declared schema\" {output_dir}/plan_settings_out_of_schema.stderr && {mumei_agent_python} -c 'import sys\ntexts=[open(p).read() for p in sys.argv[1:]]\nmarkers=(\"mumei.verification-plan/v1\",\"\\\"schema_version\\\"\",\"\\\"selected\\\"\",\"\\\"decisions\\\"\")\nif any(marker in text for text in texts for marker in markers):\n    raise SystemExit(\"partial plan appeared on rejection streams\")\nprint(\"rejection streams contain no plan document\")' {output_dir}/plan_settings_out_of_schema.stdout {output_dir}/plan_settings_out_of_schema.stderr && echo \"out-of-schema adapter settings reject planning\"",
         "expected_exit": 0,
         "depends_on": [
           "input_hashes_before"
@@ -217,10 +217,11 @@
         ],
         "harness_stage": "S2f_invalid_adapter_settings",
         "artifact_contract": "rounds=0 is outside the declared 1..10 schema, so verify-plan exits 1 before producing plan_settings_out_of_schema.json.",
-        "verifier_gate": "Rejection is tied to the exact schema error; no fallback route or partial plan is produced.",
+        "verifier_gate": "Rejection is tied to the exact schema error; no fallback route, partial plan file or plan output on either stream is produced.",
         "expected_patterns": [
           "out-of-schema adapter settings reject planning",
-          "setting value outside declared schema"
+          "setting value outside declared schema",
+          "rejection streams contain no plan document"
         ],
         "cwd": "{mumei_agent_repo}"
       },
@@ -228,7 +229,7 @@
         "id": "plan_settings_sensitive_channel",
         "name": "Plan: reject sensitive adapter setting channels",
         "repo": "mumei-agent",
-        "command": "MUMEI_TEST_SECRET=FAKE_SECRET_SENTINEL_VALUE_9f2c1d {mumei_agent_python} -m agent verify-plan --request {root_dir}/scenarios/verify_plan/src/request.json --adapters {root_dir}/scenarios/verify_plan/src/adapters_settings.json --policy {root_dir}/scenarios/verify_plan/src/policy_settings_sensitive_channel.json --observations {root_dir}/scenarios/verify_plan/src/observations.json --output {output_dir}/plan_settings_sensitive_channel.json > {output_dir}/plan_settings_sensitive_channel.stdout 2> {output_dir}/plan_settings_sensitive_channel.stderr; rc=$?; cat {output_dir}/plan_settings_sensitive_channel.stdout; cat {output_dir}/plan_settings_sensitive_channel.stderr; test $rc -eq 1 && test ! -e {output_dir}/plan_settings_sensitive_channel.json && grep -q \"setting channel is not permitted\" {output_dir}/plan_settings_sensitive_channel.stderr && ! grep -q FAKE_SECRET_SENTINEL_VALUE_9f2c1d {output_dir}/plan_settings_sensitive_channel.stdout {output_dir}/plan_settings_sensitive_channel.stderr && echo \"sensitive setting channel rejects without echoing the value\"",
+        "command": "MUMEI_TEST_SECRET=FAKE_SECRET_SENTINEL_VALUE_9f2c1d {mumei_agent_python} -m agent verify-plan --request {root_dir}/scenarios/verify_plan/src/request.json --adapters {root_dir}/scenarios/verify_plan/src/adapters_settings.json --policy {root_dir}/scenarios/verify_plan/src/policy_settings_sensitive_channel.json --observations {root_dir}/scenarios/verify_plan/src/observations.json --output {output_dir}/plan_settings_sensitive_channel.json > {output_dir}/plan_settings_sensitive_channel.stdout 2> {output_dir}/plan_settings_sensitive_channel.stderr; rc=$?; cat {output_dir}/plan_settings_sensitive_channel.stdout; cat {output_dir}/plan_settings_sensitive_channel.stderr; test $rc -eq 1 && test ! -e {output_dir}/plan_settings_sensitive_channel.json && grep -q \"setting channel is not permitted\" {output_dir}/plan_settings_sensitive_channel.stderr && ! grep -q FAKE_SECRET_SENTINEL_VALUE_9f2c1d {output_dir}/plan_settings_sensitive_channel.stdout {output_dir}/plan_settings_sensitive_channel.stderr && {mumei_agent_python} -c 'import sys\ntexts=[open(p).read() for p in sys.argv[1:]]\nmarkers=(\"mumei.verification-plan/v1\",\"\\\"schema_version\\\"\",\"\\\"selected\\\"\",\"\\\"decisions\\\"\")\nif any(marker in text for text in texts for marker in markers):\n    raise SystemExit(\"partial plan appeared on rejection streams\")\nprint(\"rejection streams contain no plan document\")' {output_dir}/plan_settings_sensitive_channel.stdout {output_dir}/plan_settings_sensitive_channel.stderr && echo \"sensitive setting channel rejects without echoing the value\"",
         "expected_exit": 0,
         "depends_on": [
           "input_hashes_before"
@@ -239,10 +240,11 @@
         ],
         "harness_stage": "S2g_sensitive_adapter_settings",
         "artifact_contract": "api_key is a forbidden sensitive channel, so verify-plan exits 1 before producing plan_settings_sensitive_channel.json and neither stream echoes the submitted fake sentinel value.",
-        "verifier_gate": "Rejection is tied to the exact sensitive-channel error; no fallback route, partial plan or value disclosure is produced.",
+        "verifier_gate": "Rejection is tied to the exact sensitive-channel error; no fallback route, partial plan file, plan output on either stream or value disclosure is produced.",
         "expected_patterns": [
           "sensitive setting channel rejects without echoing the value",
-          "setting channel is not permitted"
+          "setting channel is not permitted",
+          "rejection streams contain no plan document"
         ],
         "cwd": "{mumei_agent_repo}"
       },
