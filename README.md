@@ -77,6 +77,8 @@ Details, per-language results and caveats: [proofs/RESULTS.md](proofs/RESULTS.md
 
 <!-- contract-bench:end -->
 
+See [port divergence](proofs/PORT_DIVERGENCE.md) for a replay of all recorded buggy LLM accepts and a breakdown of why the LLM ports behaved differently from the reference ports.
+
 <!-- comparison:start -->
 ### mumei only vs mumei + LLM vs LLM only
 

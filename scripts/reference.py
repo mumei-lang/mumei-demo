@@ -22,6 +22,7 @@ CLI_SCRIPTS = (
     ("scripts/run_contract_bench.py", "run_contract_bench"),
     ("scripts/run_machine_tv_bench.py", "run_machine_tv_bench"),
     ("scripts/run_native_replay.py", "run_native_replay"),
+    ("scripts/run_port_divergence.py", "run_port_divergence"),
     ("scripts/run_mutation_control.py", "run_mutation_control"),
     ("scripts/run_regression_gate.py", "run_regression_gate"),
     ("scripts/record_scenario.py", "record_scenario"),
