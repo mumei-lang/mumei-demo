@@ -432,21 +432,27 @@ def git_identity(path: str) -> dict:
     return {"commit": commit, "dirty": bool(git("status", "--porcelain", "--untracked-files=no")) if commit else None}
 
 
-def vacuity(case: dict, out: dict, mumei_bin: str, timeout: int, header: str | None = None) -> str:
+def vacuity_result(case: dict, out: dict, mumei_bin: str, timeout: int,
+                   header: str | None = None) -> tuple[str, dict]:
     control = verify_text(mumei_bin, vacuity_text(case, header), timeout)
     # mumei may reject `ensures: false` up front as contradicting `requires`. That alone would also pass an
     # unsatisfiable `requires`, so it only counts when the buggy port was refuted, i.e. some input meets `requires`.
     contradiction = control["status"] == "failed" and control["diagnostics"] and all(
         "Spec contradiction" in d["message"] or REFUTATION.search(d["message"]) for d in control["diagnostics"])
     rejected = control["outcome"] == "refuted" or (contradiction and out["buggy"]["outcome"] == "refuted")
-    return "ok" if rejected else ("vacuous" if control["outcome"] == "proven" else "inconclusive")
+    status = "ok" if rejected else ("vacuous" if control["outcome"] == "proven" else "inconclusive")
+    return status, control
+
+
+def vacuity(case: dict, out: dict, mumei_bin: str, timeout: int, header: str | None = None) -> str:
+    return vacuity_result(case, out, mumei_bin, timeout, header)[0]
 
 
 def run_mumei_case(case: dict, mumei_bin: str, timeout: int) -> dict:
     out = {k: case[k] for k in ("id", "language", "specimen", "category", "function", "case_hash", "source_hash")}
     for v in VARIANTS:
         out[v] = verify_text(mumei_bin, case["ports"][v], timeout)
-    out["vacuity"] = vacuity(case, out, mumei_bin, timeout)
+    out["vacuity"], out["vacuity_control"] = vacuity_result(case, out, mumei_bin, timeout)
     path = REPO_ROOT / case["dir"] / CERT_FILE
     path.unlink(missing_ok=True)
     if out["fixed"]["outcome"] == "proven":
@@ -606,7 +612,7 @@ def run_contract_case(case: dict, provider, seed: int, mumei_bin: str, timeout: 
     header = contract_header(case, *clauses)
     for v in VARIANTS:
         out[v] = verify_text(mumei_bin, case["prelude"] + header + split_port(case["ports"][v], case["atom"])[2], timeout)
-    out["vacuity"] = vacuity(case, out, mumei_bin, timeout, header)
+    out["vacuity"], out["vacuity_control"] = vacuity_result(case, out, mumei_bin, timeout, header)
     return out
 
 
@@ -687,18 +693,42 @@ def score(records: list[dict]) -> dict:
     return s
 
 
+def verification_measurement_slots(record: dict) -> list[dict]:
+    """Verifier outcome/control slots, including uninstrumented historical records.
+
+    Verifier outcomes always carry `diagnostics`; direct-LLM outcomes do not. Transport or
+    generation failures before the verifier starts therefore do not create a slot. A record
+    with a vacuity verdict did run the control even when old JSON lacks its measurement.
+    """
+    slots = []
+    for v in VARIANTS:
+        result = record.get(v)
+        if isinstance(result, dict) and any(k in result for k in ("diagnostics", "seconds", "budget_seconds")):
+            slots.append(result)
+    if "vacuity" in record:
+        control = record.get("vacuity_control")
+        slots.append(control if isinstance(control, dict) else {})
+    return slots
+
+
+def numeric_measurement(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
 def usage_total(records: list[dict]) -> dict:
     cost, seconds, calls, unknown = 0.0, 0.0, 0, 0
     verification_seconds, verification_budget = 0.0, 0.0
-    verification_timed, verification_budgeted = 0, 0
+    verification_timed, verification_budgeted, verification_expected = 0, 0, 0
     for r in records:
-        for v in VARIANTS:
-            if isinstance(r[v].get("seconds"), (int, float)) and not isinstance(r[v].get("seconds"), bool):
+        slots = verification_measurement_slots(r)
+        verification_expected += len(slots)
+        for result in slots:
+            if numeric_measurement(result.get("seconds")):
                 verification_timed += 1
-                verification_seconds += r[v]["seconds"]
-            if isinstance(r[v].get("budget_seconds"), (int, float)) and not isinstance(r[v].get("budget_seconds"), bool):
+                verification_seconds += result["seconds"]
+            if numeric_measurement(result.get("budget_seconds")):
                 verification_budgeted += 1
-                verification_budget += r[v]["budget_seconds"]
+                verification_budget += result["budget_seconds"]
         for u in [r[v].get("usage") for v in VARIANTS] + [r.get("usage")]:
             if not u:
                 continue
@@ -712,6 +742,7 @@ def usage_total(records: list[dict]) -> dict:
             "cost_unknown_calls": unknown,
             "verification_seconds": round(verification_seconds, 1),
             "verification_timed_calls": verification_timed,
+            "verification_expected_calls": verification_expected,
             "verification_budget_seconds": round(verification_budget, 1),
             "verification_budgeted_calls": verification_budgeted}
 
@@ -800,13 +831,14 @@ def render_measurement_table(rows: list[dict]) -> str:
     for r in rows:
         usage = r["usage"]
         model_time = "—" if r["arm"] == "mumei" else f"{usage['model_seconds']:.1f}s"
-        if usage["verification_timed_calls"]:
-            verification_time = f"{usage['verification_seconds']:.1f}s / {usage['verification_timed_calls']} calls"
+        expected = usage["verification_expected_calls"]
+        if expected:
+            seconds = f"{usage['verification_seconds']:.1f}s" if usage["verification_timed_calls"] else "—"
+            verification_time = f"{seconds} / {usage['verification_timed_calls']} of {expected} calls"
+            budget = f"{usage['verification_budget_seconds']:.1f}s" if usage["verification_budgeted_calls"] else "—"
+            verification_budget = f"{budget} / {usage['verification_budgeted_calls']} of {expected} calls"
         else:
             verification_time = "—"
-        if usage["verification_budgeted_calls"]:
-            verification_budget = f"{usage['verification_budget_seconds']:.1f}s / {usage['verification_budgeted_calls']} calls"
-        else:
             verification_budget = "—"
         lines.append(f"| {ARM_LABEL.get(r['arm'], r['arm'])} | {r['model'] or '—'} | {model_time} | "
                      f"{verification_time} | {verification_budget} |")
@@ -828,8 +860,10 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
            "not proof grades.", "",
            render_measurement_table(rows), "",
            "Verification time and budget are wall seconds and the declared per-attempt timeout aggregated over "
-           "recorded verifier calls. Older committed rows show `—` where the measurement was not yet recorded; "
-           "they still keep the outcome taxonomy. Model time/cost come only from provider usage metadata.", "",
+           "recorded outcome-determining verifier calls, including vacuity controls. Certificate emission/rechecks "
+           "and harness overhead are outside that measurement. Older committed rows show the measured fraction of "
+           "expected verifier calls, so partial `--only` refreshes cannot look fully instrumented. Model time/cost "
+           "come only from provider usage metadata.", "",
            "[REPLAY.md](REPLAY.md) replays concrete inputs, the LLM witnesses and the LLM ports on the native "
            "code (`scripts/run_native_replay.py`). [REGRESSION.md](REGRESSION.md) reads the same results as a "
            "pull-request gate for changes under a pinned contract (`scripts/run_regression_gate.py`).", ""]
