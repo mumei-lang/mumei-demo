@@ -354,6 +354,21 @@ def test_score_separates_unsupported_timeout_and_environment():
     assert (s["false_acceptance"], s["false_positive"]) == (0, 0)
 
 
+def test_status_error_without_environment_evidence_stays_undetermined():
+    r = rec("a", "go", "inconclusive", "proven")
+    r["buggy"]["status"] = "error"
+    r["buggy"].pop("failure_kind", None)
+    assert cb.failure_kind(r["buggy"]) == "inconclusive"
+
+
+def test_usage_total_ignores_boolean_verification_measurements():
+    r = rec("a", "go", "refuted", "proven")
+    r["buggy"]["seconds"] = True
+    r["buggy"]["budget_seconds"] = False
+    u = cb.usage_total([r])
+    assert u["verification_timed_calls"] == 0 and u["verification_budgeted_calls"] == 0
+
+
 def test_usage_total_tracks_verification_time_and_budget():
     r = rec("a", "go", "refuted", "proven")
     r["buggy"]["seconds"] = 0.25

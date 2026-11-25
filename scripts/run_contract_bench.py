@@ -271,7 +271,7 @@ def failure_kind(result: dict) -> str | None:
     codes = {str(d.get("code", "")) for d in diagnostics if isinstance(d, dict)}
     if status == "timeout":
         return "budget_exhausted"
-    if status.startswith(TRANSPORT_ERROR) or status.startswith("no-json") or status == "error":
+    if status.startswith(TRANSPORT_ERROR) or status.startswith("no-json"):
         return "environment_failure"
     if (status in {"input_error", "no-contract", "no-body"} or "input_error" in codes
             or "Unknown function" in messages):
@@ -693,10 +693,10 @@ def usage_total(records: list[dict]) -> dict:
     verification_timed, verification_budgeted = 0, 0
     for r in records:
         for v in VARIANTS:
-            if type(r[v].get("seconds")) in {int, float}:
+            if isinstance(r[v].get("seconds"), (int, float)) and not isinstance(r[v].get("seconds"), bool):
                 verification_timed += 1
                 verification_seconds += r[v]["seconds"]
-            if type(r[v].get("budget_seconds")) in {int, float}:
+            if isinstance(r[v].get("budget_seconds"), (int, float)) and not isinstance(r[v].get("budget_seconds"), bool):
                 verification_budgeted += 1
                 verification_budget += r[v]["budget_seconds"]
         for u in [r[v].get("usage") for v in VARIANTS] + [r.get("usage")]:
@@ -835,7 +835,7 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
            "pull-request gate for changes under a pinned contract (`scripts/run_regression_gate.py`).", ""]
     failed = [r for r in rows if r["errors"]]
     if failed:
-        out += ["Requests that failed (rate limits, timeouts) are not counted as answers: " +
+        out += ["Requests that failed in the tool or transport layer are not counted as answers: " +
                 ", ".join(f"{r['arm']} {fmt(r, 'errors')}" for r in failed) + ".", ""]
     out += ["The reference ports were written by hand with knowledge of the defects, so the first row shows "
             "that the contracts can express each requirement and how often the checker tells the two versions apart. "
