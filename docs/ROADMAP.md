@@ -61,6 +61,18 @@ Certificate emission/rechecks, gate orchestration and report rendering stay
 outside verifier time. This is measurement and regression control only — not
 proof truth, Evidence acceptance or grade promotion.
 
+C13 progress: the machine-TV benchmark now applies the same separation to the
+native lane. Acceptance of a refuted buggy port is counted as false acceptance;
+fresh source rejection of a proven fixed port is counted as a false positive;
+LLVM/object mismatches are counted as translation mismatches rather than
+source-level false positives. Unsupported profile outcomes, residual
+inconclusive outcomes, environment failures and budget exhaustion are counted
+independently. Source Z3 checks and the vacuity control keep wall time and
+declared timeout budget separate from native build, acceptance and diagnostic
+recheck commands, with measured-versus-expected coverage explicit for older or
+partial rows. This is measurement and regression control only — not proof
+truth, Evidence acceptance or grade promotion.
+
 [C08](https://github.com/mumei-lang/mumei/issues/788) checks native evidence
 binding; [C09](https://github.com/mumei-lang/mumei/issues/789) checks only the
 declared translation subset; [C10](https://github.com/mumei-lang/mumei/issues/790)
