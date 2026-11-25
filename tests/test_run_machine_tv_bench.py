@@ -151,3 +151,33 @@ def test_summary_does_not_turn_non_acceptance_into_rejection():
     assert summary["native"]["buggy"]["rejected"] == 1
     assert summary["native"]["buggy"]["outside_profile"] == summary["native"]["fixed"]["outside_profile"] == 1
     assert summary["native"]["fixed"]["outcomes"]["timeout"] == 1
+
+
+def test_filtered_report_defaults_to_separate_path(monkeypatch, tmp_path):
+    cases = [{"id": "A"}, {"id": "B"}]
+
+    def run_case(case, binary, timeout):
+        return {
+            "id": case["id"], "vacuity": "ok",
+            "buggy": {"z3": {"outcome": "refuted"}, "native": {"outcome": "source_refuted"}},
+            "fixed": {"z3": {"outcome": "proven"}, "native": {"outcome": "accepted"}},
+        }
+
+    monkeypatch.setattr(bench.cb, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(bench.cb, "load_cases", lambda: (cases, []))
+    monkeypatch.setattr(bench.cb, "git_identity", lambda _: {})
+    monkeypatch.setattr(bench.cb, "verifier_identity", lambda _: {})
+    monkeypatch.setattr(bench.shutil, "which", lambda binary: binary)
+    monkeypatch.setattr(bench, "run_case", run_case)
+
+    args = ["--mumei-bin", "/fake/mumei"]
+    full = tmp_path / "reports/machine_tv_bench.json"
+    filtered = tmp_path / "reports/machine_tv_bench_filtered.json"
+    assert bench.main(args) == 0
+    full_report = full.read_bytes()
+    assert [case["id"] for case in json.loads(full_report)["cases"]] == ["A", "B"]
+    assert bench.main(args + ["--only", "A"]) == 0
+    assert full.read_bytes() == full_report
+    assert [case["id"] for case in json.loads(filtered.read_text())["cases"]] == ["A"]
+    assert bench.main(args + ["--only", "B", "--output", str(tmp_path / "custom.json")]) == 0
+    assert [case["id"] for case in json.loads((tmp_path / "custom.json").read_text())["cases"]] == ["B"]

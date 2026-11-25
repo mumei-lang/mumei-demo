@@ -241,7 +241,7 @@ Measure native-object acceptance on the paired source-contract benchmark ports.
 | Option | Value | Required | Default | Description |
 |---|---|---|---|---|
 | `--mumei-bin` | `<MUMEI_BIN>` | no | — | mumei binary (default: $MUMEI_BIN, then mumei on PATH) |
-| `--output` | `<OUTPUT>` | no | `reports/machine_tv_bench.json` | path for the per-case JSON report |
+| `--output` | `<OUTPUT>` | no | — | JSON report path (default: reports/machine_tv_bench.json, or reports/machine_tv_bench_filtered.json with --only) |
 | `--only` | `<ONLY>` | no | — | limit to these defect ids (repeatable) |
 | `--jobs` | `<JOBS>` | no | `4` | cases run in parallel |
 | `--timeout` | `<TIMEOUT>` | no | `120` | per-command timeout in seconds |

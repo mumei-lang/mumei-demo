@@ -216,8 +216,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mumei-bin", default=os.environ.get("MUMEI_BIN") or shutil.which("mumei"),
                         help="mumei binary (default: $MUMEI_BIN, then mumei on PATH)")
-    parser.add_argument("--output", type=Path, default=cb.REPO_ROOT / "reports/machine_tv_bench.json",
-                        help="path for the per-case JSON report")
+    parser.add_argument("--output", type=Path,
+                        help="JSON report path (default: reports/machine_tv_bench.json, "
+                             "or reports/machine_tv_bench_filtered.json with --only)")
     parser.add_argument("--only", action="append", help="limit to these defect ids (repeatable)")
     parser.add_argument("--jobs", type=int, default=4, help="cases run in parallel")
     parser.add_argument("--timeout", type=int, default=120, help="per-command timeout in seconds")
@@ -259,10 +260,12 @@ def main(argv: list[str]) -> int:
         "summary": summary,
         "cases": records,
     }
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    report_name = "machine_tv_bench_filtered.json" if args.only else "machine_tv_bench.json"
+    output = args.output or cb.REPO_ROOT / "reports" / report_name
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, indent=2))
-    print(f"Wrote {args.output}")
+    print(f"Wrote {output}")
     return 0
 
 
