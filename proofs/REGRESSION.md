@@ -10,6 +10,29 @@ The 71 contract-benchmark cases read as a pull-request gate. The contract was pi
 | mumei + LLM port | openai/gpt-6-luna | 3 | 63 (60–63) | 8 (8–10) | 0 (0–1) | 0 | 0 (0–1) | 8 | $0.05 |
 | LLM review | openai/gpt-6-luna | 3 | 71 (70–71) | 0 (0–1) | 0 | 5 (4–5) | 0 | 6 | $0.04 |
 
+## Unresolved outcome taxonomy
+
+Regressions let through are false acceptance and good changes blocked are false positives. The unresolved outcomes below are mutually exclusive per checked change; medians use the same run aggregation as the gate table. Subtype medians are aggregated independently, so they need not sum to the unresolved-count median when the subtype alternates across runs. Unsupported means the input, generated port or verifier capability cannot represent the case; inconclusive means no evidence either way; environment failure means tool or transport failure; budget exhausted means the declared timeout was consumed.
+
+| Gate | Model | Change | Unsupported | Inconclusive | Env failure | Budget exhausted |
+|---|---|---|---:|---:|---:|---:|
+| mumei (hand-written ports) | — | regression | 0 | 0 | 0 | 0 |
+| mumei (hand-written ports) | — | keep fix | 0 | 0 | 0 | 0 |
+| mumei + LLM port | openai/gpt-6-luna | regression | 0 (0–1) | 0 | 0 | 0 |
+| mumei + LLM port | openai/gpt-6-luna | keep fix | 0 (0–1) | 0 | 0 | 0 |
+| LLM review | openai/gpt-6-luna | regression | 0 | 0 | 0 | 0 |
+| LLM review | openai/gpt-6-luna | keep fix | 0 | 0 | 0 | 0 |
+
+## Verification measurement
+
+Model and verifier measurements are totals over the recorded runs. Model time sums the seconds in usage-recorded provider responses; retry backoff and failed provider attempts stay outside that model-time measurement. Verification time and declared timeout budget cover recorded outcome-determining verifier calls, including vacuity controls and per-call input/output glue inside `verify_text`; certificate emission/rechecks, gate orchestration and report rendering are outside. Historical rows expose measured-versus-expected call coverage instead of looking fully instrumented.
+
+| Gate | Model | Model time | Verification time | Verification budget |
+|---|---|---:|---:|---:|
+| mumei (hand-written ports) | — | — | — / 0 of 213 calls | — / 0 of 213 calls |
+| mumei + LLM port | openai/gpt-6-luna | 2896.1s | — / 0 of 426 calls | — / 0 of 426 calls |
+| LLM review | openai/gpt-6-luna | 1876.1s | — | — |
+
 How to read it:
 
 - **mumei (hand-written ports)** is the gate once a port exists for the function. The ports were written with knowledge of the defects, so this row shows what the pinned contracts can enforce, not detection. mumei is deterministic, so one run is enough; a block comes with a counterexample and a pass with a proof certificate.

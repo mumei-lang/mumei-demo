@@ -57,6 +57,13 @@ def decision(record: dict, variant: str) -> str:
     return DECISION.get(record[variant]["outcome"], "unresolved")
 
 
+def unresolved_kind(record: dict, variant: str) -> str | None:
+    result = record[variant]
+    if result.get("outcome") != "inconclusive":
+        return None
+    return cb.failure_kind(result) or "inconclusive"
+
+
 def gate_runs(doc: dict) -> list[dict]:
     """Per run: regressions blocked/passed/unresolved and kept fixes passed/blocked/unresolved."""
     out = []
@@ -64,8 +71,13 @@ def gate_runs(doc: dict) -> list[dict]:
         s = {"cases": len(run)}
         for r in run:
             for change, variant in (("regression", "buggy"), ("keep", "fixed")):
-                key = f"{change}_{decision(r, variant)}"
+                outcome = decision(r, variant)
+                key = f"{change}_{outcome}"
                 s[key] = s.get(key, 0) + 1
+                if outcome == "unresolved":
+                    kind = unresolved_kind(r, variant) or "inconclusive"
+                    key = f"{change}_unresolved_{kind}"
+                    s[key] = s.get(key, 0) + 1
         out.append(s)
     return out
 
@@ -83,6 +95,7 @@ def flaky_cases(doc: dict) -> list[str]:
 def gate_row(doc: dict) -> dict:
     runs = gate_runs(doc)
     keys = [f"{c}_{d}" for c in ("regression", "keep") for d in ("block", "pass", "unresolved")]
+    keys += [f"{c}_unresolved_{k}" for c in ("regression", "keep") for k in cb.FAILURE_KINDS]
     row = {"arm": doc["arm"], "model": doc.get("model"), "runs": len(runs), "cases": runs[0]["cases"] if runs else 0}
     for k in keys:
         vals = [s.get(k, 0) for s in runs]
@@ -92,6 +105,9 @@ def gate_row(doc: dict) -> dict:
     usage = cb.usage_total([r for run in doc["runs"] for r in run])
     row["cost_per_pass"] = round(usage["cost_usd"] / len(runs), 4) if runs and doc["arm"] != "mumei" else 0.0
     row["model_seconds_per_pass"] = round(usage["model_seconds"] / len(runs), 1) if runs else 0.0
+    for key in ("model_seconds", "verification_seconds", "verification_timed_calls", "verification_expected_calls",
+                "verification_budget_seconds", "verification_budgeted_calls"):
+        row[key] = usage[key]
     return row
 
 
@@ -116,6 +132,15 @@ def fmt(row: dict, key: str) -> str:
     return cb.fmt(row, key)
 
 
+def measurement_cell(row: dict, amount_key: str, count_key: str) -> str:
+    expected = row["verification_expected_calls"]
+    if expected == 0:
+        return "—"
+    measured = row[count_key]
+    amount = "—" if measured == 0 else f"{row[amount_key]:.1f}s"
+    return f"{amount} / {measured} of {expected} calls"
+
+
 def render(results: list[dict], mutation: dict | None) -> str:
     rows = [gate_row(d) for a in GATES for d in results if d["arm"] == a]
     cases = rows[0]["cases"] if rows else 0
@@ -135,6 +160,39 @@ def render(results: list[dict], mutation: dict | None) -> str:
         out.append(f"| {GATE_LABEL[r['arm']]} | {r['model'] or '—'} | {r['runs']} | {fmt(r, 'regression_block')} "
                    f"| {fmt(r, 'regression_pass')} | {fmt(r, 'regression_unresolved')} | {fmt(r, 'keep_block')} "
                    f"| {fmt(r, 'keep_unresolved')} | {flaky} | {cost} |")
+    if rows:
+        out += ["", "## Unresolved outcome taxonomy", "",
+                "Regressions let through are false acceptance and good changes blocked are false positives. "
+                "The unresolved outcomes below are mutually exclusive per checked change; medians use the same "
+                "run aggregation as the gate table. Subtype medians are aggregated independently, so they need "
+                "not sum to the unresolved-count median when the subtype alternates across runs. Unsupported means "
+                "the input, generated port or verifier "
+                "capability cannot represent the case; inconclusive means no evidence either way; environment "
+                "failure means tool or transport failure; budget exhausted means the declared timeout was consumed.", "",
+                "| Gate | Model | Change | Unsupported | Inconclusive | Env failure | Budget exhausted |",
+                "|---|---|---|---:|---:|---:|---:|"]
+        for r in rows:
+            for change, label in (("regression", "regression"), ("keep", "keep fix")):
+                out.append(f"| {GATE_LABEL[r['arm']]} | {r['model'] or '—'} | {label} | "
+                           f"{fmt(r, change + '_unresolved_unsupported')} | "
+                           f"{fmt(r, change + '_unresolved_inconclusive')} | "
+                           f"{fmt(r, change + '_unresolved_environment_failure')} | "
+                           f"{fmt(r, change + '_unresolved_budget_exhausted')} |")
+        out += ["", "## Verification measurement", "",
+                "Model and verifier measurements are totals over the recorded runs. Model time sums the seconds "
+                "in usage-recorded provider responses; retry backoff and failed provider attempts stay outside "
+                "that model-time measurement. Verification time and declared timeout budget cover recorded "
+                "outcome-determining verifier calls, including vacuity controls and per-call input/output glue "
+                "inside `verify_text`; certificate emission/rechecks, gate "
+                "orchestration and report rendering are outside. Historical rows expose measured-versus-expected "
+                "call coverage instead of looking fully instrumented.", "",
+                "| Gate | Model | Model time | Verification time | Verification budget |",
+                "|---|---|---:|---:|---:|"]
+        for r in rows:
+            model_time = "—" if r["arm"] == "mumei" else f"{r['model_seconds']:.1f}s"
+            out.append(f"| {GATE_LABEL[r['arm']]} | {r['model'] or '—'} | {model_time} | "
+                       f"{measurement_cell(r, 'verification_seconds', 'verification_timed_calls')} | "
+                       f"{measurement_cell(r, 'verification_budget_seconds', 'verification_budgeted_calls')} |")
     out += ["",
             "How to read it:", "",
             "- **mumei (hand-written ports)** is the gate once a port exists for the function. The ports were "
