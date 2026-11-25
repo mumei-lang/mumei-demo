@@ -33,8 +33,39 @@ def test_gate_row_counts_regressions_and_good_changes_per_run():
     row = rg.gate_row(doc("llm", runs))
     assert (row["regression_block"], row["regression_pass"], row["regression_unresolved"]) == (1, 1, 1)
     assert (row["keep_pass"], row["keep_block"], row["keep_unresolved"]) == (1, 1, 1)
+    assert row["regression_unresolved_inconclusive"] == 1 and row["keep_unresolved_inconclusive"] == 1
     assert row["flaky"] == []
     assert row["cost_per_pass"] == 0.06
+
+
+def test_unresolved_kind_uses_the_shared_failure_taxonomy():
+    r = rec("A", "inconclusive", "proven")
+    assert rg.unresolved_kind(r, "buggy") == "inconclusive"
+    assert rg.unresolved_kind(r, "fixed") is None
+    for status, expected in (("input_error", "unsupported"), ("timeout", "budget_exhausted"),
+                             ("no-json (exit 2)", "environment_failure")):
+        r["buggy"].update(status=status, diagnostics=[])
+        assert rg.unresolved_kind(r, "buggy") == expected
+
+
+def test_render_separates_unresolved_taxonomy_and_measurement_coverage():
+    r = rec("A", "inconclusive", "inconclusive")
+    r["buggy"].update(status="input_error", diagnostics=[], seconds=1.0, budget_seconds=5)
+    r["fixed"].update(status="timeout", diagnostics=[], seconds=5.0, budget_seconds=5)
+    text = rg.render([doc("mumei", [[r]])], None)
+    assert "## Unresolved outcome taxonomy" in text
+    assert "| mumei (hand-written ports) | — | regression | 1 | 0 | 0 | 0 |" in text
+    assert "| mumei (hand-written ports) | — | keep fix | 0 | 0 | 0 | 1 |" in text
+    assert "## Verification measurement" in text
+    assert "| mumei (hand-written ports) | — | — | 6.0s / 2 of 2 calls | 10.0s / 2 of 2 calls |" in text
+
+
+def test_measurement_cell_keeps_uninstrumented_verifier_coverage_visible():
+    row = {"verification_expected_calls": 3, "verification_timed_calls": 0, "verification_seconds": 0.0,
+           "verification_budgeted_calls": 0, "verification_budget_seconds": 0.0}
+    assert rg.measurement_cell(row, "verification_seconds", "verification_timed_calls") == "— / 0 of 3 calls"
+    row["verification_expected_calls"] = 0
+    assert rg.measurement_cell(row, "verification_seconds", "verification_timed_calls") == "—"
 
 
 def test_a_case_with_different_answers_across_runs_is_flaky():

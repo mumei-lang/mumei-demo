@@ -48,6 +48,19 @@ mutation generation, report rendering and runner orchestration remain outside.
 This is measurement and regression control only — not proof truth, Evidence
 acceptance or grade promotion.
 
+C13 progress: the regression gate now applies the same separation to changes
+under a pinned contract. Regressions let through remain the false-acceptance
+surface and good changes blocked remain the false-positive surface, while
+unresolved regression and keep-fix outcomes are counted independently as
+unsupported input/generated output/capability, residual inconclusive outcome,
+environment failure or budget exhaustion. Model time stays separate from
+verifier wall time and declared timeout budget; the report shows totals over
+recorded runs plus measured-versus-expected verifier-call coverage so
+historical rows and partial refreshes do not look fully instrumented.
+Certificate emission/rechecks, gate orchestration and report rendering stay
+outside verifier time. This is measurement and regression control only — not
+proof truth, Evidence acceptance or grade promotion.
+
 [C08](https://github.com/mumei-lang/mumei/issues/788) checks native evidence
 binding; [C09](https://github.com/mumei-lang/mumei/issues/789) checks only the
 declared translation subset; [C10](https://github.com/mumei-lang/mumei/issues/790)
