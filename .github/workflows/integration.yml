@@ -116,6 +116,13 @@ jobs:
           MUMEI_AGENT_REPO: ${{ github.workspace }}/repos/mumei-agent
           MUMEI_AGENT_PYTHON: ${{ github.workspace }}/.venv/bin/python
           MUMEI_BIN: ${{ github.workspace }}/repos/mumei/target/release/mumei
+      - name: Check scheduled incomplete-output regression
+        run: make demo-evidence-check-schedule
+        env:
+          MUMEI_REPO: ${{ github.workspace }}/repos/mumei
+          MUMEI_AGENT_REPO: ${{ github.workspace }}/repos/mumei-agent
+          MUMEI_AGENT_PYTHON: ${{ github.workspace }}/.venv/bin/python
+          MUMEI_BIN: ${{ github.workspace }}/repos/mumei/target/release/mumei
       - name: Generate report
         if: always()
         run: python scripts/generate_report.py --summary --highlights --require-all

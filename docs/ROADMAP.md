@@ -39,6 +39,21 @@ without the evidence configuration keep their existing contract.
 `make demo-charter-regression` connects the existing Charter, negative-control,
 and test-observation scenarios without pretending they prove a single model.
 
+C13 progress: the optional `evidence_check_schedule` regression now also
+covers incomplete adapter output. Its large-output fixture emits more than
+the agent's 64 KiB capture bound, but the captured prefix is itself a valid
+`mumei.verification-evidence/v1` document padded to exactly 64 KiB. The
+scenario therefore fails if a truncated prefix is merely handed to Core as
+valid evidence: the host-declared exit-code selection may remain `selected`,
+while `evidence_check` must be `failed` and `evidence_acceptance` must be
+false. A recording Core wrapper is probe-checked before the attempt and must
+not be invoked for the incomplete output, so the gate cannot pass merely
+because Core rejected the bytes. The same fixture uses an absolute Python
+executable because scheduled children run with a minimal environment.
+Integration CI runs the scenario through `make demo-evidence-check-schedule`.
+This remains a regression gate only — not Evidence truth, adapter adoption or
+grade promotion.
+
 C13 progress: required claims may pin `evidence_kind` (exact match over the
 claim and its dependency coverage), so a requirement written for model proof
 cannot be satisfied by finite replay or another backend's evidence with the
