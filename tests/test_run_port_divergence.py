@@ -1,6 +1,8 @@
 """Port-divergence diagnostics without Mumei or an LLM provider."""
 
+import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -42,6 +44,41 @@ def test_replays_only_misaccepts_with_same_input_and_contract(monkeypatch):
         assert (path, timeout) == ("/bin/mumei", 7)
         assert "requires: (n >= 0) && n == 0;" in text
         assert "ensures: result >= 0;" in text
+
+
+def test_recorded_corpus_requests_every_reference_and_accepted_port(monkeypatch):
+    cases, errors = pd.bench.load_cases()
+    assert not errors
+    result_path = pd.bench.result_path("mumei-llm", "openai/gpt-6-luna")
+    doc = json.loads(result_path.read_text())
+    by_id = {case["id"]: case for case in cases}
+    accepted = {(run, record["id"]): record["buggy"]["body"]
+                for run, records in enumerate(doc["runs"], 1) for record in records
+                if record["buggy"]["outcome"] == "proven"}
+    assert len(accepted) == 26
+    reference = {}
+    candidates = []
+    for (_, case_id), body in accepted.items():
+        case = by_id[case_id]
+        inputs, _ = pd.replay.replay_inputs(case)
+        for witness in inputs:
+            atom, values = case["atom"], witness["values"]
+            reference[case_id, witness["name"]] = pd.replay.pinned_port(case["ports"]["buggy"], atom, values)
+            candidates.append(pd.replay.pinned_port(pd.bench.assemble(case, body), atom, values))
+    assert len({case_id for case_id, _ in reference}) == 12
+
+    calls = Counter()
+    reference_texts = set(reference.values())
+
+    def verify(_bin, port, _timeout):
+        calls[port] += 1
+        return {"outcome": "refuted" if port in reference_texts else "proven", "status": "", "diagnostics": []}
+
+    monkeypatch.setattr(pd.bench, "verify_text", verify)
+    report = pd.collect(cases, doc, "/bin/mumei", 7)
+    assert {(row["run"], row["case"]) for row in report["misaccepts"]} == set(accepted)
+    assert report["outcomes"] == {"diverged": 26}
+    assert calls == Counter(reference.values()) + Counter(candidates)
 
 
 @pytest.mark.parametrize(("reference", "llm", "expected"), [

@@ -69,7 +69,7 @@ jobs:
         run: python3 -m pytest tests/test_run_native_replay.py -q
       - name: Check native-replay results (offline)
         run: python3 scripts/run_native_replay.py --check
-      - name: Run port-divergence tests
+      - name: Run port-divergence unit and recorded-corpus tests
         run: python3 -m pytest tests/test_run_port_divergence.py -q
       - name: Run mutation-control tests
         run: python3 -m pytest tests/test_run_mutation_control.py -q
