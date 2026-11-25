@@ -257,6 +257,17 @@ def test_render_keeps_legacy_verifier_timing_unknown():
     assert "| Verifier calls | — / 0 of 2 calls | — / 0 of 2 calls |" in text
 
 
+def test_render_distinguishes_unscored_baseline_from_no_mutable_token():
+    doc = {"cases": [
+        {"id": "NO-TOKEN", "language": "python", "function": "f", "baseline": "proven", "mutants": []},
+        {"id": "TIMEOUT", "language": "python", "function": "g", "baseline": "inconclusive", "mutants": []},
+    ]}
+    text = mc.render(doc)
+    assert "Ports with no mutable token: `NO-TOKEN`." in text
+    assert "Cases with no mutant verifier calls because the baseline fixed port was not proven: `TIMEOUT`." in text
+    assert "Ports with no mutable token: `NO-TOKEN`, `TIMEOUT`" not in text
+
+
 @pytest.fixture
 def results(tmp_path, monkeypatch):
     monkeypatch.setattr(mc, "RESULT", tmp_path / "mutation.json")

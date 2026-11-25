@@ -234,9 +234,13 @@ def render(doc: dict) -> str:
             "| Measurement | Time | Budget |", "|---|---:|---:|",
             f"| Verifier calls | {time_text} / {measured['timed_calls']} of {measured['expected_calls']} calls | "
             f"{budget_text} / {measured['budgeted_calls']} of {measured['expected_calls']} calls |"]
-    no_mutants = [c["id"] for c in cases if not c["mutants"]]
+    no_mutants = [c["id"] for c in cases if not c["mutants"] and c.get("baseline") == "proven"]
     if no_mutants:
         out += ["", "Ports with no mutable token: " + ", ".join(f"`{i}`" for i in no_mutants) + "."]
+    not_scored = [c["id"] for c in cases if not c["mutants"] and c.get("baseline") != "proven"]
+    if not_scored:
+        out += ["", "Cases with no mutant verifier calls because the baseline fixed port was not proven: "
+                + ", ".join(f"`{i}`" for i in not_scored) + "."]
     out += ["", "A survivor is either a behaviour the contract does not pin down or an equivalent mutant. "
             "The benchmark contracts state one requirement each, so survivors in unrelated parts of a body "
             "are expected; they show how much of the body a contract constrains, not a defect in the "
