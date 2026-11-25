@@ -179,9 +179,11 @@ def render(results: list[dict], mutation: dict | None) -> str:
                            f"{fmt(r, change + '_unresolved_environment_failure')} | "
                            f"{fmt(r, change + '_unresolved_budget_exhausted')} |")
         out += ["", "## Verification measurement", "",
-                "Model and verifier measurements are totals over the recorded runs. Verification time and "
-                "declared timeout budget cover recorded outcome-determining verifier calls, including vacuity "
-                "controls and per-call input/output glue inside `verify_text`; certificate emission/rechecks, gate "
+                "Model and verifier measurements are totals over the recorded runs. Model time sums the seconds "
+                "in usage-recorded provider responses; retry backoff and failed provider attempts stay outside "
+                "that model-time measurement. Verification time and declared timeout budget cover recorded "
+                "outcome-determining verifier calls, including vacuity controls and per-call input/output glue "
+                "inside `verify_text`; certificate emission/rechecks, gate "
                 "orchestration and report rendering are outside. Historical rows expose measured-versus-expected "
                 "call coverage instead of looking fully instrumented.", "",
                 "| Gate | Model | Model time | Verification time | Verification budget |",
