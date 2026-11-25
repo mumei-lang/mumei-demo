@@ -54,6 +54,15 @@ Integration CI runs the scenario through `make demo-evidence-check-schedule`.
 This remains a regression gate only — not Evidence truth, adapter adoption or
 grade promotion.
 
+C13 progress: the optional `verify_plan` regression now also pins planner
+selection policy. An explicit available adapter records `selected_explicit`
+without fallback; a missing explicit adapter with fallback denied leaves
+`selected` null and blocks the automatic route; and a pinned tool-version
+mismatch excludes the affected adapter while a compatible priority candidate
+may still be selected. Integration CI runs the scenario through
+`make demo-verify-plan`. These are selection/exclusion regressions only — not
+adapter execution, output meaning, Evidence truth or grade promotion.
+
 C13 progress: required claims may pin `evidence_kind` (exact match over the
 claim and its dependency coverage), so a requirement written for model proof
 cannot be satisfied by finite replay or another backend's evidence with the
