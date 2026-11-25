@@ -43,6 +43,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import run_contract_bench as cb  # noqa: E402
+import run_mutation_control as mc  # noqa: E402
 
 REPORT = cb.PROOFS_ROOT / "REGRESSION.md"
 MUTATION = cb.PROOFS_ROOT / "mutation.json"
@@ -97,11 +98,15 @@ def gate_row(doc: dict) -> dict:
 def mutation_summary(doc: dict | None) -> dict | None:
     if not doc:
         return None
-    counts = {"killed": 0, "survived": 0, "invalid": 0}
+    counts = {"killed": 0, "survived": 0, "invalid": 0,
+              "unsupported": 0, "inconclusive": 0, "environment_failure": 0, "budget_exhausted": 0}
     for c in doc["cases"]:
         for m in c["mutants"]:
-            if m.get("outcome") in counts:
+            if m.get("outcome") in ("killed", "survived", "invalid"):
                 counts[m["outcome"]] += 1
+            kind = mc.mutation_failure_kind(m)
+            if kind:
+                counts[kind] += 1
     scored = counts["killed"] + counts["survived"]
     counts["score"] = round(100 * counts["killed"] / scored) if scored else 0
     return counts
@@ -152,9 +157,11 @@ def render(results: list[dict], mutation: dict | None) -> str:
                 f"arithmetic and constant changes) and verifies them under the pinned contracts. mumei blocks "
                 f"{mutation['killed']} of {scored} scored mutants ({mutation['score']}%); "
                 f"{mutation['survived']} pass, either because the contract does not constrain that part of the "
-                f"body or because the mutant is equivalent. {mutation['invalid']} do not verify either way. "
-                "A pinned contract only gates what it states: the planted-defect rows above are an upper bound "
-                "for an arbitrary later change.", ""]
+                f"body or because the mutant is equivalent. {mutation['invalid']} do not verify either way: "
+                f"{mutation['unsupported']} unsupported, {mutation['inconclusive']} residual inconclusive, "
+                f"{mutation['environment_failure']} environment failure and {mutation['budget_exhausted']} "
+                "budget exhaustion. A pinned contract only gates what it states: the planted-defect rows above "
+                "are an upper bound for an arbitrary later change.", ""]
     return "\n".join(out)
 
 
