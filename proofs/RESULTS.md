@@ -4,12 +4,23 @@
 
 Each of the 71 specimen defects in a category Mumei targets has a requirement and one contract (requires/ensures) that the buggy and the fixed function are both checked against. The right answer is: buggy version refuted, fixed version proven. Values are medians over runs, with the range in brackets.
 
-| Arm | Model | Runs | Buggy refuted | Fixed proven | Both right | Buggy accepted | Fixed rejected | Inconclusive | Cost |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| mumei (reference ports) | — | 1 | 71 / 71 | 71 / 71 | 71 | 0 | 0 | 0 | — |
-| LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | $0.11 |
-| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 63 (60–63) / 71 | 71 (70–71) / 71 | 62 (60–63) | 8 (8–10) | 0 | 1 (0–1) | $0.15 |
-| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 3 | 68 (67–68) / 71 | 60 (59–62) / 71 | 58 (58–59) | 2 (1–3) | 9 (9–10) | 4 (0–4) | $0.06 |
+| Arm | Model | Runs | Buggy refuted | Fixed proven | Both right | False acceptance | False positive | Unsupported | Inconclusive | Env failure | Budget exhausted | Cost |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| mumei (reference ports) | — | 1 | 71 / 71 | 71 / 71 | 71 | 0 | 0 | 0 | 0 | 0 | 0 | — |
+| LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | 0 | 0 | 0 | $0.11 |
+| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 63 (60–63) / 71 | 71 (70–71) / 71 | 62 (60–63) | 8 (8–10) | 0 | 1 (0–1) | 0 | 0 | 0 | $0.15 |
+| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 3 | 68 (67–68) / 71 | 60 (59–62) / 71 | 58 (58–59) | 2 (1–3) | 9 (9–10) | 4 (0–4) | 0 | 0 | 0 | $0.06 |
+
+Outcome taxonomy: false acceptance is a buggy body proven; false positive is a fixed body refuted; unsupported means the input, generated port/contract or verifier capability cannot represent the case; inconclusive means no evidence either way; environment failure means tool/transport failure; budget exhausted means the declared timeout was consumed. These categories are mutually exclusive outcomes, not proof grades.
+
+| Arm | Model | Model time | Verification time | Verification budget |
+|---|---|---:|---:|---:|
+| mumei (reference ports) | — | — | — | — |
+| LLM only (judges the source) | openai/gpt-6-luna | 1876.1s | — | — |
+| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 2896.1s | — | — |
+| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 1464.5s | — | — |
+
+Verification time and budget are wall seconds and the declared per-attempt timeout aggregated over recorded verifier calls. Older committed rows show `—` where the measurement was not yet recorded; they still keep the outcome taxonomy. Model time/cost come only from provider usage metadata.
 
 [REPLAY.md](REPLAY.md) replays concrete inputs, the LLM witnesses and the LLM ports on the native code (`scripts/run_native_replay.py`). [REGRESSION.md](REGRESSION.md) reads the same results as a pull-request gate for changes under a pinned contract (`scripts/run_regression_gate.py`).
 

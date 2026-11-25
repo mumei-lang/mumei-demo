@@ -223,14 +223,19 @@ def test_verify_text_parses_json_after_preamble(monkeypatch):
     class Proc:
         returncode, stdout = 0, 'log line\n{"status": "success", "diagnostics": []}'
     monkeypatch.setattr(cb.subprocess, "run", lambda *a, **k: Proc())
-    assert cb.verify_text("mumei", FIXED, 5)["outcome"] == "proven"
+    result = cb.verify_text("mumei", FIXED, 5)
+    assert result["outcome"] == "proven" and type(result["seconds"]) is float
+    assert result["budget_seconds"] == 5 and "failure_kind" not in result
 
 
 def test_verify_text_timeout_is_inconclusive(monkeypatch):
     def boom(*a, **k):
         raise cb.subprocess.TimeoutExpired("mumei", 5)
     monkeypatch.setattr(cb.subprocess, "run", boom)
-    assert cb.verify_text("mumei", FIXED, 5) == {"outcome": "inconclusive", "status": "timeout", "diagnostics": []}
+    result = cb.verify_text("mumei", FIXED, 5)
+    assert result["outcome"] == "inconclusive" and result["status"] == "timeout"
+    assert result["failure_kind"] == "budget_exhausted" and result["diagnostics"] == []
+    assert type(result["seconds"]) is float and result["budget_seconds"] == 5
 
 
 # --- reference arm and vacuity control ---------------------------------------
@@ -323,7 +328,9 @@ def test_score_counts_every_kind():
     s = cb.score([rec("a", "go", "refuted", "proven"), rec("b", "go", "proven", "refuted"),
                   rec("c", "go", "inconclusive", "proven", vac="vacuous"), rec("d", "go", "refuted", "inconclusive")])
     assert s == {"cases": 4, "buggy_refuted": 2, "fixed_proven": 2, "both": 1, "wrong_accept": 1,
-                 "wrong_reject": 1, "inconclusive": 2, "errors": 0, "vacuous": 1}
+                 "wrong_reject": 1, "false_acceptance": 1, "false_positive": 1,
+                 "unsupported": 0, "inconclusive": 2, "environment_failure": 0,
+                 "budget_exhausted": 0, "errors": 0, "vacuous": 1}
 
 
 def test_score_separates_transport_errors():
@@ -331,6 +338,31 @@ def test_score_separates_transport_errors():
     r["buggy"]["status"] = "LLM request failed: HTTP 429"
     s = cb.score([r])
     assert (s["errors"], s["inconclusive"]) == (1, 1)
+
+
+def test_score_separates_unsupported_timeout_and_environment():
+    unsupported = rec("u", "go", "inconclusive", "proven")
+    unsupported["buggy"]["status"] = "input_error"
+    timed_out = rec("t", "go", "inconclusive", "proven")
+    timed_out["buggy"]["status"] = "timeout"
+    timed_out["buggy"]["failure_kind"] = "budget_exhausted"
+    environment = rec("e", "go", "inconclusive", "proven")
+    environment["buggy"]["status"] = "no-json (exit 2)"
+    undetermined = rec("i", "go", "inconclusive", "proven")
+    s = cb.score([unsupported, timed_out, environment, undetermined])
+    assert (s["unsupported"], s["budget_exhausted"], s["environment_failure"], s["inconclusive"]) == (1, 1, 1, 1)
+    assert (s["false_acceptance"], s["false_positive"]) == (0, 0)
+
+
+def test_usage_total_tracks_verification_time_and_budget():
+    r = rec("a", "go", "refuted", "proven")
+    r["buggy"]["seconds"] = 0.25
+    r["buggy"]["budget_seconds"] = 5
+    r["fixed"]["seconds"] = 0.75
+    r["fixed"]["budget_seconds"] = 5
+    u = cb.usage_total([r])
+    assert u["verification_seconds"] == 1.0 and u["verification_timed_calls"] == 2
+    assert u["verification_budget_seconds"] == 10.0 and u["verification_budgeted_calls"] == 2
 
 
 def test_llm_runs_raise_retry_budget(repo, monkeypatch):
@@ -343,7 +375,9 @@ def test_llm_runs_raise_retry_budget(repo, monkeypatch):
 
 def test_usage_total_counts_unknown_cost():
     u = cb.usage_total([rec("a", "go", "refuted", "proven", cost=0.25), rec("b", "go", "refuted", "proven")])
-    assert u == {"calls": 2, "cost_usd": 0.5, "model_seconds": 2.0, "cost_unknown_calls": 0}
+    assert u == {"calls": 2, "cost_usd": 0.5, "model_seconds": 2.0, "cost_unknown_calls": 0,
+                 "verification_seconds": 0.0, "verification_timed_calls": 0,
+                 "verification_budget_seconds": 0.0, "verification_budgeted_calls": 0}
     r = rec("c", "go", "refuted", "proven")
     r["buggy"]["usage"] = {"cost_usd": None, "seconds": 1}
     assert cb.usage_total([r])["cost_unknown_calls"] == 1
@@ -832,7 +866,7 @@ def test_contract_case_without_a_usable_contract_is_inconclusive(repo, monkeypat
     assert r["buggy"] == r["fixed"] == {"outcome": "inconclusive", "status": "no-contract"}
     assert "contract" not in r and r["reply"] == reply
     s = cb.score([r])
-    assert (s["inconclusive"], s["errors"], s["both"]) == (2, 0, 0)
+    assert (s["unsupported"], s["inconclusive"], s["errors"], s["both"]) == (2, 0, 0, 0)
 
 
 def test_contract_case_transport_error_counts_as_error(repo, monkeypatch):
@@ -947,7 +981,7 @@ def test_score_counts_a_missing_contract_per_variant():
     r["usage"] = {"cost_usd": 0.0}
     for v in cb.VARIANTS:
         r[v]["status"] = "no-contract"
-    assert (cb.score([r])["errors"], cb.score([r])["inconclusive"]) == (0, 2)
+    assert (cb.score([r])["errors"], cb.score([r])["unsupported"], cb.score([r])["inconclusive"]) == (0, 2, 0)
 
 
 
