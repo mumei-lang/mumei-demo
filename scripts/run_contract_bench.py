@@ -667,6 +667,8 @@ def run_llm_case(case: dict, provider, arm: str, seed: int, mumei_bin: str | Non
                 out[v] = {"outcome": "inconclusive", "status": "no-body", "reply": text[:2000], "usage": usage}
                 continue
             result = verify_text(mumei_bin, assemble(case, body), timeout)
+            if verifier_startup_failure(result):
+                raise RuntimeError("verifier startup failed; benchmark results and certificates were not updated")
             out[v] = {**result, "body": body, "usage": usage}
     if arm == "mumei-llm":
         fail_on_verifier_startup([out[v] for v in VARIANTS])

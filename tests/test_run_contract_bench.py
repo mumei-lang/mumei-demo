@@ -490,6 +490,7 @@ def test_startup_failure_preserves_llm_certificate(repo, monkeypatch):
     with pytest.raises(RuntimeError, match="certificates were not updated"):
         cb.run_llm_case(case, provider, "mumei-llm", 0, "mumei", 5)
     assert cert.read_text() == "existing certificate"
+    assert len(provider.prompts) == 1
 
 
 def test_reference_run_writes_results_and_renders(repo, monkeypatch):
