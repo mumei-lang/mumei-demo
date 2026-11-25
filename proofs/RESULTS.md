@@ -11,7 +11,7 @@ Each of the 71 specimen defects in a category Mumei targets has a requirement an
 | mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 63 (60–63) / 71 | 71 (70–71) / 71 | 62 (60–63) | 8 (8–10) | 0 | 1 (0–1) | 0 | 0 | 0 | $0.15 |
 | mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 3 | 68 (67–68) / 71 | 60 (59–62) / 71 | 58 (58–59) | 2 (1–3) | 9 (9–10) | 4 (0–4) | 0 | 0 | 0 | $0.06 |
 
-Outcome taxonomy: false acceptance is a buggy body proven; false positive is a fixed body refuted; unsupported means the input, generated port/contract or verifier capability cannot represent the case; inconclusive means no evidence either way; environment failure means tool/transport failure; budget exhausted means the declared timeout was consumed. These categories are mutually exclusive outcomes, not proof grades.
+Outcome taxonomy: false acceptance is a buggy body proven; false positive is a fixed body refuted; unsupported means the input, generated port/contract or verifier capability cannot represent the case; inconclusive means no evidence either way; environment failure means tool/transport failure; budget exhausted means the declared timeout was consumed. These categories are mutually exclusive per-variant outcomes, not proof grades; one shared LLM request failure can therefore produce two environment-failure outcomes.
 
 | Arm | Model | Model time | Verification time | Verification budget |
 |---|---|---:|---:|---:|

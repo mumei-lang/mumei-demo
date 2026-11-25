@@ -810,7 +810,7 @@ def test_committed_notes_leak_nothing_to_the_blind_arm():
 
 
 @pytest.mark.parametrize("error", ["LLM request failed: HTTP 500", "LLM response has no message content"])
-def test_contract_request_failure_is_one_error(repo, error):
+def test_contract_request_failure_counts_each_variant(repo, error):
     class Failing(StubProvider):
         def complete(self, messages, seed):
             raise RuntimeError(error)
@@ -818,7 +818,7 @@ def test_contract_request_failure_is_one_error(repo, error):
     r = cb.run_contract_case(case, Failing(None), 0, "mumei", 5)
     assert all(r[v]["status"].startswith(cb.TRANSPORT_ERROR) for v in cb.VARIANTS)
     s = cb.score([r])
-    assert s["errors"] == 1 and s["inconclusive"] == 0
+    assert s["errors"] == 2 and s["environment_failure"] == 2 and s["inconclusive"] == 0
 
 
 def test_contract_header_replaces_only_the_clauses(repo):
@@ -910,7 +910,7 @@ def test_contract_case_transport_error_counts_as_error(repo, monkeypatch):
     def boom(m, s):
         raise RuntimeError("LLM request failed: HTTP 429")
     r = cb.run_contract_case(case, StubProvider(boom), 0, "mumei", 5)
-    assert r["usage"] is None and cb.score([r])["errors"] == 1
+    assert r["usage"] is None and cb.score([r])["errors"] == 2
 
 
 def test_prompt_hash_is_per_arm():
@@ -1002,12 +1002,12 @@ def test_wrong_answer_contract_comes_from_a_wrong_run():
     assert "per run: 1 / 1, 0 / 1 pass" in md
 
 
-def test_score_counts_a_failed_contract_request_once():
+def test_score_counts_a_failed_contract_request_per_variant():
     r = rec("a", "go", "inconclusive", "inconclusive")
     r["usage"] = None
     for v in cb.VARIANTS:
         r[v]["status"] = "LLM request failed: HTTP 429"
-    assert (cb.score([r])["errors"], cb.score([r])["inconclusive"]) == (1, 0)
+    assert (cb.score([r])["errors"], cb.score([r])["inconclusive"]) == (2, 0)
 
 
 def test_score_counts_a_missing_contract_per_variant():

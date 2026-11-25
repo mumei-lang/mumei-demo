@@ -678,17 +678,12 @@ def score(records: list[dict]) -> dict:
         s["wrong_reject"] += f == "refuted"
         s["false_acceptance"] += b == "proven"
         s["false_positive"] += f == "refuted"
-        # A record-level request (llm-contract) that failed is one failed request, not one per variant.
-        shared = "usage" in r and r["usage"] is None
         for v in VARIANTS:
             if r[v]["outcome"] == "inconclusive":
                 kind = failure_kind(r[v]) or "inconclusive"
-                count = 1
-                if kind == "environment_failure" and shared and v != VARIANTS[0]:
-                    count = 0
-                s[kind] += count
+                s[kind] += 1
                 if kind == "environment_failure":
-                    s["errors"] += count
+                    s["errors"] += 1
         s["vacuous"] += r.get("vacuity") == "vacuous"
     return s
 
@@ -856,8 +851,9 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
            "Outcome taxonomy: false acceptance is a buggy body proven; false positive is a fixed body refuted; "
            "unsupported means the input, generated port/contract or verifier capability cannot represent the case; "
            "inconclusive means no evidence either way; environment failure means tool/transport failure; budget "
-           "exhausted means the declared timeout was consumed. These categories are mutually exclusive outcomes, "
-           "not proof grades.", "",
+           "exhausted means the declared timeout was consumed. These categories are mutually exclusive per-variant "
+           "outcomes, not proof grades; one shared LLM request failure can therefore produce two environment-failure "
+           "outcomes.", "",
            render_measurement_table(rows), "",
            "Verification time and budget are wall seconds and the declared per-attempt timeout aggregated over "
            "recorded outcome-determining verifier calls, including vacuity controls. Certificate emission/rechecks "
