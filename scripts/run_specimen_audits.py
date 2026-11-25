@@ -368,7 +368,7 @@ def aggregate(coverages: list[dict]) -> dict:
     by_cat: dict[str, dict[str, Any]] = {}
     findings = empty_finding_counts()
     fixed = {"specimens": 0, "defects": 0, "still_reported": 0, "findings": 0,
-             "real": 0, "false_alarms": 0}
+             "real": 0, "false_alarms": 0, "unreviewed": 0}
     for cov in coverages:
         for k, v in (cov.get("finding_counts") or {}).items():
             findings[k] = findings.get(k, 0) + v
@@ -380,6 +380,7 @@ def aggregate(coverages: list[dict]) -> dict:
             fixed["findings"] += fx["finding_counts"]["total"]
             fixed["real"] += fx["finding_counts"]["real"]
             fixed["false_alarms"] += fx["false_alarms"]
+            fixed["unreviewed"] += fx["finding_counts"].get("unreviewed", 0)
         c = cov["counts"]
         for k in ("total", "detected", "function_flagged", "missed"):
             totals[k] += c[k]
@@ -422,6 +423,26 @@ def fmt_precision(fc: dict | None) -> str:
         return "n/a" if fc else "—"
     lo, hi = (f"{100 * x:.0f}%" for x in rng)
     return lo if lo == hi else f"{lo}–{hi}"
+
+
+def adjudication_state(unreviewed_findings: int, stale_finding_reviews: int) -> dict:
+    """Machine-readable distinction between current reviewed rulings and a
+    provisional runner score. Detection counts are matcher outputs in both
+    cases; this state is about precision and fixed-variant alarm rulings."""
+    complete = unreviewed_findings == 0 and stale_finding_reviews == 0
+    return {
+        "state": "complete" if complete else "incomplete",
+        "unreviewed_findings": unreviewed_findings,
+        "stale_finding_reviews": stale_finding_reviews,
+        "review_basis": "current_reviewed_rulings" if complete else "runner_score",
+    }
+
+
+def aggregate_adjudication(agg: dict, stale_count: int) -> dict:
+    """Adjudication readiness across buggy and fixed-variant findings."""
+    unreviewed = (agg["findings"].get("unreviewed", 0)
+                  + agg["fixed"].get("unreviewed", 0))
+    return adjudication_state(unreviewed, stale_count)
 
 
 def fmt_fixed(fx: dict | None) -> str:
@@ -767,6 +788,24 @@ def write_summary(coverages: list[dict], meta: dict, path: Path,
         f"unreviewed {fc_total['unreviewed']}; precision {fmt_precision(fc_total)}.",
         "",
     ]
+    adjudication = aggregate_adjudication(agg, len(stale or []))
+    if adjudication["state"] == "complete":
+        readiness = ("complete — all current findings have up-to-date rulings. Precision and "
+                     "fixed-code false-alarm counts use current human rulings; detection counts "
+                     "remain matcher outputs.")
+    else:
+        readiness = ("incomplete — "
+                     f"unreviewed finding count {adjudication['unreviewed_findings']}; "
+                     f"stale finding review count {adjudication['stale_finding_reviews']}. "
+                     "Precision ranges and fixed-code false-alarm counts are runner scores, not "
+                     "a fresh human-confirmed adjudication; detection counts are matcher outputs "
+                     "either way.")
+    lines += [
+        "## Adjudication readiness",
+        "",
+        f"Finding adjudication: {readiness}",
+        "",
+    ]
     fixed_covs = [cov for cov in coverages if cov.get("fixed")]
     if fixed_covs:
         fx_total = agg["fixed"]
@@ -1042,6 +1081,7 @@ def history_entry(coverages: list[dict], meta: dict, corpus: dict,
         },
         "findings": agg["findings"],
         "stale_finding_reviews": stale_count,
+        "adjudication": aggregate_adjudication(agg, stale_count),
     }
     if agg["fixed"]["specimens"]:
         entry["fixed"] = agg["fixed"]
@@ -1476,6 +1516,8 @@ def readme_block_specimens(history: dict) -> str:
         "findings are unreviewed, and `—` for runs recorded before findings were classified. Review",
         "verdicts live under `finding_reviews` in `scoreboard/adjudications.json`; after editing them, run",
         "`python3 scripts/run_specimen_audits.py --rescore` to re-score the committed audit output.",
+        "When the generated adjudication readiness is incomplete, precision and fixed-alarm totals are",
+        "runner scores rather than fresh human-confirmed adjudications.",
         "",
         "False alarms on fixed code count findings on specimens with their `fixed.patch` applied (every",
         "planted defect repaired) that no ruling marks as real, shown as false alarms / specimens covered.",

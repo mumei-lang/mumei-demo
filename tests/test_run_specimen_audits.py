@@ -868,6 +868,24 @@ def _summary_meta():
             "llm_configured": False, "command": "cmd", "generated_at": "2025-01-01T00:00:00Z"}
 
 
+def test_adjudication_state():
+    assert rsa.adjudication_state(0, 0) == {
+        "state": "complete", "unreviewed_findings": 0, "stale_finding_reviews": 0,
+        "review_basis": "current_reviewed_rulings"}
+    assert rsa.adjudication_state(2, 1) == {
+        "state": "incomplete", "unreviewed_findings": 2, "stale_finding_reviews": 1,
+        "review_basis": "runner_score"}
+
+
+def test_aggregate_adjudication_includes_fixed_variant_unreviewed():
+    cov = {**_coverage("py-01-a", "python", []), "finding_counts": _fc(2, 1, 0, 0, 1),
+           "fixed": _fixed(fc=_fc(1, 0, 0, 0, 1))}
+    state = rsa.aggregate_adjudication(rsa.aggregate([cov]), 2)
+    assert state["state"] == "incomplete"
+    assert state["unreviewed_findings"] == 2
+    assert state["stale_finding_reviews"] == 2
+
+
 def test_write_summary_precision_and_findings(tmp_path):
     cov = {**_coverage("py-01-a", "python", []), "finding_counts": _fc(3, 1, 1, 0, 1),
            "findings": [
@@ -888,6 +906,8 @@ def test_write_summary_precision_and_findings(tmp_path):
     assert "h is odd" in text
     assert "g \\| leaks" in text
     assert "vanished text" in text
+    assert "Finding adjudication: incomplete — unreviewed finding count 1; stale finding review count 1." in text
+    assert "runner scores, not a fresh human-confirmed adjudication" in text
     assert "f overflows" not in text.split("## Findings that are not defect evidence")[1]
 
 
@@ -899,6 +919,7 @@ def test_write_summary_without_stale_has_no_stale_section(tmp_path):
     text = out.read_text()
     assert "Stale" not in text and "stale finding" not in text.lower()
     assert "precision n/a" in text
+    assert "Finding adjudication: complete — all current findings have up-to-date rulings." in text
 
 
 def test_history_entry_records_findings_and_rescore():
@@ -907,10 +928,14 @@ def test_history_entry_records_findings_and_rescore():
     entry = rsa.history_entry([cov], meta, {"specimens": 1, "defects": 0, "hash": "h"}, "s", 2)
     assert entry["findings"] == _fc(2, 1, 0, 1, 0)
     assert entry["stale_finding_reviews"] == 2
+    assert entry["adjudication"] == {
+        "state": "incomplete", "unreviewed_findings": 0, "stale_finding_reviews": 2,
+        "review_basis": "runner_score"}
     assert entry["rescored_at"] == "2025-02-01T00:00:00Z"
     plain = rsa.history_entry([cov], _summary_meta(), {"specimens": 1, "defects": 0, "hash": "h"}, "s")
     assert "rescored_at" not in plain
     assert plain["stale_finding_reviews"] == 0
+    assert plain["adjudication"]["state"] == "complete"
 
 
 def test_readme_blocks_show_precision_and_dash_for_old_runs():
@@ -1281,7 +1306,7 @@ def test_aggregate_fixed_totals():
     plain = _coverage("go-01-c", "go", [])
     fx = rsa.aggregate([a, b, plain])["fixed"]
     assert fx == {"specimens": 2, "defects": 6, "still_reported": 1, "findings": 4,
-                  "real": 1, "false_alarms": 3}
+                  "real": 1, "false_alarms": 3, "unreviewed": 3}
 
 
 def test_aggregate_fixed_empty():
@@ -1393,7 +1418,7 @@ def test_main_rescore_records_fixed_and_review_used_only_on_fixed(tmp_path, monk
     assert "stale finding review" not in capsys.readouterr().err
     run = json.loads((specimens / "scoreboard" / "history.json").read_text())["runs"][-1]
     assert run["fixed"] == {"specimens": 1, "defects": 1, "still_reported": 0, "findings": 1,
-                            "real": 1, "false_alarms": 0}
+                            "real": 1, "false_alarms": 0, "unreviewed": 0}
     assert "## Fixed variants" in (tmp_path / "AUDIT_SUMMARY.md").read_text()
     assert "0 false alarms on fixed code (1 specimens)" in (tmp_path / "README.md").read_text()
 
