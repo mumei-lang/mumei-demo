@@ -4,6 +4,8 @@ These lanes measure different capabilities. There is no combined score:
 proving a contract, accepting a native object, and finding a bug without a
 supplied contract are not interchangeable.
 
+## Before the P0 merges
+
 | Lane | Corpus | Result | Measured (UTC) | Tool HEAD |
 | --- | --- | --- | --- | --- |
 | A — Source-contract | 71 paired reference `.mm` ports | **71/71** buggy refuted; **71/71** fixed proven; **71/71** vacuity controls rejected | 2026-11-24 | Core [`3b8647aa`](https://github.com/mumei-lang/mumei/commit/3b8647aa32083f8cfa135e56b4dc65cb9f117b93) |
@@ -18,7 +20,16 @@ In Lane C, “detected” requires a match by file, function and defect category
 the false-alarm rate is the share of fixed specimens with at least one
 finding scored as a false alarm, not the share of audit findings.
 
-## Lane B: what passed, and where the rest stopped
+## After the P0 merges
+
+| Lane | Corpus | Result | Measured (UTC) | Tool HEAD |
+| --- | --- | --- | --- | --- |
+| A — Source-contract | Same 71 pairs | **71/71** buggy refuted; **71/71** fixed proven; **71/71** vacuity controls rejected | 2026-11-25 | Core [`a0fc10fd`](https://github.com/mumei-lang/mumei/commit/a0fc10fdefb3ba572336ce7be435c56998adac12) |
+| B — Source→machine TV | Same 71 pairs (142 variants) | **71/71 (100%)** buggy rejected at source verification in both runs; **39/71 (54.9%)** then **42/71 (59.2%)** fixed accepted; **11/142 (7.7%)** then **12/142 (8.5%)** outside profile (all fixed) | 2026-11-25 | Core [`a0fc10fd`](https://github.com/mumei-lang/mumei/commit/a0fc10fdefb3ba572336ce7be435c56998adac12) |
+| C — Existing-code audit, no LLM | Same 171 defects in 16 specimens | **11/171 (6.4%)** detected; **9/16 (56.25%)** fixed specimens had false alarms (28 alarms) | 2026-11-25 | Core [`a0fc10fd`](https://github.com/mumei-lang/mumei/commit/a0fc10fdefb3ba572336ce7be435c56998adac12); Agent [`569f478f`](https://github.com/mumei-lang/mumei-agent/commit/569f478fe5b35f13809338c2071680e17cbe36b3) |
+| C — Existing-code audit, LLM | Same 171 defects | Not remeasured; no comparable LLM run was available | — | — |
+
+## Lane B: original baseline breakdown
 
 Of the 71 buggy ports that Z3 refuted, **all 71** stopped at fresh bundle
 source verification; none reached machine TV. This is a rejection rate for
@@ -42,7 +53,23 @@ Unsupported and inconclusive attempts don't count as rejections. The low
 outside-profile rate across all 142 variants doesn't imply high machine-TV
 coverage: the buggy variants stopped before TV.
 
-## Reproduce the live baseline (A and B)
+## Lane B: P0 remeasurement
+
+The two full runs on the new revision took 116.6 and 57.4 seconds.
+Both had 10 fixed source-recheck rejections, with no LLVM or object
+mismatches, environment errors, or per-command timeouts. Inconclusive fixed
+results fell from 11 on the first run to 7 on the repeat. On the repeat,
+`GO01-D05`, `RS01-D04`, and `RS03-D02` returned to accepted, and
+`RS03-D03` returned to outside profile (`division_trap`). The repeat's
+remaining difference from the baseline was `PY02-D02`, which Core
+reported as inconclusive at machine TV rather than accepted.
+
+The first run overlapped other CPU-heavy work. The same tool revision
+returned different verdicts on repeat, so the first acceptance drop
+is not a stable regression. The runs do not isolate the cause of the
+remaining difference or establish a change in machine-TV semantics.
+
+## Reproduce the live runs (A and B)
 
 From the demo root with a built Linux x86-64 Mumei CLI and a C linker:
 
@@ -50,10 +77,12 @@ From the demo root with a built Linux x86-64 Mumei CLI and a C linker:
 python3 scripts/run_machine_tv_bench.py --mumei-bin ../mumei/target/debug/mumei
 ```
 
-The run used demo corpus HEAD `67b59e2812c51428a289687421fa454455826116`
-and a fresh build of the Core HEAD above (Mumei 0.6.23, GCC 11.4.0).
-It took 43.9 seconds with four workers and a 120-second per-command timeout,
-with no model calls. The command prints the Z3-versus-native cross-tab and
+The original run used demo corpus HEAD `67b59e2812c51428a289687421fa454455826116`.
+The remeasurement used demo HEAD
+`f4a9426d22004005fdeb2e6b9cc90fc88c4c661f` with identical reference-port input
+hashes. Both used fresh builds of the corresponding Core revisions
+(Mumei 0.6.23, GCC 11.4.0), with four workers, a 120-second per-command
+timeout, and no model calls. The command prints the Z3-versus-native cross-tab and
 writes per-variant outcomes, stages, timings, input hashes and tool
 identity to `reports/machine_tv_bench.json`.
 
@@ -65,16 +94,59 @@ alone is not acceptance: the descriptor must bind that build ID, report
 checked source→machine TV and mark the benchmark atom equivalent. The
 baseline measures these hand-written ports, not translation from the
 original specimen languages, optimized builds across different profiles,
-producer authenticity, or runtime behavior.
+descriptor or producer authenticity, or runtime behavior.
+
+## Lane C: P0 remeasurement
+
+The no-LLM audit used the same corpus and adjudication hashes as the
+original run, including audits of both the buggy and patched copies.
+The additional detection was a TypeScript division-by-zero finding
+(`TS03-D03`); Python detection stayed at 1/41. The new Agent marked some
+Python specimens that were previously verified as unverifiable. That
+changes proof status without adding a planted-defect detection. The
+fixed-code alarm count fell by one, but alarms appeared in one more
+specimen. The same adjudications left 24 buggy-code findings unreviewed
+and 22 prior reviews unmatched, so the new totals are the runner's scores,
+not a fresh human adjudication. The run does not isolate those changes to
+a single upstream PR.
+
+To reproduce, use a disposable checkout of the pinned Demo revision
+and sibling Core and Agent checkouts. With no LLM credentials in the
+environment or Agent's `.env`, run:
+
+```sh
+python3 scripts/run_specimen_audits.py --mumei-bin ../mumei/target/debug/mumei
+```
+
+This rewrites the checkout's audit and scoreboard outputs. The LLM
+baseline used `openai/gpt-6-luna` via OpenRouter, which was unavailable for
+this rerun. The local `qwen2.5-coder:1.5b` pilot timed out after 120 seconds
+on the first specimen's JSON audit; it did not yield a comparable score.
 
 ## Roadmap snapshot
 
-For [roadmap item 5](https://github.com/mumei-lang/mumei/issues/1448), Agent
-[#1326](https://github.com/mumei-lang/mumei-agent/pull/1326) had landed in
-`develop` at `790b4fd6` (closing #1325), but Lane C's recorded audits
-predate it and the A/B port runs do not exercise LLM extraction. The
-[#188](https://github.com/mumei-lang/mumei-demo/issues/188) port-divergence
-and risky-op checks, Core [#1445](https://github.com/mumei-lang/mumei/issues/1445)
-attempt binding, and Core [#1446](https://github.com/mumei-lang/mumei/issues/1446)
-lifter CPU differential testing were still open. This run does not measure
-their effects.
+This is the before/after measurement for
+[roadmap item 5](https://github.com/mumei-lang/mumei/issues/1448).
+
+- Core [#1466](https://github.com/mumei-lang/mumei/pull/1466) adds an
+  `evidence_fingerprint` to successful object acceptance descriptors. Core
+  already required canonical linker argument reproduction. Lane B keeps
+  the same criterion: it invokes Core directly against a fresh bundle and
+  passes the expected build ID. It does not submit an agent evidence-check
+  attempt with an independently pinned fingerprint, so it does not score
+  `attempt_bound`. The presence of a fingerprint is not proof of attempt
+  binding or descriptor authenticity.
+- Core [#1467](https://github.com/mumei-lang/mumei/pull/1467) adds offline
+  CPU differential tests of the lifter, not a new acceptance path. The
+  differential tests are a separate check, not part of the Lane B numerator.
+- Demo [#199](https://github.com/mumei-lang/mumei-demo/pull/199) adds
+  [port-divergence replay and risky-operation lint](../proofs/PORT_DIVERGENCE.md).
+  Replay of the recorded LLM ports reproduced 26 divergences across 12 cases;
+  it does not change the hand-written reference ports or measure fresh model
+  output.
+- Agent [#1343](https://github.com/mumei-lang/mumei-agent/pull/1343) can now
+  refute supported Python bodies that violate extracted postconditions
+  instead of treating the extracted contract alone as proof of the body.
+  Demo [#201](https://github.com/mumei-lang/mumei-demo/pull/201) updates the
+  expected audit scenario outcomes; it does not change the specimen corpus
+  or scoring rules.
