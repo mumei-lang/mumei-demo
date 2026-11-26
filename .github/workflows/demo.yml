@@ -74,8 +74,12 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       # C1 (mumei-lang/mumei#1449): reuse the sibling mumei target dir + cargo
-      # registry across runs. rust-cache restores the best-matching cache and
-      # saves under a fresh key each run, so dep changes never go stale.
+      # registry across runs. Resolving Cargo.lock before this step lets the
+      # cache key change when floating dependency resolution changes.
+      - name: Resolve mumei dependency versions
+        run: cargo generate-lockfile
+        working-directory: mumei
+
       - name: Cache mumei cargo build
         uses: Swatinem/rust-cache@v2
         with:
@@ -85,7 +89,7 @@ jobs:
           shared-key: release
 
       - name: Build mumei compiler
-        run: cargo build --release
+        run: cargo build --release --locked
         working-directory: mumei
 
       - name: Install mumei-agent dependencies

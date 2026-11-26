@@ -103,6 +103,10 @@ jobs:
       # Do not path-filter this job away for docs-only changes: sibling
       # repositories intentionally track moving develop branches, so each run
       # also probes the current cross-repo integration surface.
+      - name: Resolve mumei dependency versions
+        run: cargo generate-lockfile
+        working-directory: mumei
+
       - name: Cache mumei cargo build
         uses: Swatinem/rust-cache@v2
         with:
@@ -112,7 +116,7 @@ jobs:
           shared-key: release
 
       - name: Build mumei
-        run: cargo build --release
+        run: cargo build --release --locked
         working-directory: mumei
       - name: Install mumei-agent deps
         run: |
