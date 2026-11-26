@@ -17,6 +17,7 @@ import argparse
 import json
 import statistics
 import sys
+import textwrap
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -486,7 +487,8 @@ def svg(summary: dict) -> str:
     row_h = bar_h + 6
     panel_h = 26 + row_h * len(present) + 10
     caption = evidence_caption_plain(summary)
-    top = 74 if caption else 56
+    caption_lines = textwrap.wrap(caption, 100) if caption else []
+    top = 74 + 17 * max(0, len(caption_lines) - 1) if caption else 56
     H = top + panel_h * len(panels) + 30
     model = _model(summary)
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" font-family="sans-serif">',
@@ -496,8 +498,8 @@ def svg(summary: dict) -> str:
            f'  <text x="16" y="44" font-size="12" fill="#57606a">'
            f'{rsa._esc(f"LLM rows: {model}; " if model else "")}LLM only: median of '
            f'{summary["arms"]["llm"]["runs"] if summary["arms"].get("llm") else 0} runs, whisker = min–max</text>']
-    if caption:
-        out.append(f'  <text x="16" y="62" font-size="12" fill="#57606a">{rsa._esc(caption)}</text>')
+    for i, line in enumerate(caption_lines):
+        out.append(f'  <text x="16" y="{62 + 17 * i}" font-size="12" fill="#57606a">{rsa._esc(line)}</text>')
     y = top
     for title, key, denom in panels:
         out.append(f'  <text x="16" y="{y + 16}" font-size="13" font-weight="bold" fill="#24292f">{rsa._esc(title)}</text>')

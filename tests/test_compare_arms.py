@@ -308,6 +308,9 @@ def test_evidence_caption_uses_full_date_span_and_each_audit_commit(tree):
     assert "measured 2025-01-02–2025-01-27" in caption
     assert "mumei-agent commits: mumei + LLM `ccccccc`, mumei only `aaaaaaa`" in caption
     assert "mumei commits: mumei + LLM `ddddddd`, mumei only `bbbbbbb`" in caption
+    svg = ca.svg(s)
+    assert 'y="62"' in svg and 'y="79"' in svg
+    assert "mumei only bbbbbbb" in svg
 
 
 def test_svg_escapes_model(tree):
