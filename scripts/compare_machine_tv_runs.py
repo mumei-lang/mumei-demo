@@ -90,8 +90,8 @@ def classification(before: dict, after: dict) -> str:
     return "outcome_changed"
 
 
-def input_identity(case: dict) -> dict:
-    if isinstance(case.get("port_hashes"), dict):
+def input_identity(case: dict, prefer_port_hashes: bool) -> dict:
+    if prefer_port_hashes and isinstance(case.get("port_hashes"), dict):
         return {"port_hashes": case["port_hashes"]}
     return {"case_hash": case.get("case_hash"), "source_hash": case.get("source_hash")}
 
@@ -103,7 +103,11 @@ def compare_reports(base: dict, repeat: dict) -> dict:
     input_changes = []
     comparable = []
     for case_id in common:
-        before_input, after_input = input_identity(base_cases[case_id]), input_identity(repeat_cases[case_id])
+        prefer_port_hashes = isinstance(base_cases[case_id].get("port_hashes"), dict) and isinstance(
+            repeat_cases[case_id].get("port_hashes"), dict
+        )
+        before_input = input_identity(base_cases[case_id], prefer_port_hashes)
+        after_input = input_identity(repeat_cases[case_id], prefer_port_hashes)
         if before_input == after_input:
             comparable.append(case_id)
         else:

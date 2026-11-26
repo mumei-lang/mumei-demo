@@ -135,3 +135,14 @@ def test_same_port_hashes_stay_comparable_when_case_metadata_hash_changes():
     diff = compare.compare_reports(report([before]), report([after]))
     assert diff["summary"]["cases_compared"] == 1
     assert diff["summary"]["input_changes"] == []
+
+
+
+def test_mixed_legacy_and_port_hash_reports_fall_back_to_legacy_identity():
+    before = case("A")
+    after = case("A")
+    before.update(case_hash="same-case", source_hash="same-source")
+    after.update(case_hash="same-case", source_hash="same-source", port_hashes={"buggy": "b", "fixed": "f"})
+    diff = compare.compare_reports(report([before]), report([after]))
+    assert diff["summary"]["cases_compared"] == 1
+    assert diff["summary"]["input_changes"] == []
