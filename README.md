@@ -55,10 +55,12 @@ An executable corpus of deliberately broken Python/TypeScript/Go/Rust/Solidity a
 
 ![Detection by language](specimens/scoreboard/by_language.svg)
 
-Committed scoreboard baseline — no LLM: 10/171 detected (6%), 29/171 detected or function-flagged, precision 32% of 40 findings, 29 false alarms on fixed code (16 specimens) · with LLM (`openai/gpt-6-luna`): 12/171 detected (7%), 68/171 detected or function-flagged, precision 10%–87% of 200 findings, 211 false alarms on fixed code (16 specimens). A newer 2026-11-25 no-LLM remeasurement found 11/171 defects with 28 fixed-code alarms, but it is not folded into this committed scoreboard because its adjudication readiness is incomplete; see [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
+Committed scoreboard baseline — no LLM: 10/171 detected (6%), 29/171 detected or function-flagged, precision 32% of 40 findings, 29 false alarms on fixed code (16 specimens) · with LLM (`openai/gpt-6-luna`): 12/171 detected (7%), 68/171 detected or function-flagged, precision 10%–87% of 200 findings, 211 false alarms on fixed code (16 specimens)
 
 Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreboard).
 <!-- scoreboard:end -->
+
+A newer 2026-11-25 no-LLM remeasurement found 11/171 defects with 28 fixed-code alarms, but it is not folded into this committed scoreboard because its adjudication readiness is incomplete; see [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
 
 ## Contract benchmark
 

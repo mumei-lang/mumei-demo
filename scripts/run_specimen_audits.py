@@ -1596,7 +1596,7 @@ def readme_block_top(history: dict) -> str:
             llm = f"with LLM{f' (`{model}`)' if model else ''}: {_frag(modes[True])}"
         else:
             llm = "with LLM: not run yet"
-        lines += [f"Latest — {nollm} · {llm}", ""]
+        lines += [f"Committed scoreboard baseline — {nollm} · {llm}", ""]
     lines += ["Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreboard)."]
     return "\n".join(lines)
 
