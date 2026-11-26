@@ -40,3 +40,14 @@ def test_missing_certificate_is_unsupported_not_success(tmp_path, monkeypatch):
     record = json.loads(results.read_text())["runs"][0][0]
     assert record["fixed"]["lean_dual_check"]["status"] == "unsupported"
     assert json.loads(results.read_text())["lean_dual_recheck"]["counts"] == {"unsupported": 1}
+
+
+def test_missing_lake_is_environment_failure_not_a_measurement(tmp_path, monkeypatch):
+    monkeypatch.setattr(recheck.cb, "lake_on_path", lambda: False)
+    try:
+        recheck.refresh_results(tmp_path / "lean", 5, tmp_path / "mumei.json")
+    except ValueError as exc:
+        assert "environment_failure" in str(exc)
+        assert "no dual-check result was measured" in str(exc)
+    else:
+        raise AssertionError("missing lake must fail before rewriting measurements")
