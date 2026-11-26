@@ -20,6 +20,7 @@ CLI_SCRIPTS = (
     ("scripts/run_llm_only.py", "run_llm_only"),
     ("scripts/compare_arms.py", "compare_arms"),
     ("scripts/run_contract_bench.py", "run_contract_bench"),
+    ("scripts/recheck_lean_dual_checks.py", "recheck_lean_dual_checks"),
     ("scripts/run_machine_tv_bench.py", "run_machine_tv_bench"),
     ("scripts/run_native_replay.py", "run_native_replay"),
     ("scripts/run_port_divergence.py", "run_port_divergence"),
