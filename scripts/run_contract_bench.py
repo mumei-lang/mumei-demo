@@ -992,13 +992,18 @@ def render_readme_evidence(rows: list[dict]) -> str:
     parts = []
     if dates:
         parts.append("recorded " + (dates[0] if len(dates) == 1 else " and ".join(dates)))
+    checked = [r for r in rows if r["arm"] != "llm"]
     verifiers = sorted({(v["version"], v["commit"][:7])
-                        for r in rows if (v := r.get("verifier")) and v.get("version") and v.get("commit")})
-    if len(verifiers) == 1:
+                        for r in checked if (v := r.get("verifier")) and v.get("version") and v.get("commit")})
+    fully_identified = len(verifiers) == 1 and all(
+        (v := r.get("verifier")) and v.get("version") == verifiers[0][0]
+        and (v.get("commit") or "")[:7] == verifiers[0][1]
+        for r in checked)
+    if fully_identified:
         version, commit = verifiers[0]
         parts.append(f"verifier for mumei-checked rows `{version}` (`{commit}`)")
-    elif verifiers:
-        parts.append("verifiers " + ", ".join(f"`{v}` (`{c}`)" for v, c in verifiers))
+    elif verifiers or checked:
+        parts.append("verifier provenance is mixed or incomplete across mumei-checked rows")
     return "; ".join(parts)
 
 
