@@ -28,33 +28,33 @@ jobs:
       LLM_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
       - name: Checkout mumei-demo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: mumei-demo
 
       - name: Checkout mumei
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: mumei-lang/mumei
           ref: develop
           path: mumei
 
       - name: Checkout mumei-agent
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: mumei-lang/mumei-agent
           ref: develop
           path: mumei-agent
 
       - name: Checkout mumei-lean
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: mumei-lang/mumei-lean
           ref: develop
           path: mumei-lean
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -156,7 +156,7 @@ jobs:
 
       - name: Upload demo reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: demo-reports
           path: |
