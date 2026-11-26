@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 
@@ -101,12 +102,16 @@ def test_generated_optional_target_preserves_dual_repo_command() -> None:
     make = shutil.which("make")
     if make is None:
         pytest.skip("make is not installed")
+    env = os.environ.copy()
+    env.pop("MUMEI_REPO", None)
+    env.pop("MUMEI_AGENT_REPO", None)
     result = subprocess.run(
         [make, "-n", "demo-verify-recheck"],
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
         check=True,
+        env=env,
     )
     normalized = " ".join(result.stdout.replace("\\", " ").split())
     assert normalized == (
