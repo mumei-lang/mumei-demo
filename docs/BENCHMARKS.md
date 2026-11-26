@@ -131,7 +131,14 @@ fixed-code alarm count fell by one, but alarms appeared in one more
 specimen. The same adjudications left 24 buggy-code findings unreviewed
 and 22 prior reviews unmatched, so the new totals are the runner's scores,
 not a fresh human adjudication. The run does not isolate those changes to
-a single upstream PR.
+a single upstream PR. [`specimens/ADJUDICATION_WORKSHEET.md`](../specimens/ADJUDICATION_WORKSHEET.md)
+organizes those decisions for human review: it was regenerated on 2026-11-26
+at the same Core/Agent commits, reproduced the same 24 buggy-code unreviewed
+findings and 22 stale reviews, and additionally groups the fixed-variant
+findings into the same review workflow. Fixed-variant entries link both the
+buggy source and `fixed.patch`; stale entries say whether the same ruling still
+matches the with-LLM audit, so a ruling used there is not removed while
+updating the no-LLM rerun.
 
 To reproduce, use a disposable checkout of the pinned Demo revision
 and sibling Core and Agent checkouts. With no LLM credentials in the
@@ -141,10 +148,12 @@ environment or Agent's `.env`, run:
 python3 scripts/run_specimen_audits.py --mumei-bin ../mumei/target/debug/mumei
 ```
 
-This rewrites the checkout's audit and scoreboard outputs. The LLM
-baseline used `openai/gpt-6-luna` via OpenRouter, which was unavailable for
-this rerun. The local `qwen2.5-coder:1.5b` pilot timed out after 120 seconds
-on the first specimen's JSON audit; it did not yield a comparable score.
+This rewrites the checkout's audit and scoreboard outputs. Regenerate the
+human-review worksheet in that checkout with
+`python3 scripts/extract_adjudication_worksheet.py`. The LLM baseline used
+`openai/gpt-6-luna` via OpenRouter, which was unavailable for this rerun. The
+local `qwen2.5-coder:1.5b` pilot timed out after 120 seconds on the first
+specimen's JSON audit; it did not yield a comparable score.
 
 ## Roadmap snapshot
 

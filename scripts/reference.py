@@ -16,6 +16,7 @@ DASHBOARD_DIR = REPO_ROOT / "dashboard"
 CLI_SCRIPTS = (
     ("scripts/generate_report.py", "generate_report"),
     ("scripts/run_specimen_audits.py", "run_specimen_audits"),
+    ("scripts/extract_adjudication_worksheet.py", "extract_adjudication_worksheet"),
     ("scripts/run_baselines.py", "run_baselines"),
     ("scripts/run_llm_only.py", "run_llm_only"),
     ("scripts/compare_arms.py", "compare_arms"),
