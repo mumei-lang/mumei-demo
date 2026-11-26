@@ -287,7 +287,10 @@ def test_filtered_report_defaults_to_separate_path(monkeypatch, tmp_path):
     filtered = tmp_path / "reports/machine_tv_bench_filtered.json"
     assert bench.main(args) == 0
     full_report = full.read_bytes()
-    assert [case["id"] for case in json.loads(full_report)["cases"]] == ["A", "B"]
+    full_doc = json.loads(full_report)
+    assert [case["id"] for case in full_doc["cases"]] == ["A", "B"]
+    assert set(full_doc["environment"]) == {"start", "end"}
+    assert full_doc["environment"]["start"]["sampled_at"] <= full_doc["environment"]["end"]["sampled_at"]
     assert bench.main(args + ["--only", "A"]) == 0
     assert full.read_bytes() == full_report
     assert [case["id"] for case in json.loads(filtered.read_text())["cases"]] == ["A"]
@@ -298,7 +301,7 @@ def test_filtered_report_defaults_to_separate_path(monkeypatch, tmp_path):
 def test_host_environment_is_bounded_and_serializable(monkeypatch):
     monkeypatch.setattr(bench.os, "getloadavg", lambda: (1.234, 2.345, 3.456), raising=False)
     env = bench.host_environment()
-    assert set(env) <= {"os", "arch", "cpu_count", "loadavg_1m", "loadavg_5m", "loadavg_15m"}
+    assert set(env) <= {"sampled_at", "os", "arch", "cpu_count", "loadavg_1m", "loadavg_5m", "loadavg_15m"}
     assert env["loadavg_1m"] == 1.23 and env["loadavg_15m"] == 3.46
     json.dumps(env)
 
@@ -307,4 +310,4 @@ def test_host_environment_tolerates_missing_loadavg(monkeypatch):
     monkeypatch.delattr(bench.os, "getloadavg", raising=False)
     env = bench.host_environment()
     assert "loadavg_1m" not in env
-    assert {"os", "arch", "cpu_count"} <= set(env)
+    assert {"sampled_at", "os", "arch", "cpu_count"} <= set(env)

@@ -244,7 +244,8 @@ def host_environment() -> dict:
     This intentionally records only capacity/load metadata, never the process
     environment, because machine-TV verdicts can be timing- and budget-sensitive.
     """
-    env = {"os": platform.system().lower(), "arch": platform.machine(),
+    env = {"sampled_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
+           "os": platform.system().lower(), "arch": platform.machine(),
            "cpu_count": os.cpu_count()}
     try:
         load1, load5, load15 = os.getloadavg()
@@ -360,6 +361,7 @@ def main(argv: list[str]) -> int:
     if not cases:
         parser.error("no contract benchmark cases")
     started = dt.datetime.now(dt.timezone.utc)
+    environment_start = host_environment()
     clock = time.monotonic()
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         records = list(pool.map(lambda case: run_case(case, mumei_bin, args.timeout), cases))
@@ -369,7 +371,7 @@ def main(argv: list[str]) -> int:
         "recorded_at": started.replace(microsecond=0).isoformat(),
         "demo": cb.git_identity(str(cb.REPO_ROOT)),
         "verifier": cb.verifier_identity(mumei_bin),
-        "environment": host_environment(),
+        "environment": {"start": environment_start, "end": host_environment()},
         "settings": {"jobs": args.jobs, "timeout_seconds": args.timeout, "model_calls": 0},
         "seconds": round(time.monotonic() - clock, 3),
         "summary": summary,
