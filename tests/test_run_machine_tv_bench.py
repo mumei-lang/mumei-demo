@@ -225,6 +225,46 @@ def test_summary_separates_assurance_outcomes_from_time_and_budget():
     }
 
 
+def test_summary_attributes_unresolved_reasons_and_stage_measurements():
+    def variant(z3, native_outcome, reason, stages):
+        return {
+            "z3": {"outcome": z3, "seconds": 1.0, "budget_seconds": 5},
+            "native": {"outcome": native_outcome, "reason": reason, "stages": stages},
+        }
+
+    records = [
+        {
+            "buggy": variant("refuted", "inconclusive", "machine_tv_needs_profile_diagnosis",
+                             {"build": {"seconds": 2.0, "budget_seconds": 10},
+                              "accept_object": {"seconds": 3.0, "budget_seconds": 10}}),
+            "fixed": variant("proven", "machine_outside_profile", "instruction outside profile",
+                             {"build": {"seconds": 1.0, "budget_seconds": 10}}),
+            "vacuity": "ok",
+        },
+        {
+            "buggy": variant("refuted", "environment_error", "build_command",
+                             {"build": {"error": "environment_error", "seconds": 0.5, "budget_seconds": 10}}),
+            "fixed": variant("proven", "timeout", "accept_object_command",
+                             {"build": {"seconds": 1.5, "budget_seconds": 10},
+                              "accept_object": {"error": "timeout", "budget_seconds": 10}}),
+            "vacuity": "ok",
+        },
+    ]
+    summary = bench.summarize(records)
+    assert summary["native"]["buggy"]["unresolved_reasons"]["inconclusive"] == {
+        "machine_tv_needs_profile_diagnosis": 1,
+    }
+    assert summary["native"]["buggy"]["unresolved_reasons"]["environment_failure"] == {"build_command": 1}
+    assert summary["native"]["fixed"]["unresolved_reasons"]["unsupported"] == {"instruction outside profile": 1}
+    assert summary["native"]["fixed"]["unresolved_reasons"]["budget_exhausted"] == {"accept_object_command": 1}
+    assert summary["measurement"]["native_pipeline_by_stage"] == {
+        "accept_object": {"seconds": 3.0, "timed_calls": 1, "expected_calls": 2,
+                          "budget_seconds": 20.0, "budgeted_calls": 2},
+        "build": {"seconds": 5.0, "timed_calls": 4, "expected_calls": 4,
+                  "budget_seconds": 40.0, "budgeted_calls": 4},
+    }
+
+
 def test_filtered_report_defaults_to_separate_path(monkeypatch, tmp_path):
     cases = [{"id": "A"}, {"id": "B"}]
 
@@ -247,9 +287,27 @@ def test_filtered_report_defaults_to_separate_path(monkeypatch, tmp_path):
     filtered = tmp_path / "reports/machine_tv_bench_filtered.json"
     assert bench.main(args) == 0
     full_report = full.read_bytes()
-    assert [case["id"] for case in json.loads(full_report)["cases"]] == ["A", "B"]
+    full_doc = json.loads(full_report)
+    assert [case["id"] for case in full_doc["cases"]] == ["A", "B"]
+    assert set(full_doc["environment"]) == {"start", "end"}
+    assert full_doc["environment"]["start"]["sampled_at"] <= full_doc["environment"]["end"]["sampled_at"]
     assert bench.main(args + ["--only", "A"]) == 0
     assert full.read_bytes() == full_report
     assert [case["id"] for case in json.loads(filtered.read_text())["cases"]] == ["A"]
     assert bench.main(args + ["--only", "B", "--output", str(tmp_path / "custom.json")]) == 0
     assert [case["id"] for case in json.loads((tmp_path / "custom.json").read_text())["cases"]] == ["B"]
+
+
+def test_host_environment_is_bounded_and_serializable(monkeypatch):
+    monkeypatch.setattr(bench.os, "getloadavg", lambda: (1.234, 2.345, 3.456), raising=False)
+    env = bench.host_environment()
+    assert set(env) <= {"sampled_at", "os", "arch", "cpu_count", "loadavg_1m", "loadavg_5m", "loadavg_15m"}
+    assert env["loadavg_1m"] == 1.23 and env["loadavg_15m"] == 3.46
+    json.dumps(env)
+
+
+def test_host_environment_tolerates_missing_loadavg(monkeypatch):
+    monkeypatch.delattr(bench.os, "getloadavg", raising=False)
+    env = bench.host_environment()
+    assert "loadavg_1m" not in env
+    assert {"sampled_at", "os", "arch", "cpu_count"} <= set(env)

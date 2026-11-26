@@ -7,6 +7,7 @@ import datetime as dt
 import hashlib
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -237,6 +238,57 @@ def native_measurement_slots(record: dict) -> list[dict]:
     return slots
 
 
+def host_environment() -> dict:
+    """Bounded host-pressure diagnostics for interpreting repeat-run variance.
+
+    This intentionally records only capacity/load metadata, never the process
+    environment, because machine-TV verdicts can be timing- and budget-sensitive.
+    """
+    env = {"sampled_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
+           "os": platform.system().lower(), "arch": platform.machine(),
+           "cpu_count": os.cpu_count()}
+    try:
+        load1, load5, load15 = os.getloadavg()
+    except (AttributeError, OSError):
+        return env
+    return {**env, "loadavg_1m": round(load1, 2), "loadavg_5m": round(load5, 2),
+            "loadavg_15m": round(load15, 2)}
+
+
+UNRESOLVED_OUTCOME_GROUPS = {
+    "unsupported": ("source_outside_profile", "machine_outside_profile"),
+    "inconclusive": ("inconclusive",),
+    "environment_failure": ("environment_error",),
+    "budget_exhausted": ("timeout",),
+}
+
+
+def unresolved_reasons(records: list[dict], variant: str) -> dict:
+    """Reason counts for non-acceptance limiting factors, kept separate from
+    assurance outcomes so unsupported/inconclusive/environment/budget are not
+    collapsed into pass/fail or into each other."""
+    grouped = {}
+    for label, outcomes in UNRESOLVED_OUTCOME_GROUPS.items():
+        counts = Counter(
+            r[variant]["native"].get("reason") or "missing_reason"
+            for r in records
+            if r[variant]["native"]["outcome"] in outcomes
+        )
+        grouped[label] = dict(sorted(counts.items()))
+    return grouped
+
+
+def native_stage_measurements(records: list[dict]) -> dict:
+    by_stage: dict[str, list[dict]] = {}
+    for record in records:
+        for variant in cb.VARIANTS:
+            stages = record.get(variant, {}).get("native", {}).get("stages", {})
+            for name, slot in stages.items():
+                if isinstance(slot, dict):
+                    by_stage.setdefault(name, []).append(slot)
+    return {name: measurement_stats(slots) for name, slots in sorted(by_stage.items())}
+
+
 def summarize(records: list[dict]) -> dict:
     by_variant = {}
     for variant in cb.VARIANTS:
@@ -257,6 +309,7 @@ def summarize(records: list[dict]) -> dict:
             "budget_exhausted": counts["timeout"],
             "z3_vs_native": {z3: {native: n for (source, native), n in sorted(comparison.items()) if source == z3}
                              for z3 in ("refuted", "proven", "inconclusive")},
+            "unresolved_reasons": unresolved_reasons(records, variant),
         }
     return {
         "cases": len(records),
@@ -269,6 +322,7 @@ def summarize(records: list[dict]) -> dict:
         "measurement": {
             "source_verification": measurement_stats([slot for r in records for slot in source_measurement_slots(r)]),
             "native_pipeline": measurement_stats([slot for r in records for slot in native_measurement_slots(r)]),
+            "native_pipeline_by_stage": native_stage_measurements(records),
         },
     }
 
@@ -307,6 +361,7 @@ def main(argv: list[str]) -> int:
     if not cases:
         parser.error("no contract benchmark cases")
     started = dt.datetime.now(dt.timezone.utc)
+    environment_start = host_environment()
     clock = time.monotonic()
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         records = list(pool.map(lambda case: run_case(case, mumei_bin, args.timeout), cases))
@@ -316,6 +371,7 @@ def main(argv: list[str]) -> int:
         "recorded_at": started.replace(microsecond=0).isoformat(),
         "demo": cb.git_identity(str(cb.REPO_ROOT)),
         "verifier": cb.verifier_identity(mumei_bin),
+        "environment": {"start": environment_start, "end": host_environment()},
         "settings": {"jobs": args.jobs, "timeout_seconds": args.timeout, "model_calls": 0},
         "seconds": round(time.monotonic() - clock, 3),
         "summary": summary,
