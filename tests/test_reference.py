@@ -82,6 +82,21 @@ def test_uniform_optional_targets_are_data_driven_and_phony() -> None:
     ) in make_targets()
 
 
+def test_filtered_out_generated_target_is_not_phony_only() -> None:
+    make = shutil.which("make")
+    if make is None:
+        pytest.skip("make is not installed")
+    result = subprocess.run(
+        [make, "-n", "OPTIONAL_SCENARIOS=verify_attempt", "demo-verify-recheck"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "No rule to make target 'demo-verify-recheck'" in result.stderr
+
+
 def test_generated_optional_target_preserves_dual_repo_command() -> None:
     make = shutil.which("make")
     if make is None:
