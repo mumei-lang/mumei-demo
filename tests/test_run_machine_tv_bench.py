@@ -161,6 +161,7 @@ def test_run_case_preserves_source_measurements_and_vacuity_control(monkeypatch)
     assert measured["buggy"]["z3"]["budget_seconds"] == 10
     assert measured["buggy"]["z3"]["failure_kind"] == "inconclusive"
     assert measured["vacuity_control"] == {k: control[k] for k in ("outcome", "status", "seconds", "budget_seconds")}
+    assert measured["port_hashes"] == {"buggy": bench.cb.sha256("buggy"), "fixed": bench.cb.sha256("fixed")}
 
 
 def test_summary_does_not_turn_non_acceptance_into_rejection():

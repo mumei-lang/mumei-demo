@@ -91,6 +91,8 @@ def classification(before: dict, after: dict) -> str:
 
 
 def input_identity(case: dict) -> dict:
+    if isinstance(case.get("port_hashes"), dict):
+        return {"port_hashes": case["port_hashes"]}
     return {"case_hash": case.get("case_hash"), "source_hash": case.get("source_hash")}
 
 
@@ -108,7 +110,7 @@ def compare_reports(base: dict, repeat: dict) -> dict:
             input_changes.append({"id": case_id, "base": before_input, "repeat": after_input})
 
     changes = []
-    timing_changes = []
+    stage_changes = []
     outcome_transitions = Counter()
     group_transitions = Counter()
     outcome_transitions_by_variant = {variant: Counter() for variant in cb.VARIANTS}
@@ -121,13 +123,14 @@ def compare_reports(base: dict, repeat: dict) -> dict:
             repeat_native = repeat_cases[case_id].get(variant, {}).get("native", {})
             before, after = diagnostic(base_native), diagnostic(repeat_native)
             stages = stage_differences(base_native.get("stages", {}), repeat_native.get("stages", {}))
-            if before == after:
-                if stages:
-                    timing_changes.append({"id": case_id, "variant": variant, "stage_differences": stages})
-                continue
-            stage_result_changes += sum(
+            changed_stage_results = sum(
                 item["base_status"] != item["repeat_status"] for item in stages.values()
             )
+            stage_result_changes += changed_stage_results
+            if before == after:
+                if stages:
+                    stage_changes.append({"id": case_id, "variant": variant, "stage_differences": stages})
+                continue
             transition = f"{before['outcome']}->{after['outcome']}"
             group_transition = f"{OUTCOME_GROUPS.get(before['outcome'], 'unknown')}->{OUTCOME_GROUPS.get(after['outcome'], 'unknown')}"
             outcome_transitions[transition] += 1
@@ -169,10 +172,10 @@ def compare_reports(base: dict, repeat: dict) -> dict:
                 for variant, counts in group_transitions_by_variant.items() if counts
             },
             "stage_result_changes": stage_result_changes,
-            "timing_changes": len(timing_changes),
+            "stage_changes": len(stage_changes),
         },
         "changes": changes,
-        "timing_changes": timing_changes,
+        "stage_changes": stage_changes,
     }
 
 

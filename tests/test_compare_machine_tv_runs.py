@@ -99,8 +99,8 @@ def test_unchanged_verdict_stage_time_regression_is_reported():
     after = native("accepted", "same", {"build": {"exit": 0, "seconds": 1.5, "budget_seconds": 120}})
     diff = compare.compare_reports(report([case(fixed=before)]), report([case(fixed=after)]))
     assert diff["summary"]["verdict_changes"] == 0
-    assert diff["summary"]["timing_changes"] == 1
-    item = diff["timing_changes"][0]
+    assert diff["summary"]["stage_changes"] == 1
+    item = diff["stage_changes"][0]
     assert item["id"] == "GO01-D05" and item["variant"] == "fixed"
     assert item["stage_differences"]["build"]["seconds_delta"] == 0.5
 
@@ -124,3 +124,14 @@ def test_output_must_not_overwrite_an_input_report(tmp_path, capsys):
     assert compare.main([str(first), str(second), "--output", str(first)]) == 1
     assert first.read_text() == original
     assert "must not overwrite" in capsys.readouterr().err
+
+
+def test_same_port_hashes_stay_comparable_when_case_metadata_hash_changes():
+    before = case("A")
+    after = case("A")
+    hashes = {"buggy": "b", "fixed": "f"}
+    before.update(case_hash="old", source_hash="old-native", port_hashes=hashes)
+    after.update(case_hash="new", source_hash="new-native", port_hashes=hashes.copy())
+    diff = compare.compare_reports(report([before]), report([after]))
+    assert diff["summary"]["cases_compared"] == 1
+    assert diff["summary"]["input_changes"] == []
