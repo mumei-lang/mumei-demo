@@ -213,3 +213,44 @@ def test_body_braces_in_comments_and_strings_do_not_escape():
 def test_python_docstrings_do_not_count_as_risky_operations():
     assert "/" not in pd.scrub('"""x / y; xs[3]"""\nreturn n  # n / 0', "python")
     assert "//" in pd.scrub("return n // y", "python")
+
+
+def test_lint_findings_are_structured_and_keep_message_compatibility():
+    case = stub_case("xs[0]", "return xs[0]")
+    findings = pd.lint_findings(case, "0")
+    assert findings == [{"kind": "missing_modeled_operation", "operation": "index/slice",
+                         "message": "missing modeled index/slice"}]
+    assert pd.lint(case, "0") == ["missing modeled index/slice"]
+
+
+def test_lint_findings_cover_guard_success_rewrite_and_self_call():
+    case = stub_case("Window { ok: true, start: n }")
+    case["header"] = HEADER.replace("result >= 0", "result.ok => result.start >= 0")
+    body = "if n > 0 { read(n) } else { Window { ok: n > 0, start: n } }"
+    kinds = {finding["kind"] for finding in pd.lint_findings(case, body)}
+    assert kinds == {"added_guard", "success_flag_rewrite", "self_call"}
+
+
+def test_collect_aggregates_structured_lint_counts(monkeypatch):
+    case = stub_case("xs[0]", "return xs[0]")
+    monkeypatch.setattr(pd.replay, "replay_inputs", lambda _case: ([WITNESS], "digest"))
+    monkeypatch.setattr(pd.bench, "verify_text", lambda *_args: {
+        "outcome": "refuted", "status": "", "diagnostics": []})
+    doc = {"model": "test", "runs": [[{"id": "X", "buggy": {"outcome": "proven", "body": "0"}}],
+                                     [{"id": "X", "buggy": {"outcome": "proven", "body": "0"}}]]}
+    report = pd.collect([case], doc, "/bin/mumei", 7)
+    assert report["lint_counts"] == {"missing_modeled_operation:index/slice": 2}
+    assert report["misaccepts"][0]["lint"] == ["missing modeled index/slice"]
+    assert report["misaccepts"][0]["lint_findings"][0]["kind"] == "missing_modeled_operation"
+    assert "lint findings: missing_modeled_operation:index/slice 2" in pd.render(report)
+
+
+def test_collect_omits_empty_lint_counts(monkeypatch):
+    case = stub_case("0", "return 0")
+    monkeypatch.setattr(pd.replay, "replay_inputs", lambda _case: ([WITNESS], "digest"))
+    monkeypatch.setattr(pd.bench, "verify_text", lambda *_args: {
+        "outcome": "refuted", "status": "", "diagnostics": []})
+    doc = {"model": "test", "runs": [[{"id": "X", "buggy": {"outcome": "proven", "body": "0"}}]]}
+    report = pd.collect([case], doc, "/bin/mumei", 7)
+    assert report["lint_counts"] == {}
+    assert "lint findings:" not in pd.render(report)

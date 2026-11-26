@@ -64,3 +64,7 @@ be false compared with the reference flag expressions and their branch condition
 and direct self-calls. These are syntactic clues, not
 a language-aware source diff or proof of a silent repair: the model may omit
 unrelated source operations, and it may encode a source operation differently.
+The JSON `lint_counts` total counts warning instances rather than misaccepted
+case-runs: one accepted port can carry several warnings, so the lint total (41
+in the recorded runs) is not expected to equal the 26 primary-mechanism rows in
+the table above.
