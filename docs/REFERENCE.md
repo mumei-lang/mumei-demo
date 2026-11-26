@@ -128,7 +128,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/run_llm_only.py` | 8 | Ask an LLM alone (no Mumei) to review the specimens, and score it like the baselines. |
 | `scripts/compare_arms.py` | 2 | Compare three ways of reviewing the specimen corpus side by side. |
 | `scripts/run_contract_bench.py` | 9 | Contract benchmark: can a defect be refuted and its fix be proven against one fixed contract? |
-| `scripts/recheck_lean_dual_checks.py` | 2 | Re-run committed contract-bench proof certificates through the current Lean dual checker. |
+| `scripts/recheck_lean_dual_checks.py` | 2 | Re-run committed contract-bench proof certificates through the current Lean dual checker. After updating the default results file, run `python3 scripts/run_contract_bench.py --render-only` to regenerate the Markdown summary. |
 | `scripts/run_machine_tv_bench.py` | 5 | Measure native-object acceptance on the paired source-contract benchmark ports. |
 | `scripts/run_native_replay.py` | 4 | Replay concrete inputs on the native code and on the .mm ports of the contract benchmark. |
 | `scripts/run_port_divergence.py` | 4 | Replay reference counterexamples on the bench's accepted buggy LLM ports. |
@@ -238,7 +238,7 @@ Contract benchmark: can a defect be refuted and its fix be proven against one fi
 
 ### `scripts/recheck_lean_dual_checks.py`
 
-Re-run committed contract-bench proof certificates through the current Lean dual checker.
+Re-run committed contract-bench proof certificates through the current Lean dual checker. After updating the default results file, run `python3 scripts/run_contract_bench.py --render-only` to regenerate the Markdown summary.
 
 | Option | Value | Required | Default | Description |
 |---|---|---|---|---|

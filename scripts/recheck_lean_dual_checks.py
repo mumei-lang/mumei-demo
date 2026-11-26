@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Re-run committed contract-bench proof certificates through the current Lean dual checker."""
+"""Re-run committed contract-bench proof certificates through the current Lean dual checker.
+
+After updating the default results file, run `python3 scripts/run_contract_bench.py --render-only`
+to regenerate the Markdown summary."""
 from __future__ import annotations
 
 import argparse
@@ -15,13 +18,28 @@ import run_contract_bench as cb  # noqa: E402
 SCHEMA = "mumei-demo.lean-dual-check-recheck/v1"
 
 
+def certificate_outcome(case: dict, fixed: dict, cert_text: str) -> dict | None:
+    certificate = fixed.get("certificate")
+    if not isinstance(certificate, dict) or certificate.get("file") != cb.CERT_FILE:
+        return {"status": "stale", "reason": "missing recorded fixed proof certificate summary"}
+    if certificate.get("sha256") != cb.sha256(cert_text):
+        return {"status": "stale", "reason": "committed proof certificate hash does not match the recorded result"}
+    if certificate.get("port_sha256") != cb.sha256(case["ports"]["fixed"]):
+        return {"status": "stale", "reason": "recorded proof certificate does not match the current fixed port"}
+    return None
+
+
 def refresh_results(lean_dir: Path, timeout: int, results_path: Path = cb.RESULTS_DIR / "mumei.json") -> dict:
     if not cb.lake_on_path():
         raise ValueError("environment_failure: lake is not on PATH; no dual-check result was measured")
+    if not (lean_dir / "scripts" / "bridge.py").is_file():
+        raise ValueError(f"environment_failure: mumei-lean bridge is not available at {lean_dir}")
     cases, errors = cb.load_cases()
     if errors:
         raise ValueError("invalid contract benchmark cases: " + "; ".join(errors))
     doc = json.loads(results_path.read_text())
+    if doc.get("arm") != "mumei":
+        raise ValueError("unsupported_input: --results must be the reference-port mumei arm")
     runs = doc.get("runs") or []
     if len(runs) != 1:
         raise ValueError("expected exactly one recorded mumei-arm run")
@@ -33,13 +51,15 @@ def refresh_results(lean_dir: Path, timeout: int, results_path: Path = cb.RESULT
     checked = []
     for case in cases:
         cert_path = cb.REPO_ROOT / case["dir"] / cb.CERT_FILE
+        record = records[case["id"]]
+        fixed = record.setdefault("fixed", {})
         if not cert_path.is_file():
             outcome = {"status": "unsupported", "reason": "missing committed proof certificate"}
         else:
-            outcome = cb.lean_dual_check(str(lean_dir), case, cert_path.read_text(), timeout)
+            cert_text = cert_path.read_text()
+            outcome = certificate_outcome(case, fixed, cert_text) or cb.lean_dual_check(
+                str(lean_dir), case, cert_text, timeout)
         checked.append({"id": case["id"], "atom": case["atom"], **outcome})
-        record = records[case["id"]]
-        fixed = record.setdefault("fixed", {})
         fixed["lean_dual_check"] = outcome
 
     doc["lean_bridge"] = cb.git_identity(str(lean_dir))
@@ -49,7 +69,7 @@ def refresh_results(lean_dir: Path, timeout: int, results_path: Path = cb.RESULT
         "counts": dict(sorted(Counter(item["status"] for item in checked).items())),
         "total": len(checked),
     }
-    results_path.write_text(json.dumps(doc, indent=2) + "\n")
+    results_path.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
     return {"document": doc, "checks": checked}
 
 
@@ -70,7 +90,7 @@ def main(argv: list[str]) -> int:
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(f"lean dual-check recheck failed: {exc}", file=sys.stderr)
         return 1
-    print(json.dumps(refreshed["document"]["lean_dual_recheck"], indent=2))
+    print(json.dumps(refreshed["document"]["lean_dual_recheck"], indent=2, ensure_ascii=False))
     return 0
 
 
