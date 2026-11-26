@@ -68,11 +68,6 @@ def worksheet_link(label: str, target: Path, link_root: Path) -> str:
     return f"[{label}]({quote(rel.as_posix(), safe='/')})"
 
 
-def used_review_keys(coverages: list[dict]) -> set[tuple[str, str, str]]:
-    return {tuple(key) for cov in coverages
-            for key in (cov.get("reviews_used") or []) + ((cov.get("fixed") or {}).get("reviews_used") or [])}
-
-
 def meta_lines(coverages: list[dict]) -> list[str]:
     metas = sorted({json.dumps(cov.get("meta") or {}, sort_keys=True) for cov in coverages})
     lines = []
@@ -108,17 +103,22 @@ def review_entry(item: dict) -> str:
 
 def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: Path,
            llm: bool, generated_by: str, include_audit_links: bool, link_root: Path,
-           other_coverages: list[dict]) -> str:
+           other_coverages: list[dict], other_missing: list[str]) -> str:
     mode = "with LLM" if llm else "no LLM"
-    stale = rsa.stale_reviews(coverages, finding_reviews)
+    stale = rsa.stale_reviews(coverages + other_coverages, finding_reviews)
     groups = unreviewed_groups(coverages)
     occurrences = sum(sum(g["occurrence_counts"].values()) for g in groups)
     variant_occurrences = {
         variant: sum(g["occurrence_counts"].get(variant, 0) for g in groups)
         for variant in ("buggy", "fixed")
     }
-    other_used = used_review_keys(other_coverages)
-    other_scored = {cov["specimen"] for cov in other_coverages}
+    other_total = len(other_coverages) + len(other_missing)
+    if not other_coverages:
+        other_state = "missing"
+    elif other_missing:
+        other_state = f"partial ({len(other_coverages)}/{other_total} specimens)"
+    else:
+        other_state = "complete"
     by_specimen_file = defaultdict(list)
     for i, g in enumerate(groups):
         by_specimen_file[(g["specimen"], g["file"])].append(f"U{i + 1}")
@@ -130,6 +130,7 @@ def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: P
         "update `specimens/scoreboard/adjudications.json` instead.",
         "",
         f"Source: `{mode}` `coverage.json` files under `specimens/`.",
+        f"Other audit mode coverage: **{other_state}**.",
         f"Unreviewed review keys: **{len(groups)}** covering **{occurrences}** buggy/fixed finding occurrence(s).",
         f"Occurrences by variant: buggy **{variant_occurrences['buggy']}**, fixed **{variant_occurrences['fixed']}**.",
         "One review key can cover both variants and repeated occurrences of the same specimen/file/finding text.",
@@ -146,8 +147,9 @@ def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: P
         "`finding_contains` only when the shorter text still uniquely matches the intended finding. Use `real` when the finding points",
         "at a real problem, otherwise `false_positive`. Preserve the double quotes required by JSON.",
         "",
-        "For every `S` item, first check whether it still matches the other audit mode; if it does, keep it unchanged. Otherwise either",
-        "update `finding_contains` to match the same finding's current wording, or remove it only when it is emitted in neither mode.",
+        "For every `S` item, either update `finding_contains` to match the same finding's current wording, or remove the entry",
+        "when the finding is no longer emitted. Entries still used in either available audit mode are not listed as stale.",
+        "If other-mode coverage is partial or missing, do not remove an `S` entry until that mode has been checked or regenerated.",
         "Do not mark the worksheet itself complete; completeness is measured by `--rescore`.",
         "",
         "When every item is handled, run `python3 scripts/run_specimen_audits.py --rescore` in the checkout containing the new audit output.",
@@ -196,18 +198,11 @@ def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: P
     for i, review in enumerate(stale, 1):
         key = (review["specimen"], review["file"])
         related = ", ".join(by_specimen_file.get(key, [])) or "none in this worksheet"
-        if rsa.review_key(review) in other_used:
-            other_state = "matched; keep this review"
-        elif review["specimen"] not in other_scored:
-            other_state = "not checked (no other-mode coverage for this specimen)"
-        else:
-            other_state = "not matched in the available other-mode coverage"
         lines += [
             f"### S{i} — `{review['specimen']}` / `{review['file']}`",
             "",
             f"- Prior verdict: `{review['verdict']}`",
             f"- Prior reason: {review['reason']}",
-            f"- Other audit mode: {other_state}",
             f"- Possibly related unreviewed finding(s): {related}",
             "- Prior `finding_contains`:",
             "",
@@ -240,9 +235,9 @@ def main(argv: list[str]) -> int:
     generated_by = "scripts/extract_adjudication_worksheet.py"
     default_name = "ADJUDICATION_WORKSHEET_WITH_LLM.md" if args.llm else "ADJUDICATION_WORKSHEET.md"
     output = Path(args.output).resolve() if args.output else specimens_root / default_name
-    other_coverages, _ = load_coverages(specimens_root, not args.llm)
+    other_coverages, other_missing = load_coverages(specimens_root, not args.llm)
     text = render(coverages, finding_reviews, specimens_root, args.llm, generated_by,
-                  args.include_audit_links, output.parent, other_coverages)
+                  args.include_audit_links, output.parent, other_coverages, other_missing)
     output.write_text(text, encoding="utf-8")
     print(f"wrote {output}")
     return 0

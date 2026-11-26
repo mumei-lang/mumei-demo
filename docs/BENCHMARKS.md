@@ -128,17 +128,19 @@ The additional detection was a TypeScript division-by-zero finding
 Python specimens that were previously verified as unverifiable. That
 changes proof status without adding a planted-defect detection. The
 fixed-code alarm count fell by one, but alarms appeared in one more
-specimen. The same adjudications left 24 buggy-code findings unreviewed
-and 22 prior reviews unmatched, so the new totals are the runner's scores,
-not a fresh human adjudication. The run does not isolate those changes to
+specimen. The same adjudications left 47 buggy/fixed findings unreviewed
+(24 buggy, 23 fixed), so the new totals are the runner's scores, not a
+fresh human adjudication.
+The first worksheet pass also reported 22 unmatched prior reviews under the
+former mode-local staleness rule; 21 of those rulings were still used by the
+with-LLM audit. Because `finding_reviews` is shared across modes, staleness
+now means unused in all available audit modes, leaving one genuinely stale
+review for the same remeasurement. The run does not isolate those changes to
 a single upstream PR. [`specimens/ADJUDICATION_WORKSHEET.md`](../specimens/ADJUDICATION_WORKSHEET.md)
 organizes those decisions for human review: it was regenerated on 2026-11-26
-at the same Core/Agent commits, reproduced the same 24 buggy-code unreviewed
-findings and 22 stale reviews, and additionally groups the fixed-variant
-findings into the same review workflow. Fixed-variant entries link both the
-buggy source and `fixed.patch`; stale entries say whether the same ruling still
-matches the with-LLM audit, so a ruling used there is not removed while
-updating the no-LLM rerun.
+at the same Core/Agent commits, reproduced the same 24 buggy-code and 23
+fixed-code unreviewed findings, and groups them into the same review
+workflow. Fixed-variant entries link both the buggy source and `fixed.patch`.
 
 To reproduce, use a disposable checkout of the pinned Demo revision
 and sibling Core and Agent checkouts. With no LLM credentials in the

@@ -475,14 +475,49 @@ def fmt_fixed(fx: dict | None) -> str:
     return f"{fx['false_alarms']} / {fx['specimens']} specimens"
 
 
+def current_review_usage(cov: dict, finding_reviews: list[dict]) -> set[tuple[str, str, str]]:
+    """Review keys matching the findings recorded in a coverage file under the
+    current rulings, ignoring stale `reviews_used` data from an older rulings file."""
+    reviews = [r for r in finding_reviews if r.get("specimen") == cov["specimen"]]
+    used = set()
+    sections = [cov]
+    if cov.get("fixed"):
+        sections.append(cov["fixed"])
+    for section in sections:
+        if "findings" not in section:
+            used.update(tuple(k) for k in section.get("reviews_used") or [])
+            continue
+        for rec in section.get("findings") or []:
+            if rec.get("status") == "defect_evidence":
+                continue
+            hits = [r for r in reviews
+                    if r["file"] == rec["file"] and r["finding_contains"] in rec["text"]]
+            used.update(review_key(r) for r in hits)
+    return used
+
+
 def stale_reviews(coverages: list[dict], finding_reviews: list[dict]) -> list[dict]:
-    """Rulings for a scored specimen that matched no finding. Tool wording
-    changes make rulings stop applying; listing them keeps that visible."""
+    """Rulings for a scored specimen that matched no finding in the supplied
+    coverage set under the current rulings file."""
     scored = {cov["specimen"] for cov in coverages}
-    used = {tuple(k) for cov in coverages
-            for k in (cov.get("reviews_used") or []) + ((cov.get("fixed") or {}).get("reviews_used") or [])}
+    used = set().union(*(current_review_usage(cov, finding_reviews) for cov in coverages)) if coverages else set()
     return [r for r in finding_reviews
             if r["specimen"] in scored and review_key(r) not in used]
+
+
+def load_complementary_coverages(coverages: list[dict], llm: bool) -> list[dict]:
+    """Saved coverage for the opposite LLM mode, when present.
+
+    `finding_reviews` are shared by both modes, so staleness is a property of
+    the combined review database rather than of either mode in isolation.
+    """
+    complementary = []
+    for cov in coverages:
+        specimen_dir = SPECIMENS_ROOT / cov["language"] / cov["specimen"]
+        path = audit_dir(specimen_dir, not llm) / "coverage.json"
+        if path.is_file():
+            complementary.append(json.loads(path.read_text(encoding="utf-8")))
+    return complementary
 
 
 def audit_failure(rc_json: int, rc_md: int, audit: dict) -> str | None:
@@ -908,7 +943,7 @@ def write_summary(coverages: list[dict], meta: dict, path: Path,
             "",
             "## Stale finding reviews",
             "",
-            "These rulings matched no finding in this run (tool wording or code changed). Update or remove them.",
+            "These rulings matched no finding in the available no-LLM or with-LLM audit output. Update or remove them.",
             "",
             "| Specimen | File | Finding contains | Verdict |",
             "|---|---|---|---|",
@@ -1676,8 +1711,10 @@ def summary_path(base: Path, llm: bool) -> Path:
 
 
 def finish_run(coverages: list[dict], meta: dict, finding_reviews: list[dict],
-               args: argparse.Namespace) -> None:
-    stale = stale_reviews(coverages, finding_reviews)
+               args: argparse.Namespace, staleness_coverages: list[dict] | None = None) -> None:
+    if staleness_coverages is None:
+        staleness_coverages = coverages + load_complementary_coverages(coverages, entry_llm(meta))
+    stale = stale_reviews(staleness_coverages, finding_reviews)
     for r in stale:
         print(f"warning: stale finding review (matched nothing): {r['specimen']}/{r['file']}: "
               f"{r['finding_contains'][:80]!r}", file=sys.stderr)
@@ -1733,13 +1770,14 @@ def main(argv: list[str]) -> int:
                                  "run a full audit first")
             rescored.append(coverages)
         stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        all_rescored = [cov for mode_coverages in rescored for cov in mode_coverages]
         for coverages in rescored:
             for d, cov in zip(dirs, coverages):
                 write_coverage(d, cov)
             for cov in coverages:
                 _print_coverage(cov)
             finish_run(coverages, dict(coverages[0]["meta"], rescored_at=stamp),
-                       finding_reviews, args)
+                       finding_reviews, args, staleness_coverages=all_rescored)
         return 0
 
     agent_repo = Path(args.mumei_agent_repo).resolve()
