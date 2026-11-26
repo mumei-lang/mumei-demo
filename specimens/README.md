@@ -226,18 +226,18 @@ Fixed variants — with LLM (`openai/gpt-6-luna`): 16 specimens (171 defects fix
 
 Recent runs:
 
-| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code |
-|---|---|---|---|---|---:|---:|---:|---:|---:|
-| 2026-11-03 | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–87% | 211 / 16 specimens |
-| 2026-11-03 | no | `e8be527` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens |
-| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens |
-| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens |
-| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 4 / 7 specimens |
-| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 4 / 7 specimens |
-| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens |
-| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens |
-| 2026-11-01 | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 4 / 7 specimens |
-| 2026-10-31 (rescored 2026-11-01) | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% | 32% | — |
+| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code | Adjudication |
+|---|---|---|---|---|---:|---:|---:|---:|---:|---|
+| 2026-11-03 | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–87% | 211 / 16 specimens | unknown — rescore |
+| 2026-11-03 | no | `e8be527` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens | unknown — rescore |
+| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens | unknown — rescore |
+| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens | unknown — rescore |
+| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 4 / 7 specimens | unknown — rescore |
+| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 4 / 7 specimens | unknown — rescore |
+| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens | unknown — rescore |
+| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens | unknown — rescore |
+| 2026-11-01 | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 4 / 7 specimens | unknown — rescore |
+| 2026-10-31 (rescored 2026-11-01) | no | `99977fa` | `a6f4a45` | 171 | 6% | 13% | 17% | 32% | — | unknown — rescore |
 
 Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md) (no LLM) and
 [AUDIT_SUMMARY_WITH_LLM.md](AUDIT_SUMMARY_WITH_LLM.md) (with LLM).
@@ -261,6 +261,12 @@ Precision is (defect evidence + findings reviewed as real) / findings; it is a r
 findings are unreviewed, and `—` for runs recorded before findings were classified. Review
 verdicts live under `finding_reviews` in `scoreboard/adjudications.json`; after editing them, run
 `python3 scripts/run_specimen_audits.py --rescore` to re-score the committed audit output.
+When the generated adjudication readiness is incomplete, precision and fixed-alarm totals are
+runner scores rather than fresh human-confirmed adjudications. Runs recorded before readiness was
+stored show `unknown — rescore`; `--render-only` does not infer them, so run `--rescore` after
+reviewing findings to replace the latest legacy state with current readiness. Rescoring updates
+the currently saved audit output and appends a new history entry; older rows remain historical
+and stay `unknown` when they predate readiness recording.
 
 False alarms on fixed code count findings on specimens with their `fixed.patch` applied (every
 planted defect repaired) that no ruling marks as real, shown as false alarms / specimens covered.

@@ -520,7 +520,7 @@ def test_check_passes_offline_without_mumei_or_model(repo, monkeypatch, capsys):
     (lambda r: (r / "proofs/python/py-09-x/PY09-D01/fixed.mm").write_text(FIXED.replace("{ 0 }", "{ 0 + 0 }")), "PY09-D01 is stale"),
     (lambda r: (r / "specimens/python/py-09-x/app.py").write_text(APP + "\n# edit\n"), "PY09-D01 is stale"),
     (lambda r: (r / "proofs/RESULTS.md").write_text("hand edit"), "RESULTS.md is out of date"),
-    (lambda r: (r / "README.md").write_text((r / "README.md").read_text().replace("Details", "Detail")), "README.md is out of date"),
+    (lambda r: (r / "README.md").write_text((r / "README.md").read_text().replace("Full outcome", "Outcome")), "README.md is out of date"),
 ])
 def test_check_rejects_stale_inputs(repo, monkeypatch, capsys, mutate, message):
     run_reference(repo, monkeypatch)

@@ -134,8 +134,15 @@ def load_llm_arm(specimens: list[Path], model: str) -> dict | None:
         usage.append({"seconds": round(sum(u.get("seconds", 0) for u in calls), 1),
                       "cost_usd": round(sum(u.get("cost_usd") or 0 for u in calls), 6),
                       "cost_unknown_calls": sum(1 for u in calls if u.get("cost_usd") is None)})
+    meta = {k: recs[0][k] for k in ("model", "prompt_version", "prompt_hash", "temperature")}
+    stamps = sorted({rec["generated_at"] for rec in recs if rec.get("generated_at")})
+    if len(stamps) == 1:
+        meta["generated_at"] = stamps[0]
+    elif stamps:
+        meta["generated_at"] = stamps[0]
+        meta["generated_at_end"] = stamps[-1]
     return {
-        "meta": {k: recs[0][k] for k in ("model", "prompt_version", "prompt_hash", "temperature")},
+        "meta": meta,
         "defects": runs[0]["defects"] if runs else [],
         "runs": runs,
         "usage": usage,
@@ -293,6 +300,40 @@ def _model(summary: dict) -> str | None:
     return None
 
 
+def _date_range(meta: dict) -> str | None:
+    start = (meta.get("generated_at") or "")[:10]
+    end = (meta.get("generated_at_end") or "")[:10]
+    if not start:
+        return None
+    return f"{start}–{end}" if end and end != start else start
+
+
+def evidence_caption(summary: dict) -> str:
+    """Compact provenance for the committed comparison evidence."""
+    entries = [summary["arms"][n] for n in ARMS if summary["arms"].get(n)]
+    dates = sorted({d for e in entries if (d := _date_range(e["meta"]))})
+    audit = {}
+    for name in ("mumei+llm", "mumei"):
+        if not summary["arms"].get(name):
+            continue
+        for key, value in summary["arms"][name]["meta"].items():
+            audit.setdefault(key, value)
+    parts = []
+    if len(dates) == 1:
+        parts.append(f"measured {dates[0]}")
+    elif dates:
+        parts.append(f"measured {dates[0]}–{dates[-1]}")
+    if audit.get("mumei_agent_commit"):
+        parts.append(f"mumei-agent `{str(audit['mumei_agent_commit'])[:7]}`")
+    if audit.get("mumei_commit"):
+        parts.append(f"mumei `{str(audit['mumei_commit'])[:7]}`")
+    return "; ".join(parts)
+
+
+def evidence_caption_plain(summary: dict) -> str:
+    return evidence_caption(summary).replace("`", "")
+
+
 def kind_lines(summary: dict) -> list[str]:
     present = [n for n in ("mumei", "mumei+llm") if summary["arms"].get(n)]
     if not present:
@@ -342,11 +383,14 @@ def readme_block(summary: dict) -> str:
     ]
     if all(summary["arms"].get(n) is None for n in ARMS):
         return "\n".join(lines + ["No comparison yet — run the audits and `scripts/run_llm_only.py` first."])
+    caption = evidence_caption(summary)
+    if caption:
+        lines += [f"Evidence snapshot: {caption}.", ""]
     lines += table_lines(summary)
     lines += [
         "",
         f"Same {summary['defects']} planted defects and the same scoring for every row"
-        + (f"; the model is `{model}` for both LLM rows." if model else "."),
+        + (f"; LLM rows use `{model}`." if model else "."),
     ]
     pending = [f"{ARM_LABEL[n]} {summary['arms'][n]['unreviewed']['median']:g}" for n in ARMS
                if summary["arms"].get(n) and summary["arms"][n].get("unreviewed", {}).get("median")]
@@ -380,6 +424,9 @@ def report(summary: dict) -> str:
     ]
     if model:
         lines += [f"Model for both LLM rows: `{model}`.", ""]
+    caption = evidence_caption(summary)
+    if caption:
+        lines += [f"Evidence snapshot: {caption}.", ""]
     lines += ["## Totals", ""] + table_lines(summary) + [""]
     lines += [
         "Precision is (defect evidence + findings reviewed as real) / findings, a range while findings "
@@ -435,7 +482,8 @@ def svg(summary: dict) -> str:
     fa_max = max(summary["arms"][n]["fixed_false_alarms"]["max"] for n in present) or 1
     row_h = bar_h + 6
     panel_h = 26 + row_h * len(present) + 10
-    top = 56
+    caption = evidence_caption_plain(summary)
+    top = 74 if caption else 56
     H = top + panel_h * len(panels) + 30
     model = _model(summary)
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" font-family="sans-serif">',
@@ -445,6 +493,8 @@ def svg(summary: dict) -> str:
            f'  <text x="16" y="44" font-size="12" fill="#57606a">'
            f'{rsa._esc(f"LLM rows: {model}; " if model else "")}LLM only: median of '
            f'{summary["arms"]["llm"]["runs"] if summary["arms"].get("llm") else 0} runs, whisker = min–max</text>']
+    if caption:
+        out.append(f'  <text x="16" y="62" font-size="12" fill="#57606a">{rsa._esc(caption)}</text>')
     y = top
     for title, key, denom in panels:
         out.append(f'  <text x="16" y="{y + 16}" font-size="13" font-weight="bold" fill="#24292f">{rsa._esc(title)}</text>')

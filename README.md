@@ -2,89 +2,87 @@
 
 > **Mumei proves that LLM-generated code has bugs — mathematically.**
 
-Mumei runs formal verification over every possible case before an LLM-generated bug becomes a production incident. The representative scenarios below show the same contract pipeline catching concrete failures; the full catalog is in [`docs/SCENARIO_CATALOG.md`](docs/SCENARIO_CATALOG.md).
+Mumei checks code against formal contracts before generation mistakes reach production. This repository is the executable evidence pack: scenario demos, audit and contract benchmarks, and proof artifacts. The implementation lives in [`mumei`](https://github.com/mumei-lang/mumei), [`mumei-agent`](https://github.com/mumei-lang/mumei-agent), and [`mumei-lean`](https://github.com/mumei-lang/mumei-lean).
 
-| Scenario | Bug an LLM can miss | How Mumei catches it |
-|---|---|---|
-| Ownership Transfer | `hostile_takeover` skips `accept` and tries `Idle → Transferred`. | Effect checking rejects `InvalidPreState`. |
-| RTGS Settlement | A transfer can break balance conservation or settle before validation. | Z3 checks contracts; Lean certifies deeper invariants when available. |
-| RegTech Compliance | `PEP` customers are missing from a `match`. | Exhaustiveness checking reports `CustomerType::PEP (tag=3)`. |
-| No-.mm Multi-language Audit | Existing code enters before any `.mm` file exists. | The audit gate reports violations, counterexamples, and `next_steps`. |
-| DeFi Invariant | Integer overflow occurs in an ERC-20 transfer. | Refinement types prevent overflow at compile time. |
-| Charter Gate | A repair weakens a reviewed dosage contract or relies on a low-grade proof. | The charter gate rejects weakened, narrowed, under-graded, and unpinned candidates. |
-| Negative Controls | A dosage implementation verifies under a contract that permits a wrong result. | Controls and Phase 1i expose a surviving mutant; the strong contract is discriminating. |
-| Test Observations | A late-fee contract predicts the wrong result or admits a rejected input. | Harvested Python and Rust tests expose contradictions and confirm an aligned spec and `.mm` atom. |
+## Quick start
 
-## How It Works
-
-```text
-LLM generates code
-      ↓
-mumei verifies (Z3 — automatic)
-      ↓
-  ✅ Proven safe        ❌ Counter-example found
-      ↓                       ↓
-  LLVM binary           AI agent fixes & retries
-      ↓
-  Lean 4 certifies properties beyond Z3's reach
+```bash
+make setup && make demo
 ```
 
-The key insight: Mumei Core is the contract and evidence anchor for the current Z3/Lean routes. External verifier semantics, correspondence, and acceptance remain backend-specific rather than collapsing into one universal proof-language claim.
+Use `CI_FIXTURE_MODE=1 make demo-ci` for the deterministic validation path. Setup, every demo target, dashboards, optional experiments, and troubleshooting are in [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md); command and environment details are in [`docs/REFERENCE.md`](docs/REFERENCE.md).
+
+## What the demo shows
+
+| Scenario | Bug an LLM can miss | Mumei evidence |
+|---|---|---|
+| Ownership Transfer | `hostile_takeover` skips `accept` and tries `Idle → Transferred`. | Effect checking rejects `InvalidPreState`. |
+| RTGS Settlement | A transfer breaks balance conservation or settles before validation. | Z3 checks contracts; Lean certifies deeper invariants when available. |
+| RegTech Compliance | A `match` omits `CustomerType::PEP`. | Exhaustiveness checking reports the missing case. |
+| No-.mm Multi-language Audit | Existing code has no `.mm` specification yet. | The audit gate reports violations, counterexamples, and `next_steps`. |
+
+The full scenario list, including negative controls, charter gating, DeFi invariants, and test-observation checks, is in [`docs/SCENARIO_CATALOG.md`](docs/SCENARIO_CATALOG.md).
 
 ```text
-Without mumei:  LLM skips the accept step → deployed → attacker takes over.
-With mumei:     mumei ❌ InvalidPreState: 'accept' requires 'PendingTransfer'
-                       but current state is 'Idle' → Bug caught at compile time.
+LLM generates code → mumei verifies with Z3 → proof, or counterexample-guided repair
+                                  ↓
+                    Lean 4 certifies obligations beyond Z3's reach
 ```
 
 ## Verification demo: dogfooding audit
 
-The `mumei_develop_audit` scenario now passes all three layers with zero original findings. Details, metrics, before/after evidence, and recording are in [`docs/DEMO_SHOWCASE.md#mumei-develop-audit-dogfooding-verification`](docs/DEMO_SHOWCASE.md#mumei-develop-audit-dogfooding-verification).
+The `mumei_develop_audit` scenario passes all three layers with zero original findings. Evidence, metrics, before/after output, and recordings are in [`docs/DEMO_SHOWCASE.md#mumei-develop-audit-dogfooding-verification`](docs/DEMO_SHOWCASE.md#mumei-develop-audit-dogfooding-verification).
 
 ![Mumei Develop Audit live re-run — 0/0 findings, scenario PASS](docs/assets/mumei-develop-audit-result.png)
 
-## Benchmark lanes
+## Benchmark evidence
 
-The [three-lane benchmark baseline](docs/BENCHMARKS.md) reports source-contract verification,
-source-to-machine translation validation, and existing-code audit separately, with dates and tool commits.
+The benchmark lanes measure different claims, so there is no combined score. The figures below are committed evidence snapshots with their measurement date, tool commit, and model; exploratory reruns do not replace them until their review state is complete. Lane definitions and the latest remeasurement notes are in [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
 
 <!-- scoreboard:start -->
-## Specimen benchmark
+### Specimen benchmark
 
 An executable corpus of deliberately broken Python/TypeScript/Go/Rust/Solidity apps with ground-truth defects, scored with `mumei-agent audit`. It includes defect classes the tools don't detect yet, so the score is expected to rise over time.
 
 ![Detection by language](specimens/scoreboard/by_language.svg)
 
-Committed scoreboard baseline — no LLM: 10/171 detected (6%), 29/171 detected or function-flagged, precision 32% of 40 findings, 29 false alarms on fixed code (16 specimens) · with LLM (`openai/gpt-6-luna`): 12/171 detected (7%), 68/171 detected or function-flagged, precision 10%–87% of 200 findings, 211 false alarms on fixed code (16 specimens)
+Latest committed baseline:
+
+- No LLM — 2026-11-03, mumei-agent `e8be527`, mumei `36eb534`: 10/171 detected (6%), 29/171 detected or function-flagged, precision 32% of 40 findings, 29 false alarms on fixed code (16 specimens)
+- With LLM (`openai/gpt-6-luna`) — 2026-11-03, mumei-agent `e8be527`, mumei `36eb534`: 12/171 detected (7%), 68/171 detected or function-flagged, precision 10%–87% of 200 findings, 211 false alarms on fixed code (16 specimens)
+
+Exploratory reruns are not folded into this baseline until finding adjudication is current.
 
 Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreboard).
 <!-- scoreboard:end -->
 
-A newer 2026-11-25 no-LLM remeasurement found 11/171 defects with 28 fixed-code alarms, but it is not folded into this committed scoreboard because its adjudication readiness is incomplete; see [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
+The newer 2026-11-25 no-LLM remeasurement found 11/171 defects with 28 fixed-code alarms. It remains provisional because 24 buggy-code findings were unreviewed and 22 prior reviews did not match the new output; see [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
 
-## Contract benchmark
+### Contract benchmark
 
-The specimen benchmark measures finding bugs in existing code. This one measures what Mumei is for: checking code against a contract. Each of the 71 specimen defects in a category Mumei targets has a written requirement and one contract that the buggy and the fixed function are both checked against; the right answer is "buggy refuted, fixed proven". Run with `python3 scripts/run_contract_bench.py`; CI only runs `--check`, offline.
+This benchmark checks whether one written contract separates each buggy function from its fixed version. The right answer is “buggy refuted, fixed proven”; the reference row is a contract-expression check, not a detection result.
 
 <!-- contract-bench:start -->
 
-| Arm | Model | Runs | Buggy refuted | Fixed proven | Both right | False acceptance | False positive | Unsupported | Inconclusive | Env failure | Budget exhausted | Cost |
-|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| mumei (reference ports) | — | 1 | 71 / 71 | 71 / 71 | 71 | 0 | 0 | 0 | 0 | 0 | 0 | — |
-| LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | 0 | 0 | 0 | $0.11 |
-| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 63 (60–63) / 71 | 71 (70–71) / 71 | 62 (60–63) | 8 (8–10) | 0 | 1 (0–1) | 0 | 0 | 0 | $0.15 |
-| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 3 | 68 (67–68) / 71 | 60 (59–62) / 71 | 58 (58–59) | 2 (1–3) | 9 (9–10) | 4 (0–4) | 0 | 0 | 0 | $0.06 |
+Evidence snapshot: recorded 2026-11-03 and 2026-11-05; verifier for mumei-checked rows `mumei 0.6.23` (`663efd3`).
 
-Details, per-language results and caveats: [proofs/RESULTS.md](proofs/RESULTS.md).
+| Arm | Model | Both right | False acceptance | False positive | Cost |
+|---|---|---:|---:|---:|---:|
+| mumei (reference ports) | — | 71 / 71 | 0 | 0 | — |
+| LLM only (judges the source) | openai/gpt-6-luna | 66 / 71 | 0 (0–1) | 5 (4–5) | $0.11 |
+| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 62 (60–63) / 71 | 8 (8–10) | 0 | $0.15 |
+| mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 58 (58–59) / 71 | 2 (1–3) | 9 (9–10) | $0.06 |
+
+The reference row uses hand-written ports, so it is a contract-expression check rather than a detection result. Full outcome taxonomy, per-language results and caveats: [proofs/RESULTS.md](proofs/RESULTS.md).
 
 <!-- contract-bench:end -->
-
-See [port divergence](proofs/PORT_DIVERGENCE.md) for a replay of all recorded buggy LLM accepts and a breakdown of why the LLM ports behaved differently from the reference ports.
 
 <!-- comparison:start -->
 ### mumei only vs mumei + LLM vs LLM only
 
 ![mumei only vs mumei + LLM vs LLM only](specimens/scoreboard/arms.svg)
+
+Evidence snapshot: measured 2026-11-03; mumei-agent `e8be527`; mumei `36eb534`.
 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
 |---|---:|---:|---:|---:|---:|---:|
@@ -92,146 +90,29 @@ See [port divergence](proofs/PORT_DIVERGENCE.md) for a replay of all recorded bu
 | mumei + LLM | 12 (7%) | 68 (40%) | 10%–87% | 211 | $0.22 | 54 min wall |
 | LLM only (3 runs, median) | 104 (61%), range 104–105 | 136 (80%), range 135–138 | 62%–100% | 76, range 68–79 | $0.06 | 22 min model time |
 
-Same 171 planted defects and the same scoring for every row; the model is `openai/gpt-6-luna` for both LLM rows.
+Same 171 planted defects and the same scoring for every row; LLM rows use `openai/gpt-6-luna`.
 Precision is a range while findings are unreviewed (median unreviewed per run: mumei + LLM 154, LLM only 65).
 Of the 212 mumei + LLM findings on fixed code (211 false alarms, 1 reviewed as real), 183 are spec diagnostics (cross-check gaps and spec health issues) rather than verifier violations.
 Details, complementarity, findings by kind and per-language numbers: [specimens/COMPARISON.md](specimens/COMPARISON.md).
 <!-- comparison:end -->
 
-## Quick Start
-
-```bash
-make setup && make demo
-```
-
-Use `make demo-ci` for deterministic fixture-mode validation. Detailed setup, per-target commands, dashboards, and troubleshooting are in [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md).
-See the [generated reference](docs/REFERENCE.md) for Make targets, CLI options, and environment variables.
-
-For a focused requirements-to-CI example, run
-`CI_FIXTURE_MODE=1 make demo-charter-regression`. The
-[Charter runbook](scenarios/charter_gate_demo/README.md) connects reviewed
-requirements, candidate rejection, contract-strength checks, finite observations,
-and evidence-reader regressions. These remain distinct models and evidence
-types, not an application-wide safety claim; no LLM credentials are needed.
-
-For the separate single-process record execution experiment, see
-[the adapter runbook](docs/RECORD_EXECUTION.md). `make test-record-execution`
-checks data-only proposals, current authority/version checks, rejection without
-record changes and concurrent execution. These are implementation observations,
-not a formal Python proof; the existing scenario set and evidence grades are
-unchanged.
-
-The optional [`make demo-record-execution`](scenarios/record_execution_demo/README.md)
-connects those finite checks to an independent Lean model audit and a small
-`.mm` contract, keeping all three evidence categories separate. It requires
-the pinned Lean toolchain, but leaves the default 18-scenario sequence intact.
-
-The optional [`make demo-go-summaries`](scenarios/go_summaries/README.md)
-runs the declared `go-summaries` route family on a sibling `mumei-agent`
-checkout: provision the go-types helper, emit a
-`mumei.go-scalar-parameter-deps/v1` manifest, check it against a fresh
-helper report, and accept one binding under the strict whole-context gate.
-Fixture mode replays recorded payloads; real mode needs a maintained Go
-toolchain on `PATH` and the default scenario sequence stays unchanged.
-
-The optional [`make demo-ts-summaries`](scenarios/ts_summaries/README.md)
-runs the declared `ts-summaries` route family on a sibling `mumei-agent`
-checkout: emit a `mumei.ts-scalar-parameter-deps/v1` manifest, check it
-against a fresh derivation, and accept one function under the strict
-whole-context gate. The analyzer runs in-process on tree-sitter, so no
-toolchain or fixture mode is needed and the default scenario sequence
-stays unchanged.
-
-The optional [`make demo-rust-summaries`](scenarios/rust_summaries/README.md)
-runs the declared `rust-summaries` route family on a sibling `mumei-agent`
-checkout: emit a `mumei.rust-scalar-parameter-deps/v1` manifest, check it
-against a fresh derivation, and accept one function under the strict
-whole-context gate. The analyzer runs in-process on tree-sitter, so no
-toolchain or fixture mode is needed and the default scenario sequence
-stays unchanged.
-
-The optional [`make demo-sol-summaries`](scenarios/sol_summaries/README.md)
-runs the declared `sol-summaries` route family on a sibling `mumei-agent`
-checkout: emit a `mumei.sol-scalar-parameter-deps/v1` manifest, check it
-against a fresh derivation, and accept one function under the strict
-whole-context gate. The analyzer runs in-process on tree-sitter, so no
-toolchain or fixture mode is needed and the default scenario sequence
-stays unchanged.
-
-## Running scenarios
-
-```bash
-make demo
-make demo-ownership
-make demo-settlement
-make demo-regtech
-make demo-no-mm
-make demo-charter
-make demo-negative-controls
-make demo-test-observation
-```
-
-See [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) for the exhaustive target list and P9-G NLAE integration.
-
-## Manual test-aware spec extraction
-
-`extract-spec --from-tests` adds harvested test behavior to a manual
-specification extraction:
-
-```bash
-cd ../mumei-agent
-python -m agent extract-spec \
-  --text-file requirements.txt \
-  --from-tests tests/test_late_fee.py src/late_fee.py \
-  --observations-output observations.json
-```
-
-This workflow requires configured LLM credentials and is manual; it is not
-part of CI.
-
-## What Mumei Adds to the Pipeline
-
-```mumei
-atom increment(counter: i64) -> i64 {
-    requires: counter >= 0;
-    ensures: result == counter + 1;
-    ensures: result > counter;
-    body: { return counter + 1; }
-}
-```
-
-- **Refinement types** attach logical predicates to values and APIs.
-- **Effect safety** proves side effects are allowed before runtime.
-- **Temporal state machines** reject invalid transitions like `Idle → Transferred`.
-- **AI-native** counterexamples guide repair.
-
-## Three-Layer Architecture
+## Architecture
 
 | Layer | Repository | Role |
 |---|---|---|
-| L1 | `mumei` + Z3 | Automatic contract and effect verification |
-| L2 | `mumei-agent` | AI-driven self-healing |
-| L3 | `mumei-lean` + Lean 4 | Deep proof backend for Z3 escalation |
-
-## Repositories
-
-- [mumei-lang/mumei](https://github.com/mumei-lang/mumei): Contract language + Z3 verification.
-- [mumei-lang/mumei-agent](https://github.com/mumei-lang/mumei-agent): AI-driven self-healing loop.
-- [mumei-lang/mumei-lean](https://github.com/mumei-lang/mumei-lean): Lean 4 proof backend.
+| L1 | [`mumei`](https://github.com/mumei-lang/mumei) + Z3 | Contract language, automatic verification, compilation evidence |
+| L2 | [`mumei-agent`](https://github.com/mumei-lang/mumei-agent) | AI-guided repair, extraction, and multi-language audit orchestration |
+| L3 | [`mumei-lean`](https://github.com/mumei-lang/mumei-lean) + Lean 4 | Independent proof backend for escalated obligations |
 
 ## Documentation
 
 | Document | Contents |
 |---|---|
 | [`docs/SCENARIO_CATALOG.md`](docs/SCENARIO_CATALOG.md) | Full scenario catalog and output examples |
+| [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) | Setup, all targets, optional demos, dashboards, troubleshooting |
+| [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md) | Benchmark lanes, measurement dates, tool commits, remeasurements |
 | [`docs/DEMO_SHOWCASE.md`](docs/DEMO_SHOWCASE.md) | Recordings and detailed dogfooding evidence |
-| [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md) | Setup, exhaustive targets, dashboards, and troubleshooting |
-| [`docs/HARNESS_CONTRACTS.md`](docs/HARNESS_CONTRACTS.md) | Harness contract fields and report evidence |
-| [`docs/SCENARIO_SPEC.md`](docs/SCENARIO_SPEC.md) | Scenario schema and adding scenarios |
-
-## Adding scenarios
-
-Copy `scenarios/_template/` and edit `scenario.json`; see [`docs/SCENARIO_SPEC.md`](docs/SCENARIO_SPEC.md) and [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md).
+| [`docs/SCENARIO_SPEC.md`](docs/SCENARIO_SPEC.md) | Scenario schema and how to add scenarios |
 
 ## License
 
