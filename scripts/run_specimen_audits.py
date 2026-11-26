@@ -490,9 +490,6 @@ def current_review_usage(cov: dict, finding_reviews: list[dict]) -> set[tuple[st
                 continue
             hits = [r for r in reviews
                     if r["file"] == rec["file"] and r["finding_contains"] in rec["text"]]
-            verdicts = {r["verdict"] for r in hits}
-            if len(verdicts) > 1:
-                raise SystemExit(f"{cov['specimen']}: conflicting finding reviews {sorted(verdicts)}")
             used.update(review_key(r) for r in hits)
     return used
 

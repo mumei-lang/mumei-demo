@@ -858,6 +858,16 @@ def test_stale_reviews():
     assert rsa.stale_reviews([], [unused]) == []
 
 
+
+def test_stale_reviews_recomputes_usage_without_conflicting_on_saved_coverage():
+    real = _review("overlap", "real", specimen="py-01-demo")
+    false_positive = _review("overlap", "false_positive", specimen="py-01-demo")
+    coverages = [{"specimen": "py-01-demo", "findings": [
+        {"file": "app.py", "kind": "verification_violations", "text": "overlap text", "status": "unreviewed"}],
+        "reviews_used": []}]
+    assert rsa.stale_reviews(coverages, [real, false_positive]) == []
+
+
 def _fc(total, ev, real, fp, unrev):
     return {"total": total, "defect_evidence": ev, "real": real,
             "false_positive": fp, "unreviewed": unrev}
