@@ -80,7 +80,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: mumei
-          key: release
+          # shared-key omits the GitHub job id so Demo All and Integration
+          # Demo can reuse the same mumei target cache.
+          shared-key: release
 
       - name: Build mumei compiler
         run: cargo build --release
