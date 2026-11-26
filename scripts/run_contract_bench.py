@@ -799,7 +799,8 @@ def arm_rows(results: list[dict]) -> list[dict]:
     rows = []
     for doc in sorted(results, key=lambda d: (order.get(d["arm"], 9), d.get("model") or "")):
         scores = [score(run) for run in doc["runs"]]
-        row = {"arm": doc["arm"], "model": doc.get("model"), "runs": len(scores)}
+        row = {"arm": doc["arm"], "model": doc.get("model"), "runs": len(scores),
+               "recorded_at": doc.get("recorded_at"), "verifier": doc.get("verifier") or {}}
         for k in scores[0]:
             vals = [s[k] for s in scores]
             row[k] = median(vals)
@@ -975,9 +976,46 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
     return "\n".join(out)
 
 
+def render_readme_table(rows: list[dict]) -> str:
+    lines = ["| Arm | Model | Both right | False acceptance | False positive | Cost |",
+             "|---|---|---:|---:|---:|---:|"]
+    for r in rows:
+        cost = "—" if r["arm"] == "mumei" else f"${r['usage']['cost_usd']:.2f}"
+        lines.append(f"| {ARM_LABEL.get(r['arm'], r['arm'])} | {r['model'] or '—'} | "
+                     f"{fmt(r, 'both')} / {r['cases']} | {fmt(r, 'false_acceptance')} | "
+                     f"{fmt(r, 'false_positive')} | {cost} |")
+    return "\n".join(lines)
+
+
+def render_readme_evidence(rows: list[dict]) -> str:
+    dates = sorted({(r.get("recorded_at") or "")[:10] for r in rows if r.get("recorded_at")})
+    parts = []
+    if dates:
+        parts.append("recorded " + (dates[0] if len(dates) == 1 else " and ".join(dates)))
+    checked = [r for r in rows if r["arm"] != "llm"]
+    verifiers = sorted({(v["version"], v["commit"][:7])
+                        for r in checked if (v := r.get("verifier")) and v.get("version") and v.get("commit")})
+    fully_identified = len(verifiers) == 1 and all(
+        (v := r.get("verifier")) and v.get("version") == verifiers[0][0]
+        and (v.get("commit") or "")[:7] == verifiers[0][1]
+        for r in checked)
+    if fully_identified:
+        version, commit = verifiers[0]
+        parts.append(f"verifier for mumei-checked rows `{version}` (`{commit}`)")
+    elif verifiers or checked:
+        parts.append("verifier provenance is mixed or incomplete across mumei-checked rows")
+    return "; ".join(parts)
+
+
 def render_readme_block(rows: list[dict]) -> str:
-    return "\n".join([README_START, "", render_table(rows), "",
-                      "Details, per-language results and caveats: [proofs/RESULTS.md](proofs/RESULTS.md).", "", README_END])
+    evidence = render_readme_evidence(rows)
+    lines = [README_START, ""]
+    if evidence:
+        lines += [f"Evidence snapshot: {evidence}.", ""]
+    lines += [render_readme_table(rows), "",
+              "The reference row uses hand-written ports, so it is a contract-expression check rather than a detection result. "
+              "Full outcome taxonomy, per-language results and caveats: [proofs/RESULTS.md](proofs/RESULTS.md).", "", README_END]
+    return "\n".join(lines)
 
 
 def replace_block(text: str, block: str) -> str | None:

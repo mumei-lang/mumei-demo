@@ -10,6 +10,8 @@ Every row is scored against the same 171 defects in `DEFECTS.json` with the same
 
 Model for both LLM rows: `openai/gpt-6-luna`.
 
+Evidence snapshot: measured 2026-11-03; mumei-agent `e8be527`; mumei `36eb534`.
+
 ## Totals
 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |

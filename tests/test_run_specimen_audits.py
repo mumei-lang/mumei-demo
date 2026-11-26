@@ -371,7 +371,7 @@ def test_render_only_end_to_end(tmp_path):
     assert "python" in spec_text and "**Total**" in spec_text
     assert "Recent runs" in spec_text and "aaaaaaa" in spec_text
     top_text = top_readme.read_text()
-    assert "## Specimen benchmark" in top_text
+    assert "### Specimen benchmark" in top_text
     assert "3/10 detected" in top_text
 
 
@@ -563,8 +563,9 @@ def test_readme_blocks_no_llm_run_shows_llm_placeholder():
     assert "—" in block
     assert "| LLM |" in block
     top = rsa.readme_block_top({"runs": [_run(llm=False)]})
-    assert "no LLM: 3/10 detected" in top
-    assert "with LLM: not run yet" in top
+    assert "No LLM — 2025-01-02" in top
+    assert "3/10 detected" in top
+    assert "With LLM: not run yet" in top
 
 
 def test_readme_blocks_llm_run_fills_columns():
@@ -574,7 +575,8 @@ def test_readme_blocks_llm_run_fills_columns():
     assert "not run yet" not in block
     top = rsa.readme_block_top(
         {"runs": [_run(llm=False), _run(llm=True, detected=5)]})
-    assert "with LLM: 5/10 detected" in top
+    assert "With LLM — " in top
+    assert "5/10 detected" in top
 
 
 def test_svg_modes_parse():
@@ -1765,18 +1767,18 @@ def test_record_run_rescore_of_other_mode_does_not_inherit(tmp_path):
     assert len(runs) == 2 and "llm_cost_usd" not in runs[-1]
 
 
-@pytest.mark.parametrize("model,expected", [
-    ("openai/gpt-6-luna", "with LLM (`openai/gpt-6-luna`): "),
-    (None, "with LLM: "),
+@pytest.mark.parametrize("model,top_expected,spec_expected", [
+    ("openai/gpt-6-luna", "With LLM (`openai/gpt-6-luna`) — ", "with LLM (`openai/gpt-6-luna`)"),
+    (None, "With LLM — ", "with LLM"),
 ])
-def test_readme_blocks_name_the_llm_model(model, expected):
+def test_readme_blocks_name_the_llm_model(model, top_expected, spec_expected):
     llm_run = {**_run(date="2025-01-03"), "llm": True}
     if model:
         llm_run["llm_model"] = model
     history = {"runs": [_run(llm=False), llm_run]}
-    assert expected in rsa.readme_block_top(history)
+    assert top_expected in rsa.readme_block_top(history)
     spec = rsa.readme_block_specimens(history)
-    assert f"Latest run — {expected[:-2]}: mumei-agent" in spec
+    assert f"Latest run — {spec_expected}: mumei-agent" in spec
     assert "no LLM: mumei-agent" in spec
 
 
@@ -1848,7 +1850,7 @@ def test_main_rescore_both_modes(tmp_path, monkeypatch):
     assert rsa.main(_rescore_args(tmp_path)) == 0
     assert len(json.loads((specimens / "scoreboard" / "history.json").read_text())["runs"]) == 2
     top = (tmp_path / "README.md").read_text()
-    assert "no LLM: 0/" in top and "with LLM (`m/x`): " in top
+    assert "No LLM — " in top and "0/" in top and "With LLM (`m/x`) — " in top
 
 
 def test_main_rescore_without_llm_output_keeps_one_mode(tmp_path, monkeypatch):

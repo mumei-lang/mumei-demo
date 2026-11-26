@@ -33,8 +33,10 @@ def _coverage(d, statuses, llm=False, fc=None, fa=1, meta=None):
     doc = json.loads((d / "DEFECTS.json").read_text())
     out = rsa.audit_dir(d, llm)
     out.mkdir(parents=True, exist_ok=True)
+    default_meta = {"llm_configured": llm, "llm": llm, "generated_at": "2025-01-02T00:00:00Z",
+                    "mumei_agent_commit": "aaaaaaa1111", "mumei_commit": "bbbbbbb2222"}
     cov = {"specimen": doc["specimen"], "language": doc["language"], "defects": _defects(statuses),
-           "finding_counts": fc or _fc(), "meta": meta or {"llm_configured": llm, "llm": llm},
+           "finding_counts": fc or _fc(), "meta": meta or default_meta,
            "fixed": {"false_alarms": fa}}
     (out / "coverage.json").write_text(json.dumps(cov))
 
@@ -42,6 +44,7 @@ def _coverage(d, statuses, llm=False, fc=None, fa=1, meta=None):
 def _llm_record(d, runs, fa=(0, 0, 0), cost=0.01, seconds=10.0, fc=None):
     doc = json.loads((d / "DEFECTS.json").read_text())
     rec = {"specimen": doc["specimen"], "language": doc["language"], **rlo.meta(MODEL),
+           "generated_at": "2025-01-02T01:00:00Z",
            "runs": [{"run": i, "defects": _defects(st), "finding_counts": fc or _fc(),
                      "usage": {"seconds": seconds, "cost_usd": cost},
                      "fixed_usage": {"seconds": seconds, "cost_usd": cost},
@@ -180,7 +183,7 @@ def test_build_summary_numbers(tree):
 
 def test_summary_takes_time_and_cost_from_history(tree):
     root = _full(tree)
-    hist = {"runs": [{"llm": False, "audit_seconds": 80.0},
+    hist = {"runs": [{"llm": False, "audit_seconds": 80.0, "generated_at": "2025-01-02T00:00:00Z"},
                      {"llm": True, "audit_seconds": 900.0, "llm_cost_usd": 0.25}]}
     (root / "scoreboard").mkdir()
     (root / "scoreboard" / "history.json").write_text(json.dumps(hist))
@@ -278,6 +281,9 @@ def test_readme_block_mentions_model_and_chart(tree):
     block = ca.readme_block(s)
     assert "specimens/scoreboard/arms.svg" in block
     assert f"`{MODEL}`" in block
+    assert "measured 2025-01-02" in block
+    assert "mumei-agent `aaaaaaa`" in block
+    assert "mumei `bbbbbbb`" in block
     assert "specimens/COMPARISON.md" in block
 
 
@@ -287,6 +293,24 @@ def test_svg_has_whiskers_only_for_spread(tree):
     assert out.startswith("<svg") and out.rstrip().endswith("</svg>")
     assert "[2–3]" in out and "[1–5]" in out
     assert "mumei + LLM" in out and "LLM only" in out
+    assert "measured 2025-01-02" in out
+    assert "mumei-agent aaaaaaa" in out
+    assert "mumei bbbbbbb" in out
+
+
+def test_evidence_caption_uses_full_date_span_and_each_audit_commit(tree):
+    s = ca.build(_full(tree), MODEL)
+    s["arms"]["llm"]["meta"]["generated_at"] = "2025-01-03T00:00:00Z"
+    s["arms"]["llm"]["meta"]["generated_at_end"] = "2025-01-27T00:00:00Z"
+    s["arms"]["mumei+llm"]["meta"]["mumei_agent_commit"] = "ccccccc3333"
+    s["arms"]["mumei+llm"]["meta"]["mumei_commit"] = "ddddddd4444"
+    caption = ca.evidence_caption(s)
+    assert "measured 2025-01-02–2025-01-27" in caption
+    assert "mumei-agent commits: mumei + LLM `ccccccc`, mumei only `aaaaaaa`" in caption
+    assert "mumei commits: mumei + LLM `ddddddd`, mumei only `bbbbbbb`" in caption
+    svg = ca.svg(s)
+    assert 'y="62"' in svg and 'y="79"' in svg
+    assert "mumei only bbbbbbb" in svg
 
 
 def test_svg_escapes_model(tree):

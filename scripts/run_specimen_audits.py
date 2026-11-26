@@ -1195,6 +1195,21 @@ _MODE_LABEL = {False: "No LLM", True: "With LLM"}
 _MUTED = "#afb8c1"
 
 
+def _mode_provenance(mode: bool, run: dict) -> str:
+    label = _MODE_LABEL[mode]
+    if mode and run.get("llm_model"):
+        label += f" ({run['llm_model']})"
+    parts = [label]
+    date = (run.get("generated_at") or "")[:10]
+    if date:
+        parts.append(date)
+    if run.get("mumei_agent_commit"):
+        parts.append(f"mumei-agent {str(run['mumei_agent_commit'])[:7]}")
+    if run.get("mumei_commit"):
+        parts.append(f"mumei {str(run['mumei_commit'])[:7]}")
+    return " · ".join(parts)
+
+
 def svg_by_language(modes: dict[bool, dict | None]) -> str:
     """Grouped horizontal bars per language: one detected/detected-or-flagged
     group per mode (no LLM / with LLM). Modes without runs draw no bars."""
@@ -1202,16 +1217,15 @@ def svg_by_language(modes: dict[bool, dict | None]) -> str:
     if nollm is None and llm is None:
         return svg_placeholder()
     present = [m for m in (False, True) if modes.get(m) is not None]
-    anchor = nollm or llm
     langs = sorted({lang for m in present for lang in modes[m]["by_language"]})
-    sha = (anchor.get("mumei_agent_commit") or "?")[:7]
-    date = (anchor.get("generated_at") or "")[:10]
+    subtitles = ["Latest committed scoreboard run"]
+    subtitles += [_mode_provenance(mode, modes[mode]) for mode in (False, True) if modes.get(mode)]
 
     W = 720
     label_w, bar_w, bar_h, gap = 150, 460, 15, 5
     bars_per_row = 2 * len(present)
     row_h = bars_per_row * (bar_h + gap) + 12
-    top = 78
+    top = max(78, 62 + 17 * (len(subtitles) - 1))
     x0 = label_w
     n_rows = len(langs) + 1
     axis_y = top + row_h * n_rows + 6
@@ -1226,8 +1240,6 @@ def svg_by_language(modes: dict[bool, dict | None]) -> str:
             legend_entries.append(
                 (f"{_MODE_LABEL[mode]}: detected or function-flagged", flag_color))
     legend = _legend_layout(legend_entries, x0, axis_y + 36, W - 20)
-    # axis_y + 104 keeps the historical height for a single legend row so the
-    # current no-LLM-only chart is byte-identical; extra rows grow past it.
     H = max(axis_y + 104, int(max(y for _, y, _, _ in legend)) + 12 + 12)
 
     def bar(y: int, n: int, d: int, color: str) -> str:
@@ -1244,9 +1256,10 @@ def svg_by_language(modes: dict[bool, dict | None]) -> str:
         f'  <rect width="{W}" height="{H}" fill="white"/>',
         f'  <text x="20" y="28" font-size="17" font-weight="bold" fill="#24292f">'
         f'Specimen benchmark — detection by language</text>',
-        f'  <text x="20" y="47" font-size="12" fill="#57606a">'
-        f'mumei-agent {_esc(sha)} · {_esc(date)}</text>',
     ]
+    for i, subtitle in enumerate(subtitles):
+        parts.append(f'  <text x="20" y="{45 + 17 * i}" font-size="12" fill="#57606a">'
+                     f'{_esc(subtitle)}</text>')
     for step in (0, 25, 50, 75, 100):
         gx = x0 + bar_w * step / 100
         parts.append(
@@ -1557,7 +1570,7 @@ def readme_block_specimens(history: dict) -> str:
 def readme_block_top(history: dict) -> str:
     runs = history.get("runs") or []
     lines = [
-        "## Specimen benchmark",
+        "### Specimen benchmark",
         "",
         "An executable corpus of deliberately broken Python/TypeScript/Go/Rust/Solidity "
         "apps with ground-truth defects, scored with `mumei-agent audit`. It includes "
@@ -1581,8 +1594,6 @@ def readme_block_top(history: dict) -> str:
             adjudication = entry_adjudication(run)
             if adjudication["state"] == "incomplete":
                 frag += f", adjudication {fmt_adjudication(run)}"
-            elif adjudication["state"] == "unknown":
-                frag += ", adjudication unknown (rescore required)"
             fx = run.get("fixed")
             if fx:
                 frag += (f", {fx['false_alarms']} false alarms on fixed code "
@@ -1590,13 +1601,20 @@ def readme_block_top(history: dict) -> str:
             return frag
 
         modes = latest_by_mode(runs)
-        nollm = f"no LLM: {_frag(modes[False])}" if modes[False] else "no LLM: not run yet"
-        if modes[True]:
-            model = modes[True].get("llm_model")
-            llm = f"with LLM{f' (`{model}`)' if model else ''}: {_frag(modes[True])}"
-        else:
-            llm = "with LLM: not run yet"
-        lines += [f"Committed scoreboard baseline — {nollm} · {llm}", ""]
+        lines += ["Latest committed baseline:", ""]
+        for mode in (False, True):
+            run = modes[mode]
+            if run is None:
+                lines.append(f"- {_MODE_LABEL[mode]}: not run yet")
+                continue
+            date = (run.get("generated_at") or "")[:10] or "unknown date"
+            agent = str(run.get("mumei_agent_commit") or "?")[:7]
+            core = str(run.get("mumei_commit") or "?")[:7]
+            label = _MODE_LABEL[mode]
+            if mode and run.get("llm_model"):
+                label += f" (`{run['llm_model']}`)"
+            lines.append(f"- {label} — {date}, mumei-agent `{agent}`, mumei `{core}`: {_frag(run)}")
+        lines += ["", "Exploratory reruns are not folded into this baseline until finding adjudication is current.", ""]
     lines += ["Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreboard)."]
     return "\n".join(lines)
 
