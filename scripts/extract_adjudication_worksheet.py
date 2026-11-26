@@ -7,6 +7,7 @@ import json
 import os
 import sys
 from collections import defaultdict
+from urllib.parse import quote
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -64,7 +65,7 @@ def fence(text: str, language: str = "text") -> str:
 
 def worksheet_link(label: str, target: Path, link_root: Path) -> str:
     rel = Path(os.path.relpath(target, link_root))
-    return f"[{label}]({rel.as_posix()})"
+    return f"[{label}]({quote(rel.as_posix(), safe='/')})"
 
 
 def used_review_keys(coverages: list[dict]) -> set[tuple[str, str, str]]:
@@ -117,7 +118,7 @@ def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: P
         for variant in ("buggy", "fixed")
     }
     other_used = used_review_keys(other_coverages)
-    other_checked = bool(other_coverages)
+    other_scored = {cov["specimen"] for cov in other_coverages}
     by_specimen_file = defaultdict(list)
     for i, g in enumerate(groups):
         by_specimen_file[(g["specimen"], g["file"])].append(f"U{i + 1}")
@@ -197,10 +198,10 @@ def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: P
         related = ", ".join(by_specimen_file.get(key, [])) or "none in this worksheet"
         if rsa.review_key(review) in other_used:
             other_state = "matched; keep this review"
-        elif other_checked:
-            other_state = "not matched in the available other-mode coverage"
+        elif review["specimen"] not in other_scored:
+            other_state = "not checked (no other-mode coverage for this specimen)"
         else:
-            other_state = "not checked (other-mode coverage unavailable)"
+            other_state = "not matched in the available other-mode coverage"
         lines += [
             f"### S{i} — `{review['specimen']}` / `{review['file']}`",
             "",

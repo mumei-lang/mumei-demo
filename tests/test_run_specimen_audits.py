@@ -1972,16 +1972,24 @@ def test_extract_adjudication_worksheet_lists_unreviewed_and_stale(tmp_path):
     assert "[audit](" not in out
     assert "mumei-agent `569f478`" in out and "mumei `a0fc10f`" in out
 
+    (llm_audit_dir / "coverage.json").unlink()
+    assert eaw.main(["--specimens-root", str(specimens)]) == 0
+    out = (specimens / "ADJUDICATION_WORKSHEET.md").read_text()
+    assert "Other audit mode: not checked (no other-mode coverage for this specimen)" in out
+
 
 
 def test_extract_adjudication_worksheet_mode_specific_default_and_custom_root(tmp_path):
-    specimens = tmp_path / "corpus-copy"
+    specimens = tmp_path / "corpus copy"
     d = _mini_specimen(specimens)
+    (d / "fixed.patch").write_text("--- a/app.py\n+++ b/app.py\n")
     audit_dir = d / "audit"
     audit_dir.mkdir()
+    finding = {"file": "app.py", "kind": "verification_violations",
+               "text": "Python function `f` returns a constant", "status": "unreviewed"}
     coverage = {
         "specimen": "py-01-x", "language": "python", "meta": {},
-        "findings": [], "fixed": {"findings": []}, "reviews_used": [],
+        "findings": [finding], "fixed": {"findings": [finding]}, "reviews_used": [],
     }
     (audit_dir / "coverage.json").write_text(json.dumps(coverage))
     llm_dir = audit_dir / "with-llm"
@@ -1997,3 +2005,10 @@ def test_extract_adjudication_worksheet_mode_specific_default_and_custom_root(tm
         specimens / "ADJUDICATION_WORKSHEET_WITH_LLM.md").read_text()
     assert "Source: `no LLM`" in (specimens / "ADJUDICATION_WORKSHEET.md").read_text()
     assert "Source: `with LLM`" in (specimens / "ADJUDICATION_WORKSHEET_WITH_LLM.md").read_text()
+
+    outside = tmp_path / "review output" / "worksheet.md"
+    outside.parent.mkdir()
+    assert eaw.main(["--specimens-root", str(specimens), "--output", str(outside)]) == 0
+    out = outside.read_text()
+    assert "[buggy source](../corpus%20copy/python/py-01-x/app.py)" in out
+    assert "[fixed patch](../corpus%20copy/python/py-01-x/fixed.patch)" in out
