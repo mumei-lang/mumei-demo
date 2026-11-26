@@ -62,22 +62,26 @@ jobs:
   demo:
     runs-on: ubuntu-24.04
     steps:
+      # Match the Demo All workspace layout so both heavy jobs can reuse the
+      # same cargo target cache for the sibling mumei checkout.
       - uses: actions/checkout@v4
+        with:
+          path: mumei-demo
       - uses: actions/checkout@v4
         with:
           repository: mumei-lang/mumei
           ref: develop
-          path: repos/mumei
+          path: mumei
       - uses: actions/checkout@v4
         with:
           repository: mumei-lang/mumei-lean
           ref: develop
-          path: repos/mumei-lean
+          path: mumei-lean
       - uses: actions/checkout@v4
         with:
           repository: mumei-lang/mumei-agent
           ref: develop
-          path: repos/mumei-agent
+          path: mumei-agent
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -93,9 +97,27 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y llvm-17-dev libclang-17-dev libpolly-17-dev
           echo "LLVM_SYS_170_PREFIX=/usr/lib/llvm-17" >> "$GITHUB_ENV"
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # Do not path-filter this job away for docs-only changes: sibling
+      # repositories intentionally track moving develop branches, so each run
+      # also probes the current cross-repo integration surface.
+      - name: Resolve mumei dependency versions
+        run: cargo generate-lockfile
+        working-directory: mumei
+
+      - name: Cache mumei cargo build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: mumei
+          # shared-key omits the GitHub job id so Demo All and Integration
+          # Demo can reuse the same mumei target cache.
+          shared-key: release
+
       - name: Build mumei
-        run: cargo build --release
-        working-directory: repos/mumei
+        run: cargo build --release --locked
+        working-directory: mumei
       - name: Install mumei-agent deps
         run: |
           python -m venv "$GITHUB_WORKSPACE/.venv"
@@ -106,51 +128,57 @@ jobs:
             "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -e ".[test]"
           fi
           "$GITHUB_WORKSPACE/.venv/bin/python" -m pip show openai
-        working-directory: repos/mumei-agent
+        working-directory: mumei-agent
       - name: Run integrated demo scenarios
         run: make demo-ci
+        working-directory: mumei-demo
         env:
           CI_FIXTURE_MODE: "1"
-          MUMEI_REPO: ${{ github.workspace }}/repos/mumei
-          MUMEI_LEAN_REPO: ${{ github.workspace }}/repos/mumei-lean
-          MUMEI_AGENT_REPO: ${{ github.workspace }}/repos/mumei-agent
+          MUMEI_REPO: ${{ github.workspace }}/mumei
+          MUMEI_LEAN_REPO: ${{ github.workspace }}/mumei-lean
+          MUMEI_AGENT_REPO: ${{ github.workspace }}/mumei-agent
           MUMEI_AGENT_PYTHON: ${{ github.workspace }}/.venv/bin/python
-          MUMEI_BIN: ${{ github.workspace }}/repos/mumei/target/release/mumei
+          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
       - name: Check scheduled incomplete-output regression
         run: make demo-evidence-check-schedule
+        working-directory: mumei-demo
         env:
-          MUMEI_REPO: ${{ github.workspace }}/repos/mumei
-          MUMEI_AGENT_REPO: ${{ github.workspace }}/repos/mumei-agent
+          MUMEI_REPO: ${{ github.workspace }}/mumei
+          MUMEI_AGENT_REPO: ${{ github.workspace }}/mumei-agent
           MUMEI_AGENT_PYTHON: ${{ github.workspace }}/.venv/bin/python
-          MUMEI_BIN: ${{ github.workspace }}/repos/mumei/target/release/mumei
+          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
       - name: Check planner selection-policy regression
         run: make demo-verify-plan
+        working-directory: mumei-demo
         env:
-          MUMEI_REPO: ${{ github.workspace }}/repos/mumei
-          MUMEI_AGENT_REPO: ${{ github.workspace }}/repos/mumei-agent
+          MUMEI_REPO: ${{ github.workspace }}/mumei
+          MUMEI_AGENT_REPO: ${{ github.workspace }}/mumei-agent
           MUMEI_AGENT_PYTHON: ${{ github.workspace }}/.venv/bin/python
-          MUMEI_BIN: ${{ github.workspace }}/repos/mumei/target/release/mumei
+          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
       - name: Generate report
         if: always()
         run: python scripts/generate_report.py --summary --highlights --require-all
+        working-directory: mumei-demo
       - name: Install pinned Lean for the optional record experiment
         run: |
           curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
-          ~/.elan/bin/elan toolchain install "$(cat repos/mumei-lean/lean-toolchain)"
+          ~/.elan/bin/elan toolchain install "$(cat mumei-lean/lean-toolchain)"
       - name: Check separate record model and execution evidence
         run: make demo-record-execution
+        working-directory: mumei-demo
         env:
           CI_FIXTURE_MODE: "1"
-          MUMEI_REPO: ${{ github.workspace }}/repos/mumei
-          MUMEI_LEAN_REPO: ${{ github.workspace }}/repos/mumei-lean
-          MUMEI_AGENT_REPO: ${{ github.workspace }}/repos/mumei-agent
-          MUMEI_BIN: ${{ github.workspace }}/repos/mumei/target/release/mumei
+          MUMEI_REPO: ${{ github.workspace }}/mumei
+          MUMEI_LEAN_REPO: ${{ github.workspace }}/mumei-lean
+          MUMEI_AGENT_REPO: ${{ github.workspace }}/mumei-agent
+          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
       - name: Check synthetic evidence regressions against the real Charter run
         if: always()
         run: python scripts/check_evidence_regressions.py reports/charter_gate_demo/latest/result.json --out-dir reports/charter_regressions
+        working-directory: mumei-demo
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: demo-reports
-          path: reports/
+          path: mumei-demo/reports/
