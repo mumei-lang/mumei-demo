@@ -1972,6 +1972,17 @@ def test_extract_adjudication_worksheet_lists_unreviewed_and_stale(tmp_path):
     assert "[audit](" not in out
     assert "mumei-agent `569f478`" in out and "mumei `a0fc10f`" in out
 
+    other = specimens / "python" / "py-02-y"
+    shutil.copytree(d, other)
+    doc = json.loads((other / "DEFECTS.json").read_text())
+    doc["specimen"] = "py-02-y"
+    (other / "DEFECTS.json").write_text(json.dumps(doc))
+    for coverage_path in (other / "audit" / "coverage.json",
+                          other / "audit" / "with-llm" / "coverage.json"):
+        other_coverage = json.loads(coverage_path.read_text())
+        other_coverage["specimen"] = "py-02-y"
+        other_coverage["reviews_used"] = []
+        coverage_path.write_text(json.dumps(other_coverage))
     (llm_audit_dir / "coverage.json").unlink()
     assert eaw.main(["--specimens-root", str(specimens)]) == 0
     out = (specimens / "ADJUDICATION_WORKSHEET.md").read_text()
