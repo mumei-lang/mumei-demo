@@ -484,7 +484,9 @@ def current_review_usage(cov: dict, finding_reviews: list[dict]) -> set[tuple[st
     if cov.get("fixed"):
         sections.append(cov["fixed"])
     for section in sections:
-        used.update(tuple(k) for k in section.get("reviews_used") or [])
+        if "findings" not in section:
+            used.update(tuple(k) for k in section.get("reviews_used") or [])
+            continue
         for rec in section.get("findings") or []:
             if rec.get("status") == "defect_evidence":
                 continue

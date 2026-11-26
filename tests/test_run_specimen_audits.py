@@ -1364,10 +1364,21 @@ def test_history_entry_fixed_only_when_present():
 def test_stale_reviews_counts_fixed_variant_usage():
     key = ["py-01-a", "app.py", "only on fixed"]
     cov = {**_coverage("py-01-a", "python", []), "reviews_used": [],
-           "fixed": {**_fixed(), "reviews_used": [key]}}
+           "fixed": {**_fixed(), "reviews_used": [key], "findings": [
+               {"file": "app.py", "kind": "verification_violations",
+                "text": "only on fixed", "status": "real"}]}}
     review = _review("only on fixed", specimen="py-01-a")
     assert rsa.stale_reviews([cov], [review]) == []
     assert rsa.stale_reviews([_coverage("py-01-a", "python", [])], [review]) == [review]
+
+
+def test_stale_reviews_ignores_obsolete_usage_when_findings_are_recorded():
+    obsolete = _review("old wording", specimen="py-01-a")
+    cov = {**_coverage("py-01-a", "python", []),
+           "reviews_used": [list(rsa.review_key(obsolete))],
+           "findings": [{"file": "app.py", "kind": "verification_violations",
+                         "text": "new wording", "status": "unreviewed"}]}
+    assert rsa.stale_reviews([cov], [obsolete]) == [obsolete]
 
 
 def test_fmt_fixed():
