@@ -1919,6 +1919,32 @@ def test_main_rescore_no_llm_only_writes_no_with_llm_summary(tmp_path, monkeypat
     assert not (tmp_path / "AUDIT_SUMMARY_WITH_LLM.md").exists()
 
 
+def test_load_complementary_coverages_reads_the_opposite_mode(tmp_path, monkeypatch):
+    _, d = _rescore_tree(tmp_path, monkeypatch)
+    _add_llm_audit(d)
+    cov = {"specimen": "py-01-x", "language": "python"}
+    assert rsa.load_complementary_coverages([cov], False)[0]["meta"] == LLM_META
+    assert rsa.load_complementary_coverages([cov], True)[0]["meta"] == RESCORE_META
+
+
+def test_main_rescore_cross_mode_review_is_not_stale(tmp_path, monkeypatch):
+    specimens, d = _rescore_tree(tmp_path, monkeypatch)
+    _add_llm_audit(d)
+    audit_path = d / "audit" / "with-llm" / "audit.json"
+    audit = json.loads(audit_path.read_text())
+    audit["file_results"][0]["verification_violations"] = ["Python function `h` is llm-only"]
+    audit_path.write_text(json.dumps(audit))
+    scoreboard = specimens / "scoreboard"
+    scoreboard.mkdir(exist_ok=True)
+    (scoreboard / "adjudications.json").write_text(json.dumps({"finding_reviews": [
+        _review("Python function `h` is llm-only", specimen="py-01-x")]}))
+
+    assert rsa.main(_rescore_args(tmp_path)) == 0
+    runs = json.loads((scoreboard / "history.json").read_text())["runs"]
+    assert len(runs) == 2
+    assert [run["stale_finding_reviews"] for run in runs] == [0, 0]
+
+
 def test_extract_adjudication_worksheet_lists_unreviewed_and_stale(tmp_path):
     specimens = tmp_path / "specimens"
     d = _mini_specimen(specimens)
@@ -1946,13 +1972,15 @@ def test_extract_adjudication_worksheet_lists_unreviewed_and_stale(tmp_path):
     scoreboard.mkdir()
     (scoreboard / "adjudications.json").write_text(json.dumps({"finding_reviews": [{
         "specimen": "py-01-x", "file": "app.py", "finding_contains": "old wording",
-        "verdict": "false_positive", "reason": "old reason"}]}))
+        "verdict": "false_positive", "reason": "old reason"}, {
+        "specimen": "py-01-x", "file": "app.py", "finding_contains": "llm-only wording",
+        "verdict": "false_positive", "reason": "used only by the other mode"}]}))
     llm_audit_dir = audit_dir / "with-llm"
     llm_audit_dir.mkdir()
     (llm_audit_dir / "coverage.json").write_text(json.dumps({
         "specimen": "py-01-x", "language": "python", "findings": [],
         "fixed": {"findings": []},
-        "reviews_used": [["py-01-x", "app.py", "old wording"]],
+        "reviews_used": [["py-01-x", "app.py", "llm-only wording"]],
     }))
 
     assert eaw.main(["--specimens-root", str(specimens)]) == 0
@@ -1966,28 +1994,11 @@ def test_extract_adjudication_worksheet_lists_unreviewed_and_stale(tmp_path):
     assert "`spec_health_issues`" in out and "`verification_violations`" in out
     assert '"verdict": "TODO(real or false_positive)"' in out
     assert "### S1" in out and "old wording" in out and "U1" in out
-    assert "Other audit mode: matched; keep this review" in out
+    assert "llm-only wording" not in out
     assert "[buggy source](python/py-01-x/app.py)" in out
     assert "[fixed patch](python/py-01-x/fixed.patch)" in out
     assert "[audit](" not in out
     assert "mumei-agent `569f478`" in out and "mumei `a0fc10f`" in out
-
-    other = specimens / "python" / "py-02-y"
-    shutil.copytree(d, other)
-    doc = json.loads((other / "DEFECTS.json").read_text())
-    doc["specimen"] = "py-02-y"
-    (other / "DEFECTS.json").write_text(json.dumps(doc))
-    for coverage_path in (other / "audit" / "coverage.json",
-                          other / "audit" / "with-llm" / "coverage.json"):
-        other_coverage = json.loads(coverage_path.read_text())
-        other_coverage["specimen"] = "py-02-y"
-        other_coverage["reviews_used"] = []
-        coverage_path.write_text(json.dumps(other_coverage))
-    (llm_audit_dir / "coverage.json").unlink()
-    assert eaw.main(["--specimens-root", str(specimens)]) == 0
-    out = (specimens / "ADJUDICATION_WORKSHEET.md").read_text()
-    assert "Other audit mode: not checked (no other-mode coverage for this specimen)" in out
-
 
 
 def test_extract_adjudication_worksheet_mode_specific_default_and_custom_root(tmp_path):

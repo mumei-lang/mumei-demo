@@ -56,7 +56,7 @@ Exploratory reruns are not folded into this baseline until finding adjudication 
 Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreboard).
 <!-- scoreboard:end -->
 
-The newer 2026-11-25 no-LLM remeasurement found 11/171 defects with 28 fixed-code alarms. It remains provisional because 24 buggy-code findings were unreviewed and 22 prior reviews did not match the new output; see [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
+The newer 2026-11-25 no-LLM remeasurement found 11/171 defects with 28 fixed-code alarms. It remains provisional because 47 buggy/fixed findings were unreviewed (24 buggy, 23 fixed) and one prior review matches neither available audit mode; see [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
 
 ### Contract benchmark
 

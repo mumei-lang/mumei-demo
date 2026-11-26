@@ -33,7 +33,8 @@ real problem (including a planted defect it was not keyword-matched to, or an
 issue the ground truth does not list), `false_positive` when it does not. A
 finding with no ruling stays `unreviewed`, and precision is shown as a range
 until none are left. Unlike the defect rulings, a finding ruling that matches
-nothing in a run is reported as stale in `AUDIT_SUMMARY.md` and on stderr.
+nothing in either available audit mode is reported as stale in `AUDIT_SUMMARY.md`
+and on stderr.
 After editing rulings, `python3 scripts/run_specimen_audits.py --rescore`
 re-scores the committed `audit/audit.json` files without running any audit; the
 history keeps the original run date and records `rescored_at`.
