@@ -130,6 +130,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/run_contract_bench.py` | 9 | Contract benchmark: can a defect be refuted and its fix be proven against one fixed contract? |
 | `scripts/recheck_lean_dual_checks.py` | 2 | Re-run committed contract-bench proof certificates through the current Lean dual checker. After updating the default results file, run `python3 scripts/run_contract_bench.py --render-only` to regenerate the Markdown summary. |
 | `scripts/run_machine_tv_bench.py` | 5 | Measure native-object acceptance on the paired source-contract benchmark ports. |
+| `scripts/compare_machine_tv_runs.py` | 1 | Compare two machine-TV benchmark reports by case, variant, stage, and diagnostic. |
 | `scripts/run_native_replay.py` | 4 | Replay concrete inputs on the native code and on the .mm ports of the contract benchmark. |
 | `scripts/run_port_divergence.py` | 4 | Replay reference counterexamples on the bench's accepted buggy LLM ports. |
 | `scripts/run_mutation_control.py` | 6 | Mutation control for the contract benchmark: does each contract reject small changes to the fixed port? |
@@ -257,6 +258,16 @@ Measure native-object acceptance on the paired source-contract benchmark ports.
 | `--only` | `<ONLY>` | no | — | limit to these defect ids (repeatable) |
 | `--jobs` | `<JOBS>` | no | `4` | cases run in parallel |
 | `--timeout` | `<TIMEOUT>` | no | `120` | per-command timeout in seconds |
+
+### `scripts/compare_machine_tv_runs.py`
+
+Compare two machine-TV benchmark reports by case, variant, stage, and diagnostic.
+
+| Option | Value | Required | Default | Description |
+|---|---|---|---|---|
+| `base` | `<BASE>` | yes | — | first machine-TV benchmark JSON report |
+| `repeat` | `<REPEAT>` | yes | — | repeat machine-TV benchmark JSON report |
+| `--output` | `<OUTPUT>` | no | — | write the complete machine-readable comparison here |
 
 ### `scripts/run_native_replay.py`
 

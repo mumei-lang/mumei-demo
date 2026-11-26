@@ -190,6 +190,7 @@ def run_native(mumei_bin: str, source: str, atom: str, z3: str, timeout: int) ->
 
 def run_case(case: dict, mumei_bin: str, timeout: int) -> dict:
     result = {k: case[k] for k in ("id", "atom", "language", "case_hash", "source_hash")}
+    result["port_hashes"] = {variant: cb.sha256(case["ports"][variant]) for variant in cb.VARIANTS}
     source_verdicts = {}
     for variant in cb.VARIANTS:
         source = case["ports"][variant]

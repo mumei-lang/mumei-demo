@@ -98,7 +98,16 @@ separate output path for the repeat so the first report is preserved:
 ```sh
 python3 scripts/run_machine_tv_bench.py --mumei-bin ../mumei/target/debug/mumei \
   --output reports/machine_tv_bench_repeat.json
+python3 scripts/compare_machine_tv_runs.py \
+  reports/machine_tv_bench.json reports/machine_tv_bench_repeat.json \
+  --output reports/machine_tv_bench_diff.json
 ```
+
+The comparison is evidence, not a verdict promotion: it keeps the first and repeat
+case diagnostics separate, counts outcome and unresolved-kind transitions by
+variant, and records the per-stage command status/timing differences beside each
+changed case. Missing cases and changed verifier, settings or host metadata stay
+visible in the machine-readable diff instead of being reconciled away.
 
 The native path appends only a constant, unrelated `main` to satisfy the
 bundle entry requirement; the original contract and target atom are unchanged.

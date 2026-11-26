@@ -193,6 +193,7 @@ def test_parser_option_strings_match_golden_lists() -> None:
         "scripts/run_contract_bench.py": ["--arm", "--only", "--runs", "--jobs", "--timeout", "--mumei-bin", "--lean-bridge", "--check", "--render-only"],
         "scripts/recheck_lean_dual_checks.py": ["--timeout", "--results"],
         "scripts/run_machine_tv_bench.py": ["--mumei-bin", "--output", "--only", "--jobs", "--timeout"],
+        "scripts/compare_machine_tv_runs.py": ["--output"],
         "scripts/run_native_replay.py": ["--check", "--mumei-bin", "--jobs", "--timeout"],
         "scripts/run_port_divergence.py": ["--model", "--mumei-bin", "--timeout", "--json"],
         "scripts/run_mutation_control.py": ["--only", "--jobs", "--timeout", "--mumei-bin", "--check", "--render-only"],
