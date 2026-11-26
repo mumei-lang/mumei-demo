@@ -76,3 +76,51 @@ def test_load_report_rejects_other_json(tmp_path):
     path.write_text(json.dumps({"schema_version": "other", "cases": []}))
     with pytest.raises(ValueError, match="machine-tv-bench"):
         compare.load_report(path)
+
+
+def test_changed_input_hashes_are_not_counted_as_repeat_variance():
+    before = case("A")
+    after = case("A")
+    before["case_hash"] = "old-case"
+    after["case_hash"] = "new-case"
+    diff = compare.compare_reports(report([before]), report([after]))
+    assert diff["summary"]["case_ids_in_both"] == 1
+    assert diff["summary"]["cases_compared"] == 0
+    assert diff["summary"]["verdict_changes"] == 0
+    assert diff["summary"]["input_changes"] == [{
+        "id": "A",
+        "base": {"case_hash": "old-case", "source_hash": None},
+        "repeat": {"case_hash": "new-case", "source_hash": None},
+    }]
+
+
+def test_unchanged_verdict_stage_time_regression_is_reported():
+    before = native("accepted", "same", {"build": {"exit": 0, "seconds": 1.0, "budget_seconds": 120}})
+    after = native("accepted", "same", {"build": {"exit": 0, "seconds": 1.5, "budget_seconds": 120}})
+    diff = compare.compare_reports(report([case(fixed=before)]), report([case(fixed=after)]))
+    assert diff["summary"]["verdict_changes"] == 0
+    assert diff["summary"]["timing_changes"] == 1
+    item = diff["timing_changes"][0]
+    assert item["id"] == "GO01-D05" and item["variant"] == "fixed"
+    assert item["stage_differences"]["build"]["seconds_delta"] == 0.5
+
+
+def test_transition_counts_are_available_by_variant():
+    before = native("accepted", "same")
+    after = native("inconclusive", "solver unknown", failure_kind="inconclusive")
+    diff = compare.compare_reports(report([case(fixed=before)]), report([case(fixed=after)]))
+    assert diff["summary"]["outcome_transitions_by_variant"] == {"fixed": {"accepted->inconclusive": 1}}
+    assert diff["summary"]["unresolved_group_transitions_by_variant"] == {
+        "fixed": {"assurance->inconclusive": 1},
+    }
+
+
+def test_output_must_not_overwrite_an_input_report(tmp_path, capsys):
+    first = tmp_path / "first.json"
+    second = tmp_path / "second.json"
+    original = json.dumps(report([case()]))
+    first.write_text(original)
+    second.write_text(original)
+    assert compare.main([str(first), str(second), "--output", str(first)]) == 1
+    assert first.read_text() == original
+    assert "must not overwrite" in capsys.readouterr().err

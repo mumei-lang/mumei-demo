@@ -15,6 +15,7 @@ import run_machine_tv_bench as bench  # noqa: E402
 
 SCHEMA = "mumei-demo.machine-tv-run-diff/v1"
 EXPECTED_REPORT_SCHEMA = "mumei-demo.machine-tv-bench/v1"
+TIMING_THRESHOLD_SECONDS = 0.1
 ASSURANCE_OUTCOMES = ("accepted",) + bench.REJECTION_OUTCOMES
 OUTCOME_GROUPS = {
     outcome: label
@@ -70,7 +71,9 @@ def stage_differences(base: dict, repeat: dict) -> dict:
             "base_budget_seconds": (before or {}).get("budget_seconds"),
             "repeat_budget_seconds": (after or {}).get("budget_seconds"),
         }
-        if item["base_status"] != item["repeat_status"] or seconds_delta not in (None, 0.0):
+        if item["base_status"] != item["repeat_status"] or (
+            seconds_delta is not None and abs(seconds_delta) >= TIMING_THRESHOLD_SECONDS
+        ):
             differences[name] = item
     return differences
 
@@ -87,23 +90,41 @@ def classification(before: dict, after: dict) -> str:
     return "outcome_changed"
 
 
+def input_identity(case: dict) -> dict:
+    return {"case_hash": case.get("case_hash"), "source_hash": case.get("source_hash")}
+
+
 def compare_reports(base: dict, repeat: dict) -> dict:
     base_cases = {case.get("id"): case for case in base["cases"] if isinstance(case, dict)}
     repeat_cases = {case.get("id"): case for case in repeat["cases"] if isinstance(case, dict)}
     common = sorted(set(base_cases) & set(repeat_cases))
+    input_changes = []
+    comparable = []
+    for case_id in common:
+        before_input, after_input = input_identity(base_cases[case_id]), input_identity(repeat_cases[case_id])
+        if before_input == after_input:
+            comparable.append(case_id)
+        else:
+            input_changes.append({"id": case_id, "base": before_input, "repeat": after_input})
+
     changes = []
+    timing_changes = []
     outcome_transitions = Counter()
     group_transitions = Counter()
+    outcome_transitions_by_variant = {variant: Counter() for variant in cb.VARIANTS}
+    group_transitions_by_variant = {variant: Counter() for variant in cb.VARIANTS}
     by_variant = Counter()
     stage_result_changes = 0
-    for case_id in common:
+    for case_id in comparable:
         for variant in cb.VARIANTS:
             base_native = base_cases[case_id].get(variant, {}).get("native", {})
             repeat_native = repeat_cases[case_id].get(variant, {}).get("native", {})
             before, after = diagnostic(base_native), diagnostic(repeat_native)
-            if before == after:
-                continue
             stages = stage_differences(base_native.get("stages", {}), repeat_native.get("stages", {}))
+            if before == after:
+                if stages:
+                    timing_changes.append({"id": case_id, "variant": variant, "stage_differences": stages})
+                continue
             stage_result_changes += sum(
                 item["base_status"] != item["repeat_status"] for item in stages.values()
             )
@@ -111,6 +132,8 @@ def compare_reports(base: dict, repeat: dict) -> dict:
             group_transition = f"{OUTCOME_GROUPS.get(before['outcome'], 'unknown')}->{OUTCOME_GROUPS.get(after['outcome'], 'unknown')}"
             outcome_transitions[transition] += 1
             group_transitions[group_transition] += 1
+            outcome_transitions_by_variant[variant][transition] += 1
+            group_transitions_by_variant[variant][group_transition] += 1
             by_variant[variant] += 1
             changes.append({
                 "id": case_id,
@@ -128,16 +151,28 @@ def compare_reports(base: dict, repeat: dict) -> dict:
         "summary": {
             "base_cases": len(base_cases),
             "repeat_cases": len(repeat_cases),
-            "cases_compared": len(common),
+            "case_ids_in_both": len(common),
+            "cases_compared": len(comparable),
+            "input_changes": input_changes,
             "missing_in_base": sorted(set(repeat_cases) - set(base_cases)),
             "missing_in_repeat": sorted(set(base_cases) - set(repeat_cases)),
             "verdict_changes": len(changes),
             "verdict_changes_by_variant": dict(sorted(by_variant.items())),
             "outcome_transitions": dict(sorted(outcome_transitions.items())),
+            "outcome_transitions_by_variant": {
+                variant: dict(sorted(counts.items()))
+                for variant, counts in outcome_transitions_by_variant.items() if counts
+            },
             "unresolved_group_transitions": dict(sorted(group_transitions.items())),
+            "unresolved_group_transitions_by_variant": {
+                variant: dict(sorted(counts.items()))
+                for variant, counts in group_transitions_by_variant.items() if counts
+            },
             "stage_result_changes": stage_result_changes,
+            "timing_changes": len(timing_changes),
         },
         "changes": changes,
+        "timing_changes": timing_changes,
     }
 
 
@@ -162,6 +197,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str]) -> int:
     args = build_parser().parse_args(argv)
+    if args.output and args.output.resolve() in {args.base.resolve(), args.repeat.resolve()}:
+        print("machine-TV comparison failed: --output must not overwrite an input report", file=sys.stderr)
+        return 1
     try:
         diff = compare_reports(load_report(args.base), load_report(args.repeat))
     except (OSError, ValueError, json.JSONDecodeError) as exc:
