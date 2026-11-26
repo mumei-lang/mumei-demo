@@ -3,6 +3,12 @@ SCENARIOS := ownership_transfer rtgs_settlement regtech_compliance nl_to_verifie
 # separate targets so the deterministic fixture-mode CI run stays unchanged.
 SCALE_SCENARIOS := medical_device_scale rtgs_settlement_scale regtech_compliance_scale defi_invariant_scale ownership_transfer_scale
 OPTIONAL_SCENARIOS := record_execution_demo go_summaries ts_summaries rust_summaries sol_summaries rust_bindings sol_bindings ts_bindings audit_summaries translation_validation verify_recheck verify_attempt native_recheck evidence_identity evidence_check_accept evidence_compare native_attempt native_check native_artifact_recheck native_refined_attempt native_refined_widened_attempt verify_accept evidence_acceptance_eval evidence_fold_eval check_spec_health evidence_accept_list evidence_check_adapter evidence_check_attempt_acceptance evidence_check_list evidence_check_consistency native_accept native_evidence_recheck native_evidence_accept native_source_recheck native_exit_status_recheck native_exit_status_accept native_stdout_recheck native_stdout_accept native_stderr_recheck native_stderr_accept native_observations_accept native_observations_recheck native_object_accept native_object_recheck native_machine_tv_recheck native_machine_tv_branch_call_recheck native_machine_tv_bounded_loop_recheck native_machine_tv_f64_recheck native_machine_tv_composite_recheck evidence_check_schedule native_observations_recovery native_composite_attempt evidence_check summaries_plan summaries_attempt summaries_reuse_attempt verify_plan evidence_producer producer_signature_recovery agent_signature_sign claimbook_acceptance_gate schedule_export_gate
+# Optional scenarios with custom fixture, repository-argument, or reporting behavior.
+OPTIONAL_CUSTOM_SCENARIOS := record_execution_demo go_summaries ts_summaries rust_summaries sol_summaries rust_bindings sol_bindings ts_bindings audit_summaries translation_validation
+# Uniform optional scenarios use the same public target shape:
+# demo-<scenario-with-hyphens> runs the scenario with both sibling repository arguments.
+DUAL_REPO_SCENARIOS := $(filter-out $(OPTIONAL_CUSTOM_SCENARIOS),$(OPTIONAL_SCENARIOS))
+DUAL_REPO_SCENARIO_TARGETS := $(foreach scenario,$(DUAL_REPO_SCENARIOS),demo-$(subst _,-,$(scenario)))
 NO_MM_AUDIT_LANGUAGES := python rust typescript go
 MUMEI_REPO ?= ../mumei
 MUMEI_AGENT_REPO ?= ../mumei-agent
@@ -20,9 +26,12 @@ demo: ## Run the default scenario set and regenerate summary reports.
 	$(MAKE) report || status=1; \
 	exit "$$status"
 
-
 help: ## List Make targets and their descriptions.
-	@awk 'BEGIN { FS = ":.*##" } /^[[:alnum:]_.-]+:.*##/ { printf "  %-30s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@awk 'BEGIN { FS = ":.*##" } /^[[:alnum:]_.-]+:.*##/ { printf "  %-30s %s\n", $$1, $$2 }' $(MAKEFILE_LIST); \
+	for target in $(DUAL_REPO_SCENARIO_TARGETS); do \
+		scenario="$$(printf '%s' "$${target#demo-}" | tr '-' '_')"; \
+		printf '  %-30s %s\n' "$$target" "Run the $$scenario scenario (real mumei + mumei-agent)."; \
+	done
 
 demo-ownership: ## Run ownership-transfer verification.
 	@./scripts/run_scenario.sh ownership_transfer
@@ -180,204 +189,9 @@ demo-translation-validation: ## Build --emit binary translation-validation advis
 	@./scripts/run_scenario.sh translation_validation \
 		--mumei-repo "$(MUMEI_REPO)"
 
-demo-verify-recheck: ## Declared evidence recheck route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh verify_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-verify-attempt: ## Declared verify attempt route with live evidence check (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh verify_attempt \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-recheck: ## Declared native consumer recheck route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-evidence-identity: ## Declared evidence file-identity route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh evidence_identity \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-evidence-check-accept: ## Declared evidence-check acceptance route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh evidence_check_accept \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-evidence-compare: ## Declared evidence record-vs-record comparison route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh evidence_compare \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-attempt: ## Declared native bundle production route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_attempt \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-check: ## Declared native bundle check route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_check \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-artifact-recheck: ## Declared native artifact recheck route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_artifact_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-refined-attempt: ## Declared refined-scalar (v2) native bundle production route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_refined_attempt \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-refined-widened-attempt: ## Declared widened refined-scalar (v3) native bundle production route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_refined_widened_attempt \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-composite-attempt: ## Declared composite struct-member (v4) native bundle production route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_composite_attempt \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-accept: ## Declared native artifact acceptance route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_accept \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-evidence-recheck: ## Declared native evidence replay route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_evidence_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-evidence-accept: ## Declared native evidence acceptance route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_evidence_accept \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-source-recheck: ## Declared native source recheck route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_source_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-exit-status-recheck: ## Declared native exit-status recheck route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_exit_status_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-exit-status-accept: ## Declared native exit-status acceptance route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_exit_status_accept \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-stdout-recheck: ## Declared native stdout recheck route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_stdout_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-stdout-accept: ## Declared native stdout acceptance route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_stdout_accept \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-stderr-recheck: ## Declared native stderr recheck route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_stderr_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-stderr-accept: ## Declared native stderr acceptance route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_stderr_accept \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-observations-accept: ## Declared native observations acceptance route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_observations_accept \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-observations-recheck: ## Declared native observations recheck route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_observations_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-object-recheck: ## Declared native object recheck route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_object_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-.PHONY: demo-native-object-accept demo-native-machine-tv-bounded-loop-recheck demo-native-machine-tv-f64-recheck demo-native-machine-tv-composite-recheck
-demo-native-object-accept: ## Declared native bounded object-stage acceptance route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh native_object_accept \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-machine-tv-recheck: ## Declared native leaf machine-code TV recheck route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_machine_tv_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-machine-tv-branch-call-recheck: ## Declared native branch/call machine-code TV recheck route (real mumei + mumei-agent, native toolchain).
-	@./scripts/run_scenario.sh native_machine_tv_branch_call_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-machine-tv-bounded-loop-recheck: ## Declared native bounded-loop machine-code TV recheck route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh native_machine_tv_bounded_loop_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-machine-tv-f64-recheck: ## Declared native scalar-f64 machine-code TV recheck route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh native_machine_tv_f64_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-machine-tv-composite-recheck: ## Declared native composite aggregate machine-code TV recheck route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh native_machine_tv_composite_recheck \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-evidence-check-schedule: ## Declared Evidence attempt-schedule representation and enforcement self-report shape check (real mumei + mumei-agent; no enforcement attestation).
-	@./scripts/run_scenario.sh evidence_check_schedule \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-evidence-accept-list: ## Declared Core Evidence-list acceptance route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh evidence_accept_list \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-evidence-check-adapter: ## Declared adapter-manifest representation check (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh evidence_check_adapter \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-evidence-check-attempt-acceptance: ## Declared attempt-acceptance representation check (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh evidence_check_attempt_acceptance \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-evidence-acceptance-eval: ## Declared Core acceptance descriptor evaluator (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh evidence_acceptance_eval \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-native-observations-recovery: ## C13 native observations recovery-composition regression (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh native_observations_recovery \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-verify-accept: ## Declared source-evidence acceptance route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh verify_accept \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-evidence-check-list: ## Declared evidence list-envelope check route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh evidence_check_list \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-evidence-check-consistency: ## Declared evidence cross-record consistency route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh evidence_check_consistency \
+.PHONY: $(DUAL_REPO_SCENARIO_TARGETS)
+$(DUAL_REPO_SCENARIO_TARGETS): demo-%:
+	@./scripts/run_scenario.sh $(subst -,_,$*) \
 		--mumei-repo "$(MUMEI_REPO)" \
 		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
 
@@ -429,63 +243,3 @@ test-record-execution: ## Run focused tests for record-execution checks.
 
 setup: ## Set up sibling repositories and build/install their tools.
 	@./scripts/setup_repos.sh
-
-demo-evidence-check: ## Declared evidence representation check route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh evidence_check \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-summaries-plan: ## Declared summary-route planning (probe boundary + resume).
-	@./scripts/run_scenario.sh summaries_plan \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-summaries-attempt: ## Declared summary attempt routes (ts/rust/sol + optional Go + timeout refusal).
-	@./scripts/run_scenario.sh summaries_attempt \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-summaries-reuse-attempt: ## Declared summary reuse-attempt routes (go/rust/sol/ts, stale TS manifest, timeout).
-	@./scripts/run_scenario.sh summaries_reuse_attempt \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-verify-plan: ## Planning-only adapter selection, fallback denial, version and settings regressions.
-	@./scripts/run_scenario.sh verify_plan \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-evidence-producer: ## Declared evidence producer-identity route (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh evidence_producer \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-producer-signature-recovery: ## Producer-authenticity lane: keygen, sign, pinned verify, recovery (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh producer_signature_recovery \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-agent-signature-sign: ## Agent-side producer lane: keygen, signature-sign, pinned verify, recovery (real mumei + mumei-agent).
-	@./scripts/run_scenario.sh agent_signature_sign \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-evidence-fold-eval: ## Representation-level signature, binding, and freshness folds.
-	@./scripts/run_scenario.sh evidence_fold_eval \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-check-spec-health: ## Core contradiction and vacuity diagnostic findings.
-	@./scripts/run_scenario.sh check_spec_health \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-claimbook-acceptance-gate: ## Promotable acceptance gate: accepted triple promotes, tampered fails closed (real mumei).
-	@./scripts/run_scenario.sh claimbook_acceptance_gate \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"
-
-demo-schedule-export-gate: ## Scheduled promotable export: verify-schedule exports the gate triple (real mumei core + claims gate).
-	@./scripts/run_scenario.sh schedule_export_gate \
-		--mumei-repo "$(MUMEI_REPO)" \
-		--mumei-agent-repo "$(MUMEI_AGENT_REPO)"

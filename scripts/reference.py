@@ -128,6 +128,7 @@ MAKE_VARIABLES = (
     "SCENARIOS",
     "SCALE_SCENARIOS",
     "OPTIONAL_SCENARIOS",
+    "OPTIONAL_CUSTOM_SCENARIOS",
     "NO_MM_AUDIT_LANGUAGES",
 )
 SCENARIO_LISTS = {
@@ -138,6 +139,7 @@ SCENARIO_LISTS = {
 MAKE_VARIABLE_DESCRIPTIONS = {
     "MUMEI_REPO": "Default sibling Mumei checkout; a Make command-line assignment can override it.",
     "MUMEI_AGENT_REPO": "Default sibling mumei-agent checkout; a Make command-line assignment can override it.",
+    "OPTIONAL_CUSTOM_SCENARIOS": "Optional scenarios with custom fixture, repository-argument, or reporting behavior; other optional scenarios use the generated uniform target shape.",
     "NO_MM_AUDIT_LANGUAGES": "Languages included by the no-.mm audit target.",
 }
 EXCLUDED_SOURCE_PARTS = {
@@ -163,6 +165,20 @@ def _makefile_text() -> str:
     return (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
 
 
+def generated_dual_repo_targets() -> list[tuple[str, str]]:
+    variables = make_variables()
+    optional = variables.get("OPTIONAL_SCENARIOS", "").split()
+    custom = set(variables.get("OPTIONAL_CUSTOM_SCENARIOS", "").split())
+    return [
+        (
+            "demo-" + scenario.replace("_", "-"),
+            f"Run the {scenario} scenario (real mumei + mumei-agent).",
+        )
+        for scenario in optional
+        if scenario not in custom
+    ]
+
+
 def make_targets() -> list[tuple[str, str | None]]:
     targets = []
     for line in _makefile_text().splitlines():
@@ -176,6 +192,12 @@ def make_targets() -> list[tuple[str, str | None]]:
         targets.append(
             (match.group(1), description.group(1).strip() if description else None)
         )
+    documented = {name for name, _ in targets}
+    targets.extend(
+        (name, description)
+        for name, description in generated_dual_repo_targets()
+        if name not in documented
+    )
     return targets
 
 

@@ -69,6 +69,37 @@ def test_make_help_lists_every_described_target() -> None:
             assert name in output
 
 
+def test_uniform_optional_targets_are_data_driven_and_phony() -> None:
+    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+    assert "DUAL_REPO_SCENARIOS := $(filter-out" in makefile
+    assert "DUAL_REPO_SCENARIO_TARGETS := $(foreach scenario" in makefile
+    assert ".PHONY: $(DUAL_REPO_SCENARIO_TARGETS)" in makefile
+    assert "$(DUAL_REPO_SCENARIO_TARGETS): demo-%:" in makefile
+    assert "demo-verify-recheck: ##" not in makefile
+    assert (
+        "demo-verify-recheck",
+        "Run the verify_recheck scenario (real mumei + mumei-agent).",
+    ) in make_targets()
+
+
+def test_generated_optional_target_preserves_dual_repo_command() -> None:
+    make = shutil.which("make")
+    if make is None:
+        pytest.skip("make is not installed")
+    result = subprocess.run(
+        [make, "-n", "demo-verify-recheck"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    normalized = " ".join(result.stdout.replace("\\", " ").split())
+    assert normalized == (
+        "./scripts/run_scenario.sh verify_recheck "
+        '--mumei-repo "../mumei" --mumei-agent-repo "../mumei-agent"'
+    )
+
+
 def test_make_without_target_uses_demo_as_default() -> None:
     make = shutil.which("make")
     if make is None:

@@ -41,46 +41,6 @@ Generated from the Makefile, argparse definitions, and environment registry.
 | `demo-ts-bindings` | TypeScript lexical binding metadata route (in-process; no toolchain). |
 | `demo-audit-summaries` | Directory audit with declared summaries (helper step fixture-mode unless CI_FIXTURE_MODE=0). |
 | `demo-translation-validation` | Build --emit binary translation-validation advisory (real mumei binary). |
-| `demo-verify-recheck` | Declared evidence recheck route (real mumei + mumei-agent). |
-| `demo-verify-attempt` | Declared verify attempt route with live evidence check (real mumei + mumei-agent). |
-| `demo-native-recheck` | Declared native consumer recheck route (real mumei + mumei-agent, native toolchain). |
-| `demo-evidence-identity` | Declared evidence file-identity route (real mumei + mumei-agent). |
-| `demo-evidence-check-accept` | Declared evidence-check acceptance route (real mumei + mumei-agent). |
-| `demo-evidence-compare` | Declared evidence record-vs-record comparison route (real mumei + mumei-agent). |
-| `demo-native-attempt` | Declared native bundle production route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-check` | Declared native bundle check route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-artifact-recheck` | Declared native artifact recheck route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-refined-attempt` | Declared refined-scalar (v2) native bundle production route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-refined-widened-attempt` | Declared widened refined-scalar (v3) native bundle production route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-composite-attempt` | Declared composite struct-member (v4) native bundle production route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-accept` | Declared native artifact acceptance route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-evidence-recheck` | Declared native evidence replay route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-evidence-accept` | Declared native evidence acceptance route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-source-recheck` | Declared native source recheck route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-exit-status-recheck` | Declared native exit-status recheck route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-exit-status-accept` | Declared native exit-status acceptance route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-stdout-recheck` | Declared native stdout recheck route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-stdout-accept` | Declared native stdout acceptance route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-stderr-recheck` | Declared native stderr recheck route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-stderr-accept` | Declared native stderr acceptance route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-observations-accept` | Declared native observations acceptance route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-observations-recheck` | Declared native observations recheck route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-object-recheck` | Declared native object recheck route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-object-accept` | Declared native bounded object-stage acceptance route (real mumei + mumei-agent). |
-| `demo-native-machine-tv-recheck` | Declared native leaf machine-code TV recheck route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-machine-tv-branch-call-recheck` | Declared native branch/call machine-code TV recheck route (real mumei + mumei-agent, native toolchain). |
-| `demo-native-machine-tv-bounded-loop-recheck` | Declared native bounded-loop machine-code TV recheck route (real mumei + mumei-agent). |
-| `demo-native-machine-tv-f64-recheck` | Declared native scalar-f64 machine-code TV recheck route (real mumei + mumei-agent). |
-| `demo-native-machine-tv-composite-recheck` | Declared native composite aggregate machine-code TV recheck route (real mumei + mumei-agent). |
-| `demo-evidence-check-schedule` | Declared Evidence attempt-schedule representation and enforcement self-report shape check (real mumei + mumei-agent; no enforcement attestation). |
-| `demo-evidence-accept-list` | Declared Core Evidence-list acceptance route (real mumei + mumei-agent). |
-| `demo-evidence-check-adapter` | Declared adapter-manifest representation check (real mumei + mumei-agent). |
-| `demo-evidence-check-attempt-acceptance` | Declared attempt-acceptance representation check (real mumei + mumei-agent). |
-| `demo-evidence-acceptance-eval` | Declared Core acceptance descriptor evaluator (real mumei + mumei-agent). |
-| `demo-native-observations-recovery` | C13 native observations recovery-composition regression (real mumei + mumei-agent). |
-| `demo-verify-accept` | Declared source-evidence acceptance route (real mumei + mumei-agent). |
-| `demo-evidence-check-list` | Declared evidence list-envelope check route (real mumei + mumei-agent). |
-| `demo-evidence-check-consistency` | Declared evidence cross-record consistency route (real mumei + mumei-agent). |
 | `demo-all` | Compatibility alias for the default demo target. |
 | `demo-ci` | Run default scenarios in fixture mode and regenerate reports. |
 | `demo-scale` | Run all large-scale scenarios. |
@@ -92,18 +52,58 @@ Generated from the Makefile, argparse definitions, and environment registry.
 | `report` | Regenerate the summary and highlights from scenario reports. |
 | `test-record-execution` | Run focused tests for record-execution checks. |
 | `setup` | Set up sibling repositories and build/install their tools. |
-| `demo-evidence-check` | Declared evidence representation check route (real mumei + mumei-agent). |
-| `demo-summaries-plan` | Declared summary-route planning (probe boundary + resume). |
-| `demo-summaries-attempt` | Declared summary attempt routes (ts/rust/sol + optional Go + timeout refusal). |
-| `demo-summaries-reuse-attempt` | Declared summary reuse-attempt routes (go/rust/sol/ts, stale TS manifest, timeout). |
-| `demo-verify-plan` | Planning-only adapter selection, fallback denial, version and settings regressions. |
-| `demo-evidence-producer` | Declared evidence producer-identity route (real mumei + mumei-agent). |
-| `demo-producer-signature-recovery` | Producer-authenticity lane: keygen, sign, pinned verify, recovery (real mumei + mumei-agent). |
-| `demo-agent-signature-sign` | Agent-side producer lane: keygen, signature-sign, pinned verify, recovery (real mumei + mumei-agent). |
-| `demo-evidence-fold-eval` | Representation-level signature, binding, and freshness folds. |
-| `demo-check-spec-health` | Core contradiction and vacuity diagnostic findings. |
-| `demo-claimbook-acceptance-gate` | Promotable acceptance gate: accepted triple promotes, tampered fails closed (real mumei). |
-| `demo-schedule-export-gate` | Scheduled promotable export: verify-schedule exports the gate triple (real mumei core + claims gate). |
+| `demo-verify-recheck` | Run the verify_recheck scenario (real mumei + mumei-agent). |
+| `demo-verify-attempt` | Run the verify_attempt scenario (real mumei + mumei-agent). |
+| `demo-native-recheck` | Run the native_recheck scenario (real mumei + mumei-agent). |
+| `demo-evidence-identity` | Run the evidence_identity scenario (real mumei + mumei-agent). |
+| `demo-evidence-check-accept` | Run the evidence_check_accept scenario (real mumei + mumei-agent). |
+| `demo-evidence-compare` | Run the evidence_compare scenario (real mumei + mumei-agent). |
+| `demo-native-attempt` | Run the native_attempt scenario (real mumei + mumei-agent). |
+| `demo-native-check` | Run the native_check scenario (real mumei + mumei-agent). |
+| `demo-native-artifact-recheck` | Run the native_artifact_recheck scenario (real mumei + mumei-agent). |
+| `demo-native-refined-attempt` | Run the native_refined_attempt scenario (real mumei + mumei-agent). |
+| `demo-native-refined-widened-attempt` | Run the native_refined_widened_attempt scenario (real mumei + mumei-agent). |
+| `demo-verify-accept` | Run the verify_accept scenario (real mumei + mumei-agent). |
+| `demo-evidence-acceptance-eval` | Run the evidence_acceptance_eval scenario (real mumei + mumei-agent). |
+| `demo-evidence-fold-eval` | Run the evidence_fold_eval scenario (real mumei + mumei-agent). |
+| `demo-check-spec-health` | Run the check_spec_health scenario (real mumei + mumei-agent). |
+| `demo-evidence-accept-list` | Run the evidence_accept_list scenario (real mumei + mumei-agent). |
+| `demo-evidence-check-adapter` | Run the evidence_check_adapter scenario (real mumei + mumei-agent). |
+| `demo-evidence-check-attempt-acceptance` | Run the evidence_check_attempt_acceptance scenario (real mumei + mumei-agent). |
+| `demo-evidence-check-list` | Run the evidence_check_list scenario (real mumei + mumei-agent). |
+| `demo-evidence-check-consistency` | Run the evidence_check_consistency scenario (real mumei + mumei-agent). |
+| `demo-native-accept` | Run the native_accept scenario (real mumei + mumei-agent). |
+| `demo-native-evidence-recheck` | Run the native_evidence_recheck scenario (real mumei + mumei-agent). |
+| `demo-native-evidence-accept` | Run the native_evidence_accept scenario (real mumei + mumei-agent). |
+| `demo-native-source-recheck` | Run the native_source_recheck scenario (real mumei + mumei-agent). |
+| `demo-native-exit-status-recheck` | Run the native_exit_status_recheck scenario (real mumei + mumei-agent). |
+| `demo-native-exit-status-accept` | Run the native_exit_status_accept scenario (real mumei + mumei-agent). |
+| `demo-native-stdout-recheck` | Run the native_stdout_recheck scenario (real mumei + mumei-agent). |
+| `demo-native-stdout-accept` | Run the native_stdout_accept scenario (real mumei + mumei-agent). |
+| `demo-native-stderr-recheck` | Run the native_stderr_recheck scenario (real mumei + mumei-agent). |
+| `demo-native-stderr-accept` | Run the native_stderr_accept scenario (real mumei + mumei-agent). |
+| `demo-native-observations-accept` | Run the native_observations_accept scenario (real mumei + mumei-agent). |
+| `demo-native-observations-recheck` | Run the native_observations_recheck scenario (real mumei + mumei-agent). |
+| `demo-native-object-accept` | Run the native_object_accept scenario (real mumei + mumei-agent). |
+| `demo-native-object-recheck` | Run the native_object_recheck scenario (real mumei + mumei-agent). |
+| `demo-native-machine-tv-recheck` | Run the native_machine_tv_recheck scenario (real mumei + mumei-agent). |
+| `demo-native-machine-tv-branch-call-recheck` | Run the native_machine_tv_branch_call_recheck scenario (real mumei + mumei-agent). |
+| `demo-native-machine-tv-bounded-loop-recheck` | Run the native_machine_tv_bounded_loop_recheck scenario (real mumei + mumei-agent). |
+| `demo-native-machine-tv-f64-recheck` | Run the native_machine_tv_f64_recheck scenario (real mumei + mumei-agent). |
+| `demo-native-machine-tv-composite-recheck` | Run the native_machine_tv_composite_recheck scenario (real mumei + mumei-agent). |
+| `demo-evidence-check-schedule` | Run the evidence_check_schedule scenario (real mumei + mumei-agent). |
+| `demo-native-observations-recovery` | Run the native_observations_recovery scenario (real mumei + mumei-agent). |
+| `demo-native-composite-attempt` | Run the native_composite_attempt scenario (real mumei + mumei-agent). |
+| `demo-evidence-check` | Run the evidence_check scenario (real mumei + mumei-agent). |
+| `demo-summaries-plan` | Run the summaries_plan scenario (real mumei + mumei-agent). |
+| `demo-summaries-attempt` | Run the summaries_attempt scenario (real mumei + mumei-agent). |
+| `demo-summaries-reuse-attempt` | Run the summaries_reuse_attempt scenario (real mumei + mumei-agent). |
+| `demo-verify-plan` | Run the verify_plan scenario (real mumei + mumei-agent). |
+| `demo-evidence-producer` | Run the evidence_producer scenario (real mumei + mumei-agent). |
+| `demo-producer-signature-recovery` | Run the producer_signature_recovery scenario (real mumei + mumei-agent). |
+| `demo-agent-signature-sign` | Run the agent_signature_sign scenario (real mumei + mumei-agent). |
+| `demo-claimbook-acceptance-gate` | Run the claimbook_acceptance_gate scenario (real mumei + mumei-agent). |
+| `demo-schedule-export-gate` | Run the schedule_export_gate scenario (real mumei + mumei-agent). |
 
 ## Make variables
 
@@ -114,6 +114,7 @@ Generated from the Makefile, argparse definitions, and environment registry.
 | `SCENARIOS` | 18 scenarios: `ownership_transfer`, `rtgs_settlement`, `regtech_compliance`, `nl_to_verified`, `no_mm_audit`, `spec_code_verification_suite`, `mumei_develop_audit`, `smart_contract_audit`, `blockchain_audit`, `medical_device`, `aviation_control`, `merkle_tree_verification`, `defi_invariant`, `arklib_style_audit`, `charter_gate_demo`, `negative_controls_demo`, `test_observation_demo`, `self_correction_demo` | Default sequence used by `demo` and `demo-ci`. |
 | `SCALE_SCENARIOS` | 5 scenarios: `medical_device_scale`, `rtgs_settlement_scale`, `regtech_compliance_scale`, `defi_invariant_scale`, `ownership_transfer_scale` | Large-scale scenarios, separate from the default CI sequence. |
 | `OPTIONAL_SCENARIOS` | 62 scenarios: `record_execution_demo`, `go_summaries`, `ts_summaries`, `rust_summaries`, `sol_summaries`, `rust_bindings`, `sol_bindings`, `ts_bindings`, `audit_summaries`, `translation_validation`, `verify_recheck`, `verify_attempt`, `native_recheck`, `evidence_identity`, `evidence_check_accept`, `evidence_compare`, `native_attempt`, `native_check`, `native_artifact_recheck`, `native_refined_attempt`, `native_refined_widened_attempt`, `verify_accept`, `evidence_acceptance_eval`, `evidence_fold_eval`, `check_spec_health`, `evidence_accept_list`, `evidence_check_adapter`, `evidence_check_attempt_acceptance`, `evidence_check_list`, `evidence_check_consistency`, `native_accept`, `native_evidence_recheck`, `native_evidence_accept`, `native_source_recheck`, `native_exit_status_recheck`, `native_exit_status_accept`, `native_stdout_recheck`, `native_stdout_accept`, `native_stderr_recheck`, `native_stderr_accept`, `native_observations_accept`, `native_observations_recheck`, `native_object_accept`, `native_object_recheck`, `native_machine_tv_recheck`, `native_machine_tv_branch_call_recheck`, `native_machine_tv_bounded_loop_recheck`, `native_machine_tv_f64_recheck`, `native_machine_tv_composite_recheck`, `evidence_check_schedule`, `native_observations_recovery`, `native_composite_attempt`, `evidence_check`, `summaries_plan`, `summaries_attempt`, `summaries_reuse_attempt`, `verify_plan`, `evidence_producer`, `producer_signature_recovery`, `agent_signature_sign`, `claimbook_acceptance_gate`, `schedule_export_gate` | Optional scenarios kept outside the default sequence. |
+| `OPTIONAL_CUSTOM_SCENARIOS` | `record_execution_demo go_summaries ts_summaries rust_summaries sol_summaries rust_bindings sol_bindings ts_bindings audit_summaries translation_validation` | Optional scenarios with custom fixture, repository-argument, or reporting behavior; other optional scenarios use the generated uniform target shape. |
 | `NO_MM_AUDIT_LANGUAGES` | `python`, `rust`, `typescript`, `go` | Languages included by the no-.mm audit target. |
 
 Scenario names and counts reflect the Makefile lists; optional and large-scale scenarios remain outside the default sequence.
