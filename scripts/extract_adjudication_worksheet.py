@@ -103,7 +103,7 @@ def review_entry(item: dict) -> str:
 
 def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: Path,
            llm: bool, generated_by: str, include_audit_links: bool, link_root: Path,
-           other_coverages: list[dict]) -> str:
+           other_coverages: list[dict], other_missing: list[str]) -> str:
     mode = "with LLM" if llm else "no LLM"
     stale = rsa.stale_reviews(coverages + other_coverages, finding_reviews)
     groups = unreviewed_groups(coverages)
@@ -112,6 +112,13 @@ def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: P
         variant: sum(g["occurrence_counts"].get(variant, 0) for g in groups)
         for variant in ("buggy", "fixed")
     }
+    other_total = len(other_coverages) + len(other_missing)
+    if not other_coverages:
+        other_state = "missing"
+    elif other_missing:
+        other_state = f"partial ({len(other_coverages)}/{other_total} specimens)"
+    else:
+        other_state = "complete"
     by_specimen_file = defaultdict(list)
     for i, g in enumerate(groups):
         by_specimen_file[(g["specimen"], g["file"])].append(f"U{i + 1}")
@@ -123,6 +130,7 @@ def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: P
         "update `specimens/scoreboard/adjudications.json` instead.",
         "",
         f"Source: `{mode}` `coverage.json` files under `specimens/`.",
+        f"Other audit mode coverage: **{other_state}**.",
         f"Unreviewed review keys: **{len(groups)}** covering **{occurrences}** buggy/fixed finding occurrence(s).",
         f"Occurrences by variant: buggy **{variant_occurrences['buggy']}**, fixed **{variant_occurrences['fixed']}**.",
         "One review key can cover both variants and repeated occurrences of the same specimen/file/finding text.",
@@ -141,6 +149,7 @@ def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: P
         "",
         "For every `S` item, either update `finding_contains` to match the same finding's current wording, or remove the entry",
         "when the finding is no longer emitted. Entries still used in either available audit mode are not listed as stale.",
+        "If other-mode coverage is partial or missing, do not remove an `S` entry until that mode has been checked or regenerated.",
         "Do not mark the worksheet itself complete; completeness is measured by `--rescore`.",
         "",
         "When every item is handled, run `python3 scripts/run_specimen_audits.py --rescore` in the checkout containing the new audit output.",
@@ -226,9 +235,9 @@ def main(argv: list[str]) -> int:
     generated_by = "scripts/extract_adjudication_worksheet.py"
     default_name = "ADJUDICATION_WORKSHEET_WITH_LLM.md" if args.llm else "ADJUDICATION_WORKSHEET.md"
     output = Path(args.output).resolve() if args.output else specimens_root / default_name
-    other_coverages, _ = load_coverages(specimens_root, not args.llm)
+    other_coverages, other_missing = load_coverages(specimens_root, not args.llm)
     text = render(coverages, finding_reviews, specimens_root, args.llm, generated_by,
-                  args.include_audit_links, output.parent, other_coverages)
+                  args.include_audit_links, output.parent, other_coverages, other_missing)
     output.write_text(text, encoding="utf-8")
     print(f"wrote {output}")
     return 0

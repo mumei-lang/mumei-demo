@@ -475,13 +475,33 @@ def fmt_fixed(fx: dict | None) -> str:
     return f"{fx['false_alarms']} / {fx['specimens']} specimens"
 
 
+def current_review_usage(cov: dict, finding_reviews: list[dict]) -> set[tuple[str, str, str]]:
+    """Review keys matching the findings recorded in a coverage file under the
+    current rulings, ignoring stale `reviews_used` data from an older rulings file."""
+    reviews = [r for r in finding_reviews if r.get("specimen") == cov["specimen"]]
+    used = set()
+    sections = [cov]
+    if cov.get("fixed"):
+        sections.append(cov["fixed"])
+    for section in sections:
+        used.update(tuple(k) for k in section.get("reviews_used") or [])
+        for rec in section.get("findings") or []:
+            if rec.get("status") == "defect_evidence":
+                continue
+            hits = [r for r in reviews
+                    if r["file"] == rec["file"] and r["finding_contains"] in rec["text"]]
+            verdicts = {r["verdict"] for r in hits}
+            if len(verdicts) > 1:
+                raise SystemExit(f"{cov['specimen']}: conflicting finding reviews {sorted(verdicts)}")
+            used.update(review_key(r) for r in hits)
+    return used
+
+
 def stale_reviews(coverages: list[dict], finding_reviews: list[dict]) -> list[dict]:
     """Rulings for a scored specimen that matched no finding in the supplied
-    coverage set. Tool wording changes make rulings stop applying; listing
-    them keeps that visible."""
+    coverage set under the current rulings file."""
     scored = {cov["specimen"] for cov in coverages}
-    used = {tuple(k) for cov in coverages
-            for k in (cov.get("reviews_used") or []) + ((cov.get("fixed") or {}).get("reviews_used") or [])}
+    used = set().union(*(current_review_usage(cov, finding_reviews) for cov in coverages)) if coverages else set()
     return [r for r in finding_reviews
             if r["specimen"] in scored and review_key(r) not in used]
 

@@ -1978,9 +1978,11 @@ def test_extract_adjudication_worksheet_lists_unreviewed_and_stale(tmp_path):
     llm_audit_dir = audit_dir / "with-llm"
     llm_audit_dir.mkdir()
     (llm_audit_dir / "coverage.json").write_text(json.dumps({
-        "specimen": "py-01-x", "language": "python", "findings": [],
+        "specimen": "py-01-x", "language": "python",
+        "findings": [{"file": "app.py", "kind": "verification_violations",
+                      "text": "prefix llm-only wording suffix", "status": "false_positive"}],
         "fixed": {"findings": []},
-        "reviews_used": [["py-01-x", "app.py", "llm-only wording"]],
+        "reviews_used": [],
     }))
 
     assert eaw.main(["--specimens-root", str(specimens)]) == 0
@@ -1995,10 +1997,17 @@ def test_extract_adjudication_worksheet_lists_unreviewed_and_stale(tmp_path):
     assert '"verdict": "TODO(real or false_positive)"' in out
     assert "### S1" in out and "old wording" in out and "U1" in out
     assert "llm-only wording" not in out
+    assert "Other audit mode coverage: **complete**" in out
     assert "[buggy source](python/py-01-x/app.py)" in out
     assert "[fixed patch](python/py-01-x/fixed.patch)" in out
     assert "[audit](" not in out
     assert "mumei-agent `569f478`" in out and "mumei `a0fc10f`" in out
+
+    (llm_audit_dir / "coverage.json").unlink()
+    assert eaw.main(["--specimens-root", str(specimens)]) == 0
+    out = (specimens / "ADJUDICATION_WORKSHEET.md").read_text()
+    assert "Other audit mode coverage: **missing**" in out
+    assert "do not remove an `S` entry" in out
 
 
 def test_extract_adjudication_worksheet_mode_specific_default_and_custom_root(tmp_path):
