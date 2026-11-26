@@ -29,7 +29,7 @@ mumei verifies (Z3 — automatic)
   Lean 4 certifies properties beyond Z3's reach
 ```
 
-The key insight: mumei is the contract language every proof engine shares. Z3 and Lean 4 are layers in one Proof Certificate Chain.
+The key insight: Mumei Core is the contract and evidence anchor for the current Z3/Lean routes. External verifier semantics, correspondence, and acceptance remain backend-specific rather than collapsing into one universal proof-language claim.
 
 ```text
 Without mumei:  LLM skips the accept step → deployed → attacker takes over.
@@ -55,10 +55,12 @@ An executable corpus of deliberately broken Python/TypeScript/Go/Rust/Solidity a
 
 ![Detection by language](specimens/scoreboard/by_language.svg)
 
-Latest — no LLM: 10/171 detected (6%), 29/171 detected or function-flagged, precision 32% of 40 findings, 29 false alarms on fixed code (16 specimens) · with LLM (`openai/gpt-6-luna`): 12/171 detected (7%), 68/171 detected or function-flagged, precision 10%–87% of 200 findings, 211 false alarms on fixed code (16 specimens)
+Committed scoreboard baseline — no LLM: 10/171 detected (6%), 29/171 detected or function-flagged, precision 32% of 40 findings, 29 false alarms on fixed code (16 specimens) · with LLM (`openai/gpt-6-luna`): 12/171 detected (7%), 68/171 detected or function-flagged, precision 10%–87% of 200 findings, 211 false alarms on fixed code (16 specimens)
 
 Details and history: [specimens/README.md#scoreboard](specimens/README.md#scoreboard).
 <!-- scoreboard:end -->
+
+A newer 2026-11-25 no-LLM remeasurement found 11/171 defects with 28 fixed-code alarms, but it is not folded into this committed scoreboard because its adjudication readiness is incomplete; see [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md).
 
 ## Contract benchmark
 
