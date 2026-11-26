@@ -300,33 +300,36 @@ def _model(summary: dict) -> str | None:
     return None
 
 
-def _date_range(meta: dict) -> str | None:
+def _date_bounds(meta: dict) -> tuple[str, str] | None:
     start = (meta.get("generated_at") or "")[:10]
-    end = (meta.get("generated_at_end") or "")[:10]
-    if not start:
-        return None
-    return f"{start}–{end}" if end and end != start else start
+    end = (meta.get("generated_at_end") or "")[:10] or start
+    return (start, end) if start else None
 
 
 def evidence_caption(summary: dict) -> str:
     """Compact provenance for the committed comparison evidence."""
     entries = [summary["arms"][n] for n in ARMS if summary["arms"].get(n)]
-    dates = sorted({d for e in entries if (d := _date_range(e["meta"]))})
-    audit = {}
-    for name in ("mumei+llm", "mumei"):
-        if not summary["arms"].get(name):
-            continue
-        for key, value in summary["arms"][name]["meta"].items():
-            audit.setdefault(key, value)
+    bounds = [b for e in entries if (b := _date_bounds(e["meta"]))]
+    audit_metas = [(name, summary["arms"][name]["meta"])
+                   for name in ("mumei+llm", "mumei") if summary["arms"].get(name)]
+
+    def commit_part(key: str, label: str) -> str | None:
+        pairs = [(name, str(meta[key])[:7]) for name, meta in audit_metas if meta.get(key)]
+        values = {value for _, value in pairs}
+        if len(values) == 1:
+            return f"{label} `{pairs[0][1]}`"
+        if pairs:
+            return f"{label} commits: " + ", ".join(f"{ARM_LABEL[name]} `{value}`" for name, value in pairs)
+        return None
+
     parts = []
-    if len(dates) == 1:
-        parts.append(f"measured {dates[0]}")
-    elif dates:
-        parts.append(f"measured {dates[0]}–{dates[-1]}")
-    if audit.get("mumei_agent_commit"):
-        parts.append(f"mumei-agent `{str(audit['mumei_agent_commit'])[:7]}`")
-    if audit.get("mumei_commit"):
-        parts.append(f"mumei `{str(audit['mumei_commit'])[:7]}`")
+    if bounds:
+        start = min(b[0] for b in bounds)
+        end = max(b[1] for b in bounds)
+        parts.append(f"measured {start}" if start == end else f"measured {start}–{end}")
+    for key, label in (("mumei_agent_commit", "mumei-agent"), ("mumei_commit", "mumei")):
+        if part := commit_part(key, label):
+            parts.append(part)
     return "; ".join(parts)
 
 

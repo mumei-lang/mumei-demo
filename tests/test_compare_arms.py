@@ -298,6 +298,18 @@ def test_svg_has_whiskers_only_for_spread(tree):
     assert "mumei bbbbbbb" in out
 
 
+def test_evidence_caption_uses_full_date_span_and_each_audit_commit(tree):
+    s = ca.build(_full(tree), MODEL)
+    s["arms"]["llm"]["meta"]["generated_at"] = "2025-01-03T00:00:00Z"
+    s["arms"]["llm"]["meta"]["generated_at_end"] = "2025-01-27T00:00:00Z"
+    s["arms"]["mumei+llm"]["meta"]["mumei_agent_commit"] = "ccccccc3333"
+    s["arms"]["mumei+llm"]["meta"]["mumei_commit"] = "ddddddd4444"
+    caption = ca.evidence_caption(s)
+    assert "measured 2025-01-02–2025-01-27" in caption
+    assert "mumei-agent commits: mumei + LLM `ccccccc`, mumei only `aaaaaaa`" in caption
+    assert "mumei commits: mumei + LLM `ddddddd`, mumei only `bbbbbbb`" in caption
+
+
 def test_svg_escapes_model(tree):
     root = _full(tree)
     s = ca.build(root, MODEL)
