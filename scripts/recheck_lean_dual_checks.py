@@ -69,7 +69,7 @@ def refresh_results(lean_dir: Path, timeout: int, results_path: Path = cb.RESULT
         "counts": dict(sorted(Counter(item["status"] for item in checked).items())),
         "total": len(checked),
     }
-    results_path.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+    results_path.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return {"document": doc, "checks": checked}
 
 

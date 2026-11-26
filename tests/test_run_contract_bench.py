@@ -1327,6 +1327,7 @@ def test_reference_run_with_lean_bridge(repo, tmp_path, monkeypatch):
     assert doc["runs"][0][0]["fixed"]["lean_dual_check"]["status"] == "failed"
     md = (repo / "proofs/RESULTS.md").read_text()
     assert "Lean bridge dual check (mumei-lean `abcdef1`)" in md and "failed 1 of 1" in md
+    assert "`stale`, `unsupported`, `timeout`, `no-certificate` and `not-checked` mean no current Lean" in md
     assert "- 1 × `unexpected token '=>'`" in md
     assert cb.main(["--check"]) == 0
     # --only without --lean-bridge keeps the recorded bridge identity

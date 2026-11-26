@@ -1002,9 +1002,10 @@ def certificate_lines(ref: dict) -> list[str]:
         return out + ["Lean bridge: not run for this result (`--lean-bridge`).", ""]
     commit = ((ref.get("lean_bridge") or {}).get("commit") or "unknown")[:7]
     status = Counter(d["status"] for d in lean)
-    out += [f"Lean bridge dual check (mumei-lean `{commit}`): each certified obligation is restated in "
-            "Lean 4 and must close there too. `partial_translation` means the bridge could not state the whole "
-            "obligation in Lean, so nothing was checked; a failed dual check does not change the Z3 result. "
+    out += [f"Lean bridge dual check (mumei-lean `{commit}`): records one outcome per certified obligation. "
+            "`partial_translation` means the bridge could not state the whole obligation in Lean, so nothing was "
+            "checked; `stale`, `unsupported`, `timeout`, `no-certificate` and `not-checked` mean no current Lean "
+            "check completed; a failed dual check does not change the Z3 result. "
             + ", ".join(f"{k} {v}" for k, v in sorted(status.items())) + f" of {len(lean)}.", ""]
     errors = Counter(d["error"] for d in lean if d.get("error"))
     if errors:

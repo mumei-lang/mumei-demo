@@ -114,3 +114,23 @@ def test_stale_certificate_hash_is_not_rechecked(tmp_path, monkeypatch):
     outcome = json.loads(results.read_text())["runs"][0][0]["fixed"]["lean_dual_check"]
     assert outcome["status"] == "stale"
     assert "hash does not match" in outcome["reason"]
+
+
+def test_results_file_is_written_as_utf8(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    case, results, lean_dir = fixture(tmp_path)
+    common(monkeypatch, tmp_path, case)
+    monkeypatch.setattr(recheck.cb, "lean_dual_check", lambda *args: {"status": "failed", "error": "型不一致"})
+    writes = []
+    original_write_text = Path.write_text
+
+    def recording_write_text(self, data, *args, **kwargs):
+        if self == results:
+            writes.append(kwargs.get("encoding"))
+            return len(data)
+        return original_write_text(self, data, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", recording_write_text)
+    recheck.refresh_results(lean_dir, 5, results)
+    assert writes == ["utf-8"]
