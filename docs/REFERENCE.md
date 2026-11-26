@@ -125,6 +125,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 |---|---:|---|
 | `scripts/generate_report.py` | 9 | Render a Mumei demo result. |
 | `scripts/run_specimen_audits.py` | 10 | Run `mumei-agent audit` over every specimen and score it against DEFECTS.json. |
+| `scripts/extract_adjudication_worksheet.py` | 4 | Extract unreviewed and stale specimen-audit findings into a human-review worksheet. |
 | `scripts/run_baselines.py` | 13 | Run off-the-shelf static analyzers over the specimens and score them like the audit. |
 | `scripts/run_llm_only.py` | 8 | Ask an LLM alone (no Mumei) to review the specimens, and score it like the baselines. |
 | `scripts/compare_arms.py` | 2 | Compare three ways of reviewing the specimen corpus side by side. |
@@ -177,6 +178,17 @@ Run `mumei-agent audit` over every specimen and score it against DEFECTS.json.
 | `--top-readme` | `<TOP_README>` | no | `README.md` | — |
 | `--render-only` | — | no | `false` | re-render scoreboard SVGs and README blocks from history.json without running any audits |
 | `--rescore` | — | no | `false` | re-score the committed audit/audit.json files with the current adjudications.json and record the result, without running any audits |
+
+### `scripts/extract_adjudication_worksheet.py`
+
+Extract unreviewed and stale specimen-audit findings into a human-review worksheet.
+
+| Option | Value | Required | Default | Description |
+|---|---|---|---|---|
+| `--specimens-root` | `<SPECIMENS_ROOT>` | no | `specimens` | specimens root containing language/specimen directories |
+| `--output` | `<OUTPUT>` | no | — | worksheet path inside a specimens directory (default: <specimens-root>/ADJUDICATION_WORKSHEET.md) |
+| `--llm` | — | no | `false` | read audit/with-llm coverage instead of no-LLM coverage |
+| `--include-audit-links` | — | no | `false` | link audit markdown in addition to source files (use when those outputs are committed or local) |
 
 ### `scripts/run_baselines.py`
 

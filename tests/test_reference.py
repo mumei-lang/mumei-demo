@@ -218,6 +218,12 @@ def test_parser_option_strings_match_golden_lists() -> None:
             "--render-only",
             "--rescore",
         ],
+        "scripts/extract_adjudication_worksheet.py": [
+            "--specimens-root",
+            "--output",
+            "--llm",
+            "--include-audit-links",
+        ],
         "scripts/run_baselines.py": [
             "--tools",
             "--semgrep-bin",
