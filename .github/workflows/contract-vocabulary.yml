@@ -1,3 +1,7 @@
+# Cross-repo note (mumei-lang/mumei#1500): the composite action owns only
+# the common Python/dependency runner. mumei-demo's path filter and checks are
+# repo-specific because this repository owns scenario.json contracts and demo
+# documentation aliases rather than the canonical proof or MCP schemas.
 name: Contract Vocabulary
 
 on:
@@ -27,13 +31,17 @@ permissions:
 jobs:
   scenario-contracts:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check scenario and docs contracts
-        run: python3 scripts/check_scenario_contracts.py
-
-      - name: Run docs alias check tests
-        run: |
-          pip install --quiet pytest
-          python3 -m pytest tests/test_check_scenario_contracts.py -v
+      - name: Run contract vocabulary checks
+        # Pin the upstream action commit: this check is a security gate, so a
+        # mutable branch must not be able to replace it outside this repo's review.
+        uses: mumei-lang/mumei/.github/actions/contract-vocabulary@c696632f19cbadb81a9faf6c2cb8b9780e5fa28f
+        with:
+          python_version: '3.12'
+          install_command: python3 -m pip install --quiet pytest
+          check_command: |
+            python3 scripts/check_scenario_contracts.py
+            python3 -m pytest tests/test_check_scenario_contracts.py -v
