@@ -5,7 +5,8 @@ update `specimens/scoreboard/adjudications.json` instead.
 
 Source: `no LLM` `coverage.json` files under `specimens/`.
 Unreviewed review keys: **37** covering **47** buggy/fixed finding occurrence(s).
-Occurrences by variant: buggy **24**, fixed **23**; one review key can cover both variants.
+Occurrences by variant: buggy **24**, fixed **23**.
+One review key can cover both variants and repeated occurrences of the same specimen/file/finding text.
 Stale prior reviews: **22**.
 
 ## Audit provenance
@@ -14,13 +15,14 @@ Stale prior reviews: **22**.
 
 ## How to adjudicate
 
-For every `U` item, inspect the finding text below and the linked source file (plus the audit output when available). Then copy its JSON template into the
+For every `U` item, inspect the finding text below, the linked buggy source, and the fixed patch when present (plus the audit output when available). Then copy its JSON template into the
 `finding_reviews` array in `specimens/scoreboard/adjudications.json`, replace the TODO fields, and shorten
 `finding_contains` only when the shorter text still uniquely matches the intended finding. Use `real` when the finding points
 at a real problem, otherwise `false_positive`. Preserve the double quotes required by JSON.
 
-For every `S` item, either update `finding_contains` to match the same finding's current wording, or remove the stale entry
-when the finding is no longer emitted. Do not mark the worksheet itself complete; completeness is measured by `--rescore`.
+For every `S` item, first check whether it still matches the other audit mode; if it does, keep it unchanged. Otherwise either
+update `finding_contains` to match the same finding's current wording, or remove it only when it is emitted in neither mode.
+Do not mark the worksheet itself complete; completeness is measured by `--rescore`.
 
 When every item is handled, run `python3 scripts/run_specimen_audits.py --rescore` in the checkout containing the new audit output.
 
@@ -29,7 +31,7 @@ When every item is handled, run `python3 scripts/run_specimen_audits.py --rescor
 ### U1 — `go-01-inventory-api` / `calc.go`
 
 - Language: `go`; kind(s): `cross_validation_gaps`; observed in: buggy, fixed
-- Evidence: [source](go/go-01-inventory-api/calc.go)
+- Evidence: [buggy source](go/go-01-inventory-api/calc.go), [fixed patch](go/go-01-inventory-api/fixed.patch)
 - Finding:
 
 ```text
@@ -51,7 +53,7 @@ spec precondition assumed, not enforced, by `reorderPoint`
 ### U2 — `go-01-inventory-api` / `calc.go`
 
 - Language: `go`; kind(s): `cross_validation_gaps`; observed in: buggy, fixed
-- Evidence: [source](go/go-01-inventory-api/calc.go)
+- Evidence: [buggy source](go/go-01-inventory-api/calc.go), [fixed patch](go/go-01-inventory-api/fixed.patch)
 - Finding:
 
 ```text
@@ -73,7 +75,7 @@ spec stronger than implementation: reorderPoint
 ### U3 — `go-01-inventory-api` / `handlers.go`
 
 - Language: `go`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](go/go-01-inventory-api/handlers.go)
+- Evidence: [buggy source](go/go-01-inventory-api/handlers.go)
 - Finding:
 
 ```text
@@ -95,7 +97,7 @@ spec precondition assumed, not enforced, by `viewItem`
 ### U4 — `go-01-inventory-api` / `handlers.go`
 
 - Language: `go`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](go/go-01-inventory-api/handlers.go)
+- Evidence: [buggy source](go/go-01-inventory-api/handlers.go)
 - Finding:
 
 ```text
@@ -117,7 +119,7 @@ spec stronger than implementation: viewItem
 ### U5 — `go-01-inventory-api` / `main.go`
 
 - Language: `go`; kind(s): `cross_validation_gaps`; observed in: fixed
-- Evidence: [source](go/go-01-inventory-api/main.go)
+- Evidence: [buggy source](go/go-01-inventory-api/main.go), [fixed patch](go/go-01-inventory-api/fixed.patch)
 - Finding:
 
 ```text
@@ -139,7 +141,7 @@ spec precondition assumed, not enforced, by `adminAuthorized`
 ### U6 — `go-01-inventory-api` / `main.go`
 
 - Language: `go`; kind(s): `cross_validation_gaps`; observed in: fixed
-- Evidence: [source](go/go-01-inventory-api/main.go)
+- Evidence: [buggy source](go/go-01-inventory-api/main.go), [fixed patch](go/go-01-inventory-api/fixed.patch)
 - Finding:
 
 ```text
@@ -161,7 +163,7 @@ spec stronger than implementation: adminAuthorized
 ### U7 — `go-01-inventory-api` / `store.go`
 
 - Language: `go`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](go/go-01-inventory-api/store.go)
+- Evidence: [buggy source](go/go-01-inventory-api/store.go)
 - Finding:
 
 ```text
@@ -183,7 +185,7 @@ spec precondition assumed, not enforced, by `Get`
 ### U8 — `go-01-inventory-api` / `store.go`
 
 - Language: `go`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](go/go-01-inventory-api/store.go)
+- Evidence: [buggy source](go/go-01-inventory-api/store.go)
 - Finding:
 
 ```text
@@ -205,7 +207,7 @@ spec stronger than implementation: Get
 ### U9 — `go-03-auth-gateway` / `auth.go`
 
 - Language: `go`; kind(s): `cross_validation_gaps`; observed in: fixed
-- Evidence: [source](go/go-03-auth-gateway/auth.go)
+- Evidence: [buggy source](go/go-03-auth-gateway/auth.go), [fixed patch](go/go-03-auth-gateway/fixed.patch)
 - Finding:
 
 ```text
@@ -227,7 +229,7 @@ spec precondition assumed, not enforced, by `passwordMatches`
 ### U10 — `go-03-auth-gateway` / `auth.go`
 
 - Language: `go`; kind(s): `cross_validation_gaps`; observed in: fixed
-- Evidence: [source](go/go-03-auth-gateway/auth.go)
+- Evidence: [buggy source](go/go-03-auth-gateway/auth.go), [fixed patch](go/go-03-auth-gateway/fixed.patch)
 - Finding:
 
 ```text
@@ -249,7 +251,7 @@ spec stronger than implementation: passwordMatches
 ### U11 — `py-01-expense-tracker` / `ledger.py`
 
 - Language: `python`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](python/py-01-expense-tracker/ledger.py)
+- Evidence: [buggy source](python/py-01-expense-tracker/ledger.py)
 - Finding:
 
 ```text
@@ -271,7 +273,7 @@ spec precondition assumed, not enforced, by `average_expense`
 ### U12 — `py-01-expense-tracker` / `ledger.py`
 
 - Language: `python`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](python/py-01-expense-tracker/ledger.py)
+- Evidence: [buggy source](python/py-01-expense-tracker/ledger.py)
 - Finding:
 
 ```text
@@ -293,7 +295,7 @@ spec precondition assumed, not enforced, by `daily_average`
 ### U13 — `py-01-expense-tracker` / `ledger.py`
 
 - Language: `python`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](python/py-01-expense-tracker/ledger.py)
+- Evidence: [buggy source](python/py-01-expense-tracker/ledger.py)
 - Finding:
 
 ```text
@@ -315,7 +317,7 @@ spec stronger than implementation: average_expense
 ### U14 — `py-01-expense-tracker` / `ledger.py`
 
 - Language: `python`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](python/py-01-expense-tracker/ledger.py)
+- Evidence: [buggy source](python/py-01-expense-tracker/ledger.py)
 - Finding:
 
 ```text
@@ -337,7 +339,7 @@ spec stronger than implementation: daily_average
 ### U15 — `py-02-report-cli` / `timesheet.py`
 
 - Language: `python`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](python/py-02-report-cli/timesheet.py)
+- Evidence: [buggy source](python/py-02-report-cli/timesheet.py)
 - Finding:
 
 ```text
@@ -359,7 +361,7 @@ spec precondition assumed, not enforced, by `share_of_total`
 ### U16 — `py-02-report-cli` / `timesheet.py`
 
 - Language: `python`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](python/py-02-report-cli/timesheet.py)
+- Evidence: [buggy source](python/py-02-report-cli/timesheet.py)
 - Finding:
 
 ```text
@@ -381,7 +383,7 @@ spec stronger than implementation: share_of_total
 ### U17 — `py-04-doc-vault` / `vault.py`
 
 - Language: `python`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](python/py-04-doc-vault/vault.py)
+- Evidence: [buggy source](python/py-04-doc-vault/vault.py)
 - Finding:
 
 ```text
@@ -403,7 +405,7 @@ spec precondition assumed, not enforced, by `make_share_token`
 ### U18 — `py-04-doc-vault` / `vault.py`
 
 - Language: `python`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](python/py-04-doc-vault/vault.py)
+- Evidence: [buggy source](python/py-04-doc-vault/vault.py)
 - Finding:
 
 ```text
@@ -425,7 +427,7 @@ spec stronger than implementation: make_share_token
 ### U19 — `sol-01-token-vault` / `src/RewardVault.sol`
 
 - Language: `solidity`; kind(s): `cross_validation_gaps`; observed in: fixed
-- Evidence: [source](solidity/sol-01-token-vault/src/RewardVault.sol)
+- Evidence: [buggy source](solidity/sol-01-token-vault/src/RewardVault.sol), [fixed patch](solidity/sol-01-token-vault/fixed.patch)
 - Finding:
 
 ```text
@@ -447,7 +449,7 @@ spec precondition assumed, not enforced, by `pending`
 ### U20 — `sol-01-token-vault` / `src/RewardVault.sol`
 
 - Language: `solidity`; kind(s): `cross_validation_gaps`; observed in: fixed
-- Evidence: [source](solidity/sol-01-token-vault/src/RewardVault.sol)
+- Evidence: [buggy source](solidity/sol-01-token-vault/src/RewardVault.sol), [fixed patch](solidity/sol-01-token-vault/fixed.patch)
 - Finding:
 
 ```text
@@ -469,7 +471,7 @@ spec precondition assumed, not enforced, by `rewards`
 ### U21 — `sol-01-token-vault` / `src/RewardVault.sol`
 
 - Language: `solidity`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](solidity/sol-01-token-vault/src/RewardVault.sol)
+- Evidence: [buggy source](solidity/sol-01-token-vault/src/RewardVault.sol)
 - Finding:
 
 ```text
@@ -491,7 +493,7 @@ spec precondition assumed, not enforced, by `sharePrice`
 ### U22 — `sol-01-token-vault` / `src/RewardVault.sol`
 
 - Language: `solidity`; kind(s): `cross_validation_gaps`; observed in: buggy, fixed
-- Evidence: [source](solidity/sol-01-token-vault/src/RewardVault.sol)
+- Evidence: [buggy source](solidity/sol-01-token-vault/src/RewardVault.sol), [fixed patch](solidity/sol-01-token-vault/fixed.patch)
 - Finding:
 
 ```text
@@ -513,7 +515,7 @@ spec precondition assumed, not enforced, by `sharesOf`
 ### U23 — `sol-01-token-vault` / `src/RewardVault.sol`
 
 - Language: `solidity`; kind(s): `cross_validation_gaps`; observed in: fixed
-- Evidence: [source](solidity/sol-01-token-vault/src/RewardVault.sol)
+- Evidence: [buggy source](solidity/sol-01-token-vault/src/RewardVault.sol), [fixed patch](solidity/sol-01-token-vault/fixed.patch)
 - Finding:
 
 ```text
@@ -535,7 +537,7 @@ spec stronger than implementation: pending
 ### U24 — `sol-01-token-vault` / `src/RewardVault.sol`
 
 - Language: `solidity`; kind(s): `cross_validation_gaps`; observed in: fixed
-- Evidence: [source](solidity/sol-01-token-vault/src/RewardVault.sol)
+- Evidence: [buggy source](solidity/sol-01-token-vault/src/RewardVault.sol), [fixed patch](solidity/sol-01-token-vault/fixed.patch)
 - Finding:
 
 ```text
@@ -557,7 +559,7 @@ spec stronger than implementation: rewards
 ### U25 — `sol-01-token-vault` / `src/RewardVault.sol`
 
 - Language: `solidity`; kind(s): `cross_validation_gaps`; observed in: buggy
-- Evidence: [source](solidity/sol-01-token-vault/src/RewardVault.sol)
+- Evidence: [buggy source](solidity/sol-01-token-vault/src/RewardVault.sol)
 - Finding:
 
 ```text
@@ -579,7 +581,7 @@ spec stronger than implementation: sharePrice
 ### U26 — `sol-01-token-vault` / `src/RewardVault.sol`
 
 - Language: `solidity`; kind(s): `cross_validation_gaps`; observed in: buggy, fixed
-- Evidence: [source](solidity/sol-01-token-vault/src/RewardVault.sol)
+- Evidence: [buggy source](solidity/sol-01-token-vault/src/RewardVault.sol), [fixed patch](solidity/sol-01-token-vault/fixed.patch)
 - Finding:
 
 ```text
@@ -601,7 +603,7 @@ spec stronger than implementation: sharesOf
 ### U27 — `sol-03-staking-rewards` / `src/StakingRewards.sol`
 
 - Language: `solidity`; kind(s): `cross_validation_gaps`; observed in: buggy, fixed
-- Evidence: [source](solidity/sol-03-staking-rewards/src/StakingRewards.sol)
+- Evidence: [buggy source](solidity/sol-03-staking-rewards/src/StakingRewards.sol), [fixed patch](solidity/sol-03-staking-rewards/fixed.patch)
 - Finding:
 
 ```text
@@ -623,7 +625,7 @@ spec precondition assumed, not enforced, by `earned`
 ### U28 — `sol-03-staking-rewards` / `src/StakingRewards.sol`
 
 - Language: `solidity`; kind(s): `cross_validation_gaps`; observed in: buggy, fixed
-- Evidence: [source](solidity/sol-03-staking-rewards/src/StakingRewards.sol)
+- Evidence: [buggy source](solidity/sol-03-staking-rewards/src/StakingRewards.sol), [fixed patch](solidity/sol-03-staking-rewards/fixed.patch)
 - Finding:
 
 ```text
@@ -645,7 +647,7 @@ spec stronger than implementation: earned
 ### U29 — `ts-01-task-board` / `board.ts`
 
 - Language: `typescript`; kind(s): `cross_validation_gaps`; observed in: fixed
-- Evidence: [source](typescript/ts-01-task-board/board.ts)
+- Evidence: [buggy source](typescript/ts-01-task-board/board.ts), [fixed patch](typescript/ts-01-task-board/fixed.patch)
 - Finding:
 
 ```text
@@ -667,7 +669,7 @@ spec precondition assumed, not enforced, by `canMove`
 ### U30 — `ts-01-task-board` / `board.ts`
 
 - Language: `typescript`; kind(s): `cross_validation_gaps`; observed in: buggy, fixed
-- Evidence: [source](typescript/ts-01-task-board/board.ts)
+- Evidence: [buggy source](typescript/ts-01-task-board/board.ts), [fixed patch](typescript/ts-01-task-board/fixed.patch)
 - Finding:
 
 ```text
@@ -689,7 +691,7 @@ spec precondition assumed, not enforced, by `summarizeBoard`
 ### U31 — `ts-01-task-board` / `board.ts`
 
 - Language: `typescript`; kind(s): `cross_validation_gaps`; observed in: fixed
-- Evidence: [source](typescript/ts-01-task-board/board.ts)
+- Evidence: [buggy source](typescript/ts-01-task-board/board.ts), [fixed patch](typescript/ts-01-task-board/fixed.patch)
 - Finding:
 
 ```text
@@ -711,7 +713,7 @@ spec stronger than implementation: canMove
 ### U32 — `ts-01-task-board` / `board.ts`
 
 - Language: `typescript`; kind(s): `cross_validation_gaps`; observed in: buggy, fixed
-- Evidence: [source](typescript/ts-01-task-board/board.ts)
+- Evidence: [buggy source](typescript/ts-01-task-board/board.ts), [fixed patch](typescript/ts-01-task-board/fixed.patch)
 - Finding:
 
 ```text
@@ -733,7 +735,7 @@ spec stronger than implementation: summarizeBoard
 ### U33 — `ts-01-task-board` / `server.ts`
 
 - Language: `typescript`; kind(s): `verification_violations`; observed in: fixed
-- Evidence: [source](typescript/ts-01-task-board/server.ts)
+- Evidence: [buggy source](typescript/ts-01-task-board/server.ts), [fixed patch](typescript/ts-01-task-board/fixed.patch)
 - Finding:
 
 ```text
@@ -755,7 +757,7 @@ TypeScript function `handleMove` uses `owned` (from `.find(...)`) without an `un
 ### U34 — `ts-01-task-board` / `server.ts`
 
 - Language: `typescript`; kind(s): `cross_validation_gaps`; observed in: fixed
-- Evidence: [source](typescript/ts-01-task-board/server.ts)
+- Evidence: [buggy source](typescript/ts-01-task-board/server.ts), [fixed patch](typescript/ts-01-task-board/fixed.patch)
 - Finding:
 
 ```text
@@ -777,7 +779,7 @@ spec precondition assumed, not enforced, by `readBody`
 ### U35 — `ts-01-task-board` / `server.ts`
 
 - Language: `typescript`; kind(s): `cross_validation_gaps`; observed in: fixed
-- Evidence: [source](typescript/ts-01-task-board/server.ts)
+- Evidence: [buggy source](typescript/ts-01-task-board/server.ts), [fixed patch](typescript/ts-01-task-board/fixed.patch)
 - Finding:
 
 ```text
@@ -799,7 +801,7 @@ spec stronger than implementation: readBody
 ### U36 — `ts-02-url-shortener` / `server.ts`
 
 - Language: `typescript`; kind(s): `cross_validation_gaps`; observed in: buggy, fixed
-- Evidence: [source](typescript/ts-02-url-shortener/server.ts)
+- Evidence: [buggy source](typescript/ts-02-url-shortener/server.ts), [fixed patch](typescript/ts-02-url-shortener/fixed.patch)
 - Finding:
 
 ```text
@@ -821,7 +823,7 @@ spec precondition assumed, not enforced, by `readJson`
 ### U37 — `ts-02-url-shortener` / `server.ts`
 
 - Language: `typescript`; kind(s): `cross_validation_gaps`; observed in: buggy, fixed
-- Evidence: [source](typescript/ts-02-url-shortener/server.ts)
+- Evidence: [buggy source](typescript/ts-02-url-shortener/server.ts), [fixed patch](typescript/ts-02-url-shortener/fixed.patch)
 - Finding:
 
 ```text
@@ -846,6 +848,7 @@ spec stronger than implementation: readJson
 
 - Prior verdict: `false_positive`
 - Prior reason: Tool diagnostic: the extracted ensures clause failed to lower. It names no problem in is_over_budget (the planted off-by-one is not mentioned).
+- Other audit mode: not matched in the available other-mode coverage
 - Possibly related unreviewed finding(s): U11, U12, U13, U14
 - Prior `finding_contains`:
 
@@ -857,6 +860,7 @@ encoding-gap: is_over_budget: spec_lowering_failed
 
 - Prior verdict: `false_positive`
 - Prior reason: `require(pos.shares >= shares)` bounds shares by a uint128 value before the cast, so it cannot truncate.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): U19, U20, U21, U22, U23, U24, U25, U26
 - Prior `finding_contains`:
 
@@ -868,6 +872,7 @@ Solidity function `withdraw` can truncate `shares` in cast to `uint128`
 
 - Prior verdict: `false_positive`
 - Prior reason: Public deposit entry point. Acts only on the caller's own balance, position or settings, so it is permissionless by design.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): U19, U20, U21, U22, U23, U24, U25, U26
 - Prior `finding_contains`:
 
@@ -879,6 +884,7 @@ Solidity function `deposit` is an externally callable state-mutating function wi
 
 - Prior verdict: `false_positive`
 - Prior reason: Acts only on the caller's own balance, position or settings, so it is permissionless by design.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): U19, U20, U21, U22, U23, U24, U25, U26
 - Prior `finding_contains`:
 
@@ -890,6 +896,7 @@ Solidity function `withdraw` is an externally callable state-mutating function w
 
 - Prior verdict: `false_positive`
 - Prior reason: Acts only on the caller's own balance, position or settings, so it is permissionless by design.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): U19, U20, U21, U22, U23, U24, U25, U26
 - Prior `finding_contains`:
 
@@ -901,6 +908,7 @@ Solidity function `claimRewards` is an externally callable state-mutating functi
 
 - Prior verdict: `false_positive`
 - Prior reason: ERC20 approve. Acts only on the caller's own balance, position or settings, so it is permissionless by design.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): none in this worksheet
 - Prior `finding_contains`:
 
@@ -912,6 +920,7 @@ Solidity function `approve` is an externally callable state-mutating function wi
 
 - Prior verdict: `false_positive`
 - Prior reason: ERC20 transferFrom is authorized by the allowance, not by an owner check. The planted defect here (SOL01-D02, unchecked allowance underflow) is not what the finding describes.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): none in this worksheet
 - Prior `finding_contains`:
 
@@ -923,6 +932,7 @@ Solidity function `transferFrom` is an externally callable state-mutating functi
 
 - Prior verdict: `false_positive`
 - Prior reason: Public bidding entry point; anyone may bid.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): none in this worksheet
 - Prior `finding_contains`:
 
@@ -934,6 +944,7 @@ Solidity function `bid` is an externally callable state-mutating function with n
 
 - Prior verdict: `false_positive`
 - Prior reason: Acts only on the caller's own balance, position or settings, so it is permissionless by design.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): none in this worksheet
 - Prior `finding_contains`:
 
@@ -945,6 +956,7 @@ Solidity function `cancelBid` is an externally callable state-mutating function 
 
 - Prior verdict: `false_positive`
 - Prior reason: Acts only on the caller's own balance, position or settings, so it is permissionless by design.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): none in this worksheet
 - Prior `finding_contains`:
 
@@ -956,6 +968,7 @@ Solidity function `withdraw` is an externally callable state-mutating function w
 
 - Prior verdict: `false_positive`
 - Prior reason: Anyone may top up the bonus pool; it only adds funds.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): none in this worksheet
 - Prior `finding_contains`:
 
@@ -967,6 +980,7 @@ Solidity function `fundBonus` is an externally callable state-mutating function 
 
 - Prior verdict: `false_positive`
 - Prior reason: The specimen's token is an open test faucet: the contract has no owner role and documents mint as minting to the caller. Judgement call: not counted as an unlisted defect.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): none in this worksheet
 - Prior `finding_contains`:
 
@@ -978,6 +992,7 @@ Solidity function `mint` is an externally callable state-mutating function with 
 
 - Prior verdict: `false_positive`
 - Prior reason: Acts only on the caller's own balance, position or settings, so it is permissionless by design.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): none in this worksheet
 - Prior `finding_contains`:
 
@@ -989,6 +1004,7 @@ Solidity function `setReceiveHook` is an externally callable state-mutating func
 
 - Prior verdict: `false_positive`
 - Prior reason: ERC20 approve. Acts only on the caller's own balance, position or settings, so it is permissionless by design.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): none in this worksheet
 - Prior `finding_contains`:
 
@@ -1000,6 +1016,7 @@ Solidity function `approve` is an externally callable state-mutating function wi
 
 - Prior verdict: `false_positive`
 - Prior reason: ERC20 transferFrom is authorized by the allowance, which is checked.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): none in this worksheet
 - Prior `finding_contains`:
 
@@ -1011,6 +1028,7 @@ Solidity function `transferFrom` is an externally callable state-mutating functi
 
 - Prior verdict: `false_positive`
 - Prior reason: Acts only on the caller's own balance, position or settings, so it is permissionless by design.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): U27, U28
 - Prior `finding_contains`:
 
@@ -1022,6 +1040,7 @@ Solidity function `stake` is an externally callable state-mutating function with
 
 - Prior verdict: `false_positive`
 - Prior reason: Acts only on the caller's own balance, position or settings, so it is permissionless by design.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): U27, U28
 - Prior `finding_contains`:
 
@@ -1033,6 +1052,7 @@ Solidity function `withdraw` is an externally callable state-mutating function w
 
 - Prior verdict: `false_positive`
 - Prior reason: Acts only on the caller's own balance, position or settings, so it is permissionless by design.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): U27, U28
 - Prior `finding_contains`:
 
@@ -1044,6 +1064,7 @@ Solidity function `emergencyWithdraw` is an externally callable state-mutating f
 
 - Prior verdict: `false_positive`
 - Prior reason: Acts only on the caller's own balance, position or settings, so it is permissionless by design.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): U27, U28
 - Prior `finding_contains`:
 
@@ -1055,6 +1076,7 @@ Solidity function `getReward` is an externally callable state-mutating function 
 
 - Prior verdict: `false_positive`
 - Prior reason: Acts only on the caller's own balance, position or settings, so it is permissionless by design.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): U27, U28
 - Prior `finding_contains`:
 
@@ -1066,6 +1088,7 @@ Solidity function `setPayoutAddress` is an externally callable state-mutating fu
 
 - Prior verdict: `false_positive`
 - Prior reason: Authorized by the operator signature. The planted defect (SOL03-D10) is replay, not a missing caller check.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): U27, U28
 - Prior `finding_contains`:
 
@@ -1077,6 +1100,7 @@ Solidity function `claimBonus` is an externally callable state-mutating function
 
 - Prior verdict: `false_positive`
 - Prior reason: On the fixed code, reorderPoint returns 0 when locations is empty, so the divisor is never zero.
+- Other audit mode: matched; keep this review
 - Possibly related unreviewed finding(s): U1, U2
 - Prior `finding_contains`:
 

@@ -135,7 +135,10 @@ a single upstream PR. [`specimens/ADJUDICATION_WORKSHEET.md`](../specimens/ADJUD
 organizes those decisions for human review: it was regenerated on 2026-11-26
 at the same Core/Agent commits, reproduced the same 24 buggy-code unreviewed
 findings and 22 stale reviews, and additionally groups the fixed-variant
-findings into the same review workflow.
+findings into the same review workflow. Fixed-variant entries link both the
+buggy source and `fixed.patch`; stale entries say whether the same ruling still
+matches the with-LLM audit, so a ruling used there is not removed while
+updating the no-LLM rerun.
 
 To reproduce, use a disposable checkout of the pinned Demo revision
 and sibling Core and Agent checkouts. With no LLM credentials in the

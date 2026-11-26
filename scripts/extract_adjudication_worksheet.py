@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -47,10 +48,13 @@ def unreviewed_groups(coverages: list[dict]) -> list[dict]:
                     "kinds": set(),
                     "text": rec["text"],
                     "variants": set(),
+                    "occurrence_counts": defaultdict(int),
                 })
                 group["variants"].add(variant)
                 group["kinds"].add(rec["kind"])
-    return [dict(g, variants=sorted(g["variants"]), kinds=sorted(g["kinds"])) for _, g in sorted(groups.items())]
+                group["occurrence_counts"][variant] += 1
+    return [dict(g, variants=sorted(g["variants"]), kinds=sorted(g["kinds"]),
+                 occurrence_counts=dict(g["occurrence_counts"])) for _, g in sorted(groups.items())]
 
 
 def fence(text: str, language: str = "text") -> str:
@@ -58,8 +62,14 @@ def fence(text: str, language: str = "text") -> str:
     return f"{marker}{language}\n{text}\n{marker}"
 
 
-def worksheet_link(label: str, target: Path) -> str:
-    return f"[{label}]({target.as_posix()})"
+def worksheet_link(label: str, target: Path, link_root: Path) -> str:
+    rel = Path(os.path.relpath(target, link_root))
+    return f"[{label}]({rel.as_posix()})"
+
+
+def used_review_keys(coverages: list[dict]) -> set[tuple[str, str, str]]:
+    return {tuple(key) for cov in coverages
+            for key in (cov.get("reviews_used") or []) + ((cov.get("fixed") or {}).get("reviews_used") or [])}
 
 
 def meta_lines(coverages: list[dict]) -> list[str]:
@@ -96,12 +106,18 @@ def review_entry(item: dict) -> str:
 
 
 def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: Path,
-           llm: bool, generated_by: str, include_audit_links: bool) -> str:
+           llm: bool, generated_by: str, include_audit_links: bool, link_root: Path,
+           other_coverages: list[dict]) -> str:
     mode = "with LLM" if llm else "no LLM"
     stale = rsa.stale_reviews(coverages, finding_reviews)
     groups = unreviewed_groups(coverages)
-    occurrences = sum(len(g["variants"]) for g in groups)
-    variant_occurrences = {variant: sum(variant in g["variants"] for g in groups) for variant in ("buggy", "fixed")}
+    occurrences = sum(sum(g["occurrence_counts"].values()) for g in groups)
+    variant_occurrences = {
+        variant: sum(g["occurrence_counts"].get(variant, 0) for g in groups)
+        for variant in ("buggy", "fixed")
+    }
+    other_used = used_review_keys(other_coverages)
+    other_checked = bool(other_coverages)
     by_specimen_file = defaultdict(list)
     for i, g in enumerate(groups):
         by_specimen_file[(g["specimen"], g["file"])].append(f"U{i + 1}")
@@ -114,7 +130,8 @@ def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: P
         "",
         f"Source: `{mode}` `coverage.json` files under `specimens/`.",
         f"Unreviewed review keys: **{len(groups)}** covering **{occurrences}** buggy/fixed finding occurrence(s).",
-        f"Occurrences by variant: buggy **{variant_occurrences['buggy']}**, fixed **{variant_occurrences['fixed']}**; one review key can cover both variants.",
+        f"Occurrences by variant: buggy **{variant_occurrences['buggy']}**, fixed **{variant_occurrences['fixed']}**.",
+        "One review key can cover both variants and repeated occurrences of the same specimen/file/finding text.",
         f"Stale prior reviews: **{len(stale)}**.",
         "",
         "## Audit provenance",
@@ -123,13 +140,14 @@ def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: P
         "",
         "## How to adjudicate",
         "",
-        "For every `U` item, inspect the finding text below and the linked source file (plus the audit output when available). Then copy its JSON template into the",
+        "For every `U` item, inspect the finding text below, the linked buggy source, and the fixed patch when present (plus the audit output when available). Then copy its JSON template into the",
         "`finding_reviews` array in `specimens/scoreboard/adjudications.json`, replace the TODO fields, and shorten",
         "`finding_contains` only when the shorter text still uniquely matches the intended finding. Use `real` when the finding points",
         "at a real problem, otherwise `false_positive`. Preserve the double quotes required by JSON.",
         "",
-        "For every `S` item, either update `finding_contains` to match the same finding's current wording, or remove the stale entry",
-        "when the finding is no longer emitted. Do not mark the worksheet itself complete; completeness is measured by `--rescore`.",
+        "For every `S` item, first check whether it still matches the other audit mode; if it does, keep it unchanged. Otherwise either",
+        "update `finding_contains` to match the same finding's current wording, or remove it only when it is emitted in neither mode.",
+        "Do not mark the worksheet itself complete; completeness is measured by `--rescore`.",
         "",
         "When every item is handled, run `python3 scripts/run_specimen_audits.py --rescore` in the checkout containing the new audit output.",
         "",
@@ -144,14 +162,16 @@ def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: P
         source = specimen_dir / item["file"]
         audit = rsa.audit_dir(specimen_dir, llm) / "audit.md"
         fixed_audit = rsa.audit_dir(specimen_dir, llm) / "fixed" / "audit.md"
-        base = Path(item["language"]) / item["specimen"]
+        patch = specimen_dir / rsa.FIXED_PATCH
         links = []
         if include_audit_links and audit.is_file():
-            links.append(worksheet_link("audit", base / audit.relative_to(specimen_dir)))
+            links.append(worksheet_link("audit", audit, link_root))
         if include_audit_links and "fixed" in item["variants"] and fixed_audit.is_file():
-            links.append(worksheet_link("fixed audit", base / fixed_audit.relative_to(specimen_dir)))
+            links.append(worksheet_link("fixed audit", fixed_audit, link_root))
         if source.is_file():
-            links.append(worksheet_link("source", base / item["file"]))
+            links.append(worksheet_link("buggy source", source, link_root))
+        if "fixed" in item["variants"] and patch.is_file():
+            links.append(worksheet_link("fixed patch", patch, link_root))
         kinds = "`, `".join(item["kinds"])
         variants = ", ".join(item["variants"])
         lines += [
@@ -175,11 +195,18 @@ def render(coverages: list[dict], finding_reviews: list[dict], specimens_root: P
     for i, review in enumerate(stale, 1):
         key = (review["specimen"], review["file"])
         related = ", ".join(by_specimen_file.get(key, [])) or "none in this worksheet"
+        if rsa.review_key(review) in other_used:
+            other_state = "matched; keep this review"
+        elif other_checked:
+            other_state = "not matched in the available other-mode coverage"
+        else:
+            other_state = "not checked (other-mode coverage unavailable)"
         lines += [
             f"### S{i} — `{review['specimen']}` / `{review['file']}`",
             "",
             f"- Prior verdict: `{review['verdict']}`",
             f"- Prior reason: {review['reason']}",
+            f"- Other audit mode: {other_state}",
             f"- Possibly related unreviewed finding(s): {related}",
             "- Prior `finding_contains`:",
             "",
@@ -194,7 +221,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--specimens-root", default=str(REPO_ROOT / "specimens"),
                         help="specimens root containing language/specimen directories")
     parser.add_argument("--output", default=None,
-                        help="worksheet path inside a specimens directory (default: <specimens-root>/ADJUDICATION_WORKSHEET.md)")
+                        help="worksheet path (default: ADJUDICATION_WORKSHEET.md under the specimens root, or ADJUDICATION_WORKSHEET_WITH_LLM.md with --llm)")
     parser.add_argument("--llm", action="store_true", help="read audit/with-llm coverage instead of no-LLM coverage")
     parser.add_argument("--include-audit-links", action="store_true",
                         help="link audit markdown in addition to source files (use when those outputs are committed or local)")
@@ -210,10 +237,11 @@ def main(argv: list[str]) -> int:
         raise SystemExit(f"missing coverage.json for {len(missing)} specimen(s); first missing: {missing[0]}")
     finding_reviews = rsa.load_finding_reviews(specimens_root)
     generated_by = "scripts/extract_adjudication_worksheet.py"
-    output = Path(args.output).resolve() if args.output else specimens_root / "ADJUDICATION_WORKSHEET.md"
-    if output.parent.name != "specimens":
-        raise SystemExit("--output must be inside a specimens directory so specimen-relative links resolve")
-    text = render(coverages, finding_reviews, specimens_root, args.llm, generated_by, args.include_audit_links)
+    default_name = "ADJUDICATION_WORKSHEET_WITH_LLM.md" if args.llm else "ADJUDICATION_WORKSHEET.md"
+    output = Path(args.output).resolve() if args.output else specimens_root / default_name
+    other_coverages, _ = load_coverages(specimens_root, not args.llm)
+    text = render(coverages, finding_reviews, specimens_root, args.llm, generated_by,
+                  args.include_audit_links, output.parent, other_coverages)
     output.write_text(text, encoding="utf-8")
     print(f"wrote {output}")
     return 0

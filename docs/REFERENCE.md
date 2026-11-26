@@ -186,7 +186,7 @@ Extract unreviewed and stale specimen-audit findings into a human-review workshe
 | Option | Value | Required | Default | Description |
 |---|---|---|---|---|
 | `--specimens-root` | `<SPECIMENS_ROOT>` | no | `specimens` | specimens root containing language/specimen directories |
-| `--output` | `<OUTPUT>` | no | — | worksheet path inside a specimens directory (default: <specimens-root>/ADJUDICATION_WORKSHEET.md) |
+| `--output` | `<OUTPUT>` | no | — | worksheet path (default: ADJUDICATION_WORKSHEET.md under the specimens root, or ADJUDICATION_WORKSHEET_WITH_LLM.md with --llm) |
 | `--llm` | — | no | `false` | read audit/with-llm coverage instead of no-LLM coverage |
 | `--include-audit-links` | — | no | `false` | link audit markdown in addition to source files (use when those outputs are committed or local) |
 

@@ -1922,6 +1922,7 @@ def test_main_rescore_no_llm_only_writes_no_with_llm_summary(tmp_path, monkeypat
 def test_extract_adjudication_worksheet_lists_unreviewed_and_stale(tmp_path):
     specimens = tmp_path / "specimens"
     d = _mini_specimen(specimens)
+    (d / "fixed.patch").write_text("--- a/app.py\n+++ b/app.py\n")
     audit_dir = d / "audit"
     audit_dir.mkdir()
     (audit_dir / "audit.md").write_text("# audit\n")
@@ -1932,8 +1933,12 @@ def test_extract_adjudication_worksheet_lists_unreviewed_and_stale(tmp_path):
                  "mumei_agent_commit": "569f478fe5b35f", "mumei_commit": "a0fc10fdefb3"},
         "findings": [{"file": "app.py", "kind": "verification_violations", "text": text,
                       "status": "unreviewed"}],
-        "fixed": {"findings": [{"file": "app.py", "kind": "spec_health_issues", "text": text,
-                                "status": "unreviewed"}]},
+        "fixed": {"findings": [
+            {"file": "app.py", "kind": "spec_health_issues", "text": text,
+             "status": "unreviewed"},
+            {"file": "app.py", "kind": "spec_health_issues", "text": text,
+             "status": "unreviewed"},
+        ]},
         "reviews_used": [],
     }
     (audit_dir / "coverage.json").write_text(json.dumps(coverage))
@@ -1942,17 +1947,53 @@ def test_extract_adjudication_worksheet_lists_unreviewed_and_stale(tmp_path):
     (scoreboard / "adjudications.json").write_text(json.dumps({"finding_reviews": [{
         "specimen": "py-01-x", "file": "app.py", "finding_contains": "old wording",
         "verdict": "false_positive", "reason": "old reason"}]}))
+    llm_audit_dir = audit_dir / "with-llm"
+    llm_audit_dir.mkdir()
+    (llm_audit_dir / "coverage.json").write_text(json.dumps({
+        "specimen": "py-01-x", "language": "python", "findings": [],
+        "fixed": {"findings": []},
+        "reviews_used": [["py-01-x", "app.py", "old wording"]],
+    }))
 
     assert eaw.main(["--specimens-root", str(specimens)]) == 0
     out = (specimens / "ADJUDICATION_WORKSHEET.md").read_text()
     assert "Unreviewed review keys: **1**" in out
-    assert "covering **2** buggy/fixed finding occurrence(s)" in out
-    assert "buggy **1**, fixed **1**" in out
+    assert "covering **3** buggy/fixed finding occurrence(s)" in out
+    assert "buggy **1**, fixed **2**" in out
+    assert "repeated occurrences" in out
     assert "Stale prior reviews: **1**" in out
     assert "### U1" in out and text in out and "observed in: buggy, fixed" in out
     assert "`spec_health_issues`" in out and "`verification_violations`" in out
     assert '"verdict": "TODO(real or false_positive)"' in out
     assert "### S1" in out and "old wording" in out and "U1" in out
-    assert "[source](python/py-01-x/app.py)" in out
+    assert "Other audit mode: matched; keep this review" in out
+    assert "[buggy source](python/py-01-x/app.py)" in out
+    assert "[fixed patch](python/py-01-x/fixed.patch)" in out
     assert "[audit](" not in out
     assert "mumei-agent `569f478`" in out and "mumei `a0fc10f`" in out
+
+
+
+def test_extract_adjudication_worksheet_mode_specific_default_and_custom_root(tmp_path):
+    specimens = tmp_path / "corpus-copy"
+    d = _mini_specimen(specimens)
+    audit_dir = d / "audit"
+    audit_dir.mkdir()
+    coverage = {
+        "specimen": "py-01-x", "language": "python", "meta": {},
+        "findings": [], "fixed": {"findings": []}, "reviews_used": [],
+    }
+    (audit_dir / "coverage.json").write_text(json.dumps(coverage))
+    llm_dir = audit_dir / "with-llm"
+    llm_dir.mkdir()
+    (llm_dir / "coverage.json").write_text(json.dumps(coverage))
+    scoreboard = specimens / "scoreboard"
+    scoreboard.mkdir()
+    (scoreboard / "adjudications.json").write_text(json.dumps({"finding_reviews": []}))
+
+    assert eaw.main(["--specimens-root", str(specimens)]) == 0
+    assert eaw.main(["--specimens-root", str(specimens), "--llm"]) == 0
+    assert (specimens / "ADJUDICATION_WORKSHEET.md").read_text() != (
+        specimens / "ADJUDICATION_WORKSHEET_WITH_LLM.md").read_text()
+    assert "Source: `no LLM`" in (specimens / "ADJUDICATION_WORKSHEET.md").read_text()
+    assert "Source: `with LLM`" in (specimens / "ADJUDICATION_WORKSHEET_WITH_LLM.md").read_text()
