@@ -1218,7 +1218,7 @@ def svg_by_language(modes: dict[bool, dict | None]) -> str:
         return svg_placeholder()
     present = [m for m in (False, True) if modes.get(m) is not None]
     langs = sorted({lang for m in present for lang in modes[m]["by_language"]})
-    subtitles = ["Latest committed scoreboard run; provisional reruns excluded"]
+    subtitles = ["Latest committed scoreboard run"]
     subtitles += [_mode_provenance(mode, modes[mode]) for mode in (False, True) if modes.get(mode)]
 
     W = 720
