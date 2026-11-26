@@ -36,7 +36,7 @@ Vacuity control (fixed port re-checked with `ensures: false`, must fail): 71 / 7
 
 Proof certificates: 71 / 71 proven fixed ports have one, emitted with `mumei verify --proof-cert` and re-checked with `mumei verify-cert --strict`. Trust: Z3 71. `--check` compares each committed `fixed.proof.json` with its recorded hash and with the current `fixed.mm`.
 
-Lean bridge dual check (mumei-lean `5005d36`): records one outcome per certified obligation. `partial_translation` means the bridge could not state the whole obligation in Lean, so nothing was checked; `stale`, `unsupported`, `timeout`, `no-certificate` and `not-checked` mean no current Lean check completed; a failed dual check does not change the Z3 result. lean_verified 22, partial_translation 49 of 71 recorded obligations (71 completed Lean checks).
+Lean bridge dual check (mumei-lean `5005d36`): records one outcome per certified obligation. `partial_translation` means the bridge could not state the whole obligation in Lean, so nothing was checked; `stale`, `unsupported`, `timeout`, `no-certificate` and `not-checked` mean no current Lean check completed; a failed dual check does not change the Z3 result. lean_verified 22, partial_translation 49 of 71 recorded obligations (71 bridge outcomes returned).
 
 Vacuity control for mumei + LLM contract (LLM writes the contract, reference ports) (openai/gpt-6-luna), per run: 68 / 71, 68 / 71, 67 / 71 pass. A contract that fails it is still scored: whether it is vacuous or only too weak, accepting the buggy body is a contract-writing error.
 
