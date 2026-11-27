@@ -199,7 +199,8 @@ jobs:
                   "heal", "verification", "unbound_audit_diagnostics", "contract_provenance",
                   "evidence_blockers", "operational_errors", "review_required", "execution_state",
               }
-              if any(not isinstance(row, dict) or candidate_required - set(row) or row.get("execution_state") not in states for row in candidates):
+              if any(not isinstance(row, dict) or candidate_required - set(row) or row.get("execution_state") not in states
+                     or not isinstance(row.get("review_required"), bool) for row in candidates):
                   raise SystemExit("migration execution candidate contract is malformed")
               counts = {
                   "candidate_count": len(candidates),
@@ -211,6 +212,8 @@ jobs:
                   raise SystemExit("migration execution summary does not match candidate execution states")
               if summary.get("review_required") is not bool(candidates or selection["missing_requested_functions"]):
                   raise SystemExit("migration execution summary review_required is inconsistent")
+              if not isinstance(execution.get("operational_errors"), list):
+                  raise SystemExit("migration execution operational errors are malformed")
               artifact_paths = execution.get("artifact_paths")
               if (not isinstance(artifact_paths, dict)
                       or not isinstance(artifact_paths.get("migration_execution"), str)
