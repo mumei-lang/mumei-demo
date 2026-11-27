@@ -520,6 +520,7 @@ def test_ci_reference_quickstart_statically_covers_migration_action_contract() -
         "migration_execution_ready_count",
         "migration_execution_operational_error_count",
         "the artifact and companion files are copied first",
+        "always-run condition",
         "`blocked` means",
         "`ready_for_human_review` means",
         "not an operational CI failure",
