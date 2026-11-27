@@ -446,3 +446,26 @@ def test_verifier_tests_are_registered_in_explicit_pytest_workflow_list() -> Non
     assert "tests/test_verify_ci_evidence_pack.py" in integration
     assert "scripts/verify_ci_evidence_pack.py" in audit_pack
     assert "tests/test_verify_ci_evidence_pack.py" in audit_pack
+
+
+def test_verifier_accepts_relative_migration_claim_paths_after_copy(tmp_path: Path) -> None:
+    original = write_valid_pack(tmp_path / "original-pack")
+    execution_path = original / "migration_execution.json"
+    execution = json.loads(execution_path.read_text(encoding="utf-8"))
+    generated_dir = execution["artifact_paths"]["generated_artifacts"]
+    original_generated = Path(generated_dir)
+    execution["artifact_paths"]["generated_artifacts"] = "migration_execution.migration-execution"
+    execution["artifact_paths"]["migration_execution"] = "migration_execution.json"
+    candidate = execution["candidates"][0]
+    candidate["generated_mm"]["path"] = str(Path(candidate["generated_mm"]["path"]).relative_to(original_generated.parent))
+    for key in ("proof_certificate", "sarif"):
+        candidate["verification"][key]["path"] = str(Path(candidate["verification"][key]["path"]).relative_to(original_generated.parent))
+    _write_json(execution_path, execution)
+    _refresh_migration_execution_hash(original)
+    copied = tmp_path / "downloaded-pack"
+    shutil.copytree(original, copied)
+    shutil.rmtree(original)
+
+    report = verifier.verify_evidence_pack(copied)
+
+    assert report["companion_file_count"] == 4

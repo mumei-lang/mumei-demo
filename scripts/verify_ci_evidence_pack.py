@@ -387,6 +387,7 @@ def verify_evidence_pack(
         "schema": pack.PACK_SCHEMA,
         "migration_execution_status": status,
         "canonical_file_count": len(canonical_paths),
+        "canonical_hash_row_count": len(manifest["artifacts"]),
         "companion_file_count": len(companions),
         "reference_proof_revalidation": proof_revalidation,
     }
@@ -418,6 +419,7 @@ def main(argv: list[str] | None = None) -> int:
     print("structural/hash verification: passed")
     print(f"migration execution status: {report['migration_execution_status']}")
     print(f"canonical files verified: {report['canonical_file_count']}")
+    print(f"canonical artifact hash rows verified: {report['canonical_hash_row_count']}")
     print(f"migration companion files verified: {report['companion_file_count']}")
     if report["reference_proof_revalidation"] == "performed":
         print("reference proof certificate revalidation: performed")
