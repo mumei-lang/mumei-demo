@@ -12,6 +12,7 @@ The reference is deliberately based on the current audit CLI. It does **not** re
 4. Run the current CLI in deterministic/no-LLM mode:
 
    ```bash
+   mkdir -p evidence-pack
    LLM_API_KEY= OPENAI_API_KEY= CI_FIXTURE_MODE=1 \
    MUMEI_BIN="$PWD/.mumei/mumei/target/release/mumei" \
    python -m agent audit \
