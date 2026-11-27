@@ -50,6 +50,19 @@ def test_adversarial_corpus_validation_rejects_bad_shapes(mutation, message: str
     assert any(message in error for error in errors), errors
 
 
+def test_adversarial_report_relative_path_write_and_check_diagnostic(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    monkeypatch.chdir(tmp_path)
+    report = Path("custom") / "adversarial.md"
+
+    assert adversarial.main(["--report", str(report)]) == 0
+    assert report.is_file()
+    assert "wrote custom/adversarial.md" in capsys.readouterr().out
+
+    report.write_text("stale", encoding="utf-8")
+    assert adversarial.main(["--report", str(report), "--check"]) == 1
+    assert "custom/adversarial.md is out of date" in capsys.readouterr().err
+
+
 def test_adversarial_evaluator_marks_mismatched_findings_fail(monkeypatch: pytest.MonkeyPatch) -> None:
     doc = adversarial.load_corpus()
     case = next(case for case in doc["cases"] if case["id"] == "faithful-port-negative-control")

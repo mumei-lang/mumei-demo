@@ -219,6 +219,13 @@ def render(result: dict) -> str:
     return "\n".join(lines)
 
 
+def display_path(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        return str(path)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--corpus", type=Path, default=CORPUS_PATH)
@@ -237,11 +244,12 @@ def main(argv: list[str] | None = None) -> int:
     text = render(result)
     if args.check:
         if not args.report.is_file() or args.report.read_text(encoding="utf-8") != text:
-            print(f"error: {args.report.relative_to(REPO_ROOT)} is out of date; run scripts/check_adversarial_port_corpus.py", file=sys.stderr)
+            print(f"error: {display_path(args.report)} is out of date; run scripts/check_adversarial_port_corpus.py", file=sys.stderr)
             return 1
     else:
+        args.report.parent.mkdir(parents=True, exist_ok=True)
         args.report.write_text(text, encoding="utf-8")
-        print(f"wrote {args.report.relative_to(REPO_ROOT)}")
+        print(f"wrote {display_path(args.report)}")
     failed = result["summary"]["failed"]
     if failed:
         print(f"error: {failed} adversarial corpus cases do not produce the pinned findings", file=sys.stderr)
