@@ -166,6 +166,31 @@ def test_build_evidence_pack_manifest_and_boundaries(tmp_path: Path, monkeypatch
     assert workflow == (SCENARIO_DIR / "reference" / "workflows" / "mumei-audit.yml").read_text(encoding="utf-8")
 
 
+def test_main_makes_relative_agent_python_absolute_without_resolving(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    captured = {}
+
+    def fake_build(**kwargs):
+        captured.update(kwargs)
+        return {"schema": pack.PACK_SCHEMA, "artifacts": []}
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(pack, "build_evidence_pack", fake_build)
+
+    assert pack.main(
+        [
+            "--scenario-dir", "scenario",
+            "--output-dir", "out",
+            "--mumei-agent-repo", "agent",
+            "--mumei-agent-python", "venv/bin/python",
+            "--mumei-bin", "mumei",
+        ]
+    ) == 0
+
+    agent_python = captured["agent_python"]
+    assert agent_python.is_absolute()
+    assert str(agent_python).endswith("venv/bin/python")
+
+
 def test_reference_workflow_uploads_sarif_only_conditionally() -> None:
     workflow = (SCENARIO_DIR / "reference" / "workflows" / "mumei-audit.yml").read_text(encoding="utf-8")
 

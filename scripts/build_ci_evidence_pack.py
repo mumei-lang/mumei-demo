@@ -397,9 +397,11 @@ def main(argv: list[str] | None = None) -> int:
             scenario_dir=args.scenario_dir.resolve(),
             output_dir=args.output_dir.resolve(),
             agent_repo=args.mumei_agent_repo.resolve(),
-            # Do not resolve the Python symlink: resolving a venv interpreter
-            # yields the base Python and loses the venv's site-packages.
-            agent_python=args.mumei_agent_python.expanduser(),
+            # Make the interpreter path absolute without resolving symlinks:
+            # resolving a venv Python yields the base interpreter and loses
+            # the venv's site-packages, while a relative path would otherwise
+            # be re-interpreted from the agent repository working directory.
+            agent_python=args.mumei_agent_python.expanduser().absolute(),
             mumei_bin=args.mumei_bin.expanduser().resolve(),
         )
     except (EvidencePackError, subprocess.TimeoutExpired, OSError) as exc:
