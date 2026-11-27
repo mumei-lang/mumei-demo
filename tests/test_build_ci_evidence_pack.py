@@ -191,6 +191,21 @@ def test_main_makes_relative_agent_python_absolute_without_resolving(tmp_path: P
     assert str(agent_python).endswith("venv/bin/python")
 
 
+def test_summary_distinguishes_missing_finding_counts_from_zero(tmp_path: Path) -> None:
+    output = tmp_path / "summary.md"
+    pack.write_summary(
+        output,
+        {"verification_status": "verified"},
+        {"summary": {"candidate_count": 0}},
+        {"proof_certificate": "reference.proof.json"},
+    )
+
+    text = output.read_text(encoding="utf-8")
+    assert "| Code findings | not reported |" in text
+    assert "| Spec/model findings | not reported |" in text
+    assert "| Code findings | 0 |" not in text
+
+
 def test_reference_workflow_uploads_sarif_only_conditionally() -> None:
     workflow = (SCENARIO_DIR / "reference" / "workflows" / "mumei-audit.yml").read_text(encoding="utf-8")
 
