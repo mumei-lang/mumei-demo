@@ -184,7 +184,8 @@ def test_fixed_alarm_gate_passes_committed_artifacts() -> None:
     assert 0 <= result["total"]["false_alarms"] <= result["budget"]["max_false_alarms"]
     assert 0 <= result["total"]["unreviewed"] <= result["budget"]["max_unreviewed"]
     assert result["history_comparison"] == "match"
-    assert result["top_offenders"]
+    assert bool(result["top_offenders"]) == (result["total"]["false_alarms"] > 0)
+    assert all(row["false_alarms"] > 0 for row in result["top_offenders"])
 
 
 def test_fixed_alarm_gate_counts_multiple_specimens(tmp_path: Path) -> None:
@@ -204,6 +205,18 @@ def test_fixed_alarm_gate_counts_multiple_specimens(tmp_path: Path) -> None:
         "unreviewed": 2,
         "still_reported": 0,
     }
+
+
+def test_fixed_alarm_gate_allows_zero_false_alarms(tmp_path: Path) -> None:
+    root = tmp_path / "specimens"
+    _write_fixed_tree(root, false_alarms=0, unreviewed=0, specimens=1)
+    _write_history(tmp_path / "history.json", false_alarms=0, specimens=1)
+    _write_budget(tmp_path / "budget.json", false_alarms=0, unreviewed=0, specimens=1)
+
+    result = fixed_alarm.evaluate(root, tmp_path / "history.json", tmp_path / "budget.json")
+
+    assert result["status"] == "pass"
+    assert result["top_offenders"] == []
 
 
 @pytest.mark.parametrize(
