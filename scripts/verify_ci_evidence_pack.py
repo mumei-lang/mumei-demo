@@ -329,7 +329,7 @@ def _validate_structural_artifacts(root: Path, manifest: dict[str, Any]) -> None
     _expect("No artifact in this pack establishes Python/.mm semantic equivalence." in boundary, "pack boundary does not exclude Python/.mm semantic equivalence")
 
 
-def _revalidate_reference_proof(root: Path, mumei_bin: Path | None, reference_contract: Path | None) -> str:
+def _revalidate_reference_proof(root: Path, mumei_bin: Path | None, reference_contract: Path | None, expected_reference_sha256: str) -> str:
     if mumei_bin is None:
         return "not_requested"
     if reference_contract is None:
@@ -338,6 +338,8 @@ def _revalidate_reference_proof(root: Path, mumei_bin: Path | None, reference_co
         raise EvidencePackVerificationError("--mumei-bin is not a regular file")
     if reference_contract.is_symlink() or not reference_contract.is_file():
         raise EvidencePackVerificationError("--reference-contract is not a regular file")
+    if _sha256(reference_contract) != expected_reference_sha256:
+        raise EvidencePackVerificationError("--reference-contract sha256 does not match the evidence pack input provenance")
     completed = subprocess.run(
         [str(mumei_bin), "verify-cert", "--strict", str(root / "reference.proof.json"), str(reference_contract)],
         text=True,
@@ -380,7 +382,12 @@ def verify_evidence_pack(
             _validate_migration_claims(root, companions, generated_dir)
         _validate_closed_world(actual_files, canonical_paths, companions)
         _validate_structural_artifacts(root, manifest)
-        proof_revalidation = _revalidate_reference_proof(root, mumei_bin, reference_contract)
+        proof_revalidation = _revalidate_reference_proof(
+            root,
+            mumei_bin,
+            reference_contract,
+            manifest["inputs"]["reference_contract"]["sha256"],
+        )
     except pack.EvidencePackError as exc:
         raise EvidencePackVerificationError(str(exc)) from exc
     return {

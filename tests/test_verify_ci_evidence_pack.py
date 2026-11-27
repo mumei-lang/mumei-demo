@@ -176,6 +176,12 @@ def _refresh_migration_execution_hash(root: Path) -> None:
     _write_manifest(root, manifest)
 
 
+def _set_reference_input_hash(root: Path, reference: Path) -> None:
+    manifest = _manifest(root)
+    manifest["inputs"]["reference_contract"]["sha256"] = _sha256_path(reference)
+    _write_manifest(root, manifest)
+
+
 def test_verifier_accepts_supported_pack_with_hidden_companions_and_absolute_upstream_claims(tmp_path: Path) -> None:
     root = write_valid_pack(tmp_path / "downloaded-pack")
 
@@ -251,6 +257,7 @@ def test_optional_reference_proof_revalidation_invokes_strict_verify_cert(tmp_pa
         captured["command"] = command
         return subprocess.CompletedProcess(command, 0, "", "")
 
+    _set_reference_input_hash(root, reference)
     monkeypatch.setattr(verifier.subprocess, "run", fake_run)
     report = verifier.verify_evidence_pack(root, mumei_bin=mumei, reference_contract=reference)
 
@@ -266,6 +273,7 @@ def test_optional_reference_proof_revalidation_failure_is_operational(tmp_path: 
     mumei.write_text("", encoding="utf-8")
     reference = tmp_path / "safe_divide.mm"
     reference.write_text("atom divide\n", encoding="utf-8")
+    _set_reference_input_hash(root, reference)
     monkeypatch.setattr(verifier.subprocess, "run", lambda command, **kwargs: subprocess.CompletedProcess(command, 1, "", "certificate drift"))
 
     with pytest.raises(verifier.EvidencePackVerificationError, match="revalidation failed"):
@@ -485,3 +493,14 @@ def test_unwritten_proof_and_sarif_preplanned_paths_are_non_claims(tmp_path: Pat
     report = verifier.verify_evidence_pack(root)
 
     assert report["migration_execution_status"] == "emitted_by_audit_cli"
+
+
+def test_reference_contract_must_match_pack_input_provenance(tmp_path: Path) -> None:
+    root = write_valid_pack(tmp_path / "pack")
+    mumei = tmp_path / "mumei"
+    mumei.write_text("", encoding="utf-8")
+    reference = tmp_path / "safe_divide.mm"
+    reference.write_text("atom divide\n", encoding="utf-8")
+
+    with pytest.raises(verifier.EvidencePackVerificationError, match="input provenance"):
+        verifier.verify_evidence_pack(root, mumei_bin=mumei, reference_contract=reference)
