@@ -785,6 +785,10 @@ def expand_simple_helper_calls(text: str, helpers: dict[str, dict],
     # rather than being rewritten unsoundly by this deliberately narrow expander.
     if re.search(r"\belse\s+if\b", text):
         return None
+    if external_names is not None:
+        local_names = set(re.findall(r"\blet\s+(\w+)\s*=", text))
+        if local_names & external_names:
+            return None
     try:
         rewritten = scan_range(0, len(tokens), ())
     except UnsupportedRewrite:
