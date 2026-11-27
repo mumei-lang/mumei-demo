@@ -2,8 +2,8 @@
 """Verify a copied or downloaded CI audit evidence pack.
 
 The default mode is structural and hash verification only.  It does not claim
-that proof certificates were independently rechecked unless ``--mumei-bin`` and
-``--reference-contract`` are supplied and ``mumei verify-cert --strict`` exits
+that proof certificates were independently rechecked unless `--mumei-bin` and
+`--reference-contract` are supplied and `mumei verify-cert --strict` exits
 successfully.
 """
 from __future__ import annotations

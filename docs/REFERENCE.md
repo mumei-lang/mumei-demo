@@ -147,6 +147,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/report_output_equivalence_coverage.py` | 3 | Report output-equivalence oracle coverage in the recorded benchmark artifact. |
 | `scripts/review_charter_baseline.py` | 2 | Publish the reviewed Charter inputs and their Git diff, not an approval verdict. |
 | `scripts/build_ci_evidence_pack.py` | 5 | Build the deterministic CI audit evidence-pack reference artifact. The pack uses the upstream audit CLI contract for SARIF, baselines, and fail-on policy. SARIF is emitted only by `mumei-agent audit`; the demo never fabricates it, and baseline artifacts are CI policy rather than evidence. |
+| `scripts/verify_ci_evidence_pack.py` | 2 | Verify a copied or downloaded CI audit evidence pack. The default mode is structural and hash verification only. It does not claim that proof certificates were independently rechecked unless `--mumei-bin` and `--reference-contract` are supplied and `mumei verify-cert --strict` exits successfully. |
 | `dashboard/cli_report.py` | 1 | Render a Mumei verification report. |
 
 ### `scripts/generate_report.py`
@@ -419,6 +420,16 @@ Build the deterministic CI audit evidence-pack reference artifact. The pack uses
 | `--mumei-agent-repo` | `<MUMEI_AGENT_REPO>` | yes | — | — |
 | `--mumei-agent-python` | `<MUMEI_AGENT_PYTHON>` | yes | — | — |
 | `--mumei-bin` | `<MUMEI_BIN>` | yes | — | — |
+
+### `scripts/verify_ci_evidence_pack.py`
+
+Verify a copied or downloaded CI audit evidence pack. The default mode is structural and hash verification only. It does not claim that proof certificates were independently rechecked unless `--mumei-bin` and `--reference-contract` are supplied and `mumei verify-cert --strict` exits successfully.
+
+| Option | Value | Required | Default | Description |
+|---|---|---|---|---|
+| `pack_dir` | `<PACK_DIR>` | yes | — | — |
+| `--mumei-bin` | `<MUMEI_BIN>` | no | — | — |
+| `--reference-contract` | `<REFERENCE_CONTRACT>` | no | — | — |
 
 ### `dashboard/cli_report.py`
 

@@ -267,6 +267,7 @@ def test_parser_option_strings_match_golden_lists() -> None:
         "scripts/report_output_equivalence_coverage.py": ["--results", "--report", "--check"],
         "scripts/review_charter_baseline.py": ["--base", "--out-dir"],
         "scripts/build_ci_evidence_pack.py": ["--scenario-dir", "--output-dir", "--mumei-agent-repo", "--mumei-agent-python", "--mumei-bin"],
+        "scripts/verify_ci_evidence_pack.py": ["--mumei-bin", "--reference-contract"],
         "dashboard/cli_report.py": ["--all"],
     }
     for script_path, parser in capture_parsers():
