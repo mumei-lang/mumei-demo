@@ -127,10 +127,14 @@ jobs:
         working-directory: mumei-demo
 
       - name: Stage evidence-pack artifact
-        if: success()
+        if: always()
         run: |
-          mkdir -p ci-evidence-pack-artifact
-          cp -a reports/ci_evidence_pack/latest/evidence-pack/. ci-evidence-pack-artifact/
+          if [ -d reports/ci_evidence_pack/latest/evidence-pack ]; then
+            mkdir -p ci-evidence-pack-artifact
+            cp -a reports/ci_evidence_pack/latest/evidence-pack/. ci-evidence-pack-artifact/
+          else
+            echo "no evidence-pack directory was produced"
+          fi
         working-directory: mumei-demo
 
       - name: Write job summary
@@ -151,4 +155,4 @@ jobs:
         with:
           name: ci-audit-evidence-pack
           path: mumei-demo/ci-evidence-pack-artifact/
-          if-no-files-found: error
+          if-no-files-found: warn
