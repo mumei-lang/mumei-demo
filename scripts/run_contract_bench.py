@@ -381,8 +381,11 @@ def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str
     # Confirming reference replay is stronger semantic evidence than syntactic lint.
     # Lint can still block when replay is unavailable or inconclusive, and replay
     # divergence always blocks; neither is represented as a formal refutation.
-    blocked = semantic["outcome"] == "diverged" or (semantic["outcome"] != confirming and bool(blocking))
-    gate = {"schema": "mumei-demo.port-fidelity-gate/v2", "variant": variant,
+    hard_meaning_loss = any(finding.get("kind") == "guard_folding" for finding in blocking)
+    blocked = (semantic["outcome"] == "diverged" or hard_meaning_loss
+               or (semantic["outcome"] != confirming and bool(blocking)))
+    gate = {"schema": "mumei-demo.port-fidelity-gate/v3", "detector_version": fidelity.DETECTOR_VERSION,
+            "variant": variant,
             "decision": "blocked" if blocked else "accepted",
             "lint_findings": linted, "blocking_lint_findings": blocking,
             "semantic_replay": semantic}
@@ -997,10 +1000,11 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             for r in gated) + ". The committed rows keep the raw verifier proof outcome; only the report projection "
             "counts a blocked candidate as unsupported/inconclusive evidence rather than verification acceptance. "
             "Lint is variant-aware and records high-confidence meaning-loss evidence: silent repair, missing modeled "
-            "operations, guard folding, self-calls and success-flag rewrites. It never overrides confirming replay; "
-            "added or removed guard-count warnings also stay visible without blocking alone. Reference replay is the semantic acceptance check: a buggy candidate must "
-            "still refute every supplied input beside the buggy reference, a fixed candidate must still hold every "
-            "supplied input beside the fixed reference, and weak/vacuous generated contracts cannot support proof acceptance. "
+            "operations, guard folding, self-calls and success-flag rewrites. Confirming replay overrides lint warnings "
+            "except exact guard folding, which is high-confidence meaning loss. Added or removed guard-count warnings "
+            "stay visible without blocking alone. Replay divergence always blocks; other high-confidence lint blocks "
+            "when replay does not supply confirming evidence; inconclusive replay alone does not rewrite a raw proof. "
+            "Weak/vacuous generated contracts cannot support proof acceptance. "
             + " ".join(
                 f"For {ARM_LABEL.get(r['arm'], r['arm'])}, raw verifier proofs before projection were buggy "
                 f"{fmt(r, 'raw_buggy_proven')} and fixed {fmt(r, 'raw_fixed_proven')} per run, while projected acceptance leaves "
@@ -1354,6 +1358,8 @@ def current_replay_input_hash(case: dict) -> str | None:
 def fidelity_gate_stale(case: dict, gate: dict) -> bool:
     """Whether a stored port-fidelity gate no longer matches its replay fixture."""
     expected = current_replay_input_hash(case)
+    if gate.get("detector_version") != fidelity.DETECTOR_VERSION:
+        return True
     return expected is not None and gate.get("semantic_replay", {}).get("input_hash") != expected
 
 
@@ -1395,7 +1401,7 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                         blocked += new_result.get("fidelity_gate", {}).get("decision") == "blocked"
         if changed:
             doc["fidelity_rescore"] = {
-                "schema": "mumei-demo.port-fidelity-gate/v2",
+                "schema": "mumei-demo.port-fidelity-gate/v3",
                 "rescored_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
                 "replay_verifier": verifier_identity(mumei_bin),
             }
@@ -1446,7 +1452,8 @@ def fidelity_problems(results: list[dict], cases: list[dict] | None = None) -> l
                             if blocking is None:
                                 blocking = fidelity.blocking_lint_findings(gate.get("lint_findings") or [])
                             outcome = semantic.get("outcome")
-                            if outcome == "diverged" or (outcome != confirming and blocking):
+                            hard_meaning_loss = any(finding.get("kind") == "guard_folding" for finding in blocking)
+                            if outcome == "diverged" or hard_meaning_loss or (outcome != confirming and blocking):
                                 problems.append(f"{prefix} is accepted despite blocking fidelity evidence")
             if doc["arm"] == "llm-contract":
                 for record in run:

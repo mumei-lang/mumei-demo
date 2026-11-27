@@ -117,6 +117,9 @@
       "candidate_body": "Checked { ok: denominator != 0, value: numerator / denominator }",
       "expected_findings": [
         {
+          "kind": "guard_folding"
+        },
+        {
           "kind": "removed_guard"
         },
         {
@@ -176,6 +179,33 @@
         }
       ],
       "rationale": "Variant awareness must not disable guard-shape warnings: this fixed candidate is compared with the fixed reference and the extra guard is still visible."
+    },
+    {
+      "id": "fixed-state-guard-folding-reward-control",
+      "kind": "port",
+      "failure_mode": "guard_folding",
+      "variant": "fixed",
+      "language": "solidity",
+      "category": "unchecked-transfer",
+      "atom": "getReward",
+      "header": "atom getReward(transfer_ok: bool, amount: i64) -> Payout\n    requires: amount >= 0;\n    ensures: result.ok => transfer_ok;\n    ",
+      "native_source": "function getReward() { rewardToken.transfer(msg.sender, amount); }",
+      "fixed_native_source": "function getReward() { require(rewardToken.transfer(msg.sender, amount)); }",
+      "reference_body": "if transfer_ok { Payout { ok: true, owed: 0 } } else { Payout { ok: false, owed: amount } }",
+      "fixed_reference_body": "if transfer_ok { Payout { ok: true, owed: 0 } } else { Payout { ok: false, owed: amount } }",
+      "candidate_body": "Payout { ok: transfer_ok, owed: amount }",
+      "expected_findings": [
+        {
+          "kind": "removed_guard"
+        },
+        {
+          "kind": "guard_folding"
+        },
+        {
+          "kind": "success_flag_rewrite"
+        }
+      ],
+      "rationale": "A fixed-side port that folds the owed reset into one unconditional branch value is high-confidence state meaning loss even when a narrow replay input still satisfies the contract."
     },
     {
       "id": "meaningful-contract-negative-control",

@@ -44,8 +44,8 @@ def usable_body(body: object) -> bool:
     return depth == 0
 
 
-def success_flag_paths(body: str) -> set[tuple]:
-    """Collect explicit ok expressions with the enclosing if/else predicates."""
+def field_value_paths(body: str, field: str) -> set[tuple]:
+    """Collect struct-field expressions with the enclosing if/else predicates."""
     tokens = re.findall(r"\w+|[^\s]", body)
     braces = {}
     stack = []
@@ -78,13 +78,13 @@ def success_flag_paths(body: str) -> set[tuple]:
 
     def scan(i: int, end: int, path: tuple) -> None:
         while i < end:
-            if tokens[i:i + 2] == ["ok", ":"]:
+            if tokens[i:i + 2] == [field, ":"]:
                 start = i + 2
                 i = start
                 depth = 0
                 while i < end:
                     token = tokens[i]
-                    if token == "," and depth == 0:
+                    if (token == "," or token == "}") and depth == 0:
                         break
                     depth += (token in ("(", "[", "{")) - (token in (")", "]", "}"))
                     i += 1
@@ -94,6 +94,36 @@ def success_flag_paths(body: str) -> set[tuple]:
 
     scan(0, len(tokens), ())
     return flags
+
+
+def success_flag_paths(body: str) -> set[tuple]:
+    """Collect explicit ok expressions with the enclosing if/else predicates."""
+    return field_value_paths(body, "ok")
+
+
+def _struct_fields(text: str) -> set[str]:
+    return set(re.findall(r"\b(\w+)\s*:", text)) - {"ok"}
+
+
+def _has_folded_state_field(reference: str, port: str) -> bool:
+    """A branch-dependent non-ok field was collapsed to one branch's value.
+
+    This is intentionally narrow: the port must have one unconditional field
+    expression, the reference must have branch-dependent differing expressions,
+    and the unconditional expression must exactly match one reference branch.
+    That shape is high-confidence meaning loss rather than a style difference.
+    """
+    for field in _struct_fields(reference) | _struct_fields(port):
+        reference_entries = field_value_paths(reference, field)
+        port_entries = field_value_paths(port, field)
+        if len(port_entries) != 1 or len(reference_entries) < 2:
+            continue
+        (port_path, port_expr), = port_entries
+        reference_exprs = {expr for path, expr in reference_entries if path}
+        if (not port_path and len(reference_exprs) >= 2 and port_expr in reference_exprs
+                and all(path for path, _ in reference_entries)):
+            return True
+    return False
 
 
 def body_inner(text: str) -> str:
@@ -114,6 +144,7 @@ def token_pattern(text: str) -> tuple[str, ...]:
 
 
 VARIANTS = ("buggy", "fixed")
+DETECTOR_VERSION = 3
 
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
@@ -323,6 +354,9 @@ def lint_findings(case: dict, body: str, variant: str = "buggy") -> list[dict]:
                 and port_exprs == {("true",)}):
             findings.append({"kind": "guard_folding",
                              "message": "failure branch is folded into unconditional success"})
+        if _has_folded_state_field(reference, port):
+            findings.append({"kind": "guard_folding",
+                             "message": "conditional result state is folded into one unconditional branch value"})
         if reference_flags and any(expr != ("true",) for _, expr in new_flags):
             findings.append({"kind": "success_flag_rewrite",
                              "message": "success flag can mask a postcondition clause"})

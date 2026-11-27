@@ -77,10 +77,10 @@ Evidence snapshot: recorded 2026-11-03 and 2026-11-05; verifier for mumei-checke
 |---|---|---:|---:|---:|---:|
 | mumei (reference ports) | — | 71 / 71 | 0 | 0 | — |
 | LLM only (judges the source) | openai/gpt-6-luna | 66 / 71 | 0 (0–1) | 5 (4–5) | $0.11 |
-| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 62 (60–63) / 71 | 0 | 0 | $0.15 |
+| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 61 (60–63) / 71 | 0 | 0 | $0.15 |
 | mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 58 (58–59) / 71 | 2 (1–3) | 9 (9–10) | $0.06 |
 
-Fidelity gate note: mumei + LLM (LLM ports, mumei checks) excludes 8 (8–10) raw verifier proof(s) per run from acceptance. False acceptance and fixed-proven are post-gate projections; raw verifier outcomes, unresolved/unsupported rows and fixed-side impact are in [proofs/RESULTS.md](proofs/RESULTS.md).
+Fidelity gate note: mumei + LLM (LLM ports, mumei checks) excludes 9 (8–10) raw verifier proof(s) per run from acceptance. False acceptance and fixed-proven are post-gate projections; raw verifier outcomes, unresolved/unsupported rows and fixed-side impact are in [proofs/RESULTS.md](proofs/RESULTS.md).
 
 The reference row uses hand-written ports, so it is a contract-expression check rather than a detection result. Full outcome taxonomy, per-language results and caveats: [proofs/RESULTS.md](proofs/RESULTS.md).
 

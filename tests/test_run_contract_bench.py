@@ -335,6 +335,22 @@ def test_confirming_semantic_replay_overrides_lint_only_warning(repo, monkeypatc
     assert gated["fidelity_gate"]["blocking_lint_findings"]
 
 
+def test_exact_state_guard_folding_blocks_despite_confirming_replay(repo, monkeypatch):
+    inputs = [{"name": "counterexample", "source": "test", "values": {"total": 1, "days": 0}}]
+    monkeypatch.setattr(cb.fidelity, "replay_inputs", lambda case: (inputs, "hash"))
+    monkeypatch.setattr(cb.fidelity, "port_verdict", lambda *args: {
+        "verdict": "breaks", "status": "breaks", "diagnostics": [], "verification_attempted": True})
+    monkeypatch.setattr(cb.fidelity, "lint_findings", lambda *args: [
+        {"kind": "guard_folding", "message": "conditional result state is folded"}])
+
+    (case,) = cb.load_cases()[0]
+    result = {"outcome": "proven", "status": "success", "diagnostics": []}
+    gated = cb.apply_port_fidelity_gate(case, "0", result, "mumei", 5)
+
+    assert gated["fidelity_gate"]["decision"] == "blocked"
+    assert cb.project_fidelity_result(gated)["failure_kind"] == "unsupported"
+
+
 def test_port_fidelity_gate_prefers_semantic_divergence_evidence(repo, monkeypatch):
     import run_port_divergence as port_divergence
 
@@ -496,13 +512,15 @@ def test_score_counts_every_kind():
 
 def test_fidelity_gate_staleness_follows_replay_input_hash(repo):
     (case,) = cb.load_cases()[0]
-    gate = {"decision": "accepted", "variant": "buggy",
+    gate = {"decision": "accepted", "variant": "buggy", "detector_version": cb.fidelity.DETECTOR_VERSION,
             "semantic_replay": {"outcome": "still_refutes", "input_hash": "stale"}}
     row = rec(case["id"], case["language"], "proven", "refuted")
     row["buggy"]["fidelity_gate"] = gate
     doc = {"arm": "mumei-llm", "model": "test", "runs": [[row]]}
 
     assert cb.fidelity_gate_stale(case, gate)
+    assert cb.fidelity_gate_stale(case, {**gate, "detector_version": -1})
+    assert not cb.fidelity_gate_stale(case, {**gate, "semantic_replay": {"outcome": "still_refutes", "input_hash": cb.current_replay_input_hash(case)}})
     assert any("stale against replay inputs" in problem for problem in cb.fidelity_problems([doc], [case]))
 
 
