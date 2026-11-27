@@ -1449,8 +1449,12 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                         continue
                     existing_gate = result.get("fidelity_gate")
                     equivalence = (existing_gate or {}).get("output_equivalence", {})
-                    retry_timed_out_comparison = (equivalence.get("outcome") == "inconclusive"
-                                                  and equivalence.get("status") == "timeout")
+                    helper_comparison = equivalence.get("helper_body_comparison", {})
+                    retry_timed_out_comparison = (
+                        (equivalence.get("outcome") == "inconclusive"
+                         and equivalence.get("status") == "timeout")
+                        or (helper_comparison.get("outcome") == "inconclusive"
+                            and helper_comparison.get("status") == "timeout"))
                     retry_environment_failure = (equivalence.get("outcome") == "inconclusive"
                                                  and equivalence.get("failure_kind") == "environment_failure")
                     if (existing_gate and not fidelity_gate_stale(case, existing_gate)

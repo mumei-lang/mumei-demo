@@ -503,6 +503,13 @@ def test_rescore_port_fidelity_annotates_committed_rows_without_an_llm(repo):
     retry_meta = json.loads(path.read_text())["fidelity_rescore"]
     assert retry_meta["rescored_rows"] == 1 and retry_meta["reused_rows"] == 1
 
+    helper_timeout_doc = json.loads(path.read_text())
+    helper_timeout_doc["runs"][0][0]["fixed"]["fidelity_gate"]["output_equivalence"] = {
+        "outcome": "inconclusive", "status": "success",
+        "helper_body_comparison": {"outcome": "inconclusive", "status": "timeout"}}
+    path.write_text(json.dumps(helper_timeout_doc))
+    assert cb.rescore_port_fidelity([case], "mumei", 5)["gated"] == 1
+
     error_doc = json.loads(path.read_text())
     error_doc["runs"][0][0]["fixed"]["fidelity_gate"]["output_equivalence"] = {
         "outcome": "inconclusive", "status": "error", "failure_kind": "environment_failure"}
