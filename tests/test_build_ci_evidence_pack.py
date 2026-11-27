@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -464,6 +465,74 @@ def test_summary_distinguishes_missing_finding_counts_from_zero(tmp_path: Path) 
     assert "| Code findings | 0 |" not in text
 
 
+def test_ci_reference_quickstart_statically_covers_migration_action_contract() -> None:
+    doc = (REPO_ROOT / "docs" / "CI_REFERENCE.md").read_text(encoding="utf-8")
+    match = re.search(r"```yaml\n(.*?)```", doc, re.S)
+    assert match is not None
+    workflow = match.group(1)
+
+    uses = re.search(r"mumei-audit@(?<![0-9a-f])([0-9a-f]{40})(?![0-9a-f])", workflow)
+    assert uses is not None, "quick start must pin an immutable full action commit"
+    assert uses.group(1) == "f77cdca9fff98c6f90f67ed5a97a0c6a14cc5cca"
+
+    lines = workflow.splitlines()
+    uses_index = next(index for index, line in enumerate(lines) if "mumei-audit@" in line)
+    step_indent = len(lines[uses_index]) - len(lines[uses_index].lstrip())
+    step_end = len(lines)
+    for index in range(uses_index + 1, len(lines)):
+        stripped = lines[index].strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(lines[index]) - len(lines[index].lstrip())
+        if indent < step_indent or (indent == step_indent and stripped.startswith("- ")):
+            step_end = index
+            break
+    step_lines = lines[uses_index:step_end]
+    with_index = next(index for index, line in enumerate(step_lines) if line.strip() == "with:")
+    with_indent = len(step_lines[with_index]) - len(step_lines[with_index].lstrip())
+    input_lines = []
+    input_indent = None
+    for line in step_lines[with_index + 1 :]:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent <= with_indent:
+            break
+        if input_indent is None:
+            input_indent = indent
+        if indent == input_indent:
+            input_lines.append(stripped)
+        else:
+            raise AssertionError(f"quick start action inputs must be flat scalar entries, got nested line: {stripped}")
+    inputs = dict(line.split(":", 1) for line in input_lines)
+    inputs = {key.strip(): re.sub(r"\s+#.*$", "", value).strip() for key, value in inputs.items()}
+    assert inputs["audit-args"] == "--baseline audit-baseline.json --write-baseline .mumei-audit/generated-baseline.json --fail-on high-confidence"
+    assert inputs["migration-execution-output"] == ".mumei-audit/migration_execution.json"
+    assert inputs["artifact-name"] == "mumei-audit-evidence"
+    assert inputs["upload-sarif"] == "false"
+    assert "@develop" not in workflow
+
+    for phrase in (
+        "migration-execution/migration_execution.json",
+        "migration-execution/generated-artifacts/",
+        "migration-execution/status.json",
+        "not portable links in the downloaded artifact",
+        "candidate-level `operational_error`",
+        "migration_execution_status",
+        "migration_execution_ready_count",
+        "migration_execution_operational_error_count",
+        "the artifact and companion files are copied first",
+        "always-run condition",
+        "`blocked` means",
+        "`ready_for_human_review` means",
+        "not an operational CI failure",
+        "not host semantic-equivalence proof",
+        "`path`, `sha256`, and `bytes`",
+    ):
+        assert phrase in doc
+
+
 def test_reference_workflow_uses_upstream_sarif_baseline_and_fail_on_contract() -> None:
     workflow = (SCENARIO_DIR / "reference" / "workflows" / "mumei-audit.yml").read_text(encoding="utf-8")
 
@@ -484,6 +553,38 @@ def test_reference_workflow_uses_upstream_sarif_baseline_and_fail_on_contract() 
     assert "--format sarif" not in workflow
     assert "--migration-execution-output" in workflow
     assert "not_available_in_current_cli" in workflow
+    assert "not independent CI failure classes" in workflow
+    lines = workflow.splitlines()
+    upload_index = next(index for index, line in enumerate(lines) if line.strip() == "- name: Upload evidence pack")
+    upload_indent = len(lines[upload_index]) - len(lines[upload_index].lstrip())
+    upload_end = len(lines)
+    for index in range(upload_index + 1, len(lines)):
+        stripped = lines[index].strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(lines[index]) - len(lines[index].lstrip())
+        if indent <= upload_indent:
+            upload_end = index
+            break
+    upload_lines = lines[upload_index:upload_end]
+    with_index = next(index for index, line in enumerate(upload_lines) if line.strip() == "with:")
+    with_indent = len(upload_lines[with_index]) - len(upload_lines[with_index].lstrip())
+    input_indent = None
+    upload_inputs = {}
+    for line in upload_lines[with_index + 1 :]:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent <= with_indent:
+            break
+        if input_indent is None:
+            input_indent = indent
+        if indent != input_indent:
+            raise AssertionError(f"upload inputs must be flat scalar entries, got nested line: {stripped}")
+        key, value = stripped.split(":", 1)
+        upload_inputs[key.strip()] = re.sub(r"\s+#.*$", "", value).strip()
+    assert upload_inputs["include-hidden-files"] == "true"
 
 
 def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:

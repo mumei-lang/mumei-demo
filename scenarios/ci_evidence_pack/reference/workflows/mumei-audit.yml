@@ -257,6 +257,7 @@ jobs:
             echo "- SARIF: \`evidence-pack/audit.sarif\` emitted by the upstream audit CLI"
             echo "- baseline: \`evidence-pack/audit-baseline.json\` is CI policy, not evidence"
             echo "- migration execution: \`$(cat evidence-pack/migration_execution.status.txt 2>/dev/null || echo not_available_in_current_cli)\`; never host semantic-equivalence proof"
+            echo "- migration execution states: ready_for_human_review/blocked are human-review routing evidence, not independent CI failure classes"
             echo "- fail-on policy: \`high-confidence\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -279,4 +280,5 @@ jobs:
         with:
           name: mumei-audit-evidence-pack
           path: evidence-pack/
+          include-hidden-files: true
           if-no-files-found: error

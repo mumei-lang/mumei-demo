@@ -28,6 +28,7 @@ The scenario is optional and is not part of the default `demo-ci` scenario list.
 - `audit-baseline.json` is a `ci_policy` artifact, not evidence or proof acceptance.
 - `migration_plan.json` is a human-review plan derived from `migration_hints`, not a completed migration.
 - `migration_execution.json` is emitted only by the upstream audit CLI when supported. It is generated-`.mm` acceptance evidence only, not host semantic-equivalence proof; partial artifacts are not completion evidence, and unbound host diagnostics are not adapter observations. Older CLIs are recorded as `not_available_in_current_cli` and no file is fabricated.
+- `ready_for_human_review` and `blocked` are candidate review states, not independent CI failure classes. Operational failure is separate (`operational_error`); even ready candidates require human review and do not prove host semantic equivalence.
 - `reference.proof.json` proves only `reference/safe_divide.mm` as a standalone `.mm` contract.
 - `native_bundle` and `adapter_observation` are closed artifact roles and are empty in `artifact_roles`; audit, migration, policy, and proof artifacts must not be relabeled as either role.
 - Nothing in the pack proves semantic equivalence between `src/ledger.py` and `reference/safe_divide.mm`.
@@ -42,7 +43,7 @@ The scenario is optional and is not part of the default `demo-ci` scenario list.
 | `audit.sarif` | SARIF 2.1.0 emitted by `mumei-agent audit` for CI annotation |
 | `audit-baseline.json` | Refreshed `mumei.audit-baseline/v1` fingerprint policy emitted by `mumei-agent audit` |
 | `migration_plan.json` | Prioritized migration-review candidates from `migration_hints`, with the same artifact path/role metadata |
-| `migration_execution.json` | Optional upstream `mumei.migration-execution/v1` artifact; absent with `not_available_in_current_cli` on older CLIs. Its companion generated-artifact directory may be uploaded with the pack and is hashed under migration-execution metadata, but stays outside the proof-certificate and adapter-observation roles |
+| `migration_execution.json` | Optional upstream `mumei.migration-execution/v1` artifact; absent with `not_available_in_current_cli` on older CLIs. Its companion generated-artifact directory may be uploaded with the pack and is hashed under migration-execution metadata as `path`/`sha256`/`bytes` rows, but stays outside the proof-certificate and adapter-observation roles. Candidate counts summarize review routing only; `blocked` is not an operational CI failure and `ready_for_human_review` is not merge approval |
 | `verification.json` | Reference-contract verification status and boundary |
 | `reference.proof.json` | Proof certificate for the reviewed reference `.mm` contract |
 | `github-actions-mumei-audit.yml` | Copyable workflow template |

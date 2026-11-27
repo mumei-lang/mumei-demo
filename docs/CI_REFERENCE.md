@@ -26,7 +26,7 @@ Use the upstream composite action for the initial existing-code audit gate. The 
                printf '%s\n' '{"version":"mumei.audit-baseline/v1","fingerprints":[]}' > audit-baseline.json
              fi
 
-         - uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@b81e8d1a5ebc20a28b256df401cd1594f0443e23
+         - uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@f77cdca9fff98c6f90f67ed5a97a0c6a14cc5cca
           # Keep the default deterministic/no-LLM path even when repository secrets exist.
            env:
              LLM_API_KEY: ""
@@ -36,14 +36,19 @@ Use the upstream composite action for the initial existing-code audit gate. The 
              language: python
              mumei-version: v0.7.1
              audit-args: --baseline audit-baseline.json --write-baseline .mumei-audit/generated-baseline.json --fail-on high-confidence
+             migration-execution-output: .mumei-audit/migration_execution.json
+             artifact-name: mumei-audit-evidence
              upload-sarif: false  # set true only when GitHub code scanning is enabled
    ```
 
    Adjust `code-file` and, when needed, `language`. Keep `audit-args` on one line: the composite action treats it as a space-separated argument list. The example pins the full action commit SHA and the mumei release version used for reproducible setup; before production use, review the action and pin either that commit SHA or a newer immutable release ref. Do not use a mutable branch ref such as `@develop` as a production dependency. `@develop` is acceptable only for short-lived bootstrap experiments or examples where reproducibility and supply-chain stability are not yet the gate.
 
-2. Open a pull request. The action writes a step summary, audit JSON, SARIF, logs, timing files, and `generated-baseline.json` in the `mumei-audit-evidence` artifact.
-3. Review `generated-baseline.json`. If the suppressed fingerprints are accepted as repository policy, commit that file as `audit-baseline.json`. Later runs pass it through `--baseline`; do not treat the baseline as evidence.
-4. Optional: protect `audit-baseline.json` with CODEOWNERS or an equivalent review rule. It is CI suppression policy, so changes to it need the same explicit review as other merge-gate policy.
+   `migration-execution-output` is optional but shown in the golden path because it makes the migration evidence handoff explicit. The path must be fresh on every run, stay inside the caller workspace, and use a `.json` filename; the action automatically adds `--auto-migrate` when needed and copies the JSON plus companion generated files into the evidence artifact. Do not commit or reuse that output path as a cache.
+
+2. Open a pull request. The action writes a step summary, audit JSON, SARIF, logs, timing files, `generated-baseline.json`, and migration execution evidence in the `mumei-audit-evidence` artifact.
+3. Review `migration-execution/migration_execution.json` with `status.json` and `generated-artifacts/` before acting on any migration candidate. Treat `ready_for_human_review` as a review queue and `blocked` as retained evidence gaps, not as independent CI failure classes.
+4. Review `generated-baseline.json`. If the suppressed fingerprints are accepted as repository policy, commit that file as `audit-baseline.json`. Later runs pass it through `--baseline`; do not treat the baseline as evidence.
+5. Optional: protect `audit-baseline.json` with CODEOWNERS or an equivalent review rule. It is CI suppression policy, so changes to it need the same explicit review as other merge-gate policy.
 
 A maintainer can complete the copy/edit/review loop in about ten minutes. The measured small-repo action runtime is much shorter than that human review loop; the first uncached run can still take longer because Python, uv dependencies, and the mumei installer are being populated.
 
@@ -62,6 +67,28 @@ No LLM secret is required. Without `LLM_API_KEY` or `OPENAI_API_KEY`, audit uses
 `audit-baseline.json` is input policy in `mumei.audit-baseline/v1` format. `--write-baseline` refreshes the complete fingerprint set on every run, and `--fail-on high-confidence` fails the gate only for non-suppressed high-confidence code evidence. Audit exit `1` means finding-policy failure after a completed audit; exit `2` means operational or extraction failure. The composite action preserves the raw classification as `audit_exit_code` and fails only after writing artifacts and the summary.
 
 The baseline is not evidence, does not remove findings from the underlying audit semantics, and must not participate in proof acceptance. Suppressions enter the repository only by human review of the generated baseline artifact.
+
+## Composite action evidence map
+
+The default artifact name is `mumei-audit-evidence`; setting `artifact-name` only renames that uploaded bundle. Its important entries are:
+
+| Artifact entry | Role |
+|---|---|
+| `audit.json` / `audit.sarif` | Upstream audit report and its SARIF rendering for annotations. SARIF is not independent proof evidence. |
+| `audit.stdout.log` / `audit.stderr.log` | Operational logs for extraction failures and diagnostics. |
+| `generated-baseline.json` | Refreshed fingerprint policy when `--write-baseline` is used. It is CI policy input for human review, not evidence. |
+| `timing/` | Raw timing files behind the step summary and timing outputs. |
+| `migration-execution/migration_execution.json` | Optional upstream `mumei.migration-execution/v1` artifact copied from the requested fresh workspace path. |
+| `migration-execution/generated-artifacts/` | Companion generated `.mm`, heal, verification, and proof-certificate files copied while preserving their paths relative to the original generated-artifact directory. They remain generated-contract evidence only. |
+| `migration-execution/status.json` | Action-side collection status, count summary, and evidence boundary. |
+
+Paths embedded in `migration_execution.json` are runner/workspace provenance and are not portable links in the downloaded artifact. Do not resolve those absolute paths locally; inspect the copied companions under `migration-execution/generated-artifacts/` instead.
+
+Step outputs have distinct roles: `audit_exit_code` is the audit process classification (`0` no failing code evidence, `1` finding-policy failure, `2` operational/extraction failure); `setup_seconds`, `audit_seconds`, and `total_seconds` are timing evidence; `migration_execution_status` is the collection/precheck outcome (`not_requested`, `emitted_by_audit_cli`, or `operational_error`); `migration_execution_ready_count` is only the number of candidates in `ready_for_human_review` state; `migration_execution_operational_error_count` is the number of candidate-level `operational_error` states copied into the artifact. A candidate-level `operational_error` does not change `migration_execution_status` to `operational_error`; inspect the count output or `status.json` for that candidate state.
+
+## Migration states are not CI failure classes
+
+Migration execution `blocked` and `ready_for_human_review` candidate states are review routing evidence. `blocked` means the artifact retains a contract/provenance/evidence blocker for a human; it is not an operational CI failure and does not mean the audit CLI failed. `ready_for_human_review` means the generated `.mm` acceptance evidence is complete enough to review, not that the host code is equivalent or that the migration may merge without review. Candidate-level `operational_error` is different: the artifact and companion files are copied first, but the composite action then fails the job as its consumer policy. Use `migration_execution_operational_error_count` or `migration-execution/status.json` to distinguish that candidate failure from collection/precheck failure. The action still writes its summary and uploads the evidence artifact before the outer job fails; a caller job that consumes the count output in a later step must give the audit step an `id` and use an always-run condition such as `if: always()` on that consumer step. Do not add a separate CI failure merely because a candidate is `blocked` or `ready_for_human_review`.
 
 ## Timing evidence
 
@@ -82,7 +109,7 @@ These are warm-cache small-fixture measurements, not a universal SLA. A cold cac
 
 This repository carries a working migration/proof evidence-pack implementation in [`scenarios/ci_evidence_pack`](../scenarios/ci_evidence_pack/README.md) and validates it with [`.github/workflows/audit-evidence-pack.yml`](../.github/workflows/audit-evidence-pack.yml). Its copyable workflow is [`scenarios/ci_evidence_pack/reference/workflows/mumei-audit.yml`](../scenarios/ci_evidence_pack/reference/workflows/mumei-audit.yml).
 
-Use that advanced reference when the adoption is ready to add `migration_plan.json`, a reviewed reference `.mm` certificate, a hash manifest, and explicit evidence-boundary metadata. The composite action is the shorter initial audit gate.
+Use that advanced reference when the adoption is ready to add `migration_plan.json`, a reviewed reference `.mm` certificate, a hash manifest, and explicit evidence-boundary metadata. It intentionally invokes the audit CLI directly rather than the composite action because it owns a custom pack layout; use the composite action quick start for the shorter initial audit gate.
 
 ## What the evidence pack proves
 
@@ -107,7 +134,7 @@ Use that advanced reference when the adoption is ready to add `migration_plan.js
 - No native bundle is present or implied by this audit/migration evidence pack.
 - No adapter observation is present or implied by this audit/migration evidence pack; runtime observations must not be folded into proof evidence.
 
-`artifact_paths` is the canonical ordered list of pack files present for the detected CLI capability in `audit.json`, `migration_plan.json`, and `manifest.json`, including `manifest.json` itself. The manifest's `artifacts` hash rows cover every canonical pack file except the self-referential manifest; files inside the migration execution companion directory are hashed separately under `migration_execution.generated_artifacts`. `artifact_roles` is the closed v2 role map: `audit_report` points at `audit.json` and `audit.sarif`, `migration_plan` and `proof_certificate` point at their respective files, `migration_execution` points at `migration_execution.json` only when emitted, `ci_policy` points at `audit-baseline.json`, and `native_bundle`/`adapter_observation` are empty lists. Treating those absent roles as present, pointing them at audit/migration artifacts, or treating `ci_policy` as evidence is a schema/policy regression rather than evidence acceptance.
+`artifact_paths` is the canonical ordered list of pack files present for the detected CLI capability in `audit.json`, `migration_plan.json`, and `manifest.json`, including `manifest.json` itself. The manifest's `artifacts` hash rows cover every canonical pack file except the self-referential manifest; files inside the migration execution companion directory are hashed separately under `migration_execution.generated_artifacts` rows containing `path`, `sha256`, and `bytes`. `artifact_roles` is the closed v2 role map: `audit_report` points at `audit.json` and `audit.sarif`, `migration_plan` and `proof_certificate` point at their respective files, `migration_execution` points at `migration_execution.json` only when emitted, `ci_policy` points at `audit-baseline.json`, and `native_bundle`/`adapter_observation` are empty lists. Treating those absent roles as present, pointing them at audit/migration artifacts, or treating `ci_policy` as evidence is a schema/policy regression rather than evidence acceptance.
 
 ## Reviewer checklist
 
