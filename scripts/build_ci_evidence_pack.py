@@ -522,6 +522,7 @@ def build_evidence_pack(
     mumei_bin: Path,
     env: dict[str, str] | None = None,
 ) -> dict[str, Any]:
+    output_dir = output_dir.resolve()
     source = scenario_dir / "src" / "ledger.py"
     reference = scenario_dir / "reference" / "safe_divide.mm"
     workflow_template = scenario_dir / "reference" / "workflows" / "mumei-audit.yml"
