@@ -330,7 +330,7 @@
         }
       ],
       "expected_output_equivalence": "inconclusive",
-      "rationale": "Nearest-cent rounding is the source-like implementation of the Math.round abstraction. The one-cent tolerance classifies exact truncation differences as boundary-only inconclusive evidence rather than blocking them, while keeping larger differences visible. The syntactic success-flag warning may remain, but boundary-only evidence prevents a lint-only block."
+      "rationale": "Nearest-cent rounding is the source-like implementation of the Math.round abstraction. The one-cent tolerance classifies exact truncation differences as boundary-only inconclusive evidence rather than blocking them, while keeping larger differences visible. The syntactic success-flag warning may remain; boundary-only evidence does not itself confirm equality, so acceptance still requires independent replay evidence or an exact match."
     },
     {
       "kind": "port",
