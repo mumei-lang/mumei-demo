@@ -86,6 +86,13 @@ def test_recorded_corpus_requests_every_reference_and_accepted_port(monkeypatch)
     assert {(row["run"], row["case"]) for row in report["misaccepts"]} == set(accepted)
     assert report["outcomes"] == {"diverged": 26}
     assert calls == Counter(reference.values()) + Counter(candidates)
+    assert report["lint_counts"]["silent_repair"] == 3
+    silent_rows = {
+        (row["run"], row["case"])
+        for row in report["misaccepts"]
+        if any(finding["kind"] == "silent_repair" for finding in row["lint_findings"])
+    }
+    assert silent_rows == {(1, "SOL01-D03"), (3, "SOL01-D03"), (3, "GO01-D04")}
 
 
 @pytest.mark.parametrize(("reference", "llm", "expected"), [

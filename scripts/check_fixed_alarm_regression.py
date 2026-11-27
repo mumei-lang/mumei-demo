@@ -66,6 +66,10 @@ def coverage_rows(root: Path = SPECIMENS_ROOT) -> list[dict]:
     return rows
 
 
+def public_row(row: dict) -> dict:
+    return {key: value for key, value in row.items() if key != "path"}
+
+
 def aggregate(rows: list[dict]) -> dict:
     return {
         "specimens": len(rows),
@@ -123,7 +127,7 @@ def evaluate(root: Path = SPECIMENS_ROOT, history_path: Path = HISTORY_PATH, bud
         "budget": budget,
         "total": total,
         "rows": rows,
-        "top_offenders": [row for row in offenders if row["false_alarms"]][:5],
+        "top_offenders": [public_row(row) for row in offenders if row["false_alarms"]][:5],
         "history_comparison": history_comparison,
         "errors": errors,
         "status": "pass" if not errors else "fail",
@@ -166,9 +170,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     if args.json:
         printable = {key: value for key, value in result.items() if key != "rows"}
-        printable["rows"] = [
-            {key: value for key, value in row.items() if key != "path"} for row in result["rows"]
-        ]
+        printable["rows"] = [public_row(row) for row in result["rows"]]
         print(json.dumps(printable, indent=2, sort_keys=True))
     else:
         print(render_text(result))

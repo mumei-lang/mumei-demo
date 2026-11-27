@@ -36,6 +36,7 @@ def test_committed_adversarial_report_is_up_to_date() -> None:
         (lambda doc: doc["cases"][0].update(kind="snapshot"), "kind must be"),
         (lambda doc: doc["cases"][0].pop("reference_body"), "missing required keys"),
         (lambda doc: doc["cases"][0].update(failure_mode="unknown"), "unknown failure_mode"),
+        (lambda doc: doc["cases"][0].update(fixed_reference_body=3), "fixed_reference_body must be a string"),
         (lambda doc: doc["cases"].append(dict(doc["cases"][0])), "duplicate case id"),
         (lambda doc: doc.update(failure_modes=["weak_spec"]), "exactly cover"),
     ],
@@ -229,6 +230,26 @@ def test_fixed_alarm_gate_detects_history_mismatch(tmp_path: Path) -> None:
     assert result["status"] == "fail"
     assert result["history_comparison"] == "mismatch"
     assert any("coverage 2 != history 1" in error for error in result["errors"])
+
+
+def test_fixed_alarm_json_cli_is_serializable(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    root = tmp_path / "specimens"
+    _write_fixed_tree(root, false_alarms=1, specimens=1)
+    _write_history(tmp_path / "history.json", false_alarms=1, specimens=1)
+    _write_budget(tmp_path / "budget.json", false_alarms=1, specimens=1)
+
+    assert fixed_alarm.main([
+        "--root", str(root),
+        "--history", str(tmp_path / "history.json"),
+        "--budget", str(tmp_path / "budget.json"),
+        "--json",
+    ]) == 0
+    output = json.loads(capsys.readouterr().out)
+
+    assert output["status"] == "pass"
+    assert output["top_offenders"][0]["specimen"] == "py-00-x"
+    assert "path" not in output["top_offenders"][0]
+    assert "path" not in output["rows"][0]
 
 
 def test_fixed_alarm_gate_rejects_wrong_budget_mode(tmp_path: Path) -> None:

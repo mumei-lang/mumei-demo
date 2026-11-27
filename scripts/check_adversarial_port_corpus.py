@@ -77,8 +77,9 @@ def validate_case(case: object, index: int, errors: list[str]) -> None:
             if (not isinstance(finding, dict) or set(finding) - {"kind", "operation"}
                     or not isinstance(finding.get("kind"), str) or not finding["kind"]):
                 _error(errors, case_id, f"expected_findings[{finding_index}] must contain a non-empty kind")
-    for key in PORT_REQUIRED | CONTRACT_REQUIRED:
-        if key in case and key not in {"expected_findings"} and not isinstance(case[key], str):
+    string_keys = (PORT_REQUIRED | CONTRACT_REQUIRED | {"fixed_reference_body"}) - {"expected_findings"}
+    for key in string_keys:
+        if key in case and not isinstance(case[key], str):
             _error(errors, case_id, f"{key} must be a string")
 
 
