@@ -1450,6 +1450,8 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                     existing_gate = result.get("fidelity_gate")
                     equivalence = (existing_gate or {}).get("output_equivalence", {})
                     helper_comparison = equivalence.get("helper_body_comparison", {})
+                    if not isinstance(helper_comparison, dict):
+                        helper_comparison = {}
                     retry_timed_out_comparison = (
                         (equivalence.get("outcome") == "inconclusive"
                          and equivalence.get("status") == "timeout")
