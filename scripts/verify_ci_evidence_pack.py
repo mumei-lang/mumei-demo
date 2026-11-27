@@ -321,6 +321,8 @@ def _validate_structural_artifacts(root: Path, manifest: dict[str, Any]) -> None
     _expect(isinstance(fail_on, dict) and fail_on.get("policy") == pack.FAIL_ON_POLICY, "fail-on policy is inconsistent")
     _expect(type(fail_on.get("audit_exit_code")) is int, "fail-on audit exit code is malformed")
     _expect(audit.get("audit_cli_exit_code") == fail_on.get("audit_exit_code"), "audit report and manifest audit exit codes diverge")
+    if _sha256(root / "github-actions-mumei-audit.yml") != manifest["inputs"]["workflow_template"]["sha256"]:
+        raise EvidencePackVerificationError("bundled workflow does not match the recorded input template hash")
 
     plan = _load_json(root / "migration_plan.json", "migration plan")
     _expect(plan.get("schema") == pack.MIGRATION_PLAN_SCHEMA, "migration plan schema is inconsistent")

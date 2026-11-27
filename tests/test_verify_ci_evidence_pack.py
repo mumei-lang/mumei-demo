@@ -123,7 +123,7 @@ def write_valid_pack(root: Path, *, include_migration: bool = True, generated_di
         "inputs": {
             "source": {"path": "src/ledger.py", "sha256": "0" * 64},
             "reference_contract": {"path": "reference/safe_divide.mm", "sha256": "0" * 64},
-            "workflow_template": {"path": "reference/workflows/mumei-audit.yml", "sha256": "0" * 64},
+            "workflow_template": {"path": "reference/workflows/mumei-audit.yml", "sha256": _sha256_path(root / "github-actions-mumei-audit.yml")},
             "audit_baseline_input": {"path": pack.BASELINE_INPUT, "sha256": "0" * 64},
         },
         "artifacts": artifacts,
@@ -537,4 +537,17 @@ def test_manifest_and_audit_exit_code_mismatch_is_operational_failure(tmp_path: 
     _write_manifest(root, manifest)
 
     with pytest.raises(verifier.EvidencePackVerificationError, match="exit codes diverge"):
+        verifier.verify_evidence_pack(root)
+
+
+def test_bundled_workflow_template_hash_mismatch_is_operational_failure(tmp_path: Path) -> None:
+    root = write_valid_pack(tmp_path / "pack")
+    (root / "github-actions-mumei-audit.yml").write_text("name: tampered\n", encoding="utf-8")
+    manifest = _manifest(root)
+    for row in manifest["artifacts"]:
+        if row["path"] == "github-actions-mumei-audit.yml":
+            row["sha256"] = _sha256_path(root / "github-actions-mumei-audit.yml")
+    _write_manifest(root, manifest)
+
+    with pytest.raises(verifier.EvidencePackVerificationError, match="workflow does not match"):
         verifier.verify_evidence_pack(root)
