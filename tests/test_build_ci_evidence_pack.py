@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -461,6 +462,39 @@ def test_summary_distinguishes_missing_finding_counts_from_zero(tmp_path: Path) 
     assert "| Code findings | 0 |" not in text
 
 
+def test_ci_reference_quickstart_statically_covers_migration_action_contract() -> None:
+    doc = (REPO_ROOT / "docs" / "CI_REFERENCE.md").read_text(encoding="utf-8")
+    match = re.search(r"```yaml\n(.*?)```", doc, re.S)
+    assert match is not None
+    workflow = match.group(1)
+
+    uses = re.search(r"mumei-audit@([0-9a-f]{40})", workflow)
+    assert uses is not None, "quick start must pin an immutable full action commit"
+    assert uses.group(1) != "b81e8d1a5ebc20a28b256df401cd1594f0443e23"
+    for token in (
+        "audit-args: --baseline audit-baseline.json --write-baseline .mumei-audit/generated-baseline.json --fail-on high-confidence",
+        "migration-execution-output: .mumei-audit/migration_execution.json",
+        "artifact-name: mumei-audit-evidence",
+        "upload-sarif: false",
+    ):
+        assert token in workflow
+    assert "\n             migration-execution-output:" in workflow, "input must stay inside the step's with mapping"
+    assert "@develop" not in workflow
+
+    for phrase in (
+        "migration-execution/migration_execution.json",
+        "migration-execution/generated-artifacts/",
+        "migration-execution/status.json",
+        "migration_execution_status",
+        "migration_execution_ready_count",
+        "`blocked` means",
+        "`ready_for_human_review` means",
+        "not an operational CI failure",
+        "not host semantic-equivalence proof",
+    ):
+        assert phrase in doc
+
+
 def test_reference_workflow_uses_upstream_sarif_baseline_and_fail_on_contract() -> None:
     workflow = (SCENARIO_DIR / "reference" / "workflows" / "mumei-audit.yml").read_text(encoding="utf-8")
 
@@ -481,6 +515,7 @@ def test_reference_workflow_uses_upstream_sarif_baseline_and_fail_on_contract() 
     assert "--format sarif" not in workflow
     assert "--migration-execution-output" in workflow
     assert "not_available_in_current_cli" in workflow
+    assert "not independent CI failure classes" in workflow
 
 
 def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:
