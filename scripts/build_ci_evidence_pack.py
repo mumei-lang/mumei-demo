@@ -452,6 +452,12 @@ def migration_plan(audit: dict[str, Any], include_migration_execution: bool = Tr
     }
 
 
+def _generated_artifact_files(root: Path) -> list[Path]:
+    if not root.is_dir():
+        return []
+    return sorted(path for path in root.rglob("*") if path.is_file() and not path.is_symlink())
+
+
 def _artifact_rows(paths: list[Path], pack_dir: Path) -> list[dict[str, str]]:
     rows = []
     for path in paths:
@@ -582,9 +588,12 @@ def build_evidence_pack(
     write_summary(pack_dir / "summary.md", audit, plan, verification, migration_status)
 
     migration_generated_dir = None
+    migration_generated_artifacts: list[dict[str, str]] = []
     if migration_output is not None:
         execution_payload = json.loads(migration_output.read_text(encoding="utf-8"))
-        migration_generated_dir = _migration_generated_dir(execution_payload, migration_output).relative_to(pack_dir.resolve()).as_posix()
+        generated_root = _migration_generated_dir(execution_payload, migration_output)
+        migration_generated_dir = generated_root.relative_to(pack_dir.resolve()).as_posix()
+        migration_generated_artifacts = _artifact_rows(_generated_artifact_files(generated_root), pack_dir)
 
     hashed_paths = [pack_dir / path for path in HASHED_ARTIFACT_PATHS if migration_supported or path != "migration_execution.json"]
     manifest = {
@@ -630,6 +639,7 @@ def build_evidence_pack(
             "schema": MIGRATION_EXECUTION_SCHEMA,
             "status": "emitted_by_audit_cli" if migration_supported else "not_available_in_current_cli",
             "generated_artifacts_dir": migration_generated_dir,
+            "generated_artifacts": migration_generated_artifacts,
             "boundary": "Migration execution is upstream-generated acceptance evidence for generated .mm only; it is not host-code semantic equivalence proof, and partial artifacts are not completion evidence.",
         },
         "fail_on": {

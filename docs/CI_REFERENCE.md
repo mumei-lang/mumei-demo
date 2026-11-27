@@ -92,7 +92,7 @@ Use that advanced reference when the adoption is ready to add `migration_plan.js
 | `audit.sarif` | Upstream audit CLI SARIF rendering of audit findings for CI annotation; not independent evidence |
 | `audit-baseline.json` | Repository-local CI suppression policy refreshed by the audit CLI; not evidence |
 | `migration_plan.json` | Human-review migration plan derived only from `migration_hints`, with the same artifact path/role metadata and a migration-scaffold boundary |
-| `migration_execution.json` | Optional upstream `mumei.migration-execution/v1` generated-`.mm` acceptance artifact when the pinned audit CLI supports it; absent rather than fabricated otherwise |
+| `migration_execution.json` | Optional upstream `mumei.migration-execution/v1` generated-`.mm` acceptance artifact when the pinned audit CLI supports it; absent rather than fabricated otherwise. The manifest hashes companion generated files under the migration-execution metadata without assigning them proof-certificate or adapter-observation roles |
 | `reference.proof.json` | Proof certificate for the reviewed reference `.mm` contract only |
 | `manifest.json` | Schema, input/artifact hashes, canonical `artifact_paths`, closed `artifact_roles`, SARIF/baseline/fail-on metadata, and evidence boundary |
 | `summary.md` | Human-readable job summary |

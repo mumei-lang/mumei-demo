@@ -297,6 +297,7 @@ def test_build_evidence_pack_manifest_and_boundaries(tmp_path: Path, monkeypatch
     assert [row["path"] for row in manifest["artifacts"]] == [p for p in pack.HASHED_ARTIFACT_PATHS if p != "migration_execution.json"]
     assert manifest["artifact_paths"] == pack.pack_artifact_paths(False)
     assert manifest["artifact_roles"] == pack.artifact_roles(False)
+    assert manifest["migration_execution"]["generated_artifacts"] == []
     assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"
     assert manifest["evidence_roles"]["adapter_observation"]["status"] == "absent"
     assert any("audit-baseline.json is CI suppression policy" in line for line in manifest["evidence_boundary"])
@@ -682,6 +683,9 @@ def test_build_evidence_pack_supported_migration_execution_is_hashed_and_role_sc
         kwargs["sarif_output"].write_text(json.dumps({"version": "2.1.0", "runs": [{"results": []}]}), encoding="utf-8")
         kwargs["write_baseline"].write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}), encoding="utf-8")
         kwargs["migration_execution_output"].write_text(json.dumps(valid_execution()), encoding="utf-8")
+        generated = kwargs["migration_execution_output"].parent / "migration_execution.migration-execution"
+        generated.mkdir()
+        (generated / "divide.mm").write_text("atom divide\n", encoding="utf-8")
         return audit, _completed(json.dumps(audit))
 
     def fake_verify(*, pack_dir: Path, **kwargs):
@@ -716,6 +720,8 @@ def test_build_evidence_pack_supported_migration_execution_is_hashed_and_role_sc
     assert manifest["artifact_roles"]["migration_execution"] == ["migration_execution.json"]
     assert len(manifest["artifacts"]) == 12
     assert any(row["path"] == "migration_execution.json" for row in manifest["artifacts"])
+    assert [row["path"] for row in manifest["migration_execution"]["generated_artifacts"]] == ["migration_execution.migration-execution/divide.mm"]
+    assert all(row["sha256"] for row in manifest["migration_execution"]["generated_artifacts"])
     assert json.loads((pack_dir / "audit.json").read_text())["artifact_roles"]["migration_execution"] == ["migration_execution.json"]
     assert json.loads((pack_dir / "migration_plan.json").read_text())["artifact_roles"]["migration_execution"] == ["migration_execution.json"]
     assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"

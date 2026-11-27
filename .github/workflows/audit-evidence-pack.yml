@@ -162,6 +162,7 @@ jobs:
           assert manifest["evidence_roles"]["ci_policy"]["status"] == "present"
           assert "not host-code semantic equivalence proof" in manifest["evidence_boundary_by_role"]["migration_execution"]
           assert "partial artifacts are not completion evidence" in manifest["migration_execution"]["boundary"]
+          assert isinstance(manifest["migration_execution"]["generated_artifacts"], list)
           assert "not evidence" in manifest["evidence_roles"]["ci_policy"]["boundary"]
           assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"
           assert manifest["evidence_roles"]["adapter_observation"]["status"] == "absent"
