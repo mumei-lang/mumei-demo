@@ -1,0 +1,134 @@
+{
+  "schema": "mumei-demo.intent-fidelity-adversarial/v1",
+  "purpose": "Pinned adversarial examples for intent-fidelity regressions in generated contracts and LLM body ports. These cases are static regression fixtures; Mumei/Z3 remains the semantic verifier.",
+  "failure_modes": [
+    "guard_folding",
+    "silent_repair",
+    "vacuous_spec",
+    "weak_spec",
+    "body_port_meaning_loss"
+  ],
+  "cases": [
+    {
+      "id": "guard-folding-division-success-fallback",
+      "kind": "port",
+      "failure_mode": "guard_folding",
+      "language": "rust",
+      "category": "division-by-zero",
+      "atom": "divide",
+      "header": "atom divide(numerator: i64, denominator: i64) -> Checked\n    requires: true;\n    ensures: result.ok => result.value >= 0;\n    ",
+      "native_source": "fn divide(numerator: i64, denominator: i64) -> i64 {\n    numerator / denominator\n}\n",
+      "reference_body": "if denominator == 0 { Checked { ok: false, value: 0 } } else { Checked { ok: true, value: numerator / denominator } }",
+      "candidate_body": "if denominator > 0 { Checked { ok: true, value: numerator / denominator } } else { Checked { ok: true, value: 0 } }",
+      "expected_findings": [
+        {"kind": "guard_folding"}
+      ],
+      "rationale": "The zero-denominator failure branch is folded away: every fallback reports success, so the port no longer means the same thing as the source."
+    },
+    {
+      "id": "silent-repair-copies-fixed-reference",
+      "kind": "port",
+      "failure_mode": "silent_repair",
+      "language": "python",
+      "category": "division-by-zero",
+      "atom": "average",
+      "header": "atom average(total: i64, days: i64) -> i64\n    requires: total >= 0;\n    ensures: (days <= 0 => result == 0) && (days > 0 => result == total / days);\n    ",
+      "native_source": "def average(total, days):\n    return total // days\n",
+      "reference_body": "total / days",
+      "fixed_reference_body": "if days <= 0 { 0 } else { total / days }",
+      "candidate_body": "if days <= 0 { 0 } else { total / days }",
+      "expected_findings": [
+        {"kind": "silent_repair"}
+      ],
+      "rationale": "The candidate translates the fixed reference rather than the buggy source. Exact-shape matching keeps this detector conservative."
+    },
+    {
+      "id": "vacuous-contradictory-days-bounds",
+      "kind": "contract",
+      "failure_mode": "vacuous_spec",
+      "requires": "days > 0 && days < 0",
+      "ensures": "days > 0 => result == total / days",
+      "expected_findings": [
+        {"kind": "vacuous_spec"}
+      ],
+      "rationale": "No input can satisfy contradictory lower and upper bounds, so every postcondition is vacuously true."
+    },
+    {
+      "id": "weak-ensures-true",
+      "kind": "contract",
+      "failure_mode": "weak_spec",
+      "requires": "days >= 0",
+      "ensures": "true",
+      "expected_findings": [
+        {"kind": "weak_spec"}
+      ],
+      "rationale": "A true postconstraint accepts every result and gives the verifier nothing meaningful to enforce."
+    },
+    {
+      "id": "weak-reflexive-result-equality",
+      "kind": "contract",
+      "failure_mode": "weak_spec",
+      "requires": "days >= 0",
+      "ensures": "(result == result) && true",
+      "expected_findings": [
+        {"kind": "weak_spec"}
+      ],
+      "rationale": "Reflexive equalities and true conjunctions only look like a result constraint."
+    },
+    {
+      "id": "body-port-drops-modeled-index",
+      "kind": "port",
+      "failure_mode": "body_port_meaning_loss",
+      "language": "typescript",
+      "category": "out-of-bounds",
+      "atom": "first",
+      "header": "atom first(len: i64) -> i64\n    requires: len >= 0;\n    ensures: result >= 0;\n    ",
+      "native_source": "export function first(values: number[]) {\n  return values[0];\n}\n",
+      "reference_body": "values[0]",
+      "candidate_body": "0",
+      "expected_findings": [
+        {"kind": "missing_modeled_operation", "operation": "index/slice"}
+      ],
+      "rationale": "The modeled index operation present in the source and reference port is replaced by a constant, losing the behavior that mattered."
+    },
+    {
+      "id": "body-port-success-flag-rewrite",
+      "kind": "port",
+      "failure_mode": "body_port_meaning_loss",
+      "language": "rust",
+      "category": "division-by-zero",
+      "atom": "divide",
+      "header": "atom divide(numerator: i64, denominator: i64) -> Checked\n    requires: true;\n    ensures: result.ok => result.value >= 0;\n    ",
+      "native_source": "fn divide(numerator: i64, denominator: i64) -> i64 {\n    numerator / denominator\n}\n",
+      "reference_body": "if denominator == 0 { Checked { ok: false, value: 0 } } else { Checked { ok: true, value: numerator / denominator } }",
+      "candidate_body": "Checked { ok: denominator != 0, value: numerator / denominator }",
+      "expected_findings": [
+        {"kind": "success_flag_rewrite"}
+      ],
+      "rationale": "The success flag is rewritten into a data-dependent value, so it can mask a postcondition clause instead of preserving the modeled branch meaning."
+    },
+    {
+      "id": "faithful-port-negative-control",
+      "kind": "port",
+      "failure_mode": "body_port_meaning_loss",
+      "language": "python",
+      "category": "division-by-zero",
+      "atom": "average",
+      "header": "atom average(total: i64, days: i64) -> i64\n    requires: total >= 0;\n    ensures: days > 0 => result == total / days;\n    ",
+      "native_source": "def average(total, days):\n    return total // days\n",
+      "reference_body": "total / days",
+      "candidate_body": "total / days",
+      "expected_findings": [],
+      "rationale": "A faithful translation must not produce adversarial warnings."
+    },
+    {
+      "id": "meaningful-contract-negative-control",
+      "kind": "contract",
+      "failure_mode": "weak_spec",
+      "requires": "days >= 0",
+      "ensures": "days > 0 => result == total / days",
+      "expected_findings": [],
+      "rationale": "A satisfiable precondition with a result-constraining postcondition must not be flagged."
+    }
+  ]
+}

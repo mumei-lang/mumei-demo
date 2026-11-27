@@ -262,6 +262,8 @@ def test_parser_option_strings_match_golden_lists() -> None:
         "scripts/record_model_evidence.py": ["--repo", "--output"],
         "scripts/check_specimens.py": ["--root", "--run-fixed"],
         "scripts/check_evidence_regressions.py": ["--out-dir"],
+        "scripts/check_adversarial_port_corpus.py": ["--corpus", "--report", "--check"],
+        "scripts/check_fixed_alarm_regression.py": ["--root", "--history", "--budget", "--json"],
         "scripts/review_charter_baseline.py": ["--base", "--out-dir"],
         "scripts/build_ci_evidence_pack.py": ["--scenario-dir", "--output-dir", "--mumei-agent-repo", "--mumei-agent-python", "--mumei-bin"],
         "dashboard/cli_report.py": ["--all"],

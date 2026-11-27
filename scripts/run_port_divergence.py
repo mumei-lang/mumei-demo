@@ -98,6 +98,156 @@ def success_flag_paths(body: str) -> set[tuple]:
     return flags
 
 
+def body_inner(text: str) -> str:
+    """Inner statements of a complete port body, or ``text`` when already inner."""
+    start = text.find("body:")
+    if start < 0:
+        return text
+    opening = text.find("{", start)
+    closing = text.rfind("}")
+    if opening < 0 or closing <= opening:
+        return text
+    return text[opening + 1:closing]
+
+
+def token_pattern(text: str) -> tuple[str, ...]:
+    """Whitespace/comment-insensitive token shape used for conservative comparisons."""
+    return tuple(re.findall(r"\w+|[^\s]", scrub(text)))
+
+
+def _reference_inner(case: dict, variant: str) -> str | None:
+    text = case.get("ports", {}).get(variant)
+    if not isinstance(text, str):
+        return None
+    parts = bench.split_port(text, case["atom"])
+    return body_inner(parts[2]) if parts else None
+
+
+def _silent_repair(case: dict, body: str) -> bool:
+    """The candidate exactly follows the fixed reference body instead of the buggy one.
+
+    This is deliberately exact after comment/string scrubbing and tokenization.  A
+    looser similarity score would make ordinary correct translations noisy; the
+    adversarial corpus pins the high-confidence case and future detectors can widen
+    it behind the same finding kind.
+    """
+    buggy = _reference_inner(case, "buggy")
+    fixed = _reference_inner(case, "fixed")
+    if buggy is None or fixed is None:
+        return False
+    buggy_tokens = token_pattern(buggy)
+    fixed_tokens = token_pattern(fixed)
+    return fixed_tokens != buggy_tokens and token_pattern(body) == fixed_tokens
+
+
+def _trivial_clause(text: str) -> bool:
+    compact = re.sub(r"[\s()]+", "", text).removesuffix(";")
+    return compact in {"", "true", "result==result"}
+
+
+def _top_level_conjuncts(text: str) -> list[str]:
+    text = _strip_wrapping_parens(text)
+    parts, start, depth = [], 0, 0
+    i = 0
+    while i < len(text):
+        char = text[i]
+        if char in "([{":
+            depth += 1
+        elif char in ")]}":
+            depth = max(0, depth - 1)
+        elif char == "&" and i + 1 < len(text) and text[i + 1] == "&" and depth == 0:
+            parts.append(text[start:i].strip())
+            start = i + 2
+            i += 1
+        i += 1
+    parts.append(text[start:].strip())
+    return [part for part in parts if part]
+
+
+def _numeric_bound_contradiction(requires: str) -> bool:
+    bounds: dict[str, dict[str, float]] = {}
+    integer = r"(?:\d+|\(0\s*-\s*\d+\))"
+    for match in re.finditer(rf"\b([A-Za-z_]\w*)\s*(>=|>|<=|<)\s*({integer})", requires):
+        name, op, raw = match.groups()
+        negative = re.match(r"\(0\s*-\s*(\d+)\)", raw)
+        value = -float(negative.group(1)) if negative else float(raw)
+        entry = bounds.setdefault(name, {"lower": float("-inf"), "upper": float("inf"),
+                                         "lower_strict": False, "upper_strict": False})
+        if op in (">", ">="):
+            if value > entry["lower"] or (value == entry["lower"] and op == ">"):
+                entry["lower"] = value
+                entry["lower_strict"] = op == ">"
+        else:
+            if value < entry["upper"] or (value == entry["upper"] and op == "<"):
+                entry["upper"] = value
+                entry["upper_strict"] = op == "<"
+    return any(
+        entry["lower"] > entry["upper"]
+        or (entry["lower"] == entry["upper"] and (entry["lower_strict"] or entry["upper_strict"]))
+        for entry in bounds.values()
+    )
+
+
+def _strip_wrapping_parens(text: str) -> str:
+    text = text.strip()
+    while text.startswith("(") and text.endswith(")"):
+        depth = 0
+        wraps = True
+        for index, char in enumerate(text):
+            if char == "(":
+                depth += 1
+            elif char == ")":
+                depth -= 1
+                if depth == 0 and index != len(text) - 1:
+                    wraps = False
+                    break
+        if not wraps:
+            break
+        text = text[1:-1].strip()
+    return text
+
+
+def _compact_clause(text: str) -> str:
+    return "".join(_strip_wrapping_parens(text).split())
+
+
+def _has_direct_complement(parts: list[str]) -> bool:
+    compact = {_compact_clause(part) for part in parts if _compact_clause(part)}
+    for part in compact:
+        positive = part[1:] if part.startswith("!") else part
+        positive = _compact_clause(positive)
+        complements = {f"!{positive}", f"!({positive})"}
+        if positive in compact and compact.intersection(complements):
+            return True
+    return False
+
+
+def _references_result(text: str) -> bool:
+    return re.search(r"\bresult\b", text) is not None
+
+
+def lint_contract(requires: str, ensures: str) -> list[dict]:
+    """Static adversarial contract warnings for generated `requires`/`ensures` clauses.
+
+    The checker is intentionally conservative and syntactic: it catches empty-domain
+    contracts and contracts whose postcondition carries no result constraint without
+    trying to prove general satisfiability.  Mumei/Z3 remains the semantic checker.
+    """
+    findings = []
+    requires_text = scrub(requires, "mumei")
+    requires_parts = _top_level_conjuncts(requires_text)
+    numeric_contradiction = "||" not in requires_text and _numeric_bound_contradiction(requires_text)
+    if (any(re.sub(r"[\s()]+", "", part) == "false" for part in requires_parts)
+            or _has_direct_complement(requires_parts) or numeric_contradiction):
+        findings.append({"kind": "vacuous_spec",
+                         "message": "requires clause is trivially unsatisfiable"})
+    ensures_parts = _top_level_conjuncts(scrub(ensures, "mumei"))
+    if not ensures_parts or all(_trivial_clause(part) or not _references_result(part) for part in ensures_parts):
+        findings.append({"kind": "weak_spec",
+                         "message": "ensures clause carries no result constraint"})
+    return findings
+
+
 def lint_findings(case: dict, body: str) -> list[dict]:
     """Structured fidelity warnings for an accepted LLM port.
 
@@ -106,8 +256,13 @@ def lint_findings(case: dict, body: str) -> list[dict]:
     """
     source = scrub(case["functions"]["buggy"] or "", case["language"])
     _, _, reference_body = bench.split_port(case["ports"]["buggy"], case["atom"])
-    reference = scrub(reference_body)
+    reference = scrub(body_inner(reference_body))
     port = scrub(body)
+    findings = []
+    silent_repair = _silent_repair(case, body)
+    if silent_repair:
+        findings.append({"kind": "silent_repair",
+                         "message": "candidate body matches the fixed reference instead of the buggy source"})
     # Only compare source operations represented by the hand-written model.
     rules = (
         ("index/slice", INDEX, INDEX + r"|\bslice_to\s*\("),
@@ -116,18 +271,25 @@ def lint_findings(case: dict, body: str) -> list[dict]:
          else r"\*\s*\w+", r"\bderef\s*\("),
         ("narrow cast", NARROW, NARROW),
     )
-    findings = [
+    findings.extend(
         {"kind": "missing_modeled_operation", "operation": name,
          "message": f"missing modeled {name}"}
         for name, native, modeled in rules
         if re.search(native, source) and re.search(modeled, reference) and not re.search(modeled, port)
-    ]
-    if len(re.findall(r"\bif\b", port)) > len(re.findall(r"\bif\b", reference)):
+    )
+    if not silent_repair and len(re.findall(r"\bif\b", port)) > len(re.findall(r"\bif\b", reference)):
         findings.append({"kind": "added_guard", "message": "possible added guard"})
     ensures = bench.header_ensures(case["header"]) or ""
     if re.match(r"^\(*\s*result\.ok\s*=>", ensures):
         reference_flags = success_flag_paths(reference)
-        new_flags = success_flag_paths(port) - reference_flags
+        port_flags = success_flag_paths(port)
+        new_flags = port_flags - reference_flags
+        reference_exprs = {expr for _, expr in reference_flags}
+        port_exprs = {expr for _, expr in port_flags}
+        if (any(expr != ("true",) for expr in reference_exprs) and port_flags
+                and port_exprs == {("true",)}):
+            findings.append({"kind": "guard_folding",
+                             "message": "failure branch is folded into unconditional success"})
         if reference_flags and any(expr != ("true",) for _, expr in new_flags):
             findings.append({"kind": "success_flag_rewrite",
                              "message": "success flag can mask a postcondition clause"})
