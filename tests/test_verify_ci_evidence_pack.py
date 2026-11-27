@@ -72,7 +72,7 @@ def write_valid_pack(root: Path, *, include_migration: bool = True, generated_di
     root.mkdir(parents=True, exist_ok=True)
     metadata = pack.evidence_metadata(include_migration)
     audit = {key: [] for key in pack.FIXED_AUDIT_KEYS}
-    audit.update({"verification_status": "unverifiable", "migration_hints": [{"function_name": "divide", "priority": "high"}], **metadata})
+    audit.update({"verification_status": "unverifiable", "audit_cli_exit_code": 0, "migration_hints": [{"function_name": "divide", "priority": "high"}], **metadata})
     _write_json(root / "audit.json", audit)
     (root / "audit.stderr.log").write_text("", encoding="utf-8")
     _write_json(root / "audit.sarif", {"version": "2.1.0", "runs": [{"results": []}]})
@@ -527,4 +527,14 @@ def test_relative_upstream_generated_directory_must_match_manifest(tmp_path: Pat
     _refresh_migration_execution_hash(root)
 
     with pytest.raises(verifier.EvidencePackVerificationError, match="relative upstream generated artifact directory"):
+        verifier.verify_evidence_pack(root)
+
+
+def test_manifest_and_audit_exit_code_mismatch_is_operational_failure(tmp_path: Path) -> None:
+    root = write_valid_pack(tmp_path / "pack")
+    manifest = _manifest(root)
+    manifest["fail_on"]["audit_exit_code"] = 1
+    _write_manifest(root, manifest)
+
+    with pytest.raises(verifier.EvidencePackVerificationError, match="exit codes diverge"):
         verifier.verify_evidence_pack(root)

@@ -302,6 +302,7 @@ def _validate_structural_artifacts(root: Path, manifest: dict[str, Any]) -> None
     audit = _load_json(root / "audit.json", "audit report")
     missing = [key for key in pack.FIXED_AUDIT_KEYS if key not in audit]
     _expect(not missing, "audit report is missing fixed contract keys: " + ", ".join(missing))
+    _expect(type(audit.get("audit_cli_exit_code")) is int, "audit report exit code is malformed")
     _expect(audit.get("artifact_paths") == manifest["artifact_paths"], "audit report artifact_paths diverge from the manifest")
     _expect(audit.get("artifact_roles") == manifest["artifact_roles"], "audit report artifact_roles diverge from the manifest")
     _expect(audit.get("evidence_boundary_by_role") == manifest["evidence_boundary_by_role"], "audit report evidence boundaries diverge from the manifest")
@@ -319,6 +320,7 @@ def _validate_structural_artifacts(root: Path, manifest: dict[str, Any]) -> None
     fail_on = manifest.get("fail_on")
     _expect(isinstance(fail_on, dict) and fail_on.get("policy") == pack.FAIL_ON_POLICY, "fail-on policy is inconsistent")
     _expect(type(fail_on.get("audit_exit_code")) is int, "fail-on audit exit code is malformed")
+    _expect(audit.get("audit_cli_exit_code") == fail_on.get("audit_exit_code"), "audit report and manifest audit exit codes diverge")
 
     plan = _load_json(root / "migration_plan.json", "migration plan")
     _expect(plan.get("schema") == pack.MIGRATION_PLAN_SCHEMA, "migration plan schema is inconsistent")
