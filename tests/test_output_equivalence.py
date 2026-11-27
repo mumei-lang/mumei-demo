@@ -114,6 +114,82 @@ acc"""
     assert run["seconds"] < 20
 
 
+def test_output_policy_adjudicates_dontcare_failure_state_and_rounding() -> None:
+    sol02 = case_by_id("SOL02-D11")
+    sol03 = case_by_id("SOL03-D08")
+    ts09 = case_by_id("TS03-D09")
+
+    sol02_text = fidelity.output_compare_text(sol02, "Outbid { bid_of: new_bid, pending: prev_pending }", "fixed")
+    sol03_text = fidelity.output_compare_text(sol03, "Payout { ok: transfer_ok, owed: 0 }", "fixed")
+    ts09_text = fidelity.output_compare_text(ts09, "Parsed { ok: true, value: amount }", "fixed")
+
+    assert "!(has_previous) || (reference.bid_of == candidate.bid_of)" in sol02_text
+    assert sol03_text.count("(reference.owed == candidate.owed)") == 2
+    assert "(reference.value - candidate.value) <= 1" in ts09_text
+
+
+def test_output_equivalence_reports_applied_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(fidelity, "verify_text", lambda *_args: {
+        "outcome": "proven", "status": "success", "diagnostics": []})
+    evidence = fidelity.output_equivalence(case_by_id("SOL02-D11"), "Outbid { bid_of: new_bid, pending: prev_pending }",
+                                           "unused", 5, "fixed")
+    assert evidence["comparison_policy"]["field_relevance"] == {"bid_of": "has_previous"}
+    assert "no previous bidder" in evidence["comparison_policy"]["rationale"]
+
+def test_simple_helper_rewrite_preserves_boolean_operators() -> None:
+    helpers = {"deref": {"params": [("present", "bool")], "requires": "present", "body": "true"}}
+
+    rewritten = fidelity.expand_simple_helper_calls(
+        "if found { let touched = deref(found); owner || share } else { false }",
+        helpers, {"found", "owner", "share"})
+
+    assert rewritten is not None
+    assert "owner || share" in rewritten["text"]
+    assert "| |" not in rewritten["text"]
+    assert rewritten["calls"][0]["path"] == "(found)"
+
+
+def test_simple_helper_rewrite_rejects_local_binding_arguments() -> None:
+    helpers = {"slice_to": {"params": [("n", "i64"), ("end", "i64")],
+                            "requires": "0 <= end && end <= n", "body": "end"}}
+
+    rewritten = fidelity.expand_simple_helper_calls(
+        "let end = if top < n { top } else { n }; slice_to(n, end)",
+        helpers, {"n", "top"})
+
+    assert rewritten is None
+
+
+def test_helper_body_compare_uses_path_sensitive_validity_domain() -> None:
+    corpus_case = next(case for case in adversarial.load_corpus()["cases"]
+                       if case["id"] == "helper-body-exact-reference-negative-control")
+    case = adversarial._port_case(corpus_case)
+
+    prepared = fidelity.helper_body_compare_text(case, corpus_case["candidate_body"], "fixed")
+
+    assert prepared is not None
+    text, metadata = prepared
+    assert "(!((!(i < 0))) || (0 <= (i) && (i) < (n)))" in text
+    assert metadata == {"inlined_atoms": ["pick"], "call_count": 2, "domain_constraints": 1}
+
+def test_simple_helper_rewrite_rejects_shadowed_parameter_arguments() -> None:
+    helpers = {"pick": {"params": [("n", "i64"), ("i", "i64")],
+                        "requires": "0 <= i && i < n", "body": "i"}}
+
+    rewritten = fidelity.expand_simple_helper_calls("let i = 0; pick(n, i)", helpers, {"n", "i"})
+
+    assert rewritten is None
+
+
+def test_helper_body_compare_rejects_local_branch_conditions_in_domain() -> None:
+    corpus_case = next(case for case in adversarial.load_corpus()["cases"]
+                       if case["id"] == "helper-body-exact-reference-negative-control")
+    case = adversarial._port_case(corpus_case)
+    candidate = "let valid = i >= 0; if valid { pick(n, i) } else { 0 }"
+
+    assert fidelity.helper_body_compare_text(case, candidate, "fixed") is None
+
+
 def test_bounded_interaction_tool_failure_is_inconclusive(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(fidelity, "run_bounded_interaction_text", lambda *_args: {
         "exit_code": 1, "output_tail": "compiler error", "seconds": 0.1, "budget_seconds": 5})

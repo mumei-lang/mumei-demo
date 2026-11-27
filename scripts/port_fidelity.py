@@ -27,6 +27,7 @@ STRING = r""""(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[^`]*`"""
 INDEX = r"(?:\b\w+|\]|\))\s*\["
 DIVIDE = r"(?<=[\w\])])\s*(?:/|%)"
 NARROW = r"\bas\s+[iu](?:8|16|32)\b|\bu?int(" + "|".join(map(str, range(8, 256, 8))) + r")\s*\("
+REWRITE_TOKEN = r"\w+|=>|==|!=|<=|>=|&&|\|\||[^\s]"
 
 
 def scrub(text: str, language: str = "mumei") -> str:
@@ -162,7 +163,7 @@ def token_pattern(text: str) -> tuple[str, ...]:
 
 
 VARIANTS = ("buggy", "fixed")
-DETECTOR_VERSION = 15
+DETECTOR_VERSION = 16
 
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
@@ -602,6 +603,253 @@ def output_comparison_expression(case: dict, policy: dict, use_policy: bool = Tr
     return comparison
 
 
+
+def simple_helper_atoms(prelude: str) -> dict[str, dict]:
+    """Small pure helper atoms whose bodies are safe expression macros.
+
+    This deliberately recognizes only total scalar expression bodies. Anything
+    recursive, effectful, trusted, stateful, branchy or capture-prone stays
+    opaque instead of being rewritten by the diagnostic comparison.
+    """
+    pattern = re.compile(
+        r"\batom\s+(\w+)\s*\(([^)]*)\)\s*->\s*(\w+)\s+"
+        r"requires:\s*([^;]+);\s*"
+        r"ensures:\s*[^;]+;\s*"
+        r"body:\s*\{\s*([^{};]+?)\s*\}", re.S)
+    helpers = {}
+    for match in pattern.finditer(prelude):
+        name, params_text, return_type, requires, body = match.groups()
+        if return_type not in {"i64", "bool"}:
+            continue
+        params = []
+        try:
+            for part in params_text.split(","):
+                param_name, param_type = part.strip().split(":", 1)
+                if param_type.strip() not in {"i64", "bool"}:
+                    raise ValueError("non-scalar helper parameter")
+                params.append((param_name.strip(), param_type.strip()))
+        except ValueError:
+            continue
+        compact_body = body.strip()
+        if (not compact_body or len(re.findall(r"\w+|[^\s]", compact_body)) > 40
+                or re.search(r"\b(?:let|if|while|atom|trusted|extern|effect)\b", compact_body)):
+            continue
+        identifiers = set(re.findall(r"\b[A-Za-z_]\w*\b", compact_body))
+        allowed = {param_name for param_name, _ in params} | {"true", "false"}
+        if identifiers - allowed:
+            continue
+        requires_identifiers = set(re.findall(r"\b[A-Za-z_]\w*\b", requires))
+        if requires_identifiers - allowed:
+            continue
+        helpers[name] = {"name": name, "params": params, "requires": requires.strip(),
+                         "body": compact_body}
+    return helpers
+
+
+def _delimiter_pairs(tokens: list[str], opening: str, closing: str) -> dict[int, int]:
+    pairs = {}
+    stack = []
+    for index, token in enumerate(tokens):
+        if token == opening:
+            stack.append(index)
+        elif token == closing and stack:
+            pairs[stack.pop()] = index
+    return pairs
+
+
+def _tokens_expression(tokens: list[str] | tuple[str, ...]) -> str:
+    return " ".join(tokens)
+
+
+def _substitute_params(expression: str, params: list[tuple[str, str]], args: list[str]) -> str:
+    substituted = expression
+    for (param_name, _), arg in zip(params, args):
+        substituted = re.sub(rf"\b{re.escape(param_name)}\b", f"({arg})", substituted)
+    return substituted
+
+
+def expand_simple_helper_calls(text: str, helpers: dict[str, dict],
+                              external_names: set[str] | None = None) -> dict | None:
+    """Inline recognized helper calls and record path-sensitive validity constraints.
+
+    The rewriter is intentionally a token transformation over bodies without
+    strings or comments. It tracks ``if``/``else`` predicates so a helper's
+    ``requires`` clause is imposed only on paths where that call is evaluated:
+    unconditional calls constrain the comparison domain directly, while guarded
+    calls contribute an implication. The resulting agreement is still diagnostic
+    helper-domain evidence rather than a formal equality verdict.
+    """
+    if re.search(r"//|/\*|\*/|\"|'", text):
+        return None
+    tokens = re.findall(REWRITE_TOKEN, text)
+    braces = _delimiter_pairs(tokens, "{", "}")
+    parens = _delimiter_pairs(tokens, "(", ")")
+    calls = []
+
+    class UnsupportedRewrite(Exception):
+        pass
+
+    def split_args(start: int, end: int) -> list[list[str]] | None:
+        parts = []
+        current = []
+        depths = {"(": 0, "[": 0, "{": 0}
+        closing = {")": "(", "]": "[", "}": "{"}
+        for token in tokens[start:end]:
+            if token in depths:
+                depths[token] += 1
+            elif token in closing:
+                depths[closing[token]] -= 1
+            if token == "," and not any(depths.values()):
+                parts.append(current)
+                current = []
+            else:
+                current.append(token)
+        parts.append(current)
+        return parts if all(parts) else None
+
+    def scan_range(start: int, end: int, path: tuple) -> list[str]:
+        out = []
+        i = start
+        while i < end:
+            token = tokens[i]
+            if token == "if":
+                condition_end = next((j for j in range(i + 1, end) if tokens[j] in {"{", ";"}), end)
+                if condition_end >= end or tokens[condition_end] != "{" or condition_end not in braces:
+                    out.append(token)
+                    i += 1
+                    continue
+                condition_tokens = scan_tokens(i + 1, condition_end, path)
+                condition_text = _tokens_expression(tokens[i + 1:condition_end])
+                close = braces[condition_end]
+                positive_path = (*path, (condition_text, True))
+                then_tokens = scan_range(condition_end + 1, close, positive_path)
+                out.extend(["if", *condition_tokens, "{", *then_tokens, "}"])
+                i = close + 1
+                negative_path = (*path, (condition_text, False))
+                if i < end and tokens[i] == "else":
+                    if i + 1 < end and tokens[i + 1] == "if":
+                        raise UnsupportedRewrite
+                    if i + 1 < end and tokens[i + 1] == "{" and i + 1 in braces:
+                        else_close = braces[i + 1]
+                        else_tokens = scan_range(i + 2, else_close, negative_path)
+                        out.extend(["else", "{", *else_tokens, "}"])
+                        i = else_close + 1
+                    else:
+                        out.append("else")
+                        i += 1
+                continue
+            if token in helpers and i + 1 < end and tokens[i + 1] == "(" and i + 1 in parens:
+                close = parens[i + 1]
+                if close >= end:
+                    out.append(token)
+                    i += 1
+                    continue
+                arg_parts = split_args(i + 2, close)
+                helper = helpers[token]
+                if arg_parts is None or len(arg_parts) != len(helper["params"]):
+                    raise UnsupportedRewrite
+                args = [_tokens_expression(part) for part in arg_parts]
+                if any(re.search(r"\b(?:if|while|let)\b", arg) for arg in args):
+                    raise UnsupportedRewrite
+                local_names = set(re.findall(r"\blet\s+(\w+)\s*=", text))
+                if any(set(re.findall(r"\b[A-Za-z_]\w*\b", arg)) & local_names for arg in args):
+                    raise UnsupportedRewrite
+                if external_names is not None:
+                    allowed = external_names | {"true", "false"}
+                    if any(set(re.findall(r"\b[A-Za-z_]\w*\b", arg)) - allowed for arg in args):
+                        raise UnsupportedRewrite
+                path_clauses = [predicate if positive else f"!({predicate})" for predicate, positive in path]
+                path_condition = " && ".join(f"({clause})" for clause in path_clauses)
+                requires = _substitute_params(helper["requires"], helper["params"], args)
+                calls.append({"helper": token, "args": args, "path": path_condition, "requires": requires})
+                replacement = _substitute_params(helper["body"], helper["params"], args)
+                out.extend(re.findall(REWRITE_TOKEN, f"({replacement})"))
+                i = close + 1
+                continue
+            if token == "{" and i in braces and braces[i] < end:
+                close = braces[i]
+                out.extend(["{", *scan_range(i + 1, close, path), "}"])
+                i = close + 1
+                continue
+            out.append(token)
+            i += 1
+        return out
+
+    def scan_tokens(start: int, end: int, path: tuple) -> list[str]:
+        return scan_range(start, end, path)
+
+    # `else if` chains need a second branch-consumption parser. They remain opaque
+    # rather than being rewritten unsoundly by this deliberately narrow expander.
+    if re.search(r"\belse\s+if\b", text):
+        return None
+    try:
+        rewritten = scan_range(0, len(tokens), ())
+    except UnsupportedRewrite:
+        return None
+    return {"text": _tokens_expression(rewritten), "calls": calls}
+
+
+def helper_body_compare_text(case: dict, candidate_body: str, variant: str = "buggy") -> tuple[str, dict] | None:
+    """Solver harness over the valid helper-call domain with simple helpers inlined."""
+    parts = split_port(case["ports"][variant], case["atom"])
+    if parts is None:
+        return None
+    reference = body_inner(parts[2]).strip()
+    candidate = candidate_body.strip()
+    helpers = simple_helper_atoms(case["prelude"])
+    if not helpers or not reference or not candidate:
+        return None
+    external_names = {name for name, _ in atom_params(case["header"])}
+    expanded_reference = expand_simple_helper_calls(reference, helpers, external_names)
+    expanded_candidate = expand_simple_helper_calls(candidate, helpers, external_names)
+    if expanded_reference is None or expanded_candidate is None:
+        return None
+    calls = expanded_reference["calls"] + expanded_candidate["calls"]
+    if not calls:
+        return None
+    constraints = []
+    for call in calls:
+        requires = call["requires"]
+        if re.sub(r"[\s()]+", "", requires) == "true":
+            continue
+        if call["path"]:
+            constraint = f"(!({call['path']}) || ({requires}))"
+        else:
+            constraint = f"({requires})"
+        if constraint not in constraints:
+            constraints.append(constraint)
+    if any(re.search(rf"\b{re.escape(name)}\s*\(", constraint)
+           for constraint in constraints for name in helpers):
+        return None
+    allowed_constraint_names = {name for name, _ in atom_params(case["header"])} | {"true", "false"}
+    if any(set(re.findall(r"\b[A-Za-z_]\w*\b", constraint)) - allowed_constraint_names
+           for constraint in constraints):
+        return None
+    params = atom_param_text(case["header"])
+    original_requires = atom_requires(case["header"])
+    requires = f"({original_requires})"
+    if constraints:
+        requires += " && " + " && ".join(constraints)
+    policy = output_policy(case)
+    comparison = output_comparison_expression(case, policy, use_policy=True)
+    text = (case["prelude"]
+            + f"atom compare_{case['atom']}({params}) -> bool\n"
+            + f"    requires: {requires};\n"
+            + "    ensures: result == true;\n"
+            + "    body: {\n"
+            + "        let reference = {\n"
+            + textwrap_indent(expanded_reference["text"], "            ") + "\n"
+            + "        };\n"
+            + "        let candidate = {\n"
+            + textwrap_indent(expanded_candidate["text"], "            ") + "\n"
+            + "        };\n"
+            + f"        {comparison}\n"
+            + "    }\n")
+    metadata = {"inlined_atoms": sorted({call["helper"] for call in calls}),
+                "call_count": len(calls), "domain_constraints": len(constraints)}
+    return text, metadata
+
+
 def output_compare_text(case: dict, candidate_body: str, variant: str = "buggy",
                         use_policy: bool = True) -> str:
     """A solver harness comparing reference and candidate output values.
@@ -915,6 +1163,26 @@ def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout:
             boundary_only = True
         else:
             outcome = adjusted_outcome
+    helper_comparison = None
+    helper_verification = None
+    if opaque_calls and outcome == "inconclusive":
+        prepared = helper_body_compare_text(case, candidate_body, variant)
+        if prepared is not None:
+            helper_text, helper_comparison = prepared
+            helper_verification = verify_text(mumei_bin, helper_text, timeout)
+            verifications.append(helper_verification)
+            helper_postcondition_failure = any("Postcondition" in diagnostic["message"]
+                                               for diagnostic in helper_verification["diagnostics"])
+            helper_comparison["status"] = helper_verification["status"]
+            helper_comparison["diagnostics"] = helper_verification["diagnostics"][:2]
+            if helper_verification["outcome"] == "refuted" and helper_postcondition_failure:
+                outcome = "diverged"
+                verification = helper_verification
+                helper_comparison["outcome"] = "diverged"
+            elif helper_verification["outcome"] == "proven":
+                helper_comparison["outcome"] = "valid_domain_matched"
+            else:
+                helper_comparison["outcome"] = "inconclusive"
     evidence = {"outcome": outcome, "method": "solver_output_compare",
                 "status": verification["status"],
                 "diagnostics": verification["diagnostics"][:2]}
@@ -930,6 +1198,12 @@ def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout:
                                           for diagnostic in verification["diagnostics"])
         if verification["outcome"] == "refuted" and final_postcondition_failure and not boundary_only:
             evidence["reason"] = "opaque_atom_call_counterexample"
+    if helper_comparison:
+        evidence["helper_body_comparison"] = helper_comparison
+        if helper_comparison.get("outcome") == "diverged":
+            evidence["reason"] = "helper_body_domain_diverged"
+        elif helper_comparison.get("outcome") == "valid_domain_matched" and not boundary_only:
+            evidence["reason"] = "helper_body_valid_domain_matched"
     measured = [result for result in verifications
                 if any(isinstance(result.get(key), (int, float)) and not isinstance(result.get(key), bool)
                        for key in ("seconds", "budget_seconds"))]

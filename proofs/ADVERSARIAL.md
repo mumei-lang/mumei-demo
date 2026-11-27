@@ -4,7 +4,7 @@
 
 Static adversarial fixtures for generated contracts and LLM body ports. The cases do not replace Mumei/Z3 verification: they pin whether the deterministic fidelity lint recognizes shapes that previously made false acceptance hard to explain.
 
-Result: **22/22 cases pass**; 0 failing.
+Result: **25/25 cases pass**; 0 failing.
 
 | Failure mode | Cases | Passing |
 |---|---:|---:|
@@ -12,7 +12,7 @@ Result: **22/22 cases pass**; 0 failing.
 | `silent_repair` | 1 | 1 |
 | `vacuous_spec` | 1 | 1 |
 | `weak_spec` | 3 | 3 |
-| `body_port_meaning_loss` | 14 | 14 |
+| `body_port_meaning_loss` | 17 | 17 |
 
 | Case | Mode | Expected findings | Actual findings | Output comparison | Status |
 |---|---|---|---|---|---|
@@ -38,5 +38,8 @@ Result: **22/22 cases pass**; 0 failing.
 | `ts03-beyond-rounding-tolerance-positive-control` | `body_port_meaning_loss` | — | — | `diverged` | PASS |
 | `ts03-canonical-division-positive-control` | `body_port_meaning_loss` | — | — | `diverged` | PASS |
 | `meaningful-contract-negative-control` | `weak_spec` | — | — | `—` | PASS |
+| `helper-body-exact-reference-negative-control` | `body_port_meaning_loss` | — | — | `inconclusive` | PASS |
+| `helper-body-legitimate-let-negative-control` | `body_port_meaning_loss` | — | — | `inconclusive` | PASS |
+| `helper-body-meaning-loss-positive-control` | `body_port_meaning_loss` | — | — | `diverged` | PASS |
 
 The negative controls are part of the gate: a faithful port and a meaningful contract must produce no adversarial warning. Output-comparison expectations are pinned here and checked against a real Mumei binary by `tests/test_output_equivalence.py` in the integration workflow; this offline report does not run the solver.
