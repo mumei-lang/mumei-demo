@@ -1789,3 +1789,16 @@ def test_lean_bridge_without_lake_fails_before_verifying(repo, tmp_path, monkeyp
     with pytest.raises(SystemExit, match="needs `lake` on PATH"):
         cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--lean-bridge", str(tmp_path)])
     assert certs and all(p.read_text() == "sentinel" for p in certs)
+
+
+def test_fidelity_problems_accepts_boundary_only_output_over_lint():
+    row = rec("a", "go", "proven", "refuted")
+    row["buggy"]["fidelity_gate"] = {
+        "decision": "accepted", "variant": "buggy", "lint_findings": [{"kind": "guard_folding"}],
+        "blocking_lint_findings": [{"kind": "guard_folding"}],
+        "semantic_replay": {"outcome": "inconclusive"},
+        "output_equivalence": {"outcome": "inconclusive", "reason": "abstraction_boundary_only"}}
+    doc = {"arm": "mumei-llm", "model": "test", "runs": [[row]]}
+
+    assert not any("accepted despite blocking fidelity evidence" in problem
+                   for problem in cb.fidelity_problems([doc]))

@@ -1060,8 +1060,11 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             reused_rows = meta.get("reused_rows")
             scope = ""
             if rescored_rows is not None and reused_rows is not None:
-                scope = (f" for {rescored_rows} recomputed row(s); {reused_rows} existing row(s) were reused "
-                         "and may predate this verifier")
+                scope = f" for {rescored_rows} recomputed row(s); "
+                if reused_rows:
+                    scope += f"{reused_rows} existing row(s) were reused and may predate this verifier"
+                else:
+                    scope += "no existing rows were reused"
             provenance.append(f"{ARM_LABEL.get(doc['arm'], doc['arm'])} replayed at {meta.get('rescored_at')} with {identity}{scope}")
         if provenance:
             out += ["Fidelity rescore evidence: " + "; ".join(provenance) + ".", ""]
@@ -1511,12 +1514,14 @@ def fidelity_problems(results: list[dict], cases: list[dict] | None = None) -> l
                             structural_meaning_loss = any(
                                 finding.get("kind") in {"silent_repair", "missing_modeled_operation", "self_call"}
                                 for finding in blocking)
+                            nonblocking_output = (equivalence.get("outcome") == "matched"
+                                                  or equivalence.get("reason") == "abstraction_boundary_only")
                             hard_meaning_loss = (any(finding.get("kind") == "guard_folding" for finding in blocking)
-                                                 and equivalence.get("outcome") != "matched")
-                            confirming_evidence = outcome == confirming or equivalence.get("outcome") == "matched"
+                                                 and not nonblocking_output)
+                            nonblocking_semantic_evidence = outcome == confirming or nonblocking_output
                             if (outcome == "diverged" or equivalence.get("outcome") == "diverged"
                                     or structural_meaning_loss or hard_meaning_loss
-                                    or (not confirming_evidence and blocking)):
+                                    or (not nonblocking_semantic_evidence and blocking)):
                                 problems.append(f"{prefix} is accepted despite blocking fidelity evidence")
             if doc["arm"] == "llm-contract":
                 for record in run:
