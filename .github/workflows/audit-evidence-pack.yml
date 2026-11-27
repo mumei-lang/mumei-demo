@@ -239,7 +239,7 @@ jobs:
 
       - name: Resolve downloaded evidence-pack directory
         run: |
-          python - <<'PY'
+          python3 - <<'PY'
           import os
           from pathlib import Path
 
@@ -259,8 +259,8 @@ jobs:
       - name: Verify downloaded evidence pack as a consumer (structural/hash only)
         run: |
           echo "download verification mode: structural/hash only; strict reference proof revalidation remains in the copy-based harness"
-          python mumei-demo/scripts/verify_ci_evidence_pack.py "$EVIDENCE_PACK_DIR"
-          python - <<'PY'
+          python3 mumei-demo/scripts/verify_ci_evidence_pack.py "$EVIDENCE_PACK_DIR"
+          python3 - <<'PY'
           import json
           import os
           from pathlib import Path, PurePosixPath

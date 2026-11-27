@@ -1027,7 +1027,7 @@ def test_audit_evidence_workflow_verifies_real_downloaded_artifact() -> None:
     assert "Resolve downloaded evidence-pack directory" in download_job
     assert 'root.glob("*/manifest.json")' in download_job
     assert "Verify downloaded evidence pack as a consumer (structural/hash only)" in download_job
-    assert 'python mumei-demo/scripts/verify_ci_evidence_pack.py "$EVIDENCE_PACK_DIR"' in download_job
+    assert 'python3 mumei-demo/scripts/verify_ci_evidence_pack.py "$EVIDENCE_PACK_DIR"' in download_job
     assert ".mumei-generated-artifacts" in download_job
     assert "hidden migration companion rows verified" in download_job
     assert "strict reference proof revalidation remains in the copy-based harness" in download_job
