@@ -30,7 +30,7 @@ Model and verifier measurements are totals over the recorded runs. Model time su
 | Gate | Model | Model time | Verification time | Verification budget |
 |---|---|---:|---:|---:|
 | mumei (hand-written ports) | — | — | — / 0 of 213 calls | — / 0 of 213 calls |
-| mumei + LLM port | openai/gpt-6-luna | 2896.1s | 35.3s / 734 of 1160 calls | 22020.0s / 734 of 1160 calls |
+| mumei + LLM port | openai/gpt-6-luna | 2896.1s | 33.5s / 734 of 1160 calls | 22020.0s / 734 of 1160 calls |
 | LLM review | openai/gpt-6-luna | 1876.1s | — | — |
 
 How to read it:

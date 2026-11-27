@@ -487,6 +487,12 @@ def test_rescore_port_fidelity_annotates_committed_rows_without_an_llm(repo):
     projected = cb.project_fidelity_result(rescored)
     assert projected["outcome"] == "inconclusive" and projected["failure_kind"] == "unsupported"
     assert projected["verifier_outcome"] == "proven"
+
+    fresh_doc = json.loads(path.read_text())
+    for variant in ("buggy", "fixed"):
+        fresh_doc["runs"][0][0][variant]["fidelity_gate"]["output_equivalence"] = {
+            "outcome": "matched", "status": "success"}
+    path.write_text(json.dumps(fresh_doc))
     assert cb.rescore_port_fidelity([case], "mumei", 5) == {"updated": [], "gated": 0, "blocked": 0}
 
     timeout_doc = json.loads(path.read_text())
@@ -497,7 +503,15 @@ def test_rescore_port_fidelity_annotates_committed_rows_without_an_llm(repo):
     retry_meta = json.loads(path.read_text())["fidelity_rescore"]
     assert retry_meta["rescored_rows"] == 1 and retry_meta["reused_rows"] == 1
 
+    error_doc = json.loads(path.read_text())
+    error_doc["runs"][0][0]["fixed"]["fidelity_gate"]["output_equivalence"] = {
+        "outcome": "inconclusive", "status": "error", "failure_kind": "environment_failure"}
+    path.write_text(json.dumps(error_doc))
+    assert cb.rescore_port_fidelity([case], "mumei", 5)["gated"] == 1
+
     stale_doc = json.loads(path.read_text())
+    stale_doc["runs"][0][0]["fixed"]["fidelity_gate"]["output_equivalence"] = {
+        "outcome": "matched", "status": "success"}
     stale_doc["runs"][0][0]["buggy"]["fidelity_gate"]["semantic_replay"]["input_hash"] = "stale"
     path.write_text(json.dumps(stale_doc))
     assert cb.rescore_port_fidelity([case], "mumei", 5)["gated"] == 1
@@ -638,6 +652,21 @@ def test_usage_total_includes_output_equivalence_verification_measurement():
     assert u["verification_seconds"] == 0.5
     assert u["verification_budgeted_calls"] == 1
     assert u["verification_budget_seconds"] == 30.0
+
+
+def test_usage_total_excludes_bounded_interaction_from_verifier_call_coverage():
+    r = rec("a", "go", "inconclusive", "proven")
+    r.pop("vacuity")
+    r["buggy"]["fidelity_gate"] = {"decision": "accepted", "output_equivalence": {
+        "outcome": "inconclusive", "status": "success", "method": "bounded_native_interaction",
+        "interaction": {"expected_executions": 4, "timed_executions": 4, "seconds": 0.8,
+                        "budgeted_executions": 4, "budget_seconds": 120.0}}}
+
+    u = cb.usage_total([r])
+
+    assert u["verification_expected_calls"] == 0
+    assert u["verification_timed_calls"] == 0
+    assert u["verification_seconds"] == 0.0
 
 
 def test_usage_total_uses_output_equivalence_call_measurement():

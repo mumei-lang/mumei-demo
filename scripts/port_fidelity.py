@@ -9,10 +9,19 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import resource
+import shutil
+import signal
+import subprocess
+import tempfile
+import time
 from pathlib import Path
 
 from mumei_verify import verify_text
+
+BOUNDED_INTERACTION_MEMORY_BYTES = 2 * 1024**3
 
 STRING = r""""(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[^`]*`"""
 INDEX = r"(?:\b\w+|\]|\))\s*\["
@@ -153,7 +162,7 @@ def token_pattern(text: str) -> tuple[str, ...]:
 
 
 VARIANTS = ("buggy", "fixed")
-DETECTOR_VERSION = 11
+DETECTOR_VERSION = 15
 
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
@@ -419,6 +428,10 @@ def mm_literal(value: object) -> str:
         return "true" if value else "false"
     if isinstance(value, int):
         return str(value) if value >= 0 else f"(0 - {-value})"
+    if isinstance(value, list):
+        if not value or any(isinstance(item, bool) or not isinstance(item, int) for item in value):
+            raise ValueError("array literals must be non-empty integer lists")
+        return "[" + ", ".join(mm_literal(item) for item in value) + "]"
     raise ValueError(f"unsupported input value {value!r}")
 
 
@@ -514,7 +527,8 @@ def output_policy(case: dict) -> dict:
     if not isinstance(entry, dict):
         raise ValueError("output-equivalence policy case entry must be an object")
     allowed = {"rationale", "field_relevance", "failure_state_fields",
-               "rounding_tolerance_fields", "canonical_integer_arithmetic"}
+               "rounding_tolerance_fields", "canonical_integer_arithmetic",
+               "bounded_interaction_inputs"}
     unknown_keys = set(entry) - allowed
     if unknown_keys:
         raise ValueError(f"unsupported output-equivalence policy keys: {sorted(unknown_keys)}")
@@ -525,6 +539,17 @@ def output_policy(case: dict) -> dict:
             raise ValueError(f"output-equivalence policy {key} must be an object")
     if "failure_state_fields" in entry and not isinstance(entry["failure_state_fields"], list):
         raise ValueError("output-equivalence policy failure_state_fields must be a list")
+    if "bounded_interaction_inputs" in entry:
+        inputs = entry["bounded_interaction_inputs"]
+        if not isinstance(inputs, list) or not inputs:
+            raise ValueError("bounded_interaction_inputs must be a non-empty list")
+        for input_index, interaction_input in enumerate(inputs):
+            if (not isinstance(interaction_input, dict)
+                    or set(interaction_input) != {"name", "values"}
+                    or not isinstance(interaction_input.get("name"), str)
+                    or not interaction_input["name"]
+                    or not isinstance(interaction_input.get("values"), dict)):
+                raise ValueError(f"bounded_interaction_inputs[{input_index}] must have exactly name and values")
     return entry
 
 
@@ -546,6 +571,37 @@ def field_comparison(name: str, policy: dict) -> str:
     return relation
 
 
+def output_comparison_expression(case: dict, policy: dict, use_policy: bool = True) -> str:
+    """Output relation used by solver comparison and bounded native interaction."""
+    return_type = atom_return_type(case["header"])
+    if return_type in {"i64", "bool"}:
+        return "reference == candidate"
+    fields = struct_field_types(case["prelude"], return_type)
+    names = [name for name, _ in fields]
+    non_ok = [name for name in names if name != "ok"]
+    for key in ("field_relevance", "rounding_tolerance_fields"):
+        unknown = set((policy.get(key) or {})) - set(names)
+        if unknown:
+            raise ValueError(f"output-equivalence policy names unknown fields: {sorted(unknown)}")
+    unknown_failure = set(policy.get("failure_state_fields") or []) - set(non_ok)
+    if unknown_failure:
+        raise ValueError(f"failure-state fields are unknown or not payload fields: {sorted(unknown_failure)}")
+    payload = " && ".join(field_comparison(name, policy) for name in non_ok)
+    if "ok" not in names:
+        return payload
+    comparison = "(reference.ok == candidate.ok)"
+    if use_policy:
+        if payload:
+            comparison += f" && (!(reference.ok && candidate.ok) || ({payload}))"
+        failure = [f"(reference.{name} == candidate.{name})"
+                   for name in (policy.get("failure_state_fields") or [])]
+        if failure:
+            comparison += " && " + " && ".join(failure)
+    elif payload:
+        comparison += f" && ({payload})"
+    return comparison
+
+
 def output_compare_text(case: dict, candidate_body: str, variant: str = "buggy",
                         use_policy: bool = True) -> str:
     """A solver harness comparing reference and candidate output values.
@@ -564,34 +620,7 @@ def output_compare_text(case: dict, candidate_body: str, variant: str = "buggy",
     if not reference or not candidate:
         raise ValueError("empty reference or candidate body")
     policy = output_policy(case) if use_policy else {}
-    return_type = atom_return_type(case["header"])
-    if return_type in {"i64", "bool"}:
-        comparison = "reference == candidate"
-    else:
-        fields = struct_field_types(case["prelude"], return_type)
-        names = [name for name, _ in fields]
-        non_ok = [name for name in names if name != "ok"]
-        for key in ("field_relevance", "rounding_tolerance_fields"):
-            unknown = set((policy.get(key) or {})) - set(names)
-            if unknown:
-                raise ValueError(f"output-equivalence policy names unknown fields: {sorted(unknown)}")
-        unknown_failure = set(policy.get("failure_state_fields") or []) - set(non_ok)
-        if unknown_failure:
-            raise ValueError(f"failure-state fields are unknown or not payload fields: {sorted(unknown_failure)}")
-        payload = " && ".join(field_comparison(name, policy) for name in non_ok)
-        if "ok" in names:
-            comparison = "(reference.ok == candidate.ok)"
-            if use_policy:
-                if payload:
-                    comparison += f" && (!(reference.ok && candidate.ok) || ({payload}))"
-                failure = [f"(reference.{name} == candidate.{name})"
-                           for name in (policy.get("failure_state_fields") or [])]
-                if failure:
-                    comparison += " && " + " && ".join(failure)
-            elif payload:
-                comparison += f" && ({payload})"
-        else:
-            comparison = payload
+    comparison = output_comparison_expression(case, policy, use_policy)
     params = atom_param_text(case["header"])
     requires = atom_requires(case["header"])
     return (case["prelude"]
@@ -613,6 +642,210 @@ def textwrap_indent(text: str, prefix: str) -> str:
     return "\n".join(prefix + line if line.strip() else line for line in text.splitlines())
 
 
+def bounded_interaction_inputs(case: dict, policy: dict) -> list[dict]:
+    """Validated committed concrete inputs for native loop/state interaction evidence."""
+    inputs = policy.get("bounded_interaction_inputs") or []
+    validated = []
+    for interaction_input in inputs:
+        values = interaction_input["values"]
+        pin_requires(case["header"], values)
+        validated.append({"name": interaction_input["name"], "values": values})
+    return validated
+
+
+def bounded_interaction_text(case: dict, candidate_body: str, values: dict,
+                             variant: str = "buggy") -> str:
+    """A native executable comparing reference and candidate on one concrete input.
+
+    Exit code 0 means the committed adjudicated outputs agree, 42 means they
+    observably diverge, and 43 means the input violates the target atom's
+    ``requires`` clause. Other nonzero exits are tool/build failures and are
+    not semantic evidence.
+    """
+    parts = split_port(case["ports"][variant], case["atom"])
+    if parts is None:
+        raise ValueError("reference port not found")
+    _, _, reference_body = parts
+    reference = body_inner(reference_body).strip()
+    candidate = candidate_body.strip()
+    if not reference or not candidate:
+        raise ValueError("empty reference or candidate body")
+    params = atom_params(case["header"])
+    if any(name in {"reference", "candidate", "contract_holds"} for name, _ in params):
+        raise ValueError("parameter names collide with comparison bindings")
+    assignments = [f"let {name} = {mm_literal(values[name])};" for name, _ in params]
+    policy = output_policy(case)
+    comparison = output_comparison_expression(case, policy, use_policy=True)
+    requires = atom_requires(case["header"])
+    return (case["prelude"]
+            + "atom main() -> i64\n"
+            + "    requires: true;\n"
+            + "    ensures: true;\n"
+            + "    body: {\n"
+            + "".join("        " + assignment + "\n" for assignment in assignments)
+            + f"        let contract_holds = {requires};\n"
+            + "        if !(contract_holds) {\n"
+            + "            43\n"
+            + "        } else {\n"
+            + "            let reference = {\n"
+            + "".join("                " + assignment + "\n" for assignment in assignments)
+            + textwrap_indent(reference, "                ") + "\n"
+            + "            };\n"
+            + "            let candidate = {\n"
+            + "".join("                " + assignment + "\n" for assignment in assignments)
+            + textwrap_indent(candidate, "                ") + "\n"
+            + "            };\n"
+            + f"            if {comparison} {{ 0 }} else {{ 42 }}\n"
+            + "        }\n"
+            + "    }\n")
+
+
+def bounded_interaction_memory_limit() -> int:
+    """The memory cap to request, without raising an inherited lower hard limit."""
+    try:
+        soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    except (OSError, ValueError):
+        return BOUNDED_INTERACTION_MEMORY_BYTES
+    inherited = [limit for limit in (soft, hard) if limit > 0]
+    if inherited:
+        return min(BOUNDED_INTERACTION_MEMORY_BYTES, *inherited)
+    return BOUNDED_INTERACTION_MEMORY_BYTES
+
+
+def kill_process_group(process: subprocess.Popen) -> None:
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        return
+    except OSError:
+        try:
+            process.kill()
+        except ProcessLookupError:
+            return
+
+
+def run_bounded_interaction_text(mumei_bin: str, text: str, timeout: int) -> dict:
+    """Compile and execute one bounded-interaction harness without trusting stdout.
+
+    The compile/link/execute child is fail-closed behind ``prlimit`` with a
+    two-GiB address-space limit because candidate bodies can be unreviewed
+    model output in a live benchmark. Effect/extern preludes are rejected
+    before execution, and the wall-clock timeout bounds each attempt. Resource
+    or compiler failures are explicit non-evidence rather than semantic
+    divergence.
+    """
+    started = time.monotonic()
+    prlimit = shutil.which("prlimit")
+    if prlimit is None:
+        return {"result": "error", "error": "prlimit unavailable for bounded interaction memory limit",
+                "seconds": time.monotonic() - started, "budget_seconds": timeout}
+    with tempfile.TemporaryDirectory(prefix="mumei-bounded-interaction-") as tmp:
+        path = Path(tmp) / "interaction.mm"
+        path.write_text(text)
+        command = [prlimit, f"--as={bounded_interaction_memory_limit()}", "--", mumei_bin, "run", str(path)]
+        try:
+            process = subprocess.Popen(command, cwd=tmp, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                       text=True, start_new_session=True)
+        except OSError as error:
+            return {"result": "error", "error": type(error).__name__,
+                    "seconds": time.monotonic() - started, "budget_seconds": timeout}
+        try:
+            process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            kill_process_group(process)
+            process.communicate()
+            return {"result": "error", "error": "TimeoutExpired", "timeout": True,
+                    "seconds": time.monotonic() - started, "budget_seconds": timeout}
+        except BaseException:
+            kill_process_group(process)
+            try:
+                process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+            raise
+        return {"exit_code": process.returncode,
+                "seconds": time.monotonic() - started, "budget_seconds": timeout}
+
+
+def bounded_interaction_equivalence(case: dict, candidate_body: str, mumei_bin: str,
+                                    timeout: int, variant: str = "buggy") -> dict | None:
+    """Concrete native input/state interaction evidence for loop-containing ports.
+
+    A 42 exit is an observed output divergence on an input that satisfies the
+    target contract. Agreement is finite evidence only, so it remains
+    ``inconclusive`` rather than ``matched``; it never claims universal equality.
+    """
+    policy = output_policy(case)
+    inputs = bounded_interaction_inputs(case, policy)
+    if not inputs:
+        return None
+    if re.search(r"\b(?:extern|effect)\b", case["prelude"]):
+        return {"outcome": "unavailable", "reason": "bounded_interaction_effectful_prelude",
+                "method": "bounded_native_interaction"}
+    attempts = []
+    errors = []
+    invalid = []
+    diverged = []
+    for interaction_input in inputs:
+        attempt = {"name": interaction_input["name"], "values": interaction_input["values"]}
+        try:
+            text = bounded_interaction_text(case, candidate_body, interaction_input["values"], variant)
+            run = run_bounded_interaction_text(mumei_bin, text, timeout)
+        except (KeyError, ValueError, IndexError) as error:
+            run = {"result": "error", "error": str(error), "seconds": 0.0, "budget_seconds": timeout}
+        if run.get("exit_code") == 0:
+            attempt["result"] = "matched"
+        elif run.get("exit_code") == 42:
+            attempt["result"] = "diverged"
+            diverged.append(attempt)
+        elif run.get("exit_code") == 43:
+            attempt["result"] = "outside_requires"
+            invalid.append(attempt)
+        else:
+            attempt["result"] = "error"
+            errors.append({**attempt, "error": run.get("error"), "exit_code": run.get("exit_code"),
+                           "timeout": bool(run.get("timeout"))})
+        for key in ("seconds", "budget_seconds"):
+            if key in run:
+                attempt[key] = run[key]
+        attempts.append(attempt)
+    evidence = {"method": "bounded_native_interaction", "inputs": attempts,
+                "interaction": {
+                    "expected_executions": len(attempts),
+                    "timed_executions": sum("seconds" in attempt for attempt in attempts),
+                    "seconds": sum(attempt.get("seconds", 0.0) for attempt in attempts),
+                    "budgeted_executions": sum("budget_seconds" in attempt for attempt in attempts),
+                    "budget_seconds": sum(attempt.get("budget_seconds", 0.0) for attempt in attempts),
+                }}
+    if diverged:
+        first = diverged[0]
+        evidence.update({"outcome": "diverged", "status": "failed",
+                         "divergence_input": {"name": first["name"], "values": first["values"]},
+                         "diagnostics": [{"atom": "main", "code": "bounded-divergence",
+                                          "message": f"bounded native interaction diverged on {first['name']}"}]})
+    elif invalid:
+        evidence.update({"outcome": "inconclusive", "status": "error",
+                         "reason": "bounded_interaction_input_outside_requires",
+                         "failure_kind": "unsupported",
+                         "diagnostics": [{"atom": "main", "code": "outside-requires",
+                                          "message": "a committed bounded input violates the target requires clause"}]})
+    elif errors:
+        timed_out = any(error.get("timeout") for error in errors)
+        evidence.update({"outcome": "inconclusive",
+                         "status": "timeout" if timed_out else "error",
+                         "reason": "bounded_interaction_timeout" if timed_out else "bounded_interaction_tool_failure",
+                         "failure_kind": "budget_exhausted" if timed_out else "environment_failure",
+                         "diagnostics": [{"atom": "main", "code": "timeout" if timed_out else "tool-failure",
+                                          "message": str(errors[0].get("error")
+                                                         or f"native interaction exited {errors[0].get('exit_code')}")[:200]}]})
+    else:
+        evidence.update({"outcome": "inconclusive", "status": "success",
+                         "reason": "bounded_interactions_matched",
+                         "diagnostics": []})
+    return evidence
+
+
 def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout: int,
                        variant: str = "buggy") -> dict:
     """Diagnostic reference-vs-candidate output equality evidence.
@@ -620,14 +853,19 @@ def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout:
     ``matched`` is exact solver equality. ``diverged`` means a separating input
     remains after the committed relevance/rounding/failure-state adjudication;
     a difference confined to those boundary regions is explicitly inconclusive
-    rather than blocking evidence. Loop-containing bodies are non-evidence
-    because loop-invariant abstraction can manufacture spurious differences
-    even between two copies of the same reference body.
+    rather than blocking evidence. Loop-containing bodies do not use solver
+    equality because loop-invariant abstraction can manufacture spurious
+    differences even between two copies of the same reference body. Cases with
+    committed concrete inputs instead use bounded native interaction: observed
+    divergence is evidence, while finite agreement remains inconclusive.
     """
     try:
         parts = split_port(case["ports"][variant], case["atom"])
         reference = body_inner(parts[2]) if parts else ""
         if re.search(r"\bwhile\b", reference) or re.search(r"\bwhile\b", candidate_body):
+            bounded = bounded_interaction_equivalence(case, candidate_body, mumei_bin, timeout, variant)
+            if bounded is not None:
+                return bounded
             return {"outcome": "unavailable", "reason": "loop_equivalence_unverified",
                     "method": "solver_output_compare"}
         text = output_compare_text(case, candidate_body, variant, use_policy=False)

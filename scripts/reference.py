@@ -34,6 +34,7 @@ CLI_SCRIPTS = (
     ("scripts/check_evidence_regressions.py", "check_evidence_regressions"),
     ("scripts/check_adversarial_port_corpus.py", "check_adversarial_port_corpus"),
     ("scripts/check_fixed_alarm_regression.py", "check_fixed_alarm_regression"),
+    ("scripts/report_output_equivalence_coverage.py", "report_output_equivalence_coverage"),
     ("scripts/review_charter_baseline.py", "review_charter_baseline"),
     ("scripts/build_ci_evidence_pack.py", "build_ci_evidence_pack"),
     ("dashboard/cli_report.py", "cli_report"),

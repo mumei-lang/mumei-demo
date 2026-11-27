@@ -4,7 +4,7 @@
 
 Static adversarial fixtures for generated contracts and LLM body ports. The cases do not replace Mumei/Z3 verification: they pin whether the deterministic fidelity lint recognizes shapes that previously made false acceptance hard to explain.
 
-Result: **20/20 cases pass**; 0 failing.
+Result: **22/22 cases pass**; 0 failing.
 
 | Failure mode | Cases | Passing |
 |---|---:|---:|
@@ -12,12 +12,14 @@ Result: **20/20 cases pass**; 0 failing.
 | `silent_repair` | 1 | 1 |
 | `vacuous_spec` | 1 | 1 |
 | `weak_spec` | 3 | 3 |
-| `body_port_meaning_loss` | 12 | 12 |
+| `body_port_meaning_loss` | 14 | 14 |
 
 | Case | Mode | Expected findings | Actual findings | Output comparison | Status |
 |---|---|---|---|---|---|
 | `guard-folding-division-success-fallback` | `guard_folding` | `guard_folding` | `guard_folding` | `—` | PASS |
 | `silent-repair-copies-fixed-reference` | `silent_repair` | `silent_repair` | `silent_repair` | `—` | PASS |
+| `py02-loop-exact-reference-negative-control` | `body_port_meaning_loss` | — | — | `inconclusive` | PASS |
+| `py02-loop-first-day-only-positive-control` | `body_port_meaning_loss` | — | — | `diverged` | PASS |
 | `vacuous-contradictory-days-bounds` | `vacuous_spec` | `vacuous_spec` | `vacuous_spec` | `—` | PASS |
 | `weak-ensures-true` | `weak_spec` | `weak_spec` | `weak_spec` | `—` | PASS |
 | `weak-reflexive-result-equality` | `weak_spec` | `weak_spec` | `weak_spec` | `—` | PASS |

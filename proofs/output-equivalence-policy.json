@@ -22,6 +22,55 @@
     "TS03-D03": {
       "canonical_integer_arithmetic": true,
       "rationale": "The canonical model intentionally fixes multiplication-before-division integer arithmetic. Reordering division before multiplication loses precision in the chosen integer model and is meaningful divergence, not a rounding abstraction boundary."
+    },
+    "PY02-D05": {
+      "bounded_interaction_inputs": [
+        {
+          "name": "replay-single-first-overtime",
+          "values": {
+            "daily": [
+              1
+            ],
+            "n": 1,
+            "threshold": 0
+          }
+        },
+        {
+          "name": "second-day-only-overtime",
+          "values": {
+            "daily": [
+              0,
+              10
+            ],
+            "n": 2,
+            "threshold": 5
+          }
+        },
+        {
+          "name": "threshold-boundary-no-overtime",
+          "values": {
+            "daily": [
+              5,
+              5
+            ],
+            "n": 2,
+            "threshold": 5
+          }
+        },
+        {
+          "name": "mixed-three-day-aggregation",
+          "values": {
+            "daily": [
+              6,
+              0,
+              20
+            ],
+            "n": 3,
+            "threshold": 5
+          }
+        }
+      ],
+      "rationale": "The overtime loop is stateful across array indices. The concrete inputs cover the recorded first-day counterexample, a case where only a later day contributes, exact threshold boundaries, and a three-day mixed aggregation; agreement on these inputs is finite diagnostic evidence only."
     }
   }
 }
