@@ -400,7 +400,7 @@ def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str
     # guard-shape lint. Neither replay nor output equality is represented as a
     # formal refutation of the candidate.
     blocked = fidelity_gate_blocked(blocking, semantic, equivalence, variant)
-    gate = {"schema": "mumei-demo.port-fidelity-gate/v14", "detector_version": fidelity.DETECTOR_VERSION,
+    gate = {"schema": "mumei-demo.port-fidelity-gate/v15", "detector_version": fidelity.DETECTOR_VERSION,
             "variant": variant,
             "decision": "blocked" if blocked else "accepted",
             "lint_findings": linted, "blocking_lint_findings": blocking,
@@ -1467,7 +1467,7 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                         blocked += new_result.get("fidelity_gate", {}).get("decision") == "blocked"
         if changed:
             doc["fidelity_rescore"] = {
-                "schema": "mumei-demo.port-fidelity-gate/v14",
+                "schema": "mumei-demo.port-fidelity-gate/v15",
                 "rescored_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
                 "replay_verifier": verifier_identity(mumei_bin),
                 "rescored_rows": doc_gated,
