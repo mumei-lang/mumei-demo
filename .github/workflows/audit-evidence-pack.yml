@@ -57,25 +57,14 @@ jobs:
         run: |
           # The hosted runner's unused Microsoft package feed intermittently returns 403.
           sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
-          apt_update() {
-            for attempt in 1 2 3; do
-              if sudo apt-get --error-on=any update; then
-                return 0
-              fi
-              if [ "$attempt" -eq 3 ]; then
-                return 1
-              fi
-              sleep 10
-            done
-          }
-          apt_update
+          sudo apt-get update
           sudo apt-get install -y libz3-dev pkg-config libssl-dev libzstd-dev z3
           wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
             | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
           codename="$(lsb_release -cs)"
           echo "deb http://apt.llvm.org/${codename}/ llvm-toolchain-${codename}-17 main" \
             | sudo tee /etc/apt/sources.list.d/llvm-17.list > /dev/null
-          apt_update
+          sudo apt-get update
           sudo apt-get install -y llvm-17-dev libclang-17-dev libpolly-17-dev
 
       - name: Set up Rust toolchain
