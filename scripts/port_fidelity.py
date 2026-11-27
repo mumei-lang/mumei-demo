@@ -152,7 +152,7 @@ def token_pattern(text: str) -> tuple[str, ...]:
 
 
 VARIANTS = ("buggy", "fixed")
-DETECTOR_VERSION = 7
+DETECTOR_VERSION = 8
 
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
@@ -459,6 +459,137 @@ def pinned_port(port_text: str, atom: str, values: dict) -> str:
     if not found:
         raise ValueError(f"atom {atom!r} has no single-line requires")
     return prelude + pinned + body
+
+
+
+def atom_return_type(header: str) -> str:
+    match = re.search(r"->\s*(\w+)", header)
+    if not match:
+        raise ValueError("atom header has no return type")
+    return match.group(1)
+
+
+def atom_requires(header: str) -> str:
+    match = re.search(r"^\s*requires:\s*(.*?)\s*;\s*$", header, re.M)
+    if not match:
+        raise ValueError("atom header has no single-line requires")
+    return match.group(1)
+
+
+def atom_param_text(header: str) -> str:
+    return header[header.index("(") + 1:header.index(")")]
+
+
+def struct_field_types(prelude: str, struct_name: str) -> list[tuple[str, str]]:
+    match = re.search(rf"\bstruct\s+{re.escape(struct_name)}\s*\{{(.*?)\n\}}", prelude, re.S)
+    if not match:
+        raise ValueError(f"struct {struct_name!r} not found")
+    fields = re.findall(r"\b(\w+)\s*:\s*(\[i64\]|i64|bool)", match.group(1))
+    if not fields:
+        raise ValueError(f"struct {struct_name!r} has no supported scalar fields")
+    return fields
+
+
+def output_compare_text(case: dict, candidate_body: str, variant: str = "buggy") -> str:
+    """A solver harness comparing reference and candidate output values.
+
+    Struct payload fields other than ``ok`` are compared on jointly successful
+    outputs. Failure-path sentinel payload values are therefore not treated as
+    meaningful state; primitive results and success flags are always compared.
+    """
+    parts = split_port(case["ports"][variant], case["atom"])
+    if parts is None:
+        raise ValueError("reference port not found")
+    _, _, reference_body = parts
+    reference = body_inner(reference_body).strip()
+    candidate = candidate_body.strip()
+    if not reference or not candidate:
+        raise ValueError("empty reference or candidate body")
+    return_type = atom_return_type(case["header"])
+    if return_type in {"i64", "bool"}:
+        comparison = "reference == candidate"
+        mode = "exact_value"
+    else:
+        fields = struct_field_types(case["prelude"], return_type)
+        names = [name for name, _ in fields]
+        non_ok = [name for name in names if name != "ok"]
+        if "ok" in names:
+            comparison = "(reference.ok == candidate.ok)"
+            if non_ok:
+                payload = " && ".join(f"(reference.{name} == candidate.{name})" for name in non_ok)
+                comparison += f" && (!(reference.ok && candidate.ok) || ({payload}))"
+            mode = "accepted_output"
+        else:
+            comparison = " && ".join(f"(reference.{name} == candidate.{name})" for name in names)
+            mode = "exact_fields"
+    params = atom_param_text(case["header"])
+    requires = atom_requires(case["header"])
+    return (case["prelude"]
+            + f"atom compare_{case['atom']}({params}) -> bool\n"
+            + f"    requires: {requires};\n"
+            + "    ensures: result == true;\n"
+            + "    body: {\n"
+            + "        let reference = {\n"
+            + textwrap_indent(reference, "            ") + "\n"
+            + "        };\n"
+            + "        let candidate = {\n"
+            + textwrap_indent(candidate, "            ") + "\n"
+            + "        };\n"
+            + f"        {comparison}\n"
+            + "    }\n")
+
+
+def textwrap_indent(text: str, prefix: str) -> str:
+    return "\n".join(prefix + line if line.strip() else line for line in text.splitlines())
+
+
+def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout: int,
+                       variant: str = "buggy") -> dict:
+    """Diagnostic reference-vs-candidate output equality evidence.
+
+    ``diverged`` is positive solver evidence that an input inside the reference
+    contract separates the two outputs. ``matched`` is stronger than fixture
+    replay when the solver proves equality. Loop-containing bodies are explicit
+    non-evidence because loop-invariant abstraction can manufacture spurious
+    differences even between two copies of the same reference body.
+    """
+    try:
+        parts = split_port(case["ports"][variant], case["atom"])
+        reference = body_inner(parts[2]) if parts else ""
+        if re.search(r"\bwhile\b", reference) or re.search(r"\bwhile\b", candidate_body):
+            return {"outcome": "unavailable", "reason": "loop_equivalence_unverified",
+                    "method": "solver_output_compare"}
+        text = output_compare_text(case, candidate_body, variant)
+        if any(finding.get("kind") == "vacuous_spec"
+               for finding in lint_contract(atom_requires(case["header"]), "result == result")):
+            return {"outcome": "unavailable", "reason": "vacuous_compare_domain",
+                    "method": "solver_output_compare"}
+    except (KeyError, ValueError, IndexError) as error:
+        return {"outcome": "unavailable", "reason": str(error), "method": "solver_output_compare"}
+    verification = verify_text(mumei_bin, text, timeout)
+    postcondition_failure = any("Postcondition" in diagnostic["message"]
+                                for diagnostic in verification["diagnostics"])
+    helpers = re.findall(r"\batom\s+(\w+)\s*\(", case["prelude"])
+    opaque_calls = sorted({name for name in helpers
+                           if re.search(rf"\b{re.escape(name)}\s*\(", reference)
+                           or re.search(rf"\b{re.escape(name)}\s*\(", candidate_body)})
+    if verification["outcome"] == "proven":
+        outcome = "matched"
+    elif verification["outcome"] == "refuted" and postcondition_failure and not opaque_calls:
+        outcome = "diverged"
+    else:
+        outcome = "inconclusive"
+    evidence = {"outcome": outcome, "method": "solver_output_compare",
+                "status": verification["status"],
+                "diagnostics": verification["diagnostics"][:2]}
+    if opaque_calls:
+        evidence["opaque_atom_calls"] = opaque_calls
+        if verification["outcome"] == "refuted" and postcondition_failure:
+            evidence["reason"] = "opaque_atom_call_counterexample"
+    for key in ("failure_kind", "seconds", "budget_seconds"):
+        if key in verification:
+            evidence[key] = verification[key]
+    return evidence
 
 
 REQUIRES_CONTRADICTION = re.compile(r"Spec contradiction in atom '[^']*': requires")

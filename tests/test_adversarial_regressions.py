@@ -37,6 +37,8 @@ def test_committed_adversarial_report_is_up_to_date() -> None:
         (lambda doc: doc["cases"][0].pop("reference_body"), "missing required keys"),
         (lambda doc: doc["cases"][0].update(failure_mode="unknown"), "unknown failure_mode"),
         (lambda doc: doc["cases"][0].update(fixed_reference_body=3), "fixed_reference_body must be a string"),
+        (lambda doc: doc["cases"][0].update(expected_output_equivalence="equal"), "solver-comparison outcome"),
+        (lambda doc: doc["cases"][0].update(prelude=3), "prelude must be a string"),
         (lambda doc: doc["cases"].append(dict(doc["cases"][0])), "duplicate case id"),
         (lambda doc: doc.update(failure_modes=["weak_spec"]), "exactly cover"),
     ],

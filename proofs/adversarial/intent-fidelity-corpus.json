@@ -189,6 +189,7 @@
       "category": "unchecked-transfer",
       "atom": "getReward",
       "header": "atom getReward(transfer_ok: bool, amount: i64) -> Payout\n    requires: amount >= 0;\n    ensures: result.ok => transfer_ok;\n    ",
+      "prelude": "struct Payout {\n    ok: bool,\n    owed: i64,\n}\n\n",
       "native_source": "function getReward() { rewardToken.transfer(msg.sender, amount); }",
       "fixed_native_source": "function getReward() { require(rewardToken.transfer(msg.sender, amount)); }",
       "reference_body": "if transfer_ok { Payout { ok: true, owed: 0 } } else { Payout { ok: false, owed: amount } }",
@@ -205,7 +206,50 @@
           "kind": "success_flag_rewrite"
         }
       ],
-      "rationale": "A fixed-side port that folds the owed reset into one unconditional branch value is high-confidence state meaning loss even when a narrow replay input still satisfies the contract."
+      "expected_output_equivalence": "diverged",
+      "rationale": "A fixed-side port that folds the owed reset into one unconditional branch value is high-confidence state meaning loss even when a narrow replay input still satisfies the contract. Solver output comparison must expose the owed-state divergence."
+    },
+    {
+      "id": "fixed-output-equivalence-exact-reference-control",
+      "kind": "port",
+      "failure_mode": "body_port_meaning_loss",
+      "variant": "fixed",
+      "language": "solidity",
+      "category": "unchecked-transfer",
+      "atom": "getReward",
+      "header": "atom getReward(transfer_ok: bool, amount: i64) -> Payout\n    requires: amount >= 0;\n    ensures: result.ok => transfer_ok;\n    ",
+      "prelude": "struct Payout {\n    ok: bool,\n    owed: i64,\n}\n\n",
+      "native_source": "function getReward() { rewardToken.transfer(msg.sender, amount); }",
+      "fixed_native_source": "function getReward() { require(rewardToken.transfer(msg.sender, amount)); }",
+      "reference_body": "if transfer_ok { Payout { ok: true, owed: 0 } } else { Payout { ok: false, owed: amount } }",
+      "fixed_reference_body": "if transfer_ok { Payout { ok: true, owed: 0 } } else { Payout { ok: false, owed: amount } }",
+      "candidate_body": "if transfer_ok { Payout { ok: true, owed: 0 } } else { Payout { ok: false, owed: amount } }",
+      "expected_findings": [],
+      "expected_output_equivalence": "matched",
+      "rationale": "An exact copy of the fixed reference is the primary negative control: solver output comparison must not block correct fixed ports."
+    },
+    {
+      "id": "fixed-legitimate-success-flag-rewrite-control",
+      "kind": "port",
+      "failure_mode": "body_port_meaning_loss",
+      "variant": "fixed",
+      "language": "solidity",
+      "category": "unchecked-transfer",
+      "atom": "getReward",
+      "header": "atom getReward(transfer_ok: bool, amount: i64) -> Payout\n    requires: amount >= 0;\n    ensures: result.ok => transfer_ok;\n    ",
+      "prelude": "struct Payout {\n    ok: bool,\n    owed: i64,\n}\n\n",
+      "native_source": "function getReward() { rewardToken.transfer(msg.sender, amount); }",
+      "fixed_native_source": "function getReward() { require(rewardToken.transfer(msg.sender, amount)); }",
+      "reference_body": "if transfer_ok { Payout { ok: true, owed: 0 } } else { Payout { ok: false, owed: amount } }",
+      "fixed_reference_body": "if transfer_ok { Payout { ok: true, owed: 0 } } else { Payout { ok: false, owed: amount } }",
+      "candidate_body": "Payout { ok: transfer_ok, owed: if transfer_ok { 0 } else { amount } }",
+      "expected_findings": [
+        {
+          "kind": "success_flag_rewrite"
+        }
+      ],
+      "expected_output_equivalence": "matched",
+      "rationale": "A semantically exact success-flag refactor may remain a lint warning, but solver output equality is stronger evidence and must prevent a lint-only false block."
     },
     {
       "id": "meaningful-contract-negative-control",

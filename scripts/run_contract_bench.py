@@ -359,6 +359,8 @@ def fidelity_gate_reasons(gate: dict) -> list[str]:
         reasons.append("replay:diverged")
     elif outcome != confirming:
         reasons.append(f"replay:no-confirming-evidence:{outcome}")
+    if gate.get("output_equivalence", {}).get("outcome") == "diverged":
+        reasons.append("output-equivalence:diverged")
     return reasons
 
 
@@ -376,19 +378,26 @@ def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str
         {"kind": "invalid_body", "message": "candidate body cannot be pinned safely"}
     ]
     semantic = semantic_port_replay(case, body, mumei_bin, timeout, variant)
+    equivalence = fidelity.output_equivalence(case, body, mumei_bin, timeout, variant)
     confirming = "still_refutes" if variant == "buggy" else "still_holds"
     blocking = fidelity.blocking_lint_findings(linted)
-    # Confirming reference replay is stronger semantic evidence than syntactic lint.
-    # Lint can still block when replay is unavailable or inconclusive, and replay
-    # divergence always blocks; neither is represented as a formal refutation.
-    hard_meaning_loss = any(finding.get("kind") == "guard_folding" for finding in blocking)
-    blocked = (semantic["outcome"] == "diverged" or hard_meaning_loss
-               or (semantic["outcome"] != confirming and bool(blocking)))
-    gate = {"schema": "mumei-demo.port-fidelity-gate/v7", "detector_version": fidelity.DETECTOR_VERSION,
+    # Confirming reference replay or solver output equality is stronger semantic
+    # evidence than guard-shape lint. Structural fidelity loss still blocks, and
+    # divergence always blocks; neither replay nor output equality is represented
+    # as a formal refutation of the candidate.
+    structural_meaning_loss = any(finding.get("kind") in {"silent_repair", "missing_modeled_operation", "self_call"}
+                                  for finding in blocking)
+    hard_meaning_loss = (any(finding.get("kind") == "guard_folding" for finding in blocking)
+                         and equivalence.get("outcome") != "matched")
+    confirming_evidence = semantic["outcome"] == confirming or equivalence.get("outcome") == "matched"
+    blocked = (semantic["outcome"] == "diverged" or equivalence.get("outcome") == "diverged"
+               or structural_meaning_loss or hard_meaning_loss
+               or (not confirming_evidence and bool(blocking)))
+    gate = {"schema": "mumei-demo.port-fidelity-gate/v8", "detector_version": fidelity.DETECTOR_VERSION,
             "variant": variant,
             "decision": "blocked" if blocked else "accepted",
             "lint_findings": linted, "blocking_lint_findings": blocking,
-            "semantic_replay": semantic}
+            "semantic_replay": semantic, "output_equivalence": equivalence}
     return {**result, "fidelity_gate": gate}
 
 
@@ -405,7 +414,7 @@ def fidelity_projection_failure_kind(gate: dict) -> str:
     if blocking is None:
         blocking = fidelity.blocking_lint_findings(gate.get("lint_findings") or [])
     semantic = gate.get("semantic_replay", {})
-    if blocking or semantic.get("outcome") == "diverged":
+    if blocking or semantic.get("outcome") == "diverged" or gate.get("output_equivalence", {}).get("outcome") == "diverged":
         return "unsupported"
     unresolved = semantic.get("unresolved") or {}
     for kind in ("environment_failure", "budget_exhausted", "unsupported"):
@@ -850,12 +859,22 @@ def usage_total(records: list[dict]) -> dict:
                 verification_budgeted += 1
                 verification_budget += result["budget_seconds"]
         for v in VARIANTS:
-            measurement = (r[v].get("fidelity_gate", {}).get("semantic_replay", {}) or {}).get("verification") or {}
+            gate = r[v].get("fidelity_gate", {})
+            measurement = (gate.get("semantic_replay", {}) or {}).get("verification") or {}
             verification_expected += measurement.get("expected_calls", 0)
             verification_timed += measurement.get("timed_calls", 0)
             verification_seconds += measurement.get("seconds", 0.0)
             verification_budgeted += measurement.get("budgeted_calls", 0)
             verification_budget += measurement.get("budget_seconds", 0.0)
+            equivalence = gate.get("output_equivalence", {}) or {}
+            if "status" in equivalence:
+                verification_expected += 1
+                if numeric_measurement(equivalence.get("seconds")):
+                    verification_timed += 1
+                    verification_seconds += equivalence["seconds"]
+                if numeric_measurement(equivalence.get("budget_seconds")):
+                    verification_budgeted += 1
+                    verification_budget += equivalence["budget_seconds"]
         for u in [r[v].get("usage") for v in VARIANTS] + [r.get("usage")]:
             if not u:
                 continue
@@ -1000,10 +1019,15 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             for r in gated) + ". The committed rows keep the raw verifier proof outcome; only the report projection "
             "counts a blocked candidate as unsupported/inconclusive evidence rather than verification acceptance. "
             "Lint is variant-aware and records high-confidence meaning-loss evidence: silent repair, missing modeled "
-            "operations, guard folding, self-calls and success-flag rewrites. Confirming replay overrides lint warnings "
-            "except exact success/result-state guard folding, which is high-confidence meaning loss. Added or removed guard-count warnings "
-            "stay visible without blocking alone. Replay divergence always blocks; other high-confidence lint blocks "
-            "when replay does not supply confirming evidence; inconclusive replay alone does not rewrite a raw proof. "
+            "operations, guard folding, self-calls and success-flag rewrites. A separate solver-backed output comparison "
+            "inlines the reference and candidate bodies and compares primitive results or accepted-output struct fields; "
+            "matched output is confirming evidence, while output divergence blocks. Loop-containing bodies are unavailable "
+            "rather than risk invariant-abstraction false positives. Confirming replay or matched output overrides guard-shape "
+            "and success-flag lint-only warnings; exact result-state guard folding remains blocking unless output equality matches. Added or removed "
+            "guard-count warnings stay visible without blocking alone. Replay divergence always blocks; other high-confidence "
+            "lint blocks when neither replay nor output comparison supplies confirming evidence, except silent repair, "
+            "missing modeled operations and self-calls, which are structural fidelity loss even when outputs coincide. "
+            "Inconclusive evidence alone does not rewrite a raw proof. These are fidelity acceptance diagnostics, not formal proof verdicts. "
             "Weak/vacuous generated contracts cannot support proof acceptance. "
             + " ".join(
                 f"For {ARM_LABEL.get(r['arm'], r['arm'])}, raw verifier proofs before projection were buggy "
@@ -1024,7 +1048,7 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             out += ["Fidelity rescore evidence: " + "; ".join(provenance) + ".", ""]
     out += [render_measurement_table(rows), "",
            "Verification time and budget are wall seconds and the declared per-attempt timeout aggregated over "
-           "recorded outcome-determining verifier calls, including vacuity controls, fidelity replay calls and the per-call input/output "
+           "recorded outcome-determining verifier calls, including vacuity controls, fidelity replay calls, output-equivalence calls and the per-call input/output "
            "glue inside `verify_text`. Certificate emission/rechecks, case-level orchestration and provider calls "
            "are outside that measurement. Older committed rows show the measured fraction of "
            "expected verifier calls, so partial `--only` refreshes cannot look fully instrumented. Model time/cost "
@@ -1401,7 +1425,7 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                         blocked += new_result.get("fidelity_gate", {}).get("decision") == "blocked"
         if changed:
             doc["fidelity_rescore"] = {
-                "schema": "mumei-demo.port-fidelity-gate/v7",
+                "schema": "mumei-demo.port-fidelity-gate/v8",
                 "rescored_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
                 "replay_verifier": verifier_identity(mumei_bin),
             }
@@ -1452,8 +1476,16 @@ def fidelity_problems(results: list[dict], cases: list[dict] | None = None) -> l
                             if blocking is None:
                                 blocking = fidelity.blocking_lint_findings(gate.get("lint_findings") or [])
                             outcome = semantic.get("outcome")
-                            hard_meaning_loss = any(finding.get("kind") == "guard_folding" for finding in blocking)
-                            if outcome == "diverged" or hard_meaning_loss or (outcome != confirming and blocking):
+                            equivalence = gate.get("output_equivalence", {}) or {}
+                            structural_meaning_loss = any(
+                                finding.get("kind") in {"silent_repair", "missing_modeled_operation", "self_call"}
+                                for finding in blocking)
+                            hard_meaning_loss = (any(finding.get("kind") == "guard_folding" for finding in blocking)
+                                                 and equivalence.get("outcome") != "matched")
+                            confirming_evidence = outcome == confirming or equivalence.get("outcome") == "matched"
+                            if (outcome == "diverged" or equivalence.get("outcome") == "diverged"
+                                    or structural_meaning_loss or hard_meaning_loss
+                                    or (not confirming_evidence and blocking)):
                                 problems.append(f"{prefix} is accepted despite blocking fidelity evidence")
             if doc["arm"] == "llm-contract":
                 for record in run:

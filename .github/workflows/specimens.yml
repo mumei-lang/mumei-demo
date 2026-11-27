@@ -39,6 +39,7 @@ on:
       - "scripts/check_adversarial_port_corpus.py"
       - "scripts/check_fixed_alarm_regression.py"
       - "tests/test_adversarial_regressions.py"
+      - "tests/test_output_equivalence.py"
       - ".github/workflows/specimens.yml"
   workflow_dispatch:
 
@@ -92,7 +93,7 @@ jobs:
       - name: Check the regression-gate report (offline)
         run: python3 scripts/run_regression_gate.py --check
       - name: Run adversarial intent-fidelity regression tests
-        run: python3 -m pytest tests/test_adversarial_regressions.py -q
+        run: python3 -m pytest tests/test_adversarial_regressions.py tests/test_output_equivalence.py -q
       - name: Check the adversarial corpus report (offline)
         run: python3 scripts/check_adversarial_port_corpus.py --check
       - name: Check fixed-specimen false-alarm regression (offline)

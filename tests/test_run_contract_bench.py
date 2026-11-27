@@ -611,6 +611,23 @@ def test_usage_total_ignores_boolean_verification_measurements():
     assert u["verification_timed_calls"] == 0 and u["verification_budgeted_calls"] == 0
 
 
+def test_usage_total_includes_output_equivalence_verification_measurement():
+    r = rec("a", "go", "inconclusive", "proven")
+    r.pop("vacuity")
+    r["buggy"]["fidelity_gate"] = {"decision": "blocked", "output_equivalence": {
+        "outcome": "matched", "status": "success", "seconds": 0.5, "budget_seconds": 30.0}}
+    r["fixed"]["fidelity_gate"] = {"decision": "accepted", "output_equivalence": {
+        "outcome": "unavailable", "reason": "loop_equivalence_unverified"}}
+
+    u = cb.usage_total([r])
+
+    assert u["verification_timed_calls"] == 1
+    assert u["verification_expected_calls"] == 1
+    assert u["verification_seconds"] == 0.5
+    assert u["verification_budgeted_calls"] == 1
+    assert u["verification_budget_seconds"] == 30.0
+
+
 def test_usage_total_includes_fidelity_replay_verification_measurement():
     r = rec("a", "go", "inconclusive", "proven")
     r.pop("vacuity")
