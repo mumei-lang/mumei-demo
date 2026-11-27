@@ -2,11 +2,12 @@
 
 This optional scenario is the v0.8 D-2 reference implementation for CI adoption. It uses the upstream `mumei-agent audit` CI contract without fabricating artifacts in mumei-demo:
 
-1. run `audit --format json --auto-migrate --sarif-output ... --baseline ... --write-baseline ... --fail-on high-confidence` with LLM credentials explicitly empty;
+1. run `audit --format json --auto-migrate --sarif-output ... --baseline ... --write-baseline ... --fail-on high-confidence` with LLM credentials explicitly empty; when the pinned audit CLI exposes `--migration-execution-output`, also emit `migration_execution.json`;
 2. preserve the fixed audit keys in `audit.json` and validate the upstream-emitted SARIF 2.1.0 and `mumei.audit-baseline/v1` artifacts;
 3. derive a human-review migration plan from `migration_hints`;
-4. verify the reviewed reference contract `reference/safe_divide.mm` with `mumei verify --proof-cert` and recheck it with `verify-cert --strict`;
-5. package the audit, SARIF rendering, refreshed baseline, migration plan, proof certificate, copyable workflow, summary, hashes, and evidence boundaries in `evidence-pack/`.
+4. validate the optional upstream `mumei.migration-execution/v1` artifact when emitted, without treating partial artifacts as completion evidence;
+5. verify the reviewed reference contract `reference/safe_divide.mm` with `mumei verify --proof-cert` and recheck it with `verify-cert --strict`;
+6. package the audit, SARIF rendering, refreshed baseline, migration plan, optional migration execution artifact, proof certificate, copyable workflow, summary, hashes, and evidence boundaries in `evidence-pack/`.
 
 ## Run
 
@@ -26,6 +27,7 @@ The scenario is optional and is not part of the default `demo-ci` scenario list.
 - `audit.sarif` is the upstream audit CLI's SARIF rendering of those audit findings, not independent evidence; this demo never fabricates SARIF.
 - `audit-baseline.json` is a `ci_policy` artifact, not evidence or proof acceptance.
 - `migration_plan.json` is a human-review plan derived from `migration_hints`, not a completed migration.
+- `migration_execution.json` is emitted only by the upstream audit CLI when supported. It is generated-`.mm` acceptance evidence only, not host semantic-equivalence proof; partial artifacts are not completion evidence, and unbound host diagnostics are not adapter observations. Older CLIs are recorded as `not_available_in_current_cli` and no file is fabricated.
 - `reference.proof.json` proves only `reference/safe_divide.mm` as a standalone `.mm` contract.
 - `native_bundle` and `adapter_observation` are closed artifact roles and are empty in `artifact_roles`; audit, migration, policy, and proof artifacts must not be relabeled as either role.
 - Nothing in the pack proves semantic equivalence between `src/ledger.py` and `reference/safe_divide.mm`.
@@ -35,11 +37,12 @@ The scenario is optional and is not part of the default `demo-ci` scenario list.
 
 | File | Meaning |
 |---|---|
-| `manifest.json` | Schema, input hashes, artifact hashes, closed artifact roles, SARIF/baseline/fail-on metadata, evidence boundary |
+| `manifest.json` | v2 schema, input hashes, artifact hashes, closed artifact roles, SARIF/baseline/fail-on metadata, evidence boundary |
 | `audit.json` | Normalized current-CLI audit output with fixed keys, deterministic-mode metadata, canonical `artifact_paths`, closed `artifact_roles`, and role-specific evidence boundaries |
 | `audit.sarif` | SARIF 2.1.0 emitted by `mumei-agent audit` for CI annotation |
 | `audit-baseline.json` | Refreshed `mumei.audit-baseline/v1` fingerprint policy emitted by `mumei-agent audit` |
 | `migration_plan.json` | Prioritized migration-review candidates from `migration_hints`, with the same artifact path/role metadata |
+| `migration_execution.json` | Optional upstream `mumei.migration-execution/v1` artifact; absent with `not_available_in_current_cli` on older CLIs. Its companion generated-artifact directory may be uploaded with the pack but stays outside the proof-certificate and adapter-observation roles |
 | `verification.json` | Reference-contract verification status and boundary |
 | `reference.proof.json` | Proof certificate for the reviewed reference `.mm` contract |
 | `github-actions-mumei-audit.yml` | Copyable workflow template |

@@ -110,7 +110,7 @@ jobs:
           from pathlib import Path
           root = Path("reports/ci_evidence_pack/latest/evidence-pack")
           manifest = json.loads((root / "manifest.json").read_text())
-          assert manifest["schema"] == "mumei-demo.ci-evidence-pack/v1"
+          assert manifest["schema"] == "mumei-demo.ci-evidence-pack/v2"
           assert manifest["sarif"]["status"] == "emitted_by_audit_cli"
           assert manifest["baseline"]["status"] == "emitted_by_audit_cli"
           assert manifest["fail_on"]["policy"] == "high-confidence"
@@ -126,16 +126,27 @@ jobs:
           }
           missing = sorted(required - set(audit))
           assert not missing, missing
+          migration_status = manifest["migration_execution"]["status"]
           expected_paths = [
               "audit.json", "audit.stderr.log", "audit.sarif", "audit-baseline.json",
               "migration_plan.json", "verification.json", "reference.proof.json",
               "reference-verify.log", "reference-verify-cert.log",
               "github-actions-mumei-audit.yml", "summary.md", "manifest.json",
           ]
+          migration_role = []
+          if migration_status == "emitted_by_audit_cli":
+              expected_paths.insert(5, "migration_execution.json")
+              migration_role = ["migration_execution.json"]
+              execution = json.loads((root / "migration_execution.json").read_text())
+              assert execution["schema"] == "mumei.migration-execution/v1"
+          else:
+              assert migration_status == "not_available_in_current_cli"
+              assert not (root / "migration_execution.json").exists()
           assert manifest["artifact_paths"] == expected_paths
           assert manifest["artifact_roles"] == {
               "audit_report": ["audit.json", "audit.sarif"],
               "migration_plan": ["migration_plan.json"],
+              "migration_execution": migration_role,
               "proof_certificate": ["reference.proof.json"],
               "ci_policy": ["audit-baseline.json"],
               "native_bundle": [],
@@ -149,6 +160,8 @@ jobs:
           assert migration["artifact_roles"] == manifest["artifact_roles"]
           assert migration["evidence_boundary_by_role"] == manifest["evidence_boundary_by_role"]
           assert manifest["evidence_roles"]["ci_policy"]["status"] == "present"
+          assert "not host-code semantic equivalence proof" in manifest["evidence_boundary_by_role"]["migration_execution"]
+          assert "partial artifacts are not completion evidence" in manifest["migration_execution"]["boundary"]
           assert "not evidence" in manifest["evidence_roles"]["ci_policy"]["boundary"]
           assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"
           assert manifest["evidence_roles"]["adapter_observation"]["status"] == "absent"
