@@ -400,7 +400,7 @@ def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str
     # guard-shape lint. Neither replay nor output equality is represented as a
     # formal refutation of the candidate.
     blocked = fidelity_gate_blocked(blocking, semantic, equivalence, variant)
-    gate = {"schema": "mumei-demo.port-fidelity-gate/v11", "detector_version": fidelity.DETECTOR_VERSION,
+    gate = {"schema": "mumei-demo.port-fidelity-gate/v13", "detector_version": fidelity.DETECTOR_VERSION,
             "variant": variant,
             "decision": "blocked" if blocked else "accepted",
             "lint_findings": linted, "blocking_lint_findings": blocking,
@@ -1038,8 +1038,11 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             "inlines the reference and candidate bodies and compares primitive results or struct output fields. "
             "Committed per-case policy adjudicates don't-care fields, meaningful failure state and integer-rounding "
             "boundaries; matched exact output is confirming evidence, adjudicated divergence blocks, and boundary-only "
-            "differences are inconclusive diagnostic evidence that still prevents lint-only rejection. Loop-containing bodies are unavailable "
-            "rather than risk invariant-abstraction false positives. Confirming replay, matched exact output or boundary-only output overrides guard-shape "
+            "differences are inconclusive diagnostic evidence that still prevents lint-only rejection. Loop-containing bodies do not use solver "
+            "equality because invariant abstraction can manufacture false differences. Committed bounded inputs instead execute reference and "
+            "candidate natively with isolated input bindings; observed divergence blocks, while finite agreement remains inconclusive rather than "
+            "universal equality evidence. Bounded interaction wall time is recorded as interaction evidence cost, not verifier-only "
+            "measurement. Confirming replay, matched exact output or boundary-only output overrides guard-shape "
             "and success-flag lint-only warnings; exact result-state guard folding remains blocking unless output comparison shows no meaningful divergence. Added or removed "
             "guard-count warnings stay visible without blocking alone. Replay divergence always blocks; other high-confidence "
             "lint blocks when neither replay nor output comparison supplies nonblocking semantic evidence, except silent repair, "
@@ -1461,7 +1464,7 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                         blocked += new_result.get("fidelity_gate", {}).get("decision") == "blocked"
         if changed:
             doc["fidelity_rescore"] = {
-                "schema": "mumei-demo.port-fidelity-gate/v11",
+                "schema": "mumei-demo.port-fidelity-gate/v13",
                 "rescored_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
                 "replay_verifier": verifier_identity(mumei_bin),
                 "rescored_rows": doc_gated,

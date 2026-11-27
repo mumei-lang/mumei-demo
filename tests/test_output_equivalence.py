@@ -59,8 +59,8 @@ def test_primitive_comparison_is_not_vacuous() -> None:
     assert "reference.ok" not in text
 
 
-def test_loop_equivalence_is_explicitly_unavailable(monkeypatch: pytest.MonkeyPatch) -> None:
-    case = case_by_id("PY02-D05")
+def test_loop_equivalence_is_explicitly_unavailable_without_committed_inputs(monkeypatch: pytest.MonkeyPatch) -> None:
+    case = {**case_by_id("PY02-D05"), "id": "PY02-D05-no-bounded-inputs"}
 
     def forbidden(*_args):
         pytest.fail("loop comparison must not call the verifier")
@@ -71,6 +71,33 @@ def test_loop_equivalence_is_explicitly_unavailable(monkeypatch: pytest.MonkeyPa
 
     assert evidence["outcome"] == "unavailable"
     assert evidence["reason"] == "loop_equivalence_unverified"
+
+
+def test_bounded_interaction_harness_pins_inputs_and_runtime_exit_codes() -> None:
+    case = case_by_id("PY02-D05")
+    reference = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
+    values = {"daily": [0, 10], "n": 2, "threshold": 5}
+
+    text = fidelity.bounded_interaction_text(case, reference, values, "fixed")
+
+    assert "atom main() -> i64" in text
+    assert text.count("let daily = [0, 10];") == 3
+    assert "if !(len(daily) == n && n >= 1) { 43 }" in text
+    assert "if reference == candidate { 0 } else { 42 }" in text
+
+
+def test_bounded_interaction_tool_failure_is_inconclusive(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(fidelity, "run_bounded_interaction_text", lambda *_args: {
+        "exit_code": 1, "output_tail": "compiler error", "seconds": 0.1, "budget_seconds": 5})
+    case = case_by_id("PY02-D05")
+    reference = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
+
+    evidence = fidelity.output_equivalence(case, reference, "unused", 5, "fixed")
+
+    assert evidence["outcome"] == "inconclusive"
+    assert evidence["reason"] == "bounded_interaction_tool_failure"
+    assert evidence["failure_kind"] == "environment_failure"
+    assert evidence["interaction"]["expected_executions"] == 4
 
 
 def test_postcondition_refutation_is_divergence_but_safety_failure_is_not(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -102,6 +129,31 @@ def test_opaque_helper_atom_counterexample_is_inconclusive_not_divergence(monkey
     assert evidence["outcome"] == "inconclusive"
     assert evidence["reason"] == "opaque_atom_call_counterexample"
     assert evidence["opaque_atom_calls"] == ["slice_to"]
+
+
+def test_bounded_interaction_timeout_is_budget_exhaustion(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(fidelity, "run_bounded_interaction_text", lambda *_args: {
+        "result": "error", "error": "TimeoutExpired", "timeout": True,
+        "seconds": 5.0, "budget_seconds": 5})
+    case = case_by_id("PY02-D05")
+    reference = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
+
+    evidence = fidelity.output_equivalence(case, reference, "unused", 5, "fixed")
+
+    assert evidence["outcome"] == "inconclusive"
+    assert evidence["status"] == "timeout"
+    assert evidence["reason"] == "bounded_interaction_timeout"
+    assert evidence["failure_kind"] == "budget_exhausted"
+
+
+def test_bounded_interaction_does_not_execute_effectful_or_ffi_preludes() -> None:
+    case = {**case_by_id("PY02-D05"), "prelude": 'extern \"Rust\" { fn side_effect(); }\n'}
+    reference = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
+
+    evidence = fidelity.bounded_interaction_equivalence(case, reference, "unused", 5, "fixed")
+
+    assert evidence["outcome"] == "unavailable"
+    assert evidence["reason"] == "bounded_interaction_effectful_prelude"
 
 
 def test_output_equality_overrides_lint_only_warning(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -198,7 +250,8 @@ def test_exact_nonloop_fixed_reference_copies_match_with_real_verifier() -> None
     for case in cb.load_cases()[0]:
         reference = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
         evidence = fidelity.output_equivalence(case, reference, MUMEI_BIN, 10, "fixed")
-        if evidence["outcome"] == "unavailable" and evidence.get("reason") == "loop_equivalence_unverified":
+        if ((evidence["outcome"] == "unavailable" and evidence.get("reason") == "loop_equivalence_unverified")
+                or evidence.get("method") == "bounded_native_interaction"):
             unavailable_loops += 1
             continue
         compared += 1
@@ -208,6 +261,33 @@ def test_exact_nonloop_fixed_reference_copies_match_with_real_verifier() -> None
     assert unavailable_loops >= 1
     assert compared >= 65
     assert mismatches == []
+
+
+@requires_mumei
+def test_exact_loop_fixed_reference_has_bounded_interaction_agreement_with_real_verifier() -> None:
+    case = case_by_id("PY02-D05")
+    reference = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
+
+    evidence = fidelity.output_equivalence(case, reference, MUMEI_BIN, 20, "fixed")
+
+    assert evidence["outcome"] == "inconclusive"
+    assert evidence["reason"] == "bounded_interactions_matched"
+    assert evidence["method"] == "bounded_native_interaction"
+    assert [attempt["result"] for attempt in evidence["inputs"]] == ["matched"] * 4
+
+
+@requires_mumei
+def test_first_day_only_loop_positive_control_diverges_with_real_verifier() -> None:
+    corpus_case = next(case for case in adversarial.load_corpus()["cases"]
+                       if case["id"] == "py02-loop-first-day-only-positive-control")
+    case = adversarial._port_case(corpus_case)
+
+    evidence = fidelity.output_equivalence(case, corpus_case["candidate_body"], MUMEI_BIN, 20, "fixed")
+
+    assert evidence["outcome"] == "diverged"
+    assert evidence["method"] == "bounded_native_interaction"
+    assert evidence["divergence_input"]["name"] == "second-day-only-overtime"
+    assert "diverged" in [attempt["result"] for attempt in evidence["inputs"]]
 
 
 @requires_mumei

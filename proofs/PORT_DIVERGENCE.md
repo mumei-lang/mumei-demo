@@ -52,10 +52,25 @@ If exact output diverges, the harness reapplies the committed relevance,
 rounding and failure-state adjudication; divergence that remains there blocks
 acceptance, while divergence confined to those boundary regions is explicitly
 inconclusive diagnostic evidence rather than a false positive. Loop-containing
-bodies are explicitly unavailable because loop-invariant abstraction can
+bodies do not use solver equality because loop-invariant abstraction can
 manufacture a spurious difference even between two copies of the same reference
-body. In the recorded corpus, all 70 non-loop exact fixed-reference copies
-match; the one loop case is unavailable.
+body. For the one recorded loop case, PY02-D05, committed bounded inputs instead
+compile and execute both bodies natively with isolated input bindings. Exit-code
+divergence on an input satisfying `requires` is blocking diagnostic evidence;
+agreement on the finite input set remains inconclusive and never claims
+universal equality. Bounded interaction wall time is recorded under
+`interaction` in the gate evidence rather than verifier-only measurement,
+because each run also compiles, links and executes the harness. In the recorded
+corpus, all 70 non-loop exact
+fixed-reference copies match, and all three correct recorded PY02-D05 fixed
+ports agree on the bounded inputs. The first-day-only positive control diverges
+on the later-day inputs. `proofs/OUTPUT_EQUIVALENCE_COVERAGE.md` quantifies the
+remaining coverage classes over every recorded row. Before bounded interaction,
+the fixed-side coverage gap was one loop-unavailable row per run (PY02-D05),
+plus 3, 4 and 4 boundary-only rows; there were no fixed-side timeout or
+operational rows. The buggy-side raw-accepted rows had 7, 6 and 6 other
+inconclusive comparisons, with one operational row in run 2, but those rows were
+already outside acceptance through replay divergence or other fidelity evidence.
 
 `proofs/output-equivalence-policy.json` records the manual abstraction
 adjudications that keep exact equality from demanding correctness in don't-care
@@ -73,7 +88,9 @@ respectively (GO01-D04, PY02-D08 and TS03-D03 in every run, plus RS01-D06 in
 run 2 and SOL03-D08 in run 3). These are semantic fixed-port errors rather than
 correct-port overblocking; the TS03-D09 rounding implementation and SOL02-D11
 no-previous-bidder difference are boundary-only inconclusive evidence, not
-blocking divergence.
+blocking divergence. PY02-D05 separately pins bounded interaction inputs covering
+the recorded first-day counterexample, later-day-only overtime, exact threshold
+boundaries and mixed three-day aggregation.
 
 The lint is variant-aware and records high-confidence meaning-loss evidence: silent repair, missing modeled operations, guard folding, self-calls and success-flag rewrites. Confirming replay, matched solver output or boundary-only output overrides guard-shape and success-flag lint-only warnings; exact result-state guard folding remains blocking unless output comparison shows no meaningful divergence. Added or removed guard-count warnings remain visible but do not block alone, because legitimate fixed-side translations can differ in guard shape. Neither lint, replay nor output comparison is represented as a formal `refuted` verdict for the original candidate. Replay or output divergence blocks a candidate. Other high-confidence lint blocks when neither semantic check supplies nonblocking evidence (`still_refutes`/`still_holds` or `matched`), except silent repair, missing modeled operations and self-calls, which are structural fidelity loss even when outputs coincide; inconclusive evidence alone does not rewrite a raw proof. A blocked candidate keeps its raw verifier outcome in the committed JSON but is counted as unsupported/inconclusive evidence rather than verification acceptance. The same harness also keeps proofs under weak or vacuous LLM-generated contracts out of acceptance while preserving their raw verifier outcomes.
 

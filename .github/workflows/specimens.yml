@@ -40,6 +40,8 @@ on:
       - "scripts/check_fixed_alarm_regression.py"
       - "tests/test_adversarial_regressions.py"
       - "tests/test_output_equivalence.py"
+      - "scripts/report_output_equivalence_coverage.py"
+      - "tests/test_output_equivalence_coverage.py"
       - ".github/workflows/specimens.yml"
   workflow_dispatch:
 
@@ -96,5 +98,9 @@ jobs:
         run: python3 -m pytest tests/test_adversarial_regressions.py tests/test_output_equivalence.py -q
       - name: Check the adversarial corpus report (offline)
         run: python3 scripts/check_adversarial_port_corpus.py --check
+      - name: Run output-equivalence coverage tests
+        run: python3 -m pytest tests/test_output_equivalence_coverage.py -q
+      - name: Check output-equivalence coverage report (offline)
+        run: python3 scripts/report_output_equivalence_coverage.py --check
       - name: Check fixed-specimen false-alarm regression (offline)
         run: python3 scripts/check_fixed_alarm_regression.py
