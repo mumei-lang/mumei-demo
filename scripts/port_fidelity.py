@@ -751,6 +751,9 @@ def expand_simple_helper_calls(text: str, helpers: dict[str, dict],
                 args = [_tokens_expression(part) for part in arg_parts]
                 if any(re.search(r"\b(?:if|while|let)\b", arg) for arg in args):
                     raise UnsupportedRewrite
+                if any(re.search(rf"\b{re.escape(name)}\s*\(", arg)
+                       for arg in args for name in helpers):
+                    raise UnsupportedRewrite
                 local_names = set(re.findall(r"\blet\s+(\w+)\s*=", text))
                 if any(set(re.findall(r"\b[A-Za-z_]\w*\b", arg)) & local_names for arg in args):
                     raise UnsupportedRewrite

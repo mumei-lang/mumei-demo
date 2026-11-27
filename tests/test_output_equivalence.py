@@ -190,6 +190,15 @@ def test_helper_body_compare_rejects_local_branch_conditions_in_domain() -> None
     assert fidelity.helper_body_compare_text(case, candidate, "fixed") is None
 
 
+def test_simple_helper_rewrite_rejects_nested_helper_arguments() -> None:
+    helpers = {"pick": {"params": [("n", "i64"), ("i", "i64")],
+                        "requires": "0 <= i && i < n", "body": "i"}}
+
+    rewritten = fidelity.expand_simple_helper_calls("pick(n, pick(n, i))", helpers, {"n", "i"})
+
+    assert rewritten is None
+
+
 def test_bounded_interaction_tool_failure_is_inconclusive(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(fidelity, "run_bounded_interaction_text", lambda *_args: {
         "exit_code": 1, "output_tail": "compiler error", "seconds": 0.1, "budget_seconds": 5})
