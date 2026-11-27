@@ -96,7 +96,6 @@ jobs:
           OPENAI_API_KEY: ""
           CI_FIXTURE_MODE: "1"
           MUMEI_BIN: ${{ github.workspace }}/.mumei/mumei/target/release/mumei
-          PYTHONPATH: ${{ github.workspace }}/.mumei/mumei-agent
           AUDIT_TARGET: ${{ github.workspace }}/src
         run: |
           mkdir -p "$GITHUB_WORKSPACE/evidence-pack"
@@ -107,7 +106,7 @@ jobs:
             echo "no reviewed baseline found; using an empty bootstrap baseline"
           fi
           set +e
-          "$GITHUB_WORKSPACE/.mumei/.venv/bin/python" -m agent audit \
+          "$GITHUB_WORKSPACE/.mumei/.venv/bin/mumei-agent" audit \
             --code-file "$AUDIT_TARGET" \
             --format json \
             --auto-migrate \
@@ -178,10 +177,16 @@ jobs:
 
       - name: Upload SARIF when the audit CLI emits it
         if: always() && hashFiles('evidence-pack/audit.sarif') != ''
+        id: upload-sarif
         uses: github/codeql-action/upload-sarif@v4
         continue-on-error: true
         with:
           sarif_file: evidence-pack/audit.sarif
+
+      - name: Record SARIF upload outcome
+        if: always()
+        run: |
+          echo "- code scanning upload: ${{ steps.upload-sarif.outcome }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload evidence pack
         if: always()

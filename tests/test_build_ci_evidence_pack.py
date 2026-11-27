@@ -463,9 +463,11 @@ def test_reference_workflow_uses_upstream_sarif_baseline_and_fail_on_contract() 
     assert "mumei.audit-baseline/v1" in workflow
     assert "if: always() && hashFiles('evidence-pack/audit.sarif') != ''" in workflow
     assert "continue-on-error: true" in workflow
-    assert "PYTHONPATH: ${{ github.workspace }}/.mumei/mumei-agent" in workflow
+    assert ".mumei/.venv/bin/mumei-agent\" audit" in workflow
+    assert "PYTHONPATH:" not in workflow
     assert "working-directory: .mumei/mumei-agent\n        env:\n          # Empty values" not in workflow
     assert "upload-sarif" in workflow
+    assert "steps.upload-sarif.outcome" in workflow
     assert "CI policy, not evidence" in workflow
     assert "--emit-sarif" not in workflow
     assert "--format sarif" not in workflow
