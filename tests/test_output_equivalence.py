@@ -84,7 +84,8 @@ def test_bounded_interaction_harness_pins_inputs_and_runtime_exit_codes() -> Non
 
     assert "atom main() -> i64" in text
     assert text.count("let daily = [0, 10];") == 3
-    assert "if !(len(daily) == n && n >= 1) { 43 }" in text
+    assert "let contract_holds = len(daily) == n && n >= 1;" in text
+    assert "if !(contract_holds) { 43 }" in text
     assert "if reference == candidate { 0 } else { 42 }" in text
 
 

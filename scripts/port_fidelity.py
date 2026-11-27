@@ -665,7 +665,7 @@ def bounded_interaction_text(case: dict, candidate_body: str, values: dict,
     if not reference or not candidate:
         raise ValueError("empty reference or candidate body")
     params = atom_params(case["header"])
-    if any(name in {"reference", "candidate"} for name, _ in params):
+    if any(name in {"reference", "candidate", "contract_holds"} for name, _ in params):
         raise ValueError("parameter names collide with comparison bindings")
     assignments = [f"let {name} = {mm_literal(values[name])};" for name, _ in params]
     policy = output_policy(case)
@@ -677,6 +677,7 @@ def bounded_interaction_text(case: dict, candidate_body: str, values: dict,
             + "    ensures: true;\n"
             + "    body: {\n"
             + "".join("        " + assignment + "\n" for assignment in assignments)
+            + f"        let contract_holds = {requires};\n"
             + "        let reference = {\n"
             + "".join("            " + assignment + "\n" for assignment in assignments)
             + textwrap_indent(reference, "            ") + "\n"
@@ -685,7 +686,7 @@ def bounded_interaction_text(case: dict, candidate_body: str, values: dict,
             + "".join("            " + assignment + "\n" for assignment in assignments)
             + textwrap_indent(candidate, "            ") + "\n"
             + "        };\n"
-            + f"        if !({requires}) {{ 43 }} else {{ if {comparison} {{ 0 }} else {{ 42 }} }}\n"
+            + f"        if !(contract_holds) {{ 43 }} else {{ if {comparison} {{ 0 }} else {{ 42 }} }}\n"
             + "    }\n")
 
 
