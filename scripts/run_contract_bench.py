@@ -364,6 +364,21 @@ def fidelity_gate_reasons(gate: dict) -> list[str]:
     return reasons
 
 
+def fidelity_gate_blocked(blocking: list[dict], semantic: dict, equivalence: dict, variant: str) -> bool:
+    """Shared port-fidelity acceptance rule for live gating and offline validation."""
+    confirming = "still_refutes" if variant == "buggy" else "still_holds"
+    structural_meaning_loss = any(finding.get("kind") in {"silent_repair", "missing_modeled_operation", "self_call"}
+                                  for finding in blocking)
+    nonblocking_output = (equivalence.get("outcome") == "matched"
+                          or equivalence.get("reason") == "abstraction_boundary_only")
+    hard_meaning_loss = (any(finding.get("kind") == "guard_folding" for finding in blocking)
+                         and not nonblocking_output)
+    nonblocking_semantic_evidence = semantic.get("outcome") == confirming or nonblocking_output
+    return (semantic.get("outcome") == "diverged" or equivalence.get("outcome") == "diverged"
+            or structural_meaning_loss or hard_meaning_loss
+            or (not nonblocking_semantic_evidence and bool(blocking)))
+
+
 def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str, timeout: int,
                              variant: str = "buggy") -> dict:
     """Attach fidelity acceptance evidence to a raw verifier result.
@@ -379,23 +394,12 @@ def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str
     ]
     semantic = semantic_port_replay(case, body, mumei_bin, timeout, variant)
     equivalence = fidelity.output_equivalence(case, body, mumei_bin, timeout, variant)
-    confirming = "still_refutes" if variant == "buggy" else "still_holds"
     blocking = fidelity.blocking_lint_findings(linted)
     # Confirming reference replay, solver output equality or proof that a difference
     # is confined to an adjudicated boundary is stronger semantic evidence than
-    # guard-shape lint. Structural fidelity loss still blocks, and
-    # divergence always blocks; neither replay nor output equality is represented
-    # as a formal refutation of the candidate.
-    structural_meaning_loss = any(finding.get("kind") in {"silent_repair", "missing_modeled_operation", "self_call"}
-                                  for finding in blocking)
-    nonblocking_output = (equivalence.get("outcome") == "matched"
-                          or equivalence.get("reason") == "abstraction_boundary_only")
-    hard_meaning_loss = (any(finding.get("kind") == "guard_folding" for finding in blocking)
-                         and not nonblocking_output)
-    nonblocking_semantic_evidence = semantic["outcome"] == confirming or nonblocking_output
-    blocked = (semantic["outcome"] == "diverged" or equivalence.get("outcome") == "diverged"
-               or structural_meaning_loss or hard_meaning_loss
-               or (not nonblocking_semantic_evidence and bool(blocking)))
+    # guard-shape lint. Neither replay nor output equality is represented as a
+    # formal refutation of the candidate.
+    blocked = fidelity_gate_blocked(blocking, semantic, equivalence, variant)
     gate = {"schema": "mumei-demo.port-fidelity-gate/v11", "detector_version": fidelity.DETECTOR_VERSION,
             "variant": variant,
             "decision": "blocked" if blocked else "accepted",
@@ -1505,23 +1509,11 @@ def fidelity_problems(results: list[dict], cases: list[dict] | None = None) -> l
                                 problems.append(f"{prefix} is blocked without the explicit unsupported/inconclusive projection")
                         if gate.get("decision") == "accepted":
                             semantic = gate.get("semantic_replay", {})
-                            confirming = "still_refutes" if variant == "buggy" else "still_holds"
                             blocking = gate.get("blocking_lint_findings")
                             if blocking is None:
                                 blocking = fidelity.blocking_lint_findings(gate.get("lint_findings") or [])
-                            outcome = semantic.get("outcome")
                             equivalence = gate.get("output_equivalence", {}) or {}
-                            structural_meaning_loss = any(
-                                finding.get("kind") in {"silent_repair", "missing_modeled_operation", "self_call"}
-                                for finding in blocking)
-                            nonblocking_output = (equivalence.get("outcome") == "matched"
-                                                  or equivalence.get("reason") == "abstraction_boundary_only")
-                            hard_meaning_loss = (any(finding.get("kind") == "guard_folding" for finding in blocking)
-                                                 and not nonblocking_output)
-                            nonblocking_semantic_evidence = outcome == confirming or nonblocking_output
-                            if (outcome == "diverged" or equivalence.get("outcome") == "diverged"
-                                    or structural_meaning_loss or hard_meaning_loss
-                                    or (not nonblocking_semantic_evidence and blocking)):
+                            if fidelity_gate_blocked(blocking, semantic, equivalence, variant):
                                 problems.append(f"{prefix} is accepted despite blocking fidelity evidence")
             if doc["arm"] == "llm-contract":
                 for record in run:
