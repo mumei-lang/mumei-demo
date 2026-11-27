@@ -1964,8 +1964,8 @@ def test_main_rescore_both_modes_keeps_separate_summaries(tmp_path, monkeypatch)
     specimens, d = _rescore_tree(tmp_path, monkeypatch)
     _add_llm_audit(d)
     history = {"schema": 2, "runs": [
-        {**_run(llm=False), "audit_seconds": 10.0},
-        {**_run(llm=True), "audit_seconds": 20.0, "llm_cost_usd": 0.25},
+        {**_run(llm=False, date="2025-01-01"), "audit_seconds": 10.0},
+        {**_run(llm=True, date="2025-01-01"), "audit_seconds": 20.0, "llm_cost_usd": 0.25},
     ]}
     (specimens / "scoreboard").mkdir(exist_ok=True)
     (specimens / "scoreboard" / "history.json").write_text(json.dumps(history))
