@@ -187,6 +187,19 @@ def test_simple_helper_rewrite_substitutes_parameters_simultaneously() -> None:
     assert rewritten["text"] == "( ( y ) )"
 
 
+def test_simple_helper_atoms_rejects_trusted_and_extern_declarations() -> None:
+    prelude = """trusted atom hidden(x: i64) -> i64
+    requires: true;
+    ensures: result == x;
+    body: { x }
+extern atom visible(x: i64) -> i64
+    requires: true;
+    ensures: result == x;
+    body: { x }"""
+
+    assert fidelity.simple_helper_atoms(prelude) == {}
+
+
 def test_bounded_interaction_tool_failure_is_inconclusive(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(fidelity, "run_bounded_interaction_text", lambda *_args: {
         "exit_code": 1, "output_tail": "compiler error", "seconds": 0.1, "budget_seconds": 5})

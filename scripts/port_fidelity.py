@@ -612,13 +612,15 @@ def simple_helper_atoms(prelude: str) -> dict[str, dict]:
     opaque instead of being rewritten by the diagnostic comparison.
     """
     pattern = re.compile(
-        r"\batom\s+(\w+)\s*\(([^)]*)\)\s*->\s*(\w+)\s+"
+        r"\b(?:(trusted|extern)\s+)?atom\s+(\w+)\s*\(([^)]*)\)\s*->\s*(\w+)\s+"
         r"requires:\s*([^;]+);\s*"
         r"ensures:\s*[^;]+;\s*"
         r"body:\s*\{\s*([^{};]+?)\s*\}", re.S)
     helpers = {}
     for match in pattern.finditer(prelude):
-        name, params_text, return_type, requires, body = match.groups()
+        marker, name, params_text, return_type, requires, body = match.groups()
+        if marker:
+            continue
         if return_type not in {"i64", "bool"}:
             continue
         params = []
