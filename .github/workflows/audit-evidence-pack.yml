@@ -55,6 +55,8 @@ jobs:
 
       - name: Install Z3 and LLVM 17
         run: |
+          # The hosted runner's unused Microsoft package feed intermittently returns 403.
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
           apt_update() {
             for attempt in 1 2 3; do
               if sudo apt-get --error-on=any update; then

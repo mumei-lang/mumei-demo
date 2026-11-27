@@ -87,6 +87,8 @@ jobs:
           python-version: "3.12"
       - name: Install Z3 + LLVM 17
         run: |
+          # The hosted runner's unused Microsoft package feed intermittently returns 403.
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
           sudo apt-get update
           sudo apt-get install -y libz3-dev pkg-config libssl-dev libzstd-dev z3
           wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
