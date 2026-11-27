@@ -273,6 +273,26 @@ False alarms on fixed code count findings on specimens with their `fixed.patch` 
 planted defect repaired) that no ruling marks as real, shown as false alarms / specimens covered.
 <!-- scoreboard:end -->
 
+## Intent-fidelity and fixed-alarm regression gates
+
+`proofs/adversarial/intent-fidelity-corpus.json` pins adversarial generated-contract
+and body-port shapes for guard folding, silent repair, vacuous specs, weak specs and
+body-port meaning loss. `scripts/check_adversarial_port_corpus.py --check` verifies
+that the deterministic fidelity lint still recognizes those shapes and that the
+committed `proofs/ADVERSARIAL.md` report is current.
+
+`specimens/scoreboard/fixed_alarm_budget.json` pins the accepted no-LLM fixed-variant
+false-alarm count. `scripts/check_fixed_alarm_regression.py` recomputes the count from
+the committed `audit/coverage.json` artifacts, compares it with the latest no-LLM
+history entry, and fails when false alarms or unreviewed fixed findings move above
+budget. Lower the budget only after a fresh audited reduction; do not raise it to
+hide a regression. The gate is offline and does not rerun `mumei-agent audit`.
+
+```bash
+python3 scripts/check_adversarial_port_corpus.py --check
+python3 scripts/check_fixed_alarm_regression.py
+```
+
 <!-- baselines:start -->
 ## Compared with baseline analyzers
 
