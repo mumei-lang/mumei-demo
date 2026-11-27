@@ -121,6 +121,28 @@ jobs:
           }
           missing = sorted(required - set(audit))
           assert not missing, missing
+          expected_paths = [
+              "audit.json", "audit.stderr.log", "migration_plan.json", "verification.json",
+              "reference.proof.json", "reference-verify.log", "reference-verify-cert.log",
+              "github-actions-mumei-audit.yml", "summary.md", "manifest.json",
+          ]
+          assert manifest["artifact_paths"] == expected_paths
+          assert manifest["artifact_roles"] == {
+              "audit_report": ["audit.json"],
+              "migration_plan": ["migration_plan.json"],
+              "proof_certificate": ["reference.proof.json"],
+              "native_bundle": [],
+              "adapter_observation": [],
+          }
+          assert audit["artifact_paths"] == manifest["artifact_paths"]
+          assert audit["artifact_roles"] == manifest["artifact_roles"]
+          assert audit["evidence_boundary_by_role"] == manifest["evidence_boundary_by_role"]
+          migration = json.loads((root / "migration_plan.json").read_text())
+          assert migration["artifact_paths"] == manifest["artifact_paths"]
+          assert migration["artifact_roles"] == manifest["artifact_roles"]
+          assert migration["evidence_boundary_by_role"] == manifest["evidence_boundary_by_role"]
+          assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"
+          assert manifest["evidence_roles"]["adapter_observation"]["status"] == "absent"
           print(f"evidence pack artifacts: {len(manifest['artifacts'])}")
           print(f"audit status: {audit['verification_status']}")
           PY
