@@ -1021,16 +1021,28 @@ def test_audit_evidence_workflow_verifies_real_downloaded_artifact() -> None:
     assert "audit-evidence-pack-download-verification:" in workflow
     download_job = workflow.split("  audit-evidence-pack-download-verification:", 1)[1]
     assert "needs: audit-evidence-pack" in download_job
-    assert "uses: actions/download-artifact@v7" in download_job
-    assert "name: ci-audit-evidence-pack" in download_job
-    assert "path: downloaded-evidence-pack" in download_job
-    assert "Resolve downloaded evidence-pack directory" in download_job
-    assert 'candidates = [root, root / "ci-audit-evidence-pack"]' in download_job
-    assert "Verify downloaded evidence pack as a consumer (structural/hash only)" in download_job
-    assert 'python3 mumei-demo/scripts/verify_ci_evidence_pack.py "$EVIDENCE_PACK_DIR"' in download_job
-    assert ".mumei-generated-artifacts" in download_job
-    assert "hidden migration companion rows verified" in download_job
-    assert "strict reference proof revalidation remains in the copy-based harness" in download_job
-    assert "--mumei-bin" not in download_job
-    assert "--reference-contract" not in download_job
+
+    def step_block(step_name: str) -> str:
+        block = download_job.split(f"- name: {step_name}", 1)[1]
+        return block.split("\n      - name:", 1)[0]
+
+    download_step = step_block("Download evidence pack artifact")
+    assert "uses: actions/download-artifact@v7" in download_step
+    assert "name: ci-audit-evidence-pack" in download_step
+    assert "path: downloaded-evidence-pack" in download_step
+    assert "if:" not in download_step
+
+    resolve_step = step_block("Resolve downloaded evidence-pack directory")
+    assert 'candidates = [root, root / "ci-audit-evidence-pack"]' in resolve_step
+    assert "if:" not in resolve_step
+
+    verify_step = step_block("Verify downloaded evidence pack as a consumer (structural/hash only)")
+    assert 'python3 mumei-demo/scripts/verify_ci_evidence_pack.py "$EVIDENCE_PACK_DIR"' in verify_step
+    assert ".mumei-generated-artifacts" in verify_step
+    assert "hidden migration companion rows verified" in verify_step
+    assert "strict reference proof revalidation remains in the copy-based harness" in verify_step
+    assert "--mumei-bin" not in verify_step
+    assert "--reference-contract" not in verify_step
+    assert "if:" not in verify_step
+
     assert "Verify copied evidence pack as a consumer (strict proof revalidation)" in workflow
