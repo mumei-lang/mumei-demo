@@ -8,8 +8,10 @@ on:
       - Makefile
       - scenarios/ci_evidence_pack/**
       - scripts/build_ci_evidence_pack.py
+      - scripts/verify_ci_evidence_pack.py
       - scripts/run_scenario.sh
       - tests/test_build_ci_evidence_pack.py
+      - tests/test_verify_ci_evidence_pack.py
   workflow_dispatch:
 
 concurrency:
@@ -171,6 +173,16 @@ jobs:
           print(f"evidence pack artifacts: {len(manifest['artifacts'])}")
           print(f"audit status: {audit['verification_status']}")
           PY
+        working-directory: mumei-demo
+
+      - name: Verify copied evidence pack as a consumer
+        run: |
+          rm -rf consumer-evidence-pack
+          cp -a reports/ci_evidence_pack/latest/evidence-pack consumer-evidence-pack
+          python scripts/verify_ci_evidence_pack.py consumer-evidence-pack
+          python scripts/verify_ci_evidence_pack.py consumer-evidence-pack \
+            --mumei-bin "${{ github.workspace }}/mumei/target/release/mumei" \
+            --reference-contract scenarios/ci_evidence_pack/reference/safe_divide.mm
         working-directory: mumei-demo
 
       - name: Stage evidence-pack artifact

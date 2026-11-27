@@ -506,6 +506,10 @@ def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:
     assert 'manifest["baseline"]["status"] == "emitted_by_audit_cli"' in workflow
     assert 'manifest["fail_on"]["policy"] == "high-confidence"' in workflow
     assert "include-hidden-files: true" in workflow
+    assert "scripts/verify_ci_evidence_pack.py consumer-evidence-pack" in workflow
+    assert "cp -a reports/ci_evidence_pack/latest/evidence-pack consumer-evidence-pack" in workflow
+    assert "--mumei-bin" in workflow
+    assert "--reference-contract scenarios/ci_evidence_pack/reference/safe_divide.mm" in workflow
     assert 'not_available_in_current_cli' in workflow
     assert 'assert "not evidence" in manifest["evidence_roles"]["ci_policy"]["boundary"]' in workflow
 

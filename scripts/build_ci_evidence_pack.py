@@ -194,7 +194,7 @@ def migration_execution_supported(*, agent_repo: Path, agent_python: Path, env: 
     return completed.returncode == 0 and "--migration-execution-output" in completed.stdout + completed.stderr
 
 
-def _validate_migration_execution(path: Path) -> dict[str, Any]:
+def _validate_migration_execution(path: Path, *, validate_output_path: bool = True) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -255,10 +255,11 @@ def _validate_migration_execution(path: Path) -> dict[str, Any]:
             or not isinstance(artifact_paths.get("migration_execution"), str)
             or not isinstance(artifact_paths.get("generated_artifacts"), str)):
         raise EvidencePackError("migration execution artifact paths are malformed")
-    recorded_output = Path(artifact_paths["migration_execution"])
-    recorded_output = recorded_output if recorded_output.is_absolute() else path.parent / recorded_output
-    if recorded_output.resolve() != path.resolve():
-        raise EvidencePackError("migration execution artifact path does not match the audit output file")
+    if validate_output_path:
+        recorded_output = Path(artifact_paths["migration_execution"])
+        recorded_output = recorded_output if recorded_output.is_absolute() else path.parent / recorded_output
+        if recorded_output.resolve() != path.resolve():
+            raise EvidencePackError("migration execution artifact path does not match the audit output file")
     evidence_boundary = payload.get("evidence_boundary")
     if not isinstance(evidence_boundary, list) or not all(isinstance(item, str) for item in evidence_boundary):
         raise EvidencePackError("migration execution evidence boundary is malformed")
