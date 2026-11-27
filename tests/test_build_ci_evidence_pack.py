@@ -468,17 +468,40 @@ def test_ci_reference_quickstart_statically_covers_migration_action_contract() -
     assert match is not None
     workflow = match.group(1)
 
-    uses = re.search(r"mumei-audit@([0-9a-f]{40})", workflow)
+    uses = re.search(r"mumei-audit@(?<![0-9a-f])([0-9a-f]{40})(?![0-9a-f])", workflow)
     assert uses is not None, "quick start must pin an immutable full action commit"
     assert uses.group(1) != "b81e8d1a5ebc20a28b256df401cd1594f0443e23"
-    for token in (
-        "audit-args: --baseline audit-baseline.json --write-baseline .mumei-audit/generated-baseline.json --fail-on high-confidence",
-        "migration-execution-output: .mumei-audit/migration_execution.json",
-        "artifact-name: mumei-audit-evidence",
-        "upload-sarif: false",
-    ):
-        assert token in workflow
-    assert "\n             migration-execution-output:" in workflow, "input must stay inside the step's with mapping"
+
+    lines = workflow.splitlines()
+    uses_index = next(index for index, line in enumerate(lines) if "mumei-audit@" in line)
+    step_indent = len(lines[uses_index]) - len(lines[uses_index].lstrip())
+    step_end = len(lines)
+    for index in range(uses_index + 1, len(lines)):
+        stripped = lines[index].strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(lines[index]) - len(lines[index].lstrip())
+        if indent < step_indent or (indent == step_indent and stripped.startswith("- ")):
+            step_end = index
+            break
+    step_lines = lines[uses_index:step_end]
+    with_index = next(index for index, line in enumerate(step_lines) if line.strip() == "with:")
+    with_indent = len(step_lines[with_index]) - len(step_lines[with_index].lstrip())
+    input_lines = []
+    for line in step_lines[with_index + 1 :]:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent <= with_indent:
+            break
+        input_lines.append(stripped)
+    inputs = dict(line.split(":", 1) for line in input_lines)
+    inputs = {key.strip(): value.strip() for key, value in inputs.items()}
+    assert inputs["audit-args"] == "--baseline audit-baseline.json --write-baseline .mumei-audit/generated-baseline.json --fail-on high-confidence"
+    assert inputs["migration-execution-output"] == ".mumei-audit/migration_execution.json"
+    assert inputs["artifact-name"] == "mumei-audit-evidence"
+    assert inputs["upload-sarif"] == "false  # set true only when GitHub code scanning is enabled"
     assert "@develop" not in workflow
 
     for phrase in (
