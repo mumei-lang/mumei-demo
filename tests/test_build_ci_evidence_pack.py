@@ -173,6 +173,12 @@ def test_main_makes_relative_agent_python_absolute_without_resolving(tmp_path: P
         captured.update(kwargs)
         return {"schema": pack.PACK_SCHEMA, "artifacts": []}
 
+    real_python = tmp_path / "real-python"
+    real_python.write_text("", encoding="utf-8")
+    link_dir = tmp_path / "venv" / "bin"
+    link_dir.mkdir(parents=True)
+    link_python = link_dir / "python"
+    link_python.symlink_to(real_python)
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(pack, "build_evidence_pack", fake_build)
 
@@ -188,7 +194,8 @@ def test_main_makes_relative_agent_python_absolute_without_resolving(tmp_path: P
 
     agent_python = captured["agent_python"]
     assert agent_python.is_absolute()
-    assert str(agent_python).endswith("venv/bin/python")
+    assert agent_python == link_python
+    assert agent_python != real_python
 
 
 def test_summary_distinguishes_missing_finding_counts_from_zero(tmp_path: Path) -> None:
