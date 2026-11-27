@@ -1,7 +1,7 @@
 {
  "name": "CI Evidence Pack Reference: Deterministic Audit Adoption Path",
  "version": "1.0.0",
- "description": "Reference implementation for the v0.8 CI adoption path. The scenario runs the current mumei-agent audit CLI in deterministic/no-LLM mode, derives a migration plan, verifies a reviewed .mm reference contract, and packages the artifacts with explicit evidence boundaries for GitHub Actions.",
+ "description": "Reference implementation for the v0.8 CI adoption path. The scenario runs the mumei-agent audit CLI in deterministic/no-LLM mode with upstream SARIF, baseline, and fail-on contract artifacts, derives a migration plan, verifies a reviewed .mm reference contract, and packages the artifacts with explicit evidence boundaries for GitHub Actions.",
  "harness_contract": {
   "policy": "scenario-harness/v1",
   "acceptance_path": [
@@ -9,22 +9,23 @@
   ],
   "state_dir": "{output_dir}",
   "state_file": "{output_dir}/harness_state.json",
-  "intent": "Demonstrate a reproducible GitHub Actions evidence-pack shape using only the current audit CLI contract while SARIF, baseline, and fail-on policy support remain unavailable upstream.",
+  "intent": "Demonstrate a reproducible GitHub Actions evidence-pack shape using the upstream audit CLI SARIF/baseline/fail-on contract without fabricating SARIF or treating CI policy as evidence.",
   "artifact_contracts": [
-   "Read inputs: scenarios/ci_evidence_pack/src/ledger.py, reference/safe_divide.mm, and reference/workflows/mumei-audit.yml.",
-   "Run inputs: the current mumei-agent audit CLI with LLM_API_KEY and OPENAI_API_KEY explicitly empty, plus the local mumei verifier.",
-   "Generate evidence: evidence-pack/audit.json, migration_plan.json, verification.json, reference.proof.json, github-actions-mumei-audit.yml, summary.md, manifest.json, and verifier logs.",
-   "Boundary: audit output is not a proof certificate; migration_plan.json is not a completed migration; reference.proof.json proves only the reviewed reference .mm contract.",
-   "Artifact roles: audit.json, migration_plan.json, and manifest.json carry canonical artifact_paths plus a closed artifact_roles map; native_bundle and adapter_observation are empty and must not be relabeled from audit/migration/proof artifacts.",
-   "SARIF boundary: audit.sarif is intentionally absent until mumei-agent emits it; this scenario must not fabricate SARIF in mumei-demo."
+   "Read inputs: scenarios/ci_evidence_pack/src/ledger.py, reference/safe_divide.mm, reference/audit-baseline.json, and reference/workflows/mumei-audit.yml.",
+   "Run inputs: the current mumei-agent audit CLI with LLM_API_KEY and OPENAI_API_KEY explicitly empty, --sarif-output, --baseline, --write-baseline, --fail-on high-confidence, plus the local mumei verifier.",
+   "Generate evidence and policy artifacts: evidence-pack/audit.json, audit.sarif, audit-baseline.json, migration_plan.json, verification.json, reference.proof.json, github-actions-mumei-audit.yml, summary.md, manifest.json, and verifier logs.",
+   "Boundary: audit output and SARIF are not proof certificates; migration_plan.json is not a completed migration; reference.proof.json proves only the reviewed reference .mm contract.",
+   "Artifact roles: audit.json, migration_plan.json, and manifest.json carry canonical artifact_paths plus a closed artifact_roles map; audit.sarif stays inside audit_report, audit-baseline.json is ci_policy, and native_bundle/adapter_observation are empty and must not be relabeled.",
+   "SARIF boundary: audit.sarif must be emitted by mumei-agent; this scenario must not fabricate SARIF in mumei-demo.",
+   "CI policy boundary: audit-baseline.json suppresses reviewed findings for CI policy only; it is not evidence and must not participate in proof acceptance."
   ],
   "gate_order": [
    "l1_ci_reference"
   ],
   "notes": [
-   "The scenario uses the current audit CLI because mumei-agent A-1/A-2 CI contracts are still independent upstream work.",
+   "The scenario uses the upstream audit CLI SARIF/baseline/fail-on contract merged in mumei-agent A-1/A-2.",
    "deterministic/no-LLM means the audit child process receives empty LLM_API_KEY and OPENAI_API_KEY values; it does not mean every upstream extraction ambiguity is resolved.",
-   "The reference workflow uploads SARIF only conditionally, when a future audit CLI writes evidence-pack/audit.sarif."
+   "The reference workflow uploads SARIF only after validating that the upstream audit CLI wrote evidence-pack/audit.sarif."
   ]
  },
  "layers": [
@@ -43,8 +44,8 @@
      "icon": "PASS",
      "headline": "CI evidence pack built with deterministic audit and explicit boundaries",
      "follow_up": [
-      "  audit.sarif is absent by design until the upstream CLI emits SARIF",
-      "  migration hints remain human-review input rather than verified migration evidence"
+      "  audit.sarif and audit-baseline.json are emitted by the upstream audit CLI, not fabricated by the demo",
+      "  audit-baseline.json is CI policy only; migration hints remain human-review input rather than verified migration evidence"
      ]
     }
    }
@@ -62,11 +63,15 @@
     "expected_patterns": [
      "evidence pack schema: mumei-demo.ci-evidence-pack/v1",
      "deterministic audit mode: no LLM credentials",
-     "sarif status: not_available_in_current_cli"
+     "sarif status: emitted_by_audit_cli",
+     "baseline status: emitted_by_audit_cli",
+     "fail-on policy: high-confidence"
     ],
     "artifacts": [
      "evidence-pack/audit.json",
      "evidence-pack/audit.stderr.log",
+     "evidence-pack/audit.sarif",
+     "evidence-pack/audit-baseline.json",
      "evidence-pack/migration_plan.json",
      "evidence-pack/verification.json",
      "evidence-pack/reference.proof.json",
@@ -78,44 +83,50 @@
     ],
     "harness_stage": "S1_ci_reference_build_evidence_pack",
     "artifact_contract": [
-     "evidence-pack/audit.json preserves the current fixed audit keys and records the raw audit CLI exit code without interpreting it as a future fail-on policy.",
+     "evidence-pack/audit.json preserves the current fixed audit keys and records the upstream fail-on audit exit code; exit 1 fails the reference gate after the pack is written, while exit 2 is an operational failure.",
+     "evidence-pack/audit.sarif is validated as SARIF 2.1.0 emitted by mumei-agent audit; the demo must not fabricate SARIF.",
+     "evidence-pack/audit-baseline.json is validated as mumei.audit-baseline/v1 and is CI suppression policy, not evidence or proof acceptance.",
      "evidence-pack/migration_plan.json is derived only from migration_hints and marks every candidate human_review_required.",
      "evidence-pack/reference.proof.json is produced by mumei verify and rechecked by mumei verify-cert --strict for reference/safe_divide.mm.",
-     "evidence-pack/manifest.json binds artifact SHA-256 values, keeps native_bundle and adapter_observation empty in artifact_roles, and states that no Python/.mm semantic equivalence is established.",
+     "evidence-pack/manifest.json binds artifact SHA-256 values, keeps native_bundle and adapter_observation empty in artifact_roles, assigns audit-baseline.json to ci_policy, and states that no Python/.mm semantic equivalence is established.",
      "evidence-pack/github-actions-mumei-audit.yml is copied byte-for-byte from the reviewed reference workflow template."
     ],
-    "verifier_gate": "The builder exits 0, audit JSON contains every fixed key, migration_hints yields at least one high-priority review candidate for the division fixture, audit/migration/manifest artifact boundary metadata agrees, the reference proof certificate has all_verified=true, and manifest.json declares SARIF as not_available_in_current_cli."
+    "verifier_gate": "The builder exits 0 for the compliant fixture, audit JSON contains every fixed key, migration_hints yields at least one high-priority review candidate for the division fixture, audit/migration/manifest artifact boundary metadata agrees, the reference proof certificate has all_verified=true, and manifest.json records SARIF/baseline as emitted_by_audit_cli with baseline assigned to ci_policy."
    }
   ]
  },
  "intent_fidelity": {
   "status": "TRACEABLE",
   "score": 1.0,
-  "source_intent": "v0.8 D-1: provide a deterministic GitHub Actions reference scenario and public evidence pack without changing the audit CLI contract or waiting for upstream SARIF/baseline support.",
+  "source_intent": "v0.8 D-2: integrate the deterministic GitHub Actions evidence pack with the upstream audit SARIF, baseline, and fail-on contract while preserving the demo no-fabrication and evidence-boundary rules.",
   "success_criteria": [
    "The current audit CLI runs with no LLM credentials and its fixed JSON keys are preserved.",
-   "The pack contains audit, migration plan, proof-certificate path, workflow template, summary, and manifest artifacts.",
-   "SARIF absence is explicit and no demo-side SARIF file is fabricated.",
-   "Evidence boundaries separate audit findings, migration scaffolding, reference contract proof, and implementation equivalence."
+   "The pack contains audit JSON, upstream-emitted SARIF, upstream-refreshed baseline, migration plan, proof-certificate path, workflow template, summary, and manifest artifacts.",
+   "SARIF is never fabricated by mumei-demo, and baseline is labeled ci_policy rather than evidence.",
+   "Evidence boundaries separate audit findings, CI policy, migration scaffolding, reference contract proof, and implementation equivalence."
   ],
   "expected_user_observable_behavior": [
    "A reviewer can download one CI artifact and understand what each file does and does not prove.",
-   "A repository owner can copy the reference workflow shape and adjust AUDIT_TARGET for its own source tree.",
-   "CI does not fail because audit.sarif is absent before upstream SARIF support exists."
+   "A repository owner can copy the reference workflow shape, bootstrap a reviewed baseline, and adjust AUDIT_TARGET for its own source tree.",
+   "CI fails through the upstream fail-on policy only when non-suppressed findings satisfy the selected policy; baseline suppression never rewrites the fixed audit keys."
   ],
-  "drift_risk": "Upstream audit output can improve or change verdicts; the scenario gates the fixed key contract and deterministic invocation rather than a specific future SARIF or baseline format."
+  "drift_risk": "Upstream audit output can improve or change verdicts and fingerprints; the scenario gates the fixed key contract, SARIF/baseline schemas, deterministic invocation, and boundary metadata rather than a specific finding count."
  },
  "success_criteria": [
   "evidence-pack/manifest.json uses schema mumei-demo.ci-evidence-pack/v1",
   "evidence-pack/audit.json includes all current fixed audit keys",
+  "evidence-pack/audit.sarif is valid SARIF 2.1.0 emitted by the upstream audit CLI",
+  "evidence-pack/audit-baseline.json is valid mumei.audit-baseline/v1 and labeled ci_policy rather than evidence",
   "evidence-pack/migration_plan.json contains the divide migration review candidate",
   "audit.json, migration_plan.json, and manifest.json agree on canonical artifact_paths and closed artifact_roles",
   "evidence-pack/reference.proof.json has all_verified=true",
-  "evidence-pack/github-actions-mumei-audit.yml conditionally uploads SARIF only when the file exists"
+  "evidence-pack/github-actions-mumei-audit.yml uses the upstream SARIF/baseline/fail-on contract and uploads SARIF only when the file exists"
  ],
  "artifact_paths": [
   "{output_dir}/build_evidence_pack.log",
   "{output_dir}/evidence-pack/audit.json",
+  "{output_dir}/evidence-pack/audit.sarif",
+  "{output_dir}/evidence-pack/audit-baseline.json",
   "{output_dir}/evidence-pack/migration_plan.json",
   "{output_dir}/evidence-pack/verification.json",
   "{output_dir}/evidence-pack/reference.proof.json",
@@ -126,5 +137,5 @@
   "{output_dir}/result.json"
  ],
  "budget_policy_fingerprint": "deterministic-ci-evidence-pack-v1",
- "result_message": "Result: deterministic CI evidence pack built; SARIF and baseline boundaries are explicit."
+ "result_message": "Result: deterministic CI evidence pack built; upstream SARIF/baseline/fail-on artifacts are present and evidence boundaries are explicit."
 }

@@ -111,8 +111,13 @@ jobs:
           root = Path("reports/ci_evidence_pack/latest/evidence-pack")
           manifest = json.loads((root / "manifest.json").read_text())
           assert manifest["schema"] == "mumei-demo.ci-evidence-pack/v1"
-          assert manifest["sarif"]["status"] == "not_available_in_current_cli"
-          assert not (root / "audit.sarif").exists()
+          assert manifest["sarif"]["status"] == "emitted_by_audit_cli"
+          assert manifest["baseline"]["status"] == "emitted_by_audit_cli"
+          assert manifest["fail_on"]["policy"] == "high-confidence"
+          sarif = json.loads((root / "audit.sarif").read_text())
+          assert sarif["version"] == "2.1.0"
+          baseline = json.loads((root / "audit-baseline.json").read_text())
+          assert baseline["version"] == "mumei.audit-baseline/v1"
           audit = json.loads((root / "audit.json").read_text())
           required = {
               "spec_health_issues", "verification_violations", "verification_status",
@@ -122,15 +127,17 @@ jobs:
           missing = sorted(required - set(audit))
           assert not missing, missing
           expected_paths = [
-              "audit.json", "audit.stderr.log", "migration_plan.json", "verification.json",
-              "reference.proof.json", "reference-verify.log", "reference-verify-cert.log",
+              "audit.json", "audit.stderr.log", "audit.sarif", "audit-baseline.json",
+              "migration_plan.json", "verification.json", "reference.proof.json",
+              "reference-verify.log", "reference-verify-cert.log",
               "github-actions-mumei-audit.yml", "summary.md", "manifest.json",
           ]
           assert manifest["artifact_paths"] == expected_paths
           assert manifest["artifact_roles"] == {
-              "audit_report": ["audit.json"],
+              "audit_report": ["audit.json", "audit.sarif"],
               "migration_plan": ["migration_plan.json"],
               "proof_certificate": ["reference.proof.json"],
+              "ci_policy": ["audit-baseline.json"],
               "native_bundle": [],
               "adapter_observation": [],
           }
@@ -141,6 +148,8 @@ jobs:
           assert migration["artifact_paths"] == manifest["artifact_paths"]
           assert migration["artifact_roles"] == manifest["artifact_roles"]
           assert migration["evidence_boundary_by_role"] == manifest["evidence_boundary_by_role"]
+          assert manifest["evidence_roles"]["ci_policy"]["status"] == "present"
+          assert "not evidence" in manifest["evidence_roles"]["ci_policy"]["boundary"]
           assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"
           assert manifest["evidence_roles"]["adapter_observation"]["status"] == "absent"
           print(f"evidence pack artifacts: {len(manifest['artifacts'])}")
@@ -166,8 +175,9 @@ jobs:
         working-directory: mumei-demo
 
       - name: Upload SARIF when the audit CLI emits it
-        if: hashFiles('mumei-demo/ci-evidence-pack-artifact/audit.sarif') != ''
+        if: always() && hashFiles('mumei-demo/ci-evidence-pack-artifact/audit.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
+        continue-on-error: true
         with:
           sarif_file: mumei-demo/ci-evidence-pack-artifact/audit.sarif
 

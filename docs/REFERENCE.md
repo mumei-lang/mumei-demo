@@ -145,7 +145,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/check_adversarial_port_corpus.py` | 3 | Check the pinned adversarial intent-fidelity corpus offline. The corpus in proofs/adversarial/ is deliberately static: it does not call an LLM or Mumei. It pins hostile generated-contract and body-port shapes to the structured warnings produced by run_port_divergence.py, so detector regressions are visible in CI before another false-acceptance measurement is interpreted. |
 | `scripts/check_fixed_alarm_regression.py` | 4 | Regression gate for false alarms on fixed specimen variants. This is an offline gate over the committed no-LLM `audit/coverage.json` artifacts. It does not rerun `mumei-agent audit`; it prevents the recorded fixed-variant alarm count from silently moving upward and keeps unreviewed fixed-variant findings visible as adjudication debt. |
 | `scripts/review_charter_baseline.py` | 2 | Publish the reviewed Charter inputs and their Git diff, not an approval verdict. |
-| `scripts/build_ci_evidence_pack.py` | 5 | Build the deterministic CI audit evidence-pack reference artifact. The pack intentionally uses the current audit CLI contract. It records the absence of SARIF/baseline support as an explicit capability boundary instead of synthesizing those artifacts in the demo repository. |
+| `scripts/build_ci_evidence_pack.py` | 5 | Build the deterministic CI audit evidence-pack reference artifact. The pack uses the upstream audit CLI contract for SARIF, baselines, and fail-on policy. SARIF is emitted only by `mumei-agent audit`; the demo never fabricates it, and baseline artifacts are CI policy rather than evidence. |
 | `dashboard/cli_report.py` | 1 | Render a Mumei verification report. |
 
 ### `scripts/generate_report.py`
@@ -398,7 +398,7 @@ Publish the reviewed Charter inputs and their Git diff, not an approval verdict.
 
 ### `scripts/build_ci_evidence_pack.py`
 
-Build the deterministic CI audit evidence-pack reference artifact. The pack intentionally uses the current audit CLI contract. It records the absence of SARIF/baseline support as an explicit capability boundary instead of synthesizing those artifacts in the demo repository.
+Build the deterministic CI audit evidence-pack reference artifact. The pack uses the upstream audit CLI contract for SARIF, baselines, and fail-on policy. SARIF is emitted only by `mumei-agent audit`; the demo never fabricates it, and baseline artifacts are CI policy rather than evidence.
 
 | Option | Value | Required | Default | Description |
 |---|---|---|---|---|

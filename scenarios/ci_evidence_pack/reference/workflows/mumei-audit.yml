@@ -8,8 +8,8 @@ on:
 
 permissions:
   contents: read
-  # Needed only when the future audit CLI emits audit.sarif and the optional
-  # upload step runs. No token or secret value is written to the evidence pack.
+  # Needed for uploading the audit CLI's SARIF rendering to code scanning.
+  # No token or secret value is written to the evidence pack.
   security-events: write
 
 concurrency:
@@ -84,8 +84,11 @@ jobs:
           fi
         working-directory: .mumei/mumei-agent
 
+      # Bootstrap path: the first run writes evidence-pack/audit-baseline.json.
+      # Review that artifact, commit it as .mumei/audit-baseline.json in the
+      # audited repository, and later runs pass it through --baseline so only
+      # new high-confidence code evidence fails the gate.
       - name: Run deterministic audit
-        working-directory: .mumei/mumei-agent
         env:
           # Empty values keep the current audit CLI on its deterministic parser
           # path even when a local .env exists in a development checkout.
@@ -96,25 +99,45 @@ jobs:
           AUDIT_TARGET: ${{ github.workspace }}/src
         run: |
           mkdir -p "$GITHUB_WORKSPACE/evidence-pack"
+          baseline_input="$GITHUB_WORKSPACE/.mumei/audit-baseline.json"
+          if [ ! -f "$baseline_input" ]; then
+            baseline_input="$RUNNER_TEMP/mumei-empty-audit-baseline.json"
+            printf '%s\n' '{"version":"mumei.audit-baseline/v1","fingerprints":[]}' > "$baseline_input"
+            echo "no reviewed baseline found; using an empty bootstrap baseline"
+          fi
           set +e
-          "$GITHUB_WORKSPACE/.mumei/.venv/bin/python" -m agent audit \
+          "$GITHUB_WORKSPACE/.mumei/.venv/bin/mumei-agent" audit \
             --code-file "$AUDIT_TARGET" \
             --format json \
             --auto-migrate \
+            --sarif-output "$GITHUB_WORKSPACE/evidence-pack/audit.sarif" \
+            --baseline "$baseline_input" \
+            --write-baseline "$GITHUB_WORKSPACE/evidence-pack/audit-baseline.json" \
+            --fail-on high-confidence \
             > "$GITHUB_WORKSPACE/evidence-pack/audit.json" \
             2> "$GITHUB_WORKSPACE/evidence-pack/audit.stderr.log"
           audit_exit=$?
           set -e
           cat "$GITHUB_WORKSPACE/evidence-pack/audit.stderr.log" >&2
           echo "$audit_exit" > "$GITHUB_WORKSPACE/evidence-pack/audit.exitcode.txt"
-          # The current CLI has no stable fail-on contract. Keep a valid JSON
-          # report reviewable; the validation step fails only if no contract
-          # JSON was produced. Execution errors remain visible in the step log.
-          if [ "$audit_exit" -ne 0 ] && [ ! -s "$GITHUB_WORKSPACE/evidence-pack/audit.json" ]; then
-            exit "$audit_exit"
+          if [ ! -s "$GITHUB_WORKSPACE/evidence-pack/audit.json" ]; then
+            echo "audit did not produce contract JSON" >&2
+            exit 2
           fi
+          if [ ! -s "$GITHUB_WORKSPACE/evidence-pack/audit.sarif" ]; then
+            echo "audit did not produce SARIF" >&2
+            exit 2
+          fi
+          if [ ! -s "$GITHUB_WORKSPACE/evidence-pack/audit-baseline.json" ]; then
+            echo "audit did not refresh the baseline" >&2
+            exit 2
+          fi
+          # Exit 1 is the upstream finding-policy failure. Preserve the uploaded
+          # artifacts through the always() steps below while still failing the gate.
+          exit "$audit_exit"
 
       - name: Validate current audit contract
+        if: always()
         run: |
           python - <<'PY'
           import json
@@ -128,25 +151,42 @@ jobs:
           missing = [key for key in required if key not in payload]
           if missing:
               raise SystemExit(f"audit contract missing keys: {missing}")
+          sarif = json.loads(Path("evidence-pack/audit.sarif").read_text())
+          if sarif.get("version") != "2.1.0" or not sarif.get("runs"):
+              raise SystemExit("audit.sarif is not a SARIF 2.1.0 document")
+          baseline = json.loads(Path("evidence-pack/audit-baseline.json").read_text())
+          if baseline.get("version") != "mumei.audit-baseline/v1" or not isinstance(baseline.get("fingerprints"), list):
+              raise SystemExit("audit-baseline.json is not mumei.audit-baseline/v1")
           print(f"audit status: {payload.get('verification_status')}")
           print(f"migration candidates: {len(payload.get('migration_hints', []))}")
+          print(f"baseline fingerprints: {len(baseline['fingerprints'])}")
           PY
 
       - name: Write job summary
+        if: always()
         run: |
           {
             echo "# Mumei audit evidence"
             echo
             echo "- deterministic/no-LLM audit mode"
             echo "- audit JSON: \`evidence-pack/audit.json\`"
-            echo "- SARIF: not emitted by the current audit CLI"
+            echo "- SARIF: \`evidence-pack/audit.sarif\` emitted by the upstream audit CLI"
+            echo "- baseline: \`evidence-pack/audit-baseline.json\` is CI policy, not evidence"
+            echo "- fail-on policy: \`high-confidence\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload SARIF when the audit CLI emits it
-        if: hashFiles('evidence-pack/audit.sarif') != ''
+        if: always() && hashFiles('evidence-pack/audit.sarif') != ''
+        id: upload-sarif
         uses: github/codeql-action/upload-sarif@v4
+        continue-on-error: true
         with:
           sarif_file: evidence-pack/audit.sarif
+
+      - name: Record SARIF upload outcome
+        if: always()
+        run: |
+          echo "- code scanning upload: ${{ steps.upload-sarif.outcome }}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload evidence pack
         if: always()
