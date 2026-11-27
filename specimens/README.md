@@ -279,7 +279,9 @@ planted defect repaired) that no ruling marks as real, shown as false alarms / s
 and body-port shapes for guard folding, silent repair, vacuous specs, weak specs and
 body-port meaning loss. `scripts/check_adversarial_port_corpus.py --check` verifies
 that the deterministic fidelity lint still recognizes those shapes and that the
-committed `proofs/ADVERSARIAL.md` report is current.
+committed `proofs/ADVERSARIAL.md` report is current. Generated-contract warnings are
+corpus-side static lint only; they are not yet emitted in contract-benchmark output,
+port replay JSON, or audit findings.
 
 `specimens/scoreboard/fixed_alarm_budget.json` pins the accepted no-LLM fixed-variant
 false-alarm count. `scripts/check_fixed_alarm_regression.py` recomputes the count from

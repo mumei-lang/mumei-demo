@@ -66,7 +66,10 @@ and exact token-level matches with the fixed reference port. In the recorded run
 the fixed-reference rule fires three times, which is high-confidence evidence of
 silent repair rather than a semantic proof: the model may omit unrelated source
 operations, encode a source operation differently, or write an equivalent repair
-that does not match the reference token pattern. The JSON `lint_counts` total
+that does not match the reference token pattern. When the exact fixed-reference
+rule fires, the more generic added-guard warning is suppressed so one mechanism is
+not double-counted; older output may classify the same rows only as added guards.
+The JSON `lint_counts` total
 counts warning instances rather than misaccepted case-runs: one accepted port can
 carry several warnings, so the lint total (41 in the recorded runs) is not
 expected to equal the 26 primary-mechanism rows in the table above.
