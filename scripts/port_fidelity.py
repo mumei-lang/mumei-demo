@@ -678,20 +678,32 @@ def bounded_interaction_text(case: dict, candidate_body: str, values: dict,
             + "    body: {\n"
             + "".join("        " + assignment + "\n" for assignment in assignments)
             + f"        let contract_holds = {requires};\n"
-            + "        let reference = {\n"
-            + "".join("            " + assignment + "\n" for assignment in assignments)
-            + textwrap_indent(reference, "            ") + "\n"
-            + "        };\n"
-            + "        let candidate = {\n"
-            + "".join("            " + assignment + "\n" for assignment in assignments)
-            + textwrap_indent(candidate, "            ") + "\n"
-            + "        };\n"
-            + f"        if !(contract_holds) {{ 43 }} else {{ if {comparison} {{ 0 }} else {{ 42 }} }}\n"
+            + "        if !(contract_holds) {\n"
+            + "            43\n"
+            + "        } else {\n"
+            + "            let reference = {\n"
+            + "".join("                " + assignment + "\n" for assignment in assignments)
+            + textwrap_indent(reference, "                ") + "\n"
+            + "            };\n"
+            + "            let candidate = {\n"
+            + "".join("                " + assignment + "\n" for assignment in assignments)
+            + textwrap_indent(candidate, "                ") + "\n"
+            + "            };\n"
+            + f"            if {comparison} {{ 0 }} else {{ 42 }}\n"
+            + "        }\n"
             + "    }\n")
 
 
 def run_bounded_interaction_text(mumei_bin: str, text: str, timeout: int) -> dict:
-    """Compile and execute one bounded-interaction harness without trusting stdout."""
+    """Compile and execute one bounded-interaction harness without trusting stdout.
+
+    No extra memory rlimit is imposed here: this diagnostic runner is for
+    committed benchmark/policy artifacts, rejects effect/extern preludes, and
+    the wall-clock timeout bounds each compile/link/execute attempt. Resource
+    or compiler failures are explicit non-evidence rather than semantic
+    divergence. If these harnesses ever execute less-controlled artifacts,
+    add an OS resource sandbox before widening that use.
+    """
     with tempfile.TemporaryDirectory(prefix="mumei-bounded-interaction-") as tmp:
         path = Path(tmp) / "interaction.mm"
         path.write_text(text)

@@ -55,12 +55,17 @@ inconclusive diagnostic evidence rather than a false positive. Loop-containing
 bodies do not use solver equality because loop-invariant abstraction can
 manufacture a spurious difference even between two copies of the same reference
 body. For the one recorded loop case, PY02-D05, committed bounded inputs instead
-compile and execute both bodies natively with isolated input bindings. Exit-code
+compile and execute both bodies natively with isolated input bindings. The
+`requires` check runs before the branch containing either body, so an invalid
+committed input cannot execute the ports. Exit-code
 divergence on an input satisfying `requires` is blocking diagnostic evidence;
 agreement on the finite input set remains inconclusive and never claims
 universal equality. Bounded interaction wall time is recorded under
 `interaction` in the gate evidence rather than verifier-only measurement,
-because each run also compiles, links and executes the harness. In the recorded
+because each run also compiles, links and executes the harness. No additional
+memory rlimit is imposed: these runs are limited to committed benchmark/policy
+artifacts, effect/extern preludes are excluded, the wall-clock timeout bounds
+each attempt, and resource/compiler failures are non-evidence. In the recorded
 corpus, all 70 non-loop exact
 fixed-reference copies match, and all three correct recorded PY02-D05 fixed
 ports agree on the bounded inputs. The first-day-only positive control diverges

@@ -85,8 +85,33 @@ def test_bounded_interaction_harness_pins_inputs_and_runtime_exit_codes() -> Non
     assert "atom main() -> i64" in text
     assert text.count("let daily = [0, 10];") == 3
     assert "let contract_holds = len(daily) == n && n >= 1;" in text
-    assert "if !(contract_holds) { 43 }" in text
+    assert "if !(contract_holds) {" in text
+    assert text.index("if !(contract_holds) {") < text.index("let reference = {")
     assert "if reference == candidate { 0 } else { 42 }" in text
+
+
+@requires_mumei
+def test_bounded_interaction_requires_gate_skips_body_execution_with_real_verifier() -> None:
+    case = case_by_id("PY02-D05")
+    loop_limit = 50000000000
+    slow_body = f"""let acc = 0;
+let i = 0;
+while i < {loop_limit}
+invariant: i >= 0 && i <= {loop_limit} && acc >= 0
+decreases: {loop_limit} - i
+{{
+    acc = acc + 1;
+    i = i + 1;
+}};
+acc"""
+    invalid_values = {"daily": [1], "n": 0, "threshold": 0}
+
+    text = fidelity.bounded_interaction_text(case, slow_body, invalid_values, "fixed")
+    run = fidelity.run_bounded_interaction_text(MUMEI_BIN, text, 2)
+
+    assert text.index("if !(contract_holds) {") < text.index("let reference = {")
+    assert run["exit_code"] == 43
+    assert run["seconds"] < 2
 
 
 def test_bounded_interaction_tool_failure_is_inconclusive(monkeypatch: pytest.MonkeyPatch) -> None:
