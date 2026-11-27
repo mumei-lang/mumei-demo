@@ -37,6 +37,7 @@ CLI_SCRIPTS = (
     ("scripts/report_output_equivalence_coverage.py", "report_output_equivalence_coverage"),
     ("scripts/review_charter_baseline.py", "review_charter_baseline"),
     ("scripts/build_ci_evidence_pack.py", "build_ci_evidence_pack"),
+    ("scripts/verify_ci_evidence_pack.py", "verify_ci_evidence_pack"),
     ("dashboard/cli_report.py", "cli_report"),
 )
 ENVIRONMENT_VARIABLES = (
