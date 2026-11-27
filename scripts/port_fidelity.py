@@ -131,10 +131,6 @@ def _has_folded_state_field(reference: str, port: str) -> bool:
         if not port_path and all(path for path, _ in reference_entries):
             if len(reference_exprs) >= 2 and port_expr in reference_exprs:
                 return True
-            if len(reference_exprs) == 1:
-                (reference_expr,) = reference_exprs
-                if reference_expr in {("true",), ("false",), ("0",)} and port_expr != reference_expr:
-                    return True
     return False
 
 
@@ -156,7 +152,7 @@ def token_pattern(text: str) -> tuple[str, ...]:
 
 
 VARIANTS = ("buggy", "fixed")
-DETECTOR_VERSION = 6
+DETECTOR_VERSION = 7
 
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
