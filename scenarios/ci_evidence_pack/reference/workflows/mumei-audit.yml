@@ -1,0 +1,157 @@
+name: Mumei audit evidence reference
+
+# Initial audit-only adoption gate. The mumei-demo ci_evidence_pack scenario
+# demonstrates the richer migration-plan/reference-certificate evidence pack.
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Needed only when the future audit CLI emits audit.sarif and the optional
+  # upload step runs. No token or secret value is written to the evidence pack.
+  security-events: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ github.run_attempt }}
+  cancel-in-progress: true
+
+jobs:
+  audit-evidence-pack:
+    runs-on: ubuntu-24.04
+    env:
+      LLVM_SYS_170_PREFIX: /usr/lib/llvm-17
+    steps:
+      - name: Check out the audited repository
+        uses: actions/checkout@v7
+
+      - name: Check out mumei
+        uses: actions/checkout@v7
+        with:
+          repository: mumei-lang/mumei
+          ref: develop
+          path: .mumei/mumei
+
+      - name: Check out mumei-agent
+        uses: actions/checkout@v7
+        with:
+          repository: mumei-lang/mumei-agent
+          ref: develop
+          path: .mumei/mumei-agent
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install Z3 and LLVM 17
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libz3-dev pkg-config libssl-dev libzstd-dev z3
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
+          codename="$(lsb_release -cs)"
+          echo "deb http://apt.llvm.org/${codename}/ llvm-toolchain-${codename}-17 main" \
+            | sudo tee /etc/apt/sources.list.d/llvm-17.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y llvm-17-dev libclang-17-dev libpolly-17-dev
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Resolve mumei dependency versions
+        run: cargo generate-lockfile
+        working-directory: .mumei/mumei
+
+      - name: Cache mumei build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .mumei/mumei
+          shared-key: audit-reference
+
+      - name: Build mumei
+        run: cargo build --release --locked
+        working-directory: .mumei/mumei
+
+      - name: Install mumei-agent dependencies
+        run: |
+          python -m venv "$GITHUB_WORKSPACE/.mumei/.venv"
+          "$GITHUB_WORKSPACE/.mumei/.venv/bin/python" -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            "$GITHUB_WORKSPACE/.mumei/.venv/bin/python" -m pip install -r requirements.txt
+          else
+            "$GITHUB_WORKSPACE/.mumei/.venv/bin/python" -m pip install -e ".[test]"
+          fi
+        working-directory: .mumei/mumei-agent
+
+      - name: Run deterministic audit
+        working-directory: .mumei/mumei-agent
+        env:
+          # Empty values keep the current audit CLI on its deterministic parser
+          # path even when a local .env exists in a development checkout.
+          LLM_API_KEY: ""
+          OPENAI_API_KEY: ""
+          CI_FIXTURE_MODE: "1"
+          MUMEI_BIN: ${{ github.workspace }}/.mumei/mumei/target/release/mumei
+          AUDIT_TARGET: ${{ github.workspace }}/src
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/evidence-pack"
+          set +e
+          "$GITHUB_WORKSPACE/.mumei/.venv/bin/python" -m agent audit \
+            --code-file "$AUDIT_TARGET" \
+            --format json \
+            --auto-migrate \
+            > "$GITHUB_WORKSPACE/evidence-pack/audit.json" \
+            2> "$GITHUB_WORKSPACE/evidence-pack/audit.stderr.log"
+          audit_exit=$?
+          set -e
+          cat "$GITHUB_WORKSPACE/evidence-pack/audit.stderr.log" >&2
+          echo "$audit_exit" > "$GITHUB_WORKSPACE/evidence-pack/audit.exitcode.txt"
+          # The current CLI has no stable fail-on contract. Keep a valid JSON
+          # report reviewable; the validation step fails only if no contract
+          # JSON was produced. Execution errors remain visible in the step log.
+          if [ "$audit_exit" -ne 0 ] && [ ! -s "$GITHUB_WORKSPACE/evidence-pack/audit.json" ]; then
+            exit "$audit_exit"
+          fi
+
+      - name: Validate current audit contract
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          required = [
+              "spec_health_issues", "verification_violations", "verification_status",
+              "cross_validation_gaps", "next_steps", "migration_hints",
+              "healed_files", "heal_errors", "trusted_atoms",
+          ]
+          payload = json.loads(Path("evidence-pack/audit.json").read_text())
+          missing = [key for key in required if key not in payload]
+          if missing:
+              raise SystemExit(f"audit contract missing keys: {missing}")
+          print(f"audit status: {payload.get('verification_status')}")
+          print(f"migration candidates: {len(payload.get('migration_hints', []))}")
+          PY
+
+      - name: Write job summary
+        run: |
+          {
+            echo "# Mumei audit evidence"
+            echo
+            echo "- deterministic/no-LLM audit mode"
+            echo "- audit JSON: \`evidence-pack/audit.json\`"
+            echo "- SARIF: not emitted by the current audit CLI"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload SARIF when the audit CLI emits it
+        if: hashFiles('evidence-pack/audit.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: evidence-pack/audit.sarif
+
+      - name: Upload evidence pack
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mumei-audit-evidence-pack
+          path: evidence-pack/
+          if-no-files-found: error

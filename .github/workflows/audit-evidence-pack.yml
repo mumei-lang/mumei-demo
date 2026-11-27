@@ -1,0 +1,158 @@
+name: Audit Evidence Pack Reference
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/audit-evidence-pack.yml
+      - Makefile
+      - scenarios/ci_evidence_pack/**
+      - scripts/build_ci_evidence_pack.py
+      - scripts/run_scenario.sh
+      - tests/test_build_ci_evidence_pack.py
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ github.run_attempt }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  audit-evidence-pack:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    env:
+      LLVM_SYS_170_PREFIX: /usr/lib/llvm-17
+    steps:
+      - name: Checkout mumei-demo
+        uses: actions/checkout@v7
+        with:
+          path: mumei-demo
+
+      - name: Checkout mumei
+        uses: actions/checkout@v7
+        with:
+          repository: mumei-lang/mumei
+          ref: develop
+          path: mumei
+
+      - name: Checkout mumei-agent
+        uses: actions/checkout@v7
+        with:
+          repository: mumei-lang/mumei-agent
+          ref: develop
+          path: mumei-agent
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install Z3 and LLVM 17
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libz3-dev pkg-config libssl-dev libzstd-dev z3
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
+            | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
+          codename="$(lsb_release -cs)"
+          echo "deb http://apt.llvm.org/${codename}/ llvm-toolchain-${codename}-17 main" \
+            | sudo tee /etc/apt/sources.list.d/llvm-17.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y llvm-17-dev libclang-17-dev libpolly-17-dev
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Resolve mumei dependency versions
+        run: cargo generate-lockfile
+        working-directory: mumei
+
+      - name: Cache mumei cargo build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: mumei
+          shared-key: release
+
+      - name: Build mumei
+        run: cargo build --release --locked
+        working-directory: mumei
+
+      - name: Install mumei-agent dependencies
+        run: |
+          python -m venv "$GITHUB_WORKSPACE/.venv"
+          "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -r requirements.txt
+          else
+            "$GITHUB_WORKSPACE/.venv/bin/python" -m pip install -e ".[test]"
+          fi
+        working-directory: mumei-agent
+
+      - name: Run deterministic evidence-pack scenario
+        run: make demo-ci-evidence-pack
+        working-directory: mumei-demo
+        env:
+          CI_FIXTURE_MODE: "1"
+          MUMEI_REPO: ${{ github.workspace }}/mumei
+          MUMEI_AGENT_REPO: ${{ github.workspace }}/mumei-agent
+          MUMEI_AGENT_PYTHON: ${{ github.workspace }}/.venv/bin/python
+          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
+
+      - name: Validate evidence-pack manifest
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("reports/ci_evidence_pack/latest/evidence-pack")
+          manifest = json.loads((root / "manifest.json").read_text())
+          assert manifest["schema"] == "mumei-demo.ci-evidence-pack/v1"
+          assert manifest["sarif"]["status"] == "not_available_in_current_cli"
+          assert not (root / "audit.sarif").exists()
+          audit = json.loads((root / "audit.json").read_text())
+          required = {
+              "spec_health_issues", "verification_violations", "verification_status",
+              "cross_validation_gaps", "next_steps", "migration_hints",
+              "healed_files", "heal_errors", "trusted_atoms",
+          }
+          missing = sorted(required - set(audit))
+          assert not missing, missing
+          print(f"evidence pack artifacts: {len(manifest['artifacts'])}")
+          print(f"audit status: {audit['verification_status']}")
+          PY
+        working-directory: mumei-demo
+
+      - name: Stage evidence-pack artifact
+        if: always()
+        run: |
+          if [ -d reports/ci_evidence_pack/latest/evidence-pack ]; then
+            mkdir -p ci-evidence-pack-artifact
+            cp -a reports/ci_evidence_pack/latest/evidence-pack/. ci-evidence-pack-artifact/
+          else
+            echo "no evidence-pack directory was produced"
+          fi
+        working-directory: mumei-demo
+
+      - name: Write job summary
+        if: always()
+        run: |
+          cat reports/ci_evidence_pack/latest/evidence-pack/summary.md >> "$GITHUB_STEP_SUMMARY" || true
+        working-directory: mumei-demo
+
+      - name: Upload SARIF when the audit CLI emits it
+        if: hashFiles('mumei-demo/ci-evidence-pack-artifact/audit.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: mumei-demo/ci-evidence-pack-artifact/audit.sarif
+
+      - name: Upload evidence pack
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-audit-evidence-pack
+          path: mumei-demo/ci-evidence-pack-artifact/
+          if-no-files-found: warn

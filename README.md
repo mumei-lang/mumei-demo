@@ -10,7 +10,7 @@ Mumei checks code against formal contracts before generation mistakes reach prod
 make setup && make demo
 ```
 
-Use `CI_FIXTURE_MODE=1 make demo-ci` for the deterministic validation path. Setup, every demo target, dashboards, optional experiments, and troubleshooting are in [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md); command and environment details are in [`docs/REFERENCE.md`](docs/REFERENCE.md).
+Use `CI_FIXTURE_MODE=1 make demo-ci` for the deterministic validation path. Setup, every demo target, dashboards, optional experiments, and troubleshooting are in [`docs/DEMO_GUIDE.md`](docs/DEMO_GUIDE.md); command and environment details are in [`docs/REFERENCE.md`](docs/REFERENCE.md). The GitHub Actions audit-evidence adoption path is in [`docs/CI_REFERENCE.md`](docs/CI_REFERENCE.md).
 
 ## What the demo shows
 
