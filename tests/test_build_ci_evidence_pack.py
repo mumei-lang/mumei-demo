@@ -528,6 +528,7 @@ def test_ci_reference_quickstart_statically_covers_migration_action_contract() -
         "`ready_for_human_review` means",
         "not an operational CI failure",
         "not host semantic-equivalence proof",
+        "`path`, `sha256`, and `bytes`",
     ):
         assert phrase in doc
 
@@ -553,6 +554,7 @@ def test_reference_workflow_uses_upstream_sarif_baseline_and_fail_on_contract() 
     assert "--migration-execution-output" in workflow
     assert "not_available_in_current_cli" in workflow
     assert "not independent CI failure classes" in workflow
+    assert "include-hidden-files: true" in workflow
 
 
 def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:

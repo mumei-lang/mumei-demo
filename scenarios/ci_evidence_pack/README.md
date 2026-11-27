@@ -43,7 +43,7 @@ The scenario is optional and is not part of the default `demo-ci` scenario list.
 | `audit.sarif` | SARIF 2.1.0 emitted by `mumei-agent audit` for CI annotation |
 | `audit-baseline.json` | Refreshed `mumei.audit-baseline/v1` fingerprint policy emitted by `mumei-agent audit` |
 | `migration_plan.json` | Prioritized migration-review candidates from `migration_hints`, with the same artifact path/role metadata |
-| `migration_execution.json` | Optional upstream `mumei.migration-execution/v1` artifact; absent with `not_available_in_current_cli` on older CLIs. Its companion generated-artifact directory may be uploaded with the pack and is hashed under migration-execution metadata, but stays outside the proof-certificate and adapter-observation roles. Candidate counts summarize review routing only; `blocked` is not an operational CI failure and `ready_for_human_review` is not merge approval |
+| `migration_execution.json` | Optional upstream `mumei.migration-execution/v1` artifact; absent with `not_available_in_current_cli` on older CLIs. Its companion generated-artifact directory may be uploaded with the pack and is hashed under migration-execution metadata as `path`/`sha256`/`bytes` rows, but stays outside the proof-certificate and adapter-observation roles. Candidate counts summarize review routing only; `blocked` is not an operational CI failure and `ready_for_human_review` is not merge approval |
 | `verification.json` | Reference-contract verification status and boundary |
 | `reference.proof.json` | Proof certificate for the reviewed reference `.mm` contract |
 | `github-actions-mumei-audit.yml` | Copyable workflow template |
