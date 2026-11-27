@@ -57,7 +57,7 @@ jobs:
         run: |
           apt_update() {
             for attempt in 1 2 3; do
-              if sudo apt-get update; then
+              if sudo apt-get --error-on=any update; then
                 return 0
               fi
               if [ "$attempt" -eq 3 ]; then
