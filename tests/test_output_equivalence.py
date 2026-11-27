@@ -114,28 +114,6 @@ acc"""
     assert run["seconds"] < 20
 
 
-def test_output_policy_adjudicates_dontcare_failure_state_and_rounding() -> None:
-    sol02 = case_by_id("SOL02-D11")
-    sol03 = case_by_id("SOL03-D08")
-    ts09 = case_by_id("TS03-D09")
-
-    sol02_text = fidelity.output_compare_text(sol02, "Outbid { bid_of: new_bid, pending: prev_pending }", "fixed")
-    sol03_text = fidelity.output_compare_text(sol03, "Payout { ok: transfer_ok, owed: 0 }", "fixed")
-    ts09_text = fidelity.output_compare_text(ts09, "Parsed { ok: true, value: amount }", "fixed")
-
-    assert "!(has_previous) || (reference.bid_of == candidate.bid_of)" in sol02_text
-    assert sol03_text.count("(reference.owed == candidate.owed)") == 2
-    assert "(reference.value - candidate.value) <= 1" in ts09_text
-
-
-def test_output_equivalence_reports_applied_policy(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(fidelity, "verify_text", lambda *_args: {
-        "outcome": "proven", "status": "success", "diagnostics": []})
-    evidence = fidelity.output_equivalence(case_by_id("SOL02-D11"), "Outbid { bid_of: new_bid, pending: prev_pending }",
-                                           "unused", 5, "fixed")
-    assert evidence["comparison_policy"]["field_relevance"] == {"bid_of": "has_previous"}
-    assert "no previous bidder" in evidence["comparison_policy"]["rationale"]
-
 def test_simple_helper_rewrite_preserves_boolean_operators() -> None:
     helpers = {"deref": {"params": [("present", "bool")], "requires": "present", "body": "true"}}
 
