@@ -891,6 +891,16 @@ def test_migration_companion_symlink_escape_and_nonregular_file_are_operational_
         pack._migration_generated_dir(payload, tmp_path / "migration_execution.json")
 
 
+def test_migration_companion_accepts_unwritten_proof_and_sarif_partial_metadata(tmp_path: Path) -> None:
+    payload, generated, pack_dir, rows = companion_rows_fixture(tmp_path)
+    verification = payload["candidates"][0]["verification"]
+    for key in ("proof_certificate", "sarif"):
+        verification[key]["written"] = False
+        verification[key]["sha256"] = None
+
+    pack._validate_migration_companion_rows(payload, generated, pack_dir, rows)
+
+
 def test_migration_companion_inconsistent_written_metadata_is_operational_failure(tmp_path: Path) -> None:
     payload, generated, pack_dir, rows = companion_rows_fixture(tmp_path)
     proof = payload["candidates"][0]["verification"]["proof_certificate"]
