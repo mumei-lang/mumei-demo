@@ -20,7 +20,7 @@ BUCKETS = (
 
 def bucket(gate: dict | None, raw: dict) -> str:
     if not gate:
-        return "not_applicable_not_proven"
+        return "unavailable_other" if raw.get("outcome") == "proven" else "not_applicable_not_proven"
     evidence = gate.get("output_equivalence", {}) or {}
     outcome = evidence.get("outcome")
     reason = evidence.get("reason")

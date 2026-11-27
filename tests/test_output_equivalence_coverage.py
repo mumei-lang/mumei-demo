@@ -25,6 +25,7 @@ def test_output_equivalence_coverage_buckets_are_mutually_exclusive() -> None:
     assert coverage_report.bucket(gate, {"outcome": "proven"}) == "bounded_finite_agreement"
 
     assert coverage_report.bucket(None, {"outcome": "refuted"}) == "not_applicable_not_proven"
+    assert coverage_report.bucket(None, {"outcome": "proven"}) == "unavailable_other"
 
 
 def test_committed_output_equivalence_coverage_report_is_up_to_date() -> None:

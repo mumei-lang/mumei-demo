@@ -400,7 +400,7 @@ def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str
     # guard-shape lint. Neither replay nor output equality is represented as a
     # formal refutation of the candidate.
     blocked = fidelity_gate_blocked(blocking, semantic, equivalence, variant)
-    gate = {"schema": "mumei-demo.port-fidelity-gate/v13", "detector_version": fidelity.DETECTOR_VERSION,
+    gate = {"schema": "mumei-demo.port-fidelity-gate/v14", "detector_version": fidelity.DETECTOR_VERSION,
             "variant": variant,
             "decision": "blocked" if blocked else "accepted",
             "lint_findings": linted, "blocking_lint_findings": blocking,
@@ -882,7 +882,7 @@ def usage_total(records: list[dict]) -> dict:
                 verification_seconds += equivalence_measurement.get("seconds", 0.0)
                 verification_budgeted += equivalence_measurement.get("budgeted_calls", 0)
                 verification_budget += equivalence_measurement.get("budget_seconds", 0.0)
-            elif "status" in equivalence:
+            elif "status" in equivalence and equivalence.get("method") != "bounded_native_interaction":
                 verification_expected += 1
                 if numeric_measurement(equivalence.get("seconds")):
                     verification_timed += 1
@@ -1041,7 +1041,8 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             "differences are inconclusive diagnostic evidence that still prevents lint-only rejection. Loop-containing bodies do not use solver "
             "equality because invariant abstraction can manufacture false differences. Committed bounded inputs instead execute reference and "
             "candidate natively with isolated input bindings; observed divergence blocks, while finite agreement remains inconclusive rather than "
-            "universal equality evidence. Bounded interaction wall time is recorded as interaction evidence cost, not verifier-only "
+            "universal equality evidence. Native bounded interaction is fail-closed behind a two-GiB `prlimit` "
+            "address-space limit, and its wall time is recorded as interaction evidence cost, not verifier-only "
             "measurement. Confirming replay, matched exact output or boundary-only output overrides guard-shape "
             "and success-flag lint-only warnings; exact result-state guard folding remains blocking unless output comparison shows no meaningful divergence. Added or removed "
             "guard-count warnings stay visible without blocking alone. Replay divergence always blocks; other high-confidence "
@@ -1448,8 +1449,10 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                     equivalence = (existing_gate or {}).get("output_equivalence", {})
                     retry_timed_out_comparison = (equivalence.get("outcome") == "inconclusive"
                                                   and equivalence.get("status") == "timeout")
+                    retry_environment_failure = (equivalence.get("outcome") == "inconclusive"
+                                                 and equivalence.get("failure_kind") == "environment_failure")
                     if (existing_gate and not fidelity_gate_stale(case, existing_gate)
-                            and not retry_timed_out_comparison):
+                            and not retry_timed_out_comparison and not retry_environment_failure):
                         doc_reused += 1
                         continue
                     body = result.get("body")
@@ -1464,7 +1467,7 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                         blocked += new_result.get("fidelity_gate", {}).get("decision") == "blocked"
         if changed:
             doc["fidelity_rescore"] = {
-                "schema": "mumei-demo.port-fidelity-gate/v13",
+                "schema": "mumei-demo.port-fidelity-gate/v14",
                 "rescored_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
                 "replay_verifier": verifier_identity(mumei_bin),
                 "rescored_rows": doc_gated,
