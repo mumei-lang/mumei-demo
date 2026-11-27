@@ -68,9 +68,9 @@ Coverage is counted over every recorded benchmark row. `not_applicable_not_prove
 
 ## Helper atom coverage
 
-Static inventory: 12 case/helper pair(s) across 12 case(s): `pure_nonrecursive_inlineable` × 12.
+Static inventory: 12 case/helper pair(s) across 12 case(s): `pure_nonrecursive_inlineable` × 12. Inline eligibility is a property of the helper definition; individual call sites can still remain opaque when arguments use local bindings or control flow.
 
-| Case | Helper | Shape | Body available | Inline eligible |
+| Case | Helper | Shape | Body available | Helper shape inline-eligible |
 |---|---|---|---|---|
 | `GO01-D06` | `deref` | `pure_nonrecursive_inlineable` | yes | yes |
 | `GO01-D07` | `slice_to` | `pure_nonrecursive_inlineable` | yes | yes |

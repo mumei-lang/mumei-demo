@@ -188,8 +188,8 @@ def render(result: dict) -> str:
     if pairs:
         shapes = Counter(entry["shape"] for _, entry in pairs)
         shape_text = ", ".join(f"`{shape}` × {count}" for shape, count in sorted(shapes.items()))
-        lines.append(f"Static inventory: {len(pairs)} case/helper pair(s) across {len(inventory)} case(s): {shape_text}.")
-        lines.extend(["", "| Case | Helper | Shape | Body available | Inline eligible |", "|---|---|---|---|---|"])
+        lines.append(f"Static inventory: {len(pairs)} case/helper pair(s) across {len(inventory)} case(s): {shape_text}. Inline eligibility is a property of the helper definition; individual call sites can still remain opaque when arguments use local bindings or control flow.")
+        lines.extend(["", "| Case | Helper | Shape | Body available | Helper shape inline-eligible |", "|---|---|---|---|---|"])
         for case_id, entry in pairs:
             lines.append(f"| `{case_id}` | `{entry['helper']}` | `{entry['shape']}` | "
                          f"{'yes' if entry['body_available'] else 'no'} | {'yes' if entry['inline_eligible'] else 'no'} |")
