@@ -92,6 +92,7 @@ Use that advanced reference when the adoption is ready to add `migration_plan.js
 | `audit.sarif` | Upstream audit CLI SARIF rendering of audit findings for CI annotation; not independent evidence |
 | `audit-baseline.json` | Repository-local CI suppression policy refreshed by the audit CLI; not evidence |
 | `migration_plan.json` | Human-review migration plan derived only from `migration_hints`, with the same artifact path/role metadata and a migration-scaffold boundary |
+| `migration_execution.json` | Optional upstream `mumei.migration-execution/v1` generated-`.mm` acceptance artifact when the pinned audit CLI supports it; absent rather than fabricated otherwise. The manifest hashes companion generated files under the migration-execution metadata without assigning them proof-certificate or adapter-observation roles |
 | `reference.proof.json` | Proof certificate for the reviewed reference `.mm` contract only |
 | `manifest.json` | Schema, input/artifact hashes, canonical `artifact_paths`, closed `artifact_roles`, SARIF/baseline/fail-on metadata, and evidence boundary |
 | `summary.md` | Human-readable job summary |
@@ -100,12 +101,13 @@ Use that advanced reference when the adoption is ready to add `migration_plan.js
 
 - Audit output and its SARIF rendering are not proof certificates.
 - A migration hint or skeleton is not evidence of completed migration.
+- Migration execution evidence proves only generated `.mm` contracts as written. It is not host semantic-equivalence proof; partial artifacts are not completion evidence, generated proof certificates are not relabeled as the reviewed reference certificate role, and unbound host diagnostics are not adapter observations.
 - Baseline suppression is CI policy, not evidence removal, proof acceptance, or a verdict-boundary change.
 - The reference `.mm` certificate does not prove semantic equivalence with Python or another host-language implementation.
 - No native bundle is present or implied by this audit/migration evidence pack.
 - No adapter observation is present or implied by this audit/migration evidence pack; runtime observations must not be folded into proof evidence.
 
-`artifact_paths` is the canonical ordered list of pack files in `audit.json`, `migration_plan.json`, and `manifest.json`, including `manifest.json` itself. The manifest's `artifacts` hash rows cover every file except the self-referential manifest. `artifact_roles` is the closed role map: `audit_report` points at `audit.json` and `audit.sarif`, `migration_plan` and `proof_certificate` point at their respective files, `ci_policy` points at `audit-baseline.json`, and `native_bundle`/`adapter_observation` are empty lists. Treating those absent roles as present, pointing them at audit/migration artifacts, or treating `ci_policy` as evidence is a schema/policy regression rather than evidence acceptance.
+`artifact_paths` is the canonical ordered list of pack files present for the detected CLI capability in `audit.json`, `migration_plan.json`, and `manifest.json`, including `manifest.json` itself. The manifest's `artifacts` hash rows cover every canonical pack file except the self-referential manifest; files inside the migration execution companion directory are hashed separately under `migration_execution.generated_artifacts`. `artifact_roles` is the closed v2 role map: `audit_report` points at `audit.json` and `audit.sarif`, `migration_plan` and `proof_certificate` point at their respective files, `migration_execution` points at `migration_execution.json` only when emitted, `ci_policy` points at `audit-baseline.json`, and `native_bundle`/`adapter_observation` are empty lists. Treating those absent roles as present, pointing them at audit/migration artifacts, or treating `ci_policy` as evidence is a schema/policy regression rather than evidence acceptance.
 
 ## Reviewer checklist
 
@@ -114,4 +116,5 @@ Use that advanced reference when the adoption is ready to add `migration_plan.js
 - Confirm `audit.sarif` and `audit-baseline.json` are upstream CLI outputs, not repository-generated fabrications.
 - Treat `audit-baseline.json` as `ci_policy`, not evidence, and review every suppression change.
 - Treat `migration_plan.json` entries as `human_review_required`.
+- Treat every migration execution candidate as `review_required` even when `ready_for_human_review`; never read it as host semantic-equivalence proof.
 - Treat `reference.proof.json` as proof only for the reviewed reference `.mm` contract.

@@ -10,6 +10,12 @@ from scripts import build_ci_evidence_pack as pack
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCENARIO_DIR = REPO_ROOT / "scenarios" / "ci_evidence_pack"
+ORIGINAL_MIGRATION_EXECUTION_SUPPORTED = pack.migration_execution_supported
+
+
+@pytest.fixture(autouse=True)
+def migration_execution_unsupported(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(pack, "migration_execution_supported", lambda **_kwargs: False)
 
 
 def _completed(stdout: str = "", returncode: int = 0) -> subprocess.CompletedProcess[str]:
@@ -275,7 +281,7 @@ def test_build_evidence_pack_manifest_and_boundaries(tmp_path: Path, monkeypatch
     )
 
     pack_dir = output_dir / "evidence-pack"
-    assert manifest["schema"] == "mumei-demo.ci-evidence-pack/v1"
+    assert manifest["schema"] == "mumei-demo.ci-evidence-pack/v2"
     assert manifest["sarif"]["status"] == "emitted_by_audit_cli"
     assert manifest["sarif"]["required"] is True
     assert manifest["baseline"]["status"] == "emitted_by_audit_cli"
@@ -288,9 +294,10 @@ def test_build_evidence_pack_manifest_and_boundaries(tmp_path: Path, monkeypatch
     assert (pack_dir / "audit.sarif").is_file()
     assert (pack_dir / "audit-baseline.json").is_file()
     assert len(manifest["artifacts"]) == 11
-    assert [row["path"] for row in manifest["artifacts"]] == list(pack.HASHED_ARTIFACT_PATHS)
-    assert manifest["artifact_paths"] == list(pack.ARTIFACT_PATHS)
-    assert manifest["artifact_roles"] == pack.artifact_roles()
+    assert [row["path"] for row in manifest["artifacts"]] == [p for p in pack.HASHED_ARTIFACT_PATHS if p != "migration_execution.json"]
+    assert manifest["artifact_paths"] == pack.pack_artifact_paths(False)
+    assert manifest["artifact_roles"] == pack.artifact_roles(False)
+    assert manifest["migration_execution"]["generated_artifacts"] == []
     assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"
     assert manifest["evidence_roles"]["adapter_observation"]["status"] == "absent"
     assert any("audit-baseline.json is CI suppression policy" in line for line in manifest["evidence_boundary"])
@@ -307,13 +314,13 @@ def test_build_evidence_pack_manifest_and_boundaries(tmp_path: Path, monkeypatch
         "fail_on": pack.FAIL_ON_POLICY,
         "exit_policy": "0/1 are finding-policy outcomes; 2 is an operational audit failure",
     }
-    assert audit_json["artifact_paths"] == list(pack.ARTIFACT_PATHS)
-    assert audit_json["artifact_roles"] == pack.artifact_roles()
+    assert audit_json["artifact_paths"] == pack.pack_artifact_paths(False)
+    assert audit_json["artifact_roles"] == pack.artifact_roles(False)
     assert audit_json["evidence_boundary_by_role"] == pack.EVIDENCE_BOUNDARIES
     assert audit_json["evidence_boundary_by_role"]["audit_report"].endswith("not a proof certificate.")
     migration_json = json.loads((pack_dir / "migration_plan.json").read_text(encoding="utf-8"))
-    assert migration_json["artifact_paths"] == list(pack.ARTIFACT_PATHS)
-    assert migration_json["artifact_roles"] == pack.artifact_roles()
+    assert migration_json["artifact_paths"] == pack.pack_artifact_paths(False)
+    assert migration_json["artifact_roles"] == pack.artifact_roles(False)
     assert migration_json["evidence_boundary_by_role"] == pack.EVIDENCE_BOUNDARIES
     assert migration_json["evidence_boundary_by_role"]["migration_plan"].startswith("Human-review migration scaffold")
     summary = (pack_dir / "summary.md").read_text(encoding="utf-8")
@@ -379,12 +386,12 @@ def test_build_evidence_pack_writes_pack_then_rejects_fail_on_exit(tmp_path: Pat
 
 
 def test_artifact_paths_match_present_manifest_artifacts_and_absent_roles() -> None:
-    assert len(pack.ARTIFACT_PATHS) == 12
-    assert len(pack.HASHED_ARTIFACT_PATHS) == 11
+    assert len(pack.ARTIFACT_PATHS) == 13
+    assert len(pack.HASHED_ARTIFACT_PATHS) == 12
     assert "manifest.json" in pack.ARTIFACT_PATHS
     assert "manifest.json" not in pack.HASHED_ARTIFACT_PATHS
     assert len(set(pack.ARTIFACT_PATHS)) == len(pack.ARTIFACT_PATHS)
-    for role in ("audit_report", "migration_plan", "proof_certificate", "ci_policy"):
+    for role in ("audit_report", "migration_plan", "migration_execution", "proof_certificate", "ci_policy"):
         assert pack.ARTIFACT_ROLES[role]
         assert all(path in pack.ARTIFACT_PATHS for path in pack.ARTIFACT_ROLES[role])
         assert pack.EVIDENCE_BOUNDARIES[role]
@@ -398,6 +405,7 @@ def test_artifact_paths_match_present_manifest_artifacts_and_absent_roles() -> N
     assert pack.ARTIFACT_ROLES == {
         "audit_report": ["audit.json", "audit.sarif"],
         "migration_plan": ["migration_plan.json"],
+        "migration_execution": ["migration_execution.json"],
         "proof_certificate": ["reference.proof.json"],
         "ci_policy": ["audit-baseline.json"],
         "native_bundle": [],
@@ -411,7 +419,7 @@ def test_main_makes_relative_agent_python_absolute_without_resolving(tmp_path: P
 
     def fake_build(**kwargs):
         captured.update(kwargs)
-        return {"schema": pack.PACK_SCHEMA, "artifacts": []}
+        return {"schema": pack.PACK_SCHEMA, "artifacts": [], "migration_execution": {"status": "not_available_in_current_cli"}}
 
     real_python = tmp_path / "real-python"
     real_python.write_text("", encoding="utf-8")
@@ -471,6 +479,8 @@ def test_reference_workflow_uses_upstream_sarif_baseline_and_fail_on_contract() 
     assert "CI policy, not evidence" in workflow
     assert "--emit-sarif" not in workflow
     assert "--format sarif" not in workflow
+    assert "--migration-execution-output" in workflow
+    assert "not_available_in_current_cli" in workflow
 
 
 def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:
@@ -478,6 +488,7 @@ def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:
 
     assert 'manifest["artifact_paths"] == expected_paths' in workflow
     assert '"audit_report": ["audit.json", "audit.sarif"]' in workflow
+    assert '"migration_execution": migration_role' in workflow
     assert '"proof_certificate": ["reference.proof.json"]' in workflow
     assert '"ci_policy": ["audit-baseline.json"]' in workflow
     assert '"native_bundle": []' in workflow
@@ -491,6 +502,7 @@ def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:
     assert 'manifest["sarif"]["status"] == "emitted_by_audit_cli"' in workflow
     assert 'manifest["baseline"]["status"] == "emitted_by_audit_cli"' in workflow
     assert 'manifest["fail_on"]["policy"] == "high-confidence"' in workflow
+    assert 'not_available_in_current_cli' in workflow
     assert 'assert "not evidence" in manifest["evidence_roles"]["ci_policy"]["boundary"]' in workflow
 
 
@@ -507,8 +519,211 @@ def test_scenario_uses_current_cli_builder_and_declares_pack_artifacts() -> None
     assert "sarif status: emitted_by_audit_cli" in step["expected_patterns"]
     assert "baseline status: emitted_by_audit_cli" in step["expected_patterns"]
     assert "fail-on policy: high-confidence" in step["expected_patterns"]
+    assert "migration execution status:" in step["expected_patterns"]
     contract_text = json.dumps(scenario["harness_contract"])
     assert "must not fabricate SARIF" in contract_text
     assert "ci_policy" in contract_text
     assert "not evidence" in contract_text
-    assert scenario["budget_policy_fingerprint"] == "deterministic-ci-evidence-pack-v1"
+    assert "migration_execution" in contract_text
+    assert "not_available_in_current_cli" in contract_text
+    assert scenario["budget_policy_fingerprint"] == "deterministic-ci-evidence-pack-v2"
+
+
+def valid_execution() -> dict:
+    return {
+        "schema": pack.MIGRATION_EXECUTION_SCHEMA,
+        "generated_at": "now",
+        "source": {"path": "fixture/ledger.py", "language": "python", "kind": "file", "sha256": "0" * 64},
+        "audit": {},
+        "selection": {"basis": "all audit migration_hints candidates", "requested_functions": [], "missing_requested_functions": []},
+        "candidates": [{
+            "function_name": "divide", "source_provenance": {}, "selection": {},
+            "extracted_contract": {}, "generated_mm": {}, "heal": {}, "verification": {},
+            "unbound_audit_diagnostics": {}, "contract_provenance": {},
+            "evidence_blockers": [], "operational_errors": [], "review_required": True,
+            "execution_state": "ready_for_human_review",
+        }],
+        "operational_errors": [],
+        "artifact_paths": {
+            "migration_execution": "migration_execution.json",
+            "generated_artifacts": "migration_execution.migration-execution",
+        },
+        "evidence_boundary": ["A verified generated .mm skeleton proves only the skeleton contract as written; it is not proof that host-language code implements the same behavior."],
+        "summary": {
+            "candidate_count": 1,
+            "ready_for_human_review": 1,
+            "blocked": 0,
+            "operational_error": 0,
+            "review_required": True,
+        },
+    }
+
+
+def test_migration_execution_validator_accepts_complete_upstream_shape(tmp_path: Path) -> None:
+    path = tmp_path / "migration_execution.json"
+    path.write_text(json.dumps(valid_execution()), encoding="utf-8")
+    assert pack._validate_migration_execution(path)["schema"] == pack.MIGRATION_EXECUTION_SCHEMA
+
+
+def test_migration_execution_validator_rejects_partial_or_inconsistent_shape(tmp_path: Path) -> None:
+    path = tmp_path / "migration_execution.json"
+    payload = valid_execution(); payload["summary"]["blocked"] = 1
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(pack.EvidencePackError, match="summary"):
+        pack._validate_migration_execution(path)
+    path.write_text(json.dumps({"schema": pack.MIGRATION_EXECUTION_SCHEMA}), encoding="utf-8")
+    with pytest.raises(pack.EvidencePackError, match="required"):
+        pack._validate_migration_execution(path)
+
+
+def test_migration_execution_capability_help_detection(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(pack, "migration_execution_supported", ORIGINAL_MIGRATION_EXECUTION_SUPPORTED)
+    monkeypatch.setattr(pack, "_run", lambda *a, **k: _completed("--migration-execution-output"))
+    assert pack.migration_execution_supported(agent_repo=tmp_path, agent_python=tmp_path / "python", env={})
+    monkeypatch.setattr(pack, "_run", lambda *a, **k: _completed("other"))
+    assert not pack.migration_execution_supported(agent_repo=tmp_path, agent_python=tmp_path / "python", env={})
+    monkeypatch.setattr(pack, "_run", lambda *a, **k: _completed("--migration-execution-output", returncode=2))
+    assert not pack.migration_execution_supported(agent_repo=tmp_path, agent_python=tmp_path / "python", env={})
+
+
+def test_run_audit_passes_and_validates_migration_execution_output(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    baseline_input = tmp_path / "baseline.json"; baseline_input.write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}))
+    sarif = tmp_path / "audit.sarif"; baseline = tmp_path / "audit-baseline.json"; execution = tmp_path / "migration_execution.json"
+    captured = {}
+    def fake_run(command, *, cwd, env):
+        captured["command"] = command
+        sarif.write_text(json.dumps({"version": "2.1.0", "runs": [{"results": []}]}))
+        baseline.write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}))
+        execution.write_text(json.dumps(valid_execution()))
+        (tmp_path / "migration_execution.migration-execution").mkdir()
+        return _completed(json.dumps({key: [] for key in pack.FIXED_AUDIT_KEYS}))
+    monkeypatch.setattr(pack, "_run", fake_run)
+    pack.run_audit(source=tmp_path / "x.py", agent_repo=tmp_path, agent_python=tmp_path / "python", mumei_bin=tmp_path / "mumei", baseline_input=baseline_input, sarif_output=sarif, write_baseline=baseline, migration_execution_output=execution, env={})
+    assert "--migration-execution-output" in captured["command"]
+
+
+def test_migration_execution_validator_rejects_missing_candidate_keys_and_bad_boundary(tmp_path: Path) -> None:
+    path = tmp_path / "migration_execution.json"
+    payload = valid_execution()
+    del payload["candidates"][0]["generated_mm"]
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(pack.EvidencePackError, match="candidate contract"):
+        pack._validate_migration_execution(path)
+
+    payload = valid_execution()
+    payload["evidence_boundary"] = "not proof that host-language code implements the same behavior"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(pack.EvidencePackError, match="boundary is malformed"):
+        pack._validate_migration_execution(path)
+
+
+def test_migration_execution_output_missing_or_malformed_is_operational_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    baseline_input = tmp_path / "baseline.json"
+    baseline_input.write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}))
+    sarif = tmp_path / "audit.sarif"
+    baseline = tmp_path / "audit-baseline.json"
+    execution = tmp_path / "migration_execution.json"
+
+    def fake_run(command, *, cwd, env):
+        sarif.write_text(json.dumps({"version": "2.1.0", "runs": [{"results": []}]}))
+        baseline.write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}))
+        return _completed(json.dumps({key: [] for key in pack.FIXED_AUDIT_KEYS}))
+
+    monkeypatch.setattr(pack, "_run", fake_run)
+    kwargs = {
+        "source": tmp_path / "x.py", "agent_repo": tmp_path, "agent_python": tmp_path / "python",
+        "mumei_bin": tmp_path / "mumei", "baseline_input": baseline_input, "sarif_output": sarif,
+        "write_baseline": baseline, "migration_execution_output": execution, "env": {},
+    }
+    with pytest.raises(pack.EvidencePackError, match="did not write"):
+        pack.run_audit(**kwargs)
+
+    execution.write_text("not json", encoding="utf-8")
+    with pytest.raises(pack.EvidencePackError, match="not valid JSON"):
+        pack.run_audit(**kwargs)
+
+    execution.write_text(json.dumps(valid_execution()), encoding="utf-8")
+    with pytest.raises(pack.EvidencePackError, match="generated artifact directory"):
+        pack.run_audit(**kwargs)
+
+
+def test_dynamic_evidence_metadata_keeps_closed_role_without_fabricating_file() -> None:
+    unavailable = pack.evidence_metadata(False)
+    assert "migration_execution.json" not in unavailable["artifact_paths"]
+    assert unavailable["artifact_roles"]["migration_execution"] == []
+    assert "migration_execution" in unavailable["evidence_boundary_by_role"]
+
+    available = pack.evidence_metadata(True)
+    assert "migration_execution.json" in available["artifact_paths"]
+    assert available["artifact_roles"]["migration_execution"] == ["migration_execution.json"]
+
+
+def test_write_summary_records_migration_execution_capability(tmp_path: Path) -> None:
+    audit = {
+        "verification_status": "unverifiable", "exit_code": 0,
+        "spec_health_issues": [], "verification_violations": [], "baseline": {"suppressed": 0, "new": 0},
+    }
+    plan = {"summary": {"candidate_count": 1}}
+    verification = {"proof_certificate": "reference.proof.json"}
+    output = tmp_path / "summary.md"
+    pack.write_summary(output, audit, plan, verification, "emitted_by_audit_cli")
+    assert "| Migration execution | `emitted_by_audit_cli` |" in output.read_text(encoding="utf-8")
+
+
+def test_build_evidence_pack_supported_migration_execution_is_hashed_and_role_scoped(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    agent_python = tmp_path / "agent-python"
+    mumei_bin = tmp_path / "mumei"
+    agent_python.write_text("", encoding="utf-8")
+    mumei_bin.write_text("", encoding="utf-8")
+    output_dir = Path("relative-out")
+    monkeypatch.chdir(tmp_path)
+    audit = {key: [] for key in pack.FIXED_AUDIT_KEYS}
+    audit.update({"verification_status": "unverifiable", "migration_hints": [{"function_name": "divide", "priority": "high"}]})
+
+    def fake_audit(**kwargs):
+        kwargs["sarif_output"].write_text(json.dumps({"version": "2.1.0", "runs": [{"results": []}]}), encoding="utf-8")
+        kwargs["write_baseline"].write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}), encoding="utf-8")
+        kwargs["migration_execution_output"].write_text(json.dumps(valid_execution()), encoding="utf-8")
+        generated = kwargs["migration_execution_output"].parent / "migration_execution.migration-execution"
+        generated.mkdir()
+        (generated / "divide.mm").write_text("atom divide\n", encoding="utf-8")
+        return audit, _completed(json.dumps(audit))
+
+    def fake_verify(*, pack_dir: Path, **kwargs):
+        (pack_dir / "reference.proof.json").write_text(json.dumps({"all_verified": True}), encoding="utf-8")
+        return ({
+            "schema": "mumei-demo.reference-verification/v1",
+            "reference_contract": "reference/safe_divide.mm",
+            "proof_certificate": "reference.proof.json",
+            "verify_exit_code": 0,
+            "verify_cert_exit_code": 0,
+            "all_verified": True,
+            "atoms": [],
+            "boundary": "reference only",
+        }, "verify log", "recheck log")
+
+    monkeypatch.setattr(pack, "migration_execution_supported", lambda **_kwargs: True)
+    monkeypatch.setattr(pack, "run_audit", fake_audit)
+    monkeypatch.setattr(pack, "run_reference_verification", fake_verify)
+
+    manifest = pack.build_evidence_pack(
+        scenario_dir=SCENARIO_DIR,
+        output_dir=output_dir,
+        agent_repo=tmp_path,
+        agent_python=agent_python,
+        mumei_bin=mumei_bin,
+        env={},
+    )
+    pack_dir = tmp_path / output_dir / "evidence-pack"
+    assert manifest["migration_execution"]["status"] == "emitted_by_audit_cli"
+    assert manifest["migration_execution"]["path"] == "migration_execution.json"
+    assert "migration_execution.json" in manifest["artifact_paths"]
+    assert manifest["artifact_roles"]["migration_execution"] == ["migration_execution.json"]
+    assert len(manifest["artifacts"]) == 12
+    assert any(row["path"] == "migration_execution.json" for row in manifest["artifacts"])
+    assert [row["path"] for row in manifest["migration_execution"]["generated_artifacts"]] == ["migration_execution.migration-execution/divide.mm"]
+    assert all(row["sha256"] for row in manifest["migration_execution"]["generated_artifacts"])
+    assert json.loads((pack_dir / "audit.json").read_text())["artifact_roles"]["migration_execution"] == ["migration_execution.json"]
+    assert json.loads((pack_dir / "migration_plan.json").read_text())["artifact_roles"]["migration_execution"] == ["migration_execution.json"]
+    assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"
+    assert manifest["evidence_roles"]["adapter_observation"]["status"] == "absent"
