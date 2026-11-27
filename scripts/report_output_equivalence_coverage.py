@@ -55,7 +55,9 @@ def bucket(gate: dict | None, raw: dict) -> str:
 def helper_definitions() -> dict[str, list[dict]]:
     """Static helper-atom inventory for benchmark cases, without native source extraction."""
     inventory = {}
-    pattern = re.compile(r"\batom\s+(\w+)\s*\((.*?)\)\s*->\s*(\w+)\s+(.*?)(?=\n\s*atom\s+|\Z)", re.S)
+    pattern = re.compile(
+        r"\b(?:(trusted|extern)\s+)?atom\s+(\w+)\s*\((.*?)\)\s*->\s*(\w+)\s+(.*?)"
+        r"(?=\n\s*(?:(?:trusted|extern)\s+)?atom\s+|\Z)", re.S)
     for cpath in sorted((REPO_ROOT / "proofs").glob("*/*/*/contract.json")):
         case_id = cpath.parent.name
         fixed_path = cpath.parent / "fixed.mm"
@@ -69,10 +71,10 @@ def helper_definitions() -> dict[str, list[dict]]:
         inlineable = set(fidelity.simple_helper_atoms(prelude))
         entries = []
         for match in pattern.finditer(prelude):
-            name, _params, _return_type, block = match.groups()
+            marker, name, _params, _return_type, block = match.groups()
             body_match = re.search(r"\bbody\s*:\s*\{(.*)\}\s*$", block.strip(), re.S)
             body = body_match.group(1) if body_match else ""
-            effectful = bool(re.search(r"\b(?:extern|effect|trusted)\b", block))
+            effectful = bool(marker or re.search(r"\b(?:extern|effect|trusted)\b", block))
             self_recursive = bool(body and re.search(rf"\b{re.escape(name)}\s*\(", body))
             body_available = bool(body.strip())
             if effectful:
