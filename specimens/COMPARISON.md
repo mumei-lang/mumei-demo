@@ -10,14 +10,14 @@ Every row is scored against the same 171 defects in `DEFECTS.json` with the same
 
 Model for both LLM rows: `openai/gpt-6-luna`.
 
-Evidence snapshot: measured 2026-11-03; mumei-agent `e8be527`; mumei `36eb534`.
+Evidence snapshot: measured 2026-11-03–2026-11-27; mumei-agent commits: mumei + LLM `e8be527`, mumei only `a60016b`; mumei commits: mumei + LLM `36eb534`, mumei only `b777e8e`.
 
 ## Totals
 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
 |---|---:|---:|---:|---:|---:|---:|
-| mumei only | 10 (6%) | 29 (17%) | 32% | 29 | $0.00 | 84 s wall |
-| mumei + LLM | 12 (7%) | 68 (40%) | 10%–87% | 211 | $0.22 | 54 min wall |
+| mumei only | 11 (6%) | 24 (14%) | 37%–83% | 14 | $0.00 | — |
+| mumei + LLM | 12 (7%) | 68 (40%) | 10%–99% | 212 | unknown | — |
 | LLM only (3 runs, median) | 104 (61%), range 104–105 | 136 (80%), range 135–138 | 62%–100% | 76, range 68–79 | $0.06 | 22 min model time |
 
 Precision is (defect evidence + findings reviewed as real) / findings, a range while findings are unreviewed. False alarms on fixed code count findings on the specimens with their `fixed.patch` applied. Cost per pass is the OpenRouter spend for one pass over the corpus (buggy and fixed code). Time per pass is the audit wall time for the mumei rows and the summed model response time for LLM only, so the two are not directly comparable.
@@ -28,9 +28,9 @@ Defects detected, counting an LLM-only defect when any run found it.
 
 | Pair | Both | Only first | Only second | Either |
 |---|---:|---:|---:|---:|
-| mumei only vs LLM only | 9 | 1 | 111 | 121 |
+| mumei only vs LLM only | 10 | 1 | 110 | 121 |
 | mumei + LLM vs LLM only | 11 | 1 | 109 | 121 |
-| mumei only vs mumei + LLM | 10 | 0 | 2 | 12 |
+| mumei only vs mumei + LLM | 10 | 1 | 2 | 13 |
 
 ## mumei findings by kind
 
@@ -38,11 +38,11 @@ Findings of the two audit rows by the audit section they come from, on the buggy
 
 | Kind | mumei only: buggy | mumei only: fixed | mumei + LLM: buggy | mumei + LLM: fixed |
 |---|---:|---:|---:|---:|
-| Verifier violations | 39 | 29 | 39 | 29 |
-| Spec vs code cross-check gaps | 0 | 0 | 105 | 151 |
-| Spec health issues | 1 | 1 | 56 | 32 |
+| Verifier violations | 14 | 0 | 39 | 29 |
+| Spec vs code cross-check gaps | 20 | 14 | 105 | 151 |
+| Spec health issues | 1 | 0 | 56 | 32 |
 
-Of the 212 mumei + LLM findings on fixed code (211 false alarms, 1 reviewed as real), 183 are spec diagnostics (cross-check gaps and spec health issues) rather than verifier violations.
+Of the 212 mumei + LLM findings on fixed code, 183 are spec diagnostics (cross-check gaps and spec health issues) rather than verifier violations.
 
 ## Detected by language
 
@@ -52,7 +52,7 @@ Of the 212 mumei + LLM findings on fixed code (211 false alarms, 1 reviewed as r
 | python | 41 | 1 | 1 | 24, range 23–25 |
 | rust | 34 | 1 | 1 | 20, range 20–21 |
 | solidity | 31 | 6 | 6 | 19, range 17–20 |
-| typescript | 33 | 1 | 2 | 18, range 17–19 |
+| typescript | 33 | 2 | 2 | 18, range 17–19 |
 
 ## Re-run
 
