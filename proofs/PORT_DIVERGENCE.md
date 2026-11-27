@@ -42,7 +42,40 @@ port, `still_refutes` if both refute every supplied input, and `inconclusive`
 otherwise. Missing or failed verification is not evidence of divergence. The
 inputs include both solver counterexamples and hand-picked counterexamples
 rechecked by the verifier; this is not an equivalence proof or a search for
-counterexamples outside the fixture. `run_contract_bench.py` uses the same lint and replay evidence as a fidelity acceptance gate for newly verified LLM ports. The lint is variant-aware and records high-confidence meaning-loss evidence: silent repair, missing modeled operations, guard folding, self-calls and success-flag rewrites. Confirming replay overrides lint warnings except exact success/result-state guard folding, which is high-confidence meaning loss. Added or removed guard-count warnings remain visible but do not block alone, because legitimate fixed-side translations can differ in guard shape. Neither lint nor replay is represented as a formal `refuted` verdict. Replay divergence blocks a candidate. Other high-confidence lint blocks when replay does not supply confirming evidence (`still_refutes` for buggy or `still_holds` for fixed); inconclusive replay alone does not rewrite a raw proof. A blocked candidate keeps its raw verifier outcome in the committed JSON but is counted as unsupported/inconclusive evidence rather than verification acceptance. The same harness also keeps proofs under weak or vacuous LLM-generated contracts out of acceptance while preserving their raw verifier outcomes.
+counterexamples outside the fixture. Those inputs are necessarily biased toward
+the buggy contract violation, so a fixed-side port can satisfy every fixture
+while still losing fixed-reference state meaning. `run_contract_bench.py` therefore
+also builds a solver-backed comparison harness that inlines the reference and
+candidate bodies and compares primitive results or struct output fields under
+the pinned `requires`. A `matched` result is exact confirming fidelity evidence.
+If exact output diverges, the harness reapplies the committed relevance,
+rounding and failure-state adjudication; divergence that remains there blocks
+acceptance, while divergence confined to those boundary regions is explicitly
+inconclusive diagnostic evidence rather than a false positive. Loop-containing
+bodies are explicitly unavailable because loop-invariant abstraction can
+manufacture a spurious difference even between two copies of the same reference
+body. In the recorded corpus, all 70 non-loop exact fixed-reference copies
+match; the one loop case is unavailable.
+
+`proofs/output-equivalence-policy.json` records the manual abstraction
+adjudications that keep exact equality from demanding correctness in don't-care
+or model-boundary regions. SOL02-D11 compares `bid_of` only when a previous
+bidder exists, because the no-previous bidder input has no meaningful previous
+live-bid record. SOL03-D08 explicitly marks failure-path `owed` as meaningful
+state, so a port that clears the amount still owed after a failed transfer
+diverges instead of hiding behind failure-sentinel tolerance. TS03-D09 treats
+the one-cent truncation/rounding boundary as part of the integer model of
+`Math.round`; larger output differences remain divergence. TS03-D03 is the
+opposite adjudication: multiplication-before-division is the canonical integer
+model, so reordering division first remains meaningful divergence. In the
+recorded fixed LLM ports, divergence is therefore 3, 4 and 4 case-runs
+respectively (GO01-D04, PY02-D08 and TS03-D03 in every run, plus RS01-D06 in
+run 2 and SOL03-D08 in run 3). These are semantic fixed-port errors rather than
+correct-port overblocking; the TS03-D09 rounding implementation and SOL02-D11
+no-previous-bidder difference are boundary-only inconclusive evidence, not
+blocking divergence.
+
+The lint is variant-aware and records high-confidence meaning-loss evidence: silent repair, missing modeled operations, guard folding, self-calls and success-flag rewrites. Confirming replay, matched solver output or boundary-only output overrides guard-shape and success-flag lint-only warnings; exact result-state guard folding remains blocking unless output comparison shows no meaningful divergence. Added or removed guard-count warnings remain visible but do not block alone, because legitimate fixed-side translations can differ in guard shape. Neither lint, replay nor output comparison is represented as a formal `refuted` verdict for the original candidate. Replay or output divergence blocks a candidate. Other high-confidence lint blocks when neither semantic check supplies nonblocking evidence (`still_refutes`/`still_holds` or `matched`), except silent repair, missing modeled operations and self-calls, which are structural fidelity loss even when outputs coincide; inconclusive evidence alone does not rewrite a raw proof. A blocked candidate keeps its raw verifier outcome in the committed JSON but is counted as unsupported/inconclusive evidence rather than verification acceptance. The same harness also keeps proofs under weak or vacuous LLM-generated contracts out of acceptance while preserving their raw verifier outcomes.
 
 The JSON report also keeps unresolved verifier outcomes and measurement separate:
 unsupported input/generated output or capability, residual inconclusive outcome,

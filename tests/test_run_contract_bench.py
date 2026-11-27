@@ -479,6 +479,8 @@ def test_rescore_port_fidelity_annotates_committed_rows_without_an_llm(repo):
 
     summary = cb.rescore_port_fidelity([case], "mumei", 5)
     assert summary == {"updated": ["proofs/results/mumei-llm-test.json"], "gated": 2, "blocked": 1}
+    meta = json.loads(path.read_text())["fidelity_rescore"]
+    assert meta["rescored_rows"] == 2 and meta["reused_rows"] == 0
     rescored = json.loads(path.read_text())["runs"][0][0]["buggy"]
     assert rescored["outcome"] == "proven" and rescored["body"] == fixed_body
     assert rescored["fidelity_gate"]["decision"] == "blocked"
@@ -486,6 +488,14 @@ def test_rescore_port_fidelity_annotates_committed_rows_without_an_llm(repo):
     assert projected["outcome"] == "inconclusive" and projected["failure_kind"] == "unsupported"
     assert projected["verifier_outcome"] == "proven"
     assert cb.rescore_port_fidelity([case], "mumei", 5) == {"updated": [], "gated": 0, "blocked": 0}
+
+    timeout_doc = json.loads(path.read_text())
+    timeout_doc["runs"][0][0]["fixed"]["fidelity_gate"]["output_equivalence"] = {
+        "outcome": "inconclusive", "status": "timeout"}
+    path.write_text(json.dumps(timeout_doc))
+    assert cb.rescore_port_fidelity([case], "mumei", 5)["gated"] == 1
+    retry_meta = json.loads(path.read_text())["fidelity_rescore"]
+    assert retry_meta["rescored_rows"] == 1 and retry_meta["reused_rows"] == 1
 
     stale_doc = json.loads(path.read_text())
     stale_doc["runs"][0][0]["buggy"]["fidelity_gate"]["semantic_replay"]["input_hash"] = "stale"
@@ -522,7 +532,9 @@ def test_fidelity_gate_staleness_follows_replay_input_hash(repo):
     assert cb.fidelity_gate_stale(case, gate)
     assert cb.fidelity_gate_stale(case, {**gate, "detector_version": -1, "semantic_replay": matching_replay})
     assert not cb.fidelity_gate_stale(case, {**gate, "semantic_replay": matching_replay})
-    assert any("stale against replay inputs" in problem for problem in cb.fidelity_problems([doc], [case]))
+    assert cb.fidelity_gate_stale(case, {**gate, "semantic_replay": matching_replay,
+                                         "output_policy_hash": "stale-policy"})
+    assert any("stale against current fidelity inputs" in problem for problem in cb.fidelity_problems([doc], [case]))
 
 
 def test_fidelity_problems_flags_ungated_or_inconsistent_raw_proofs():
@@ -609,6 +621,40 @@ def test_usage_total_ignores_boolean_verification_measurements():
     r["buggy"]["budget_seconds"] = False
     u = cb.usage_total([r])
     assert u["verification_timed_calls"] == 0 and u["verification_budgeted_calls"] == 0
+
+
+def test_usage_total_includes_output_equivalence_verification_measurement():
+    r = rec("a", "go", "inconclusive", "proven")
+    r.pop("vacuity")
+    r["buggy"]["fidelity_gate"] = {"decision": "blocked", "output_equivalence": {
+        "outcome": "matched", "status": "success", "seconds": 0.5, "budget_seconds": 30.0}}
+    r["fixed"]["fidelity_gate"] = {"decision": "accepted", "output_equivalence": {
+        "outcome": "unavailable", "reason": "loop_equivalence_unverified"}}
+
+    u = cb.usage_total([r])
+
+    assert u["verification_timed_calls"] == 1
+    assert u["verification_expected_calls"] == 1
+    assert u["verification_seconds"] == 0.5
+    assert u["verification_budgeted_calls"] == 1
+    assert u["verification_budget_seconds"] == 30.0
+
+
+def test_usage_total_uses_output_equivalence_call_measurement():
+    r = rec("a", "go", "inconclusive", "proven")
+    r.pop("vacuity")
+    r["buggy"]["fidelity_gate"] = {"decision": "accepted", "output_equivalence": {
+        "outcome": "inconclusive", "status": "success", "seconds": 0.5, "budget_seconds": 30.0,
+        "verification": {"expected_calls": 2, "timed_calls": 2, "seconds": 1.1,
+                         "budgeted_calls": 2, "budget_seconds": 60.0}}}
+
+    u = cb.usage_total([r])
+
+    assert u["verification_expected_calls"] == 2
+    assert u["verification_timed_calls"] == 2
+    assert u["verification_seconds"] == 1.1
+    assert u["verification_budgeted_calls"] == 2
+    assert u["verification_budget_seconds"] == 60.0
 
 
 def test_usage_total_includes_fidelity_replay_verification_measurement():
@@ -1743,3 +1789,16 @@ def test_lean_bridge_without_lake_fails_before_verifying(repo, tmp_path, monkeyp
     with pytest.raises(SystemExit, match="needs `lake` on PATH"):
         cb.main(["--arm", "mumei", "--mumei-bin", "mumei", "--lean-bridge", str(tmp_path)])
     assert certs and all(p.read_text() == "sentinel" for p in certs)
+
+
+def test_fidelity_problems_accepts_boundary_only_output_over_lint():
+    row = rec("a", "go", "proven", "refuted")
+    row["buggy"]["fidelity_gate"] = {
+        "decision": "accepted", "variant": "buggy", "lint_findings": [{"kind": "guard_folding"}],
+        "blocking_lint_findings": [{"kind": "guard_folding"}],
+        "semantic_replay": {"outcome": "inconclusive"},
+        "output_equivalence": {"outcome": "inconclusive", "reason": "abstraction_boundary_only"}}
+    doc = {"arm": "mumei-llm", "model": "test", "runs": [[row]]}
+
+    assert not any("accepted despite blocking fidelity evidence" in problem
+                   for problem in cb.fidelity_problems([doc]))

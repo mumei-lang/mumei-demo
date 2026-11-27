@@ -1,0 +1,27 @@
+{
+  "schema": "mumei-demo.output-equivalence-policy/v1",
+  "cases": {
+    "SOL02-D11": {
+      "field_relevance": {
+        "bid_of": "has_previous"
+      },
+      "rationale": "With has_previous=false there is no previous bidder whose live bid record is meaningful; differences in the passed-in prev_bid_of echo are a don't-care artifact of the abstraction. pending remains meaningful on every input."
+    },
+    "SOL03-D08": {
+      "failure_state_fields": [
+        "owed"
+      ],
+      "rationale": "owed is the amount still owed when the reward transfer fails, so it is meaningful failure-path state rather than a sentinel payload."
+    },
+    "TS03-D09": {
+      "rounding_tolerance_fields": {
+        "value": 1
+      },
+      "rationale": "The benchmark models Math.round with integer division. Truncation and nearest-integer rounding differ by at most one cent in the discounted amount, so exact equality would overblock the source-like rounding implementation; differences larger than one cent remain blocking evidence."
+    },
+    "TS03-D03": {
+      "canonical_integer_arithmetic": true,
+      "rationale": "The canonical model intentionally fixes multiplication-before-division integer arithmetic. Reordering division before multiplication loses precision in the chosen integer model and is meaningful divergence, not a rounding abstraction boundary."
+    }
+  }
+}

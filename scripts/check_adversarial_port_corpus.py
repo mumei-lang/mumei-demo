@@ -33,6 +33,7 @@ CASE_KEYS = {
     "id", "kind", "failure_mode", "language", "category", "atom", "header",
     "native_source", "fixed_native_source", "reference_body", "fixed_reference_body",
     "candidate_body", "variant", "requires", "ensures", "expected_findings", "rationale",
+    "prelude", "expected_output_equivalence", "policy_case",
 }
 PORT_REQUIRED = {
     "id", "kind", "failure_mode", "language", "category", "atom", "header",
@@ -79,7 +80,14 @@ def validate_case(case: object, index: int, errors: list[str]) -> None:
                 _error(errors, case_id, f"expected_findings[{finding_index}] must contain a non-empty kind")
     if "variant" in case and case["variant"] not in {"buggy", "fixed"}:
         _error(errors, case_id, "variant must be 'buggy' or 'fixed'")
-    string_keys = (PORT_REQUIRED | CONTRACT_REQUIRED | {"fixed_reference_body", "fixed_native_source"}) - {"expected_findings"}
+    if "expected_output_equivalence" in case:
+        if case["expected_output_equivalence"] not in {"matched", "diverged", "inconclusive", "unavailable"}:
+            _error(errors, case_id, "expected_output_equivalence must be a solver-comparison outcome")
+        if kind != "port":
+            _error(errors, case_id, "expected_output_equivalence requires a port case")
+    if "policy_case" in case and kind != "port":
+        _error(errors, case_id, "policy_case requires a port case")
+    string_keys = (PORT_REQUIRED | CONTRACT_REQUIRED | {"fixed_reference_body", "fixed_native_source", "prelude", "policy_case"}) - {"expected_findings"}
     for key in string_keys:
         if key in case and not isinstance(case[key], str):
             _error(errors, case_id, f"{key} must be a string")
@@ -127,10 +135,10 @@ def load_corpus(path: Path = CORPUS_PATH) -> dict:
 
 def _port_case(case: dict) -> dict:
     shell = {
-        "id": case["id"],
+        "id": case.get("policy_case", case["id"]),
         "atom": case["atom"],
         "header": case["header"],
-        "prelude": "",
+        "prelude": case.get("prelude", ""),
         "language": case["language"],
         "category": case["category"],
         "functions": {"buggy": case["native_source"], "fixed": case.get("fixed_native_source", case["native_source"])},
@@ -156,6 +164,7 @@ def evaluate_case(case: dict) -> dict:
         "variant": case.get("variant", "buggy"),
         "expected": expected_labels,
         "actual": actual_labels,
+        "expected_output_equivalence": case.get("expected_output_equivalence", "—"),
         "status": "pass" if actual_labels == expected_labels else "fail",
         "rationale": case["rationale"],
     }
@@ -205,18 +214,18 @@ def render(result: dict) -> str:
         lines.append(f"| `{mode}` | {row['cases']} | {row['passed']} |")
     lines.extend([
         "",
-        "| Case | Mode | Expected findings | Actual findings | Status |",
-        "|---|---|---|---|---|",
+        "| Case | Mode | Expected findings | Actual findings | Output comparison | Status |",
+        "|---|---|---|---|---|---|",
     ])
     for row in result["cases"]:
         status = "PASS" if row["status"] == "pass" else "FAIL"
         lines.append(
             f"| `{row['id']}` | `{row['failure_mode']}` | {_labels(row['expected'])} | "
-            f"{_labels(row['actual'])} | {status} |"
+            f"{_labels(row['actual'])} | `{row['expected_output_equivalence']}` | {status} |"
         )
     lines.extend([
         "",
-        "The negative controls are part of the gate: a faithful port and a meaningful contract must produce no adversarial warning.",
+        "The negative controls are part of the gate: a faithful port and a meaningful contract must produce no adversarial warning. Output-comparison expectations are pinned here and checked against a real Mumei binary by `tests/test_output_equivalence.py` in the integration workflow; this offline report does not run the solver.",
         "",
     ])
     return "\n".join(lines)
