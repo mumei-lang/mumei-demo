@@ -23,11 +23,18 @@ Use `CI_FIXTURE_MODE=1 make demo-ci` for the deterministic validation path. Setu
 
 The full scenario list, including negative controls, charter gating, DeFi invariants, and test-observation checks, is in [`docs/SCENARIO_CATALOG.md`](docs/SCENARIO_CATALOG.md).
 
-```text
-LLM generates code → mumei verifies with Z3 → proof, or counterexample-guided repair
-                                  ↓
-                    Lean 4 certifies obligations beyond Z3's reach
+```mermaid
+flowchart LR
+    Code["LLM-generated or existing code"] --> Agent["mumei-agent<br/>audit / repair"]
+    MM[".mm source"] --> Core["mumei + Z3"]
+    Agent -->|candidate contracts and code| Core
+    Core -->|verified / refuted| Evidence["proof and audit evidence"]
+    Core -->|unknown, opt-in escalation| Lean["mumei-lean + Lean 4"]
+    Lean -->|kernel-audited certificates| Evidence
+    Evidence --> Eval["scenario and benchmark evaluation"]
 ```
+
+The demo evaluates recorded evidence; it does not turn finite replay, LLM output, or a successful scenario into additional proof.
 
 ## Verification demo: dogfooding audit
 
@@ -103,6 +110,8 @@ Details, complementarity, findings by kind and per-language numbers: [specimens/
 | L1 | [`mumei`](https://github.com/mumei-lang/mumei) + Z3 | Contract language, automatic verification, compilation evidence |
 | L2 | [`mumei-agent`](https://github.com/mumei-lang/mumei-agent) | AI-guided repair, extraction, and multi-language audit orchestration |
 | L3 | [`mumei-lean`](https://github.com/mumei-lang/mumei-lean) + Lean 4 | Independent proof backend for escalated obligations |
+
+The ownership and acceptance boundary across these repositories is defined in [mumei's verification-native architecture](https://github.com/mumei-lang/mumei/blob/develop/docs/VERIFICATION_NATIVE.md). This repository measures capability and non-capability through reproducible scenarios; stronger assurance must come from the relevant trusted checker, not from demo success.
 
 ## Documentation
 
