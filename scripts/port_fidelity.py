@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import re
+import resource
 import shutil
 import signal
 import subprocess
@@ -699,6 +700,29 @@ def bounded_interaction_text(case: dict, candidate_body: str, values: dict,
             + "    }\n")
 
 
+def bounded_interaction_memory_limit() -> int:
+    """The memory cap to request, without raising an inherited lower hard limit."""
+    try:
+        _, hard = resource.getrlimit(resource.RLIMIT_AS)
+    except (OSError, ValueError):
+        return BOUNDED_INTERACTION_MEMORY_BYTES
+    if hard > 0:
+        return min(BOUNDED_INTERACTION_MEMORY_BYTES, hard)
+    return BOUNDED_INTERACTION_MEMORY_BYTES
+
+
+def kill_process_group(process: subprocess.Popen) -> None:
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        return
+    except OSError:
+        try:
+            process.kill()
+        except ProcessLookupError:
+            return
+
+
 def run_bounded_interaction_text(mumei_bin: str, text: str, timeout: int) -> dict:
     """Compile and execute one bounded-interaction harness without trusting stdout.
 
@@ -717,7 +741,7 @@ def run_bounded_interaction_text(mumei_bin: str, text: str, timeout: int) -> dic
     with tempfile.TemporaryDirectory(prefix="mumei-bounded-interaction-") as tmp:
         path = Path(tmp) / "interaction.mm"
         path.write_text(text)
-        command = [prlimit, f"--as={BOUNDED_INTERACTION_MEMORY_BYTES}", "--", mumei_bin, "run", str(path)]
+        command = [prlimit, f"--as={bounded_interaction_memory_limit()}", "--", mumei_bin, "run", str(path)]
         try:
             process = subprocess.Popen(command, cwd=tmp, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                        text=True, start_new_session=True)
@@ -727,13 +751,18 @@ def run_bounded_interaction_text(mumei_bin: str, text: str, timeout: int) -> dic
         try:
             process.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except (OSError, ProcessLookupError):
-                process.kill()
+            kill_process_group(process)
             process.communicate()
             return {"result": "error", "error": "TimeoutExpired", "timeout": True,
                     "seconds": time.monotonic() - started, "budget_seconds": timeout}
+        except BaseException:
+            kill_process_group(process)
+            try:
+                process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+            raise
         return {"exit_code": process.returncode,
                 "seconds": time.monotonic() - started, "budget_seconds": timeout}
 

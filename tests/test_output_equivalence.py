@@ -213,6 +213,50 @@ def test_bounded_interaction_runner_applies_memory_limit(monkeypatch: pytest.Mon
     assert commands[0][-1].endswith("interaction.mm")
 
 
+def test_bounded_interaction_memory_limit_respects_lower_inherited_hard_cap(monkeypatch: pytest.MonkeyPatch) -> None:
+    commands = []
+
+    class FakeProcess:
+        returncode = 0
+
+        def communicate(self, timeout=None):
+            return "", ""
+
+    monkeypatch.setattr(fidelity.resource, "getrlimit", lambda _resource: (512 * 1024**2, 1024**3))
+    monkeypatch.setattr(fidelity.shutil, "which", lambda name: "/usr/bin/prlimit" if name == "prlimit" else None)
+    monkeypatch.setattr(fidelity.subprocess, "Popen", lambda command, **_kwargs: commands.append(command) or FakeProcess())
+
+    run = fidelity.run_bounded_interaction_text("mumei", "atom main() -> i64\n    requires: true;\n    ensures: true;\n    body: { 0 }\n", 5)
+
+    assert run["exit_code"] == 0
+    assert commands[0][1] == "--as=1073741824"
+
+
+def test_bounded_interaction_keyboard_interrupt_kills_process_group(monkeypatch: pytest.MonkeyPatch) -> None:
+    killed = []
+
+    class FakeProcess:
+        pid = 123
+
+        def communicate(self, timeout=None):
+            raise KeyboardInterrupt
+
+        def wait(self, timeout=None):
+            return 0
+
+        def kill(self):
+            killed.append(("kill", self.pid))
+
+    monkeypatch.setattr(fidelity.shutil, "which", lambda name: "/usr/bin/prlimit" if name == "prlimit" else None)
+    monkeypatch.setattr(fidelity.subprocess, "Popen", lambda *args, **kwargs: FakeProcess())
+    monkeypatch.setattr(fidelity.os, "killpg", lambda pid, sig: killed.append((pid, sig)))
+
+    with pytest.raises(KeyboardInterrupt):
+        fidelity.run_bounded_interaction_text("mumei", "atom main() -> i64\n    requires: true;\n    ensures: true;\n    body: { 0 }\n", 5)
+
+    assert killed == [(123, fidelity.signal.SIGKILL)]
+
+
 def test_bounded_interaction_timeout_kills_process_group(monkeypatch: pytest.MonkeyPatch) -> None:
     killed = []
 
