@@ -61,10 +61,12 @@ patterns represented in both the source function and its buggy reference port.
 It warns if no operation of that kind remains in the LLM body, and separately
 notes extra conditionals relative to the reference, new ways for an `ok` flag to
 be false compared with the reference flag expressions and their branch conditions,
-and direct self-calls. These are syntactic clues, not
-a language-aware source diff or proof of a silent repair: the model may omit
-unrelated source operations, and it may encode a source operation differently.
-The JSON `lint_counts` total counts warning instances rather than misaccepted
-case-runs: one accepted port can carry several warnings, so the lint total (41
-in the recorded runs) is not expected to equal the 26 primary-mechanism rows in
-the table above.
+direct self-calls, unconditional-success rewrites of a guarded failure branch,
+and exact token-level matches with the fixed reference port. In the recorded runs
+the fixed-reference rule fires three times, which is high-confidence evidence of
+silent repair rather than a semantic proof: the model may omit unrelated source
+operations, encode a source operation differently, or write an equivalent repair
+that does not match the reference token pattern. The JSON `lint_counts` total
+counts warning instances rather than misaccepted case-runs: one accepted port can
+carry several warnings, so the lint total (41 in the recorded runs) is not
+expected to equal the 26 primary-mechanism rows in the table above.
