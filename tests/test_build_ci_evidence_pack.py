@@ -488,6 +488,7 @@ def test_ci_reference_quickstart_statically_covers_migration_action_contract() -
     with_index = next(index for index, line in enumerate(step_lines) if line.strip() == "with:")
     with_indent = len(step_lines[with_index]) - len(step_lines[with_index].lstrip())
     input_lines = []
+    input_indent = None
     for line in step_lines[with_index + 1 :]:
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
@@ -495,13 +496,16 @@ def test_ci_reference_quickstart_statically_covers_migration_action_contract() -
         indent = len(line) - len(line.lstrip())
         if indent <= with_indent:
             break
-        input_lines.append(stripped)
+        if input_indent is None:
+            input_indent = indent
+        if indent == input_indent:
+            input_lines.append(stripped)
     inputs = dict(line.split(":", 1) for line in input_lines)
-    inputs = {key.strip(): value.strip() for key, value in inputs.items()}
+    inputs = {key.strip(): re.sub(r"\s+#.*$", "", value).strip() for key, value in inputs.items()}
     assert inputs["audit-args"] == "--baseline audit-baseline.json --write-baseline .mumei-audit/generated-baseline.json --fail-on high-confidence"
     assert inputs["migration-execution-output"] == ".mumei-audit/migration_execution.json"
     assert inputs["artifact-name"] == "mumei-audit-evidence"
-    assert inputs["upload-sarif"] == "false  # set true only when GitHub code scanning is enabled"
+    assert inputs["upload-sarif"] == "false"
     assert "@develop" not in workflow
 
     for phrase in (
