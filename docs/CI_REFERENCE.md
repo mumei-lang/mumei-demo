@@ -88,7 +88,7 @@ Step outputs have distinct roles: `audit_exit_code` is the audit process classif
 
 ## Migration states are not CI failure classes
 
-Migration execution candidate states are review routing evidence. `blocked` means the artifact retains a contract/provenance/evidence blocker for a human; it is not an operational CI failure and does not mean the audit CLI failed. `ready_for_human_review` means the generated `.mm` acceptance evidence is complete enough to review, not that the host code is equivalent or that the migration may merge without review. The composite action fails the job through the normal audit/fail-on policy or through collection/precheck `operational_error`; do not add a separate CI failure merely because a candidate is `blocked`, `ready_for_human_review`, or candidate-level `operational_error`.
+Migration execution `blocked` and `ready_for_human_review` candidate states are review routing evidence. `blocked` means the artifact retains a contract/provenance/evidence blocker for a human; it is not an operational CI failure and does not mean the audit CLI failed. `ready_for_human_review` means the generated `.mm` acceptance evidence is complete enough to review, not that the host code is equivalent or that the migration may merge without review. Candidate-level `operational_error` is operational-failure evidence inside a successfully collected artifact; handle it under explicit repository policy and do not confuse it with collection/precheck failure. The composite action fails the job through the normal audit/fail-on policy or through collection/precheck `operational_error`; do not add a separate CI failure merely because a candidate is `blocked` or `ready_for_human_review`.
 
 ## Timing evidence
 
