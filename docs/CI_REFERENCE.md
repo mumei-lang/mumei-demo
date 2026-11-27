@@ -26,7 +26,7 @@ Use the upstream composite action for the initial existing-code audit gate. The 
                printf '%s\n' '{"version":"mumei.audit-baseline/v1","fingerprints":[]}' > audit-baseline.json
              fi
 
-         - uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@develop
+         - uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@b81e8d1a5ebc20a28b256df401cd1594f0443e23
           # Keep the default deterministic/no-LLM path even when repository secrets exist.
            env:
              LLM_API_KEY: ""
@@ -35,9 +35,10 @@ Use the upstream composite action for the initial existing-code audit gate. The 
              code-file: src/
              language: python
              audit-args: --baseline audit-baseline.json --write-baseline .mumei-audit/generated-baseline.json --fail-on high-confidence
+             upload-sarif: false  # set true only when GitHub code scanning is enabled
    ```
 
-   Adjust `code-file` and, when needed, `language`. Keep `audit-args` on one line: the composite action treats it as a space-separated argument list.
+   Adjust `code-file` and, when needed, `language`. Keep `audit-args` on one line: the composite action treats it as a space-separated argument list. The example pins the full commit SHA that the upstream selftest ran successfully; before production use, review the action and pin either that commit SHA or a newer immutable release ref. Do not use a mutable branch ref such as `@develop` as a production dependency. `@develop` is acceptable only for short-lived bootstrap experiments or examples where reproducibility and supply-chain stability are not yet the gate.
 
 2. Open a pull request. The action writes a step summary, audit JSON, SARIF, logs, timing files, and `generated-baseline.json` in the `mumei-audit-evidence` artifact.
 3. Review `generated-baseline.json`. If the suppressed fingerprints are accepted as repository policy, commit that file as `audit-baseline.json`. Later runs pass it through `--baseline`; do not treat the baseline as evidence.
@@ -49,7 +50,7 @@ A maintainer can complete the copy/edit/review loop in about ten minutes. The me
 
 `contents: read` is required for checkout. `security-events: write` is required only when `upload-sarif` is true and GitHub code scanning is enabled for the repository. The SARIF file is still uploaded in the evidence artifact either way.
 
-If the repository does not have GitHub Code Security/code scanning, set `upload-sarif: false`; otherwise the optional code-scanning upload can fail even when the audit itself succeeded. Keep the SARIF artifact as the portable evidence rendering, or enable code scanning and restore the upload.
+The quick start sets `upload-sarif: false` because the optional upload fails in repositories without GitHub Code Security/code scanning even when the audit itself succeeded. The SARIF file remains in the evidence artifact either way. After enabling code scanning, set `upload-sarif: true` to publish the same upstream-generated SARIF there.
 
 ## Deterministic/no-LLM default
 
