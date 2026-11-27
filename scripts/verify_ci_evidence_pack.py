@@ -227,6 +227,17 @@ def _map_claimed_path(path_text: str, *, pack_root: Path, generated_root: Path, 
     return (pack_root / raw).resolve(strict=False)
 
 
+def _validate_upstream_generated_root_binding(original_generated_root_text: str, generated_dir: str) -> None:
+    normalized = os.path.normpath(original_generated_root_text)
+    basename = Path(normalized).name
+    _generated_dir_name(basename)
+    if Path(original_generated_root_text).is_absolute():
+        if basename != generated_dir:
+            raise EvidencePackVerificationError("upstream generated artifact directory basename is inconsistent with the manifest")
+    elif normalized != generated_dir:
+        raise EvidencePackVerificationError("relative upstream generated artifact directory is inconsistent with the manifest")
+
+
 def _validate_migration_claims(root: Path, rows: list[dict[str, Any]], generated_dir: str) -> None:
     execution_path = root / "migration_execution.json"
     payload = pack._validate_migration_execution(execution_path, validate_output_path=False)
@@ -234,6 +245,7 @@ def _validate_migration_claims(root: Path, rows: list[dict[str, Any]], generated
     pack_root = root.resolve()
     generated_root = (pack_root / generated_dir).resolve(strict=False)
     original_generated_root_text = payload["artifact_paths"]["generated_artifacts"]
+    _validate_upstream_generated_root_binding(original_generated_root_text, generated_dir)
     claims: list[tuple[str, object, object]] = []
     for index, candidate in enumerate(payload.get("candidates", [])):
         generated_mm = candidate.get("generated_mm") if isinstance(candidate.get("generated_mm"), dict) else {}

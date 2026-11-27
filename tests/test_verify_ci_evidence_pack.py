@@ -504,3 +504,27 @@ def test_reference_contract_must_match_pack_input_provenance(tmp_path: Path) -> 
 
     with pytest.raises(verifier.EvidencePackVerificationError, match="input provenance"):
         verifier.verify_evidence_pack(root, mumei_bin=mumei, reference_contract=reference)
+
+
+def test_upstream_unrelated_generated_directory_is_operational_failure(tmp_path: Path) -> None:
+    root = write_valid_pack(tmp_path / "pack")
+    execution_path = root / "migration_execution.json"
+    execution = json.loads(execution_path.read_text(encoding="utf-8"))
+    execution["artifact_paths"]["generated_artifacts"] = str(tmp_path / "unrelated-generated")
+    _write_json(execution_path, execution)
+    _refresh_migration_execution_hash(root)
+
+    with pytest.raises(verifier.EvidencePackVerificationError, match="not bound to migration_execution"):
+        verifier.verify_evidence_pack(root)
+
+
+def test_relative_upstream_generated_directory_must_match_manifest(tmp_path: Path) -> None:
+    root = write_valid_pack(tmp_path / "pack")
+    execution_path = root / "migration_execution.json"
+    execution = json.loads(execution_path.read_text(encoding="utf-8"))
+    execution["artifact_paths"]["generated_artifacts"] = "migration_execution.migration-execution-1"
+    _write_json(execution_path, execution)
+    _refresh_migration_execution_hash(root)
+
+    with pytest.raises(verifier.EvidencePackVerificationError, match="relative upstream generated artifact directory"):
+        verifier.verify_evidence_pack(root)
