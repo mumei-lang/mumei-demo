@@ -554,7 +554,37 @@ def test_reference_workflow_uses_upstream_sarif_baseline_and_fail_on_contract() 
     assert "--migration-execution-output" in workflow
     assert "not_available_in_current_cli" in workflow
     assert "not independent CI failure classes" in workflow
-    assert "include-hidden-files: true" in workflow
+    lines = workflow.splitlines()
+    upload_index = next(index for index, line in enumerate(lines) if line.strip() == "- name: Upload evidence pack")
+    upload_indent = len(lines[upload_index]) - len(lines[upload_index].lstrip())
+    upload_end = len(lines)
+    for index in range(upload_index + 1, len(lines)):
+        stripped = lines[index].strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(lines[index]) - len(lines[index].lstrip())
+        if indent <= upload_indent:
+            upload_end = index
+            break
+    upload_lines = lines[upload_index:upload_end]
+    with_index = next(index for index, line in enumerate(upload_lines) if line.strip() == "with:")
+    with_indent = len(upload_lines[with_index]) - len(upload_lines[with_index].lstrip())
+    input_indent = None
+    upload_inputs = {}
+    for line in upload_lines[with_index + 1 :]:
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip())
+        if indent <= with_indent:
+            break
+        if input_indent is None:
+            input_indent = indent
+        if indent != input_indent:
+            raise AssertionError(f"upload inputs must be flat scalar entries, got nested line: {stripped}")
+        key, value = stripped.split(":", 1)
+        upload_inputs[key.strip()] = re.sub(r"\s+#.*$", "", value).strip()
+    assert upload_inputs["include-hidden-files"] == "true"
 
 
 def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:
