@@ -89,7 +89,6 @@ jobs:
       # audited repository, and later runs pass it through --baseline so only
       # new high-confidence code evidence fails the gate.
       - name: Run deterministic audit
-        working-directory: .mumei/mumei-agent
         env:
           # Empty values keep the current audit CLI on its deterministic parser
           # path even when a local .env exists in a development checkout.
@@ -97,6 +96,7 @@ jobs:
           OPENAI_API_KEY: ""
           CI_FIXTURE_MODE: "1"
           MUMEI_BIN: ${{ github.workspace }}/.mumei/mumei/target/release/mumei
+          PYTHONPATH: ${{ github.workspace }}/.mumei/mumei-agent
           AUDIT_TARGET: ${{ github.workspace }}/src
         run: |
           mkdir -p "$GITHUB_WORKSPACE/evidence-pack"
@@ -179,6 +179,7 @@ jobs:
       - name: Upload SARIF when the audit CLI emits it
         if: always() && hashFiles('evidence-pack/audit.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
+        continue-on-error: true
         with:
           sarif_file: evidence-pack/audit.sarif
 

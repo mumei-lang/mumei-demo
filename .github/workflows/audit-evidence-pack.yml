@@ -175,8 +175,9 @@ jobs:
         working-directory: mumei-demo
 
       - name: Upload SARIF when the audit CLI emits it
-        if: hashFiles('mumei-demo/ci-evidence-pack-artifact/audit.sarif') != ''
+        if: always() && hashFiles('mumei-demo/ci-evidence-pack-artifact/audit.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
+        continue-on-error: true
         with:
           sarif_file: mumei-demo/ci-evidence-pack-artifact/audit.sarif
 
