@@ -703,11 +703,12 @@ def bounded_interaction_text(case: dict, candidate_body: str, values: dict,
 def bounded_interaction_memory_limit() -> int:
     """The memory cap to request, without raising an inherited lower hard limit."""
     try:
-        _, hard = resource.getrlimit(resource.RLIMIT_AS)
+        soft, hard = resource.getrlimit(resource.RLIMIT_AS)
     except (OSError, ValueError):
         return BOUNDED_INTERACTION_MEMORY_BYTES
-    if hard > 0:
-        return min(BOUNDED_INTERACTION_MEMORY_BYTES, hard)
+    inherited = [limit for limit in (soft, hard) if limit > 0]
+    if inherited:
+        return min(BOUNDED_INTERACTION_MEMORY_BYTES, *inherited)
     return BOUNDED_INTERACTION_MEMORY_BYTES
 
 

@@ -229,7 +229,7 @@ def test_bounded_interaction_memory_limit_respects_lower_inherited_hard_cap(monk
     run = fidelity.run_bounded_interaction_text("mumei", "atom main() -> i64\n    requires: true;\n    ensures: true;\n    body: { 0 }\n", 5)
 
     assert run["exit_code"] == 0
-    assert commands[0][1] == "--as=1073741824"
+    assert commands[0][1] == "--as=536870912"
 
 
 def test_bounded_interaction_keyboard_interrupt_kills_process_group(monkeypatch: pytest.MonkeyPatch) -> None:
