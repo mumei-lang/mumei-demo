@@ -144,6 +144,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/check_evidence_regressions.py` | 1 | Exercise an evidence reader on isolated, explicitly synthetic snapshots. |
 | `scripts/check_adversarial_port_corpus.py` | 3 | Check the pinned adversarial intent-fidelity corpus offline. The corpus in proofs/adversarial/ is deliberately static: it does not call an LLM or Mumei. It pins hostile generated-contract and body-port shapes to the structured warnings produced by run_port_divergence.py, so detector regressions are visible in CI before another false-acceptance measurement is interpreted. |
 | `scripts/check_fixed_alarm_regression.py` | 4 | Regression gate for false alarms on fixed specimen variants. This is an offline gate over the committed no-LLM `audit/coverage.json` artifacts. It does not rerun `mumei-agent audit`; it prevents the recorded fixed-variant alarm count from silently moving upward and keeps unreviewed fixed-variant findings visible as adjudication debt. |
+| `scripts/report_output_equivalence_coverage.py` | 3 | Report output-equivalence oracle coverage in the recorded benchmark artifact. |
 | `scripts/review_charter_baseline.py` | 2 | Publish the reviewed Charter inputs and their Git diff, not an approval verdict. |
 | `scripts/build_ci_evidence_pack.py` | 5 | Build the deterministic CI audit evidence-pack reference artifact. The pack uses the upstream audit CLI contract for SARIF, baselines, and fail-on policy. SARIF is emitted only by `mumei-agent audit`; the demo never fabricates it, and baseline artifacts are CI policy rather than evidence. |
 | `dashboard/cli_report.py` | 1 | Render a Mumei verification report. |
@@ -387,6 +388,16 @@ Regression gate for false alarms on fixed specimen variants. This is an offline 
 | `--history` | `<HISTORY>` | no | `specimens/scoreboard/history.json` | — |
 | `--budget` | `<BUDGET>` | no | `specimens/scoreboard/fixed_alarm_budget.json` | — |
 | `--json` | — | no | `false` | print the machine-readable evaluation |
+
+### `scripts/report_output_equivalence_coverage.py`
+
+Report output-equivalence oracle coverage in the recorded benchmark artifact.
+
+| Option | Value | Required | Default | Description |
+|---|---|---|---|---|
+| `--results` | `<RESULTS>` | no | `proofs/results/mumei-llm-openai__gpt-6-luna.json` | — |
+| `--report` | `<REPORT>` | no | `proofs/OUTPUT_EQUIVALENCE_COVERAGE.md` | — |
+| `--check` | — | no | `false` | fail when the committed report is out of date |
 
 ### `scripts/review_charter_baseline.py`
 
