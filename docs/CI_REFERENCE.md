@@ -26,7 +26,7 @@ Use the upstream composite action for the initial existing-code audit gate. The 
                printf '%s\n' '{"version":"mumei.audit-baseline/v1","fingerprints":[]}' > audit-baseline.json
              fi
 
-         - uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@cf06d5c713e7b1d5da69a7e1027bea3b8e0ae78d
+         - uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@f77cdca9fff98c6f90f67ed5a97a0c6a14cc5cca
           # Keep the default deterministic/no-LLM path even when repository secrets exist.
            env:
              LLM_API_KEY: ""
@@ -84,11 +84,11 @@ The default artifact name is `mumei-audit-evidence`; setting `artifact-name` onl
 
 Paths embedded in `migration_execution.json` are runner/workspace provenance and are not portable links in the downloaded artifact. Do not resolve those absolute paths locally; inspect the copied companions under `migration-execution/generated-artifacts/` instead.
 
-Step outputs have distinct roles: `audit_exit_code` is the audit process classification (`0` no failing code evidence, `1` finding-policy failure, `2` operational/extraction failure); `setup_seconds`, `audit_seconds`, and `total_seconds` are timing evidence; `migration_execution_status` is the collection/precheck outcome (`not_requested`, `emitted_by_audit_cli`, or `operational_error`); `migration_execution_ready_count` is only the number of candidates in `ready_for_human_review` state. A candidate-level `operational_error` can remain inside a successfully collected artifact and does not change `migration_execution_status` to `operational_error`.
+Step outputs have distinct roles: `audit_exit_code` is the audit process classification (`0` no failing code evidence, `1` finding-policy failure, `2` operational/extraction failure); `setup_seconds`, `audit_seconds`, and `total_seconds` are timing evidence; `migration_execution_status` is the collection/precheck outcome (`not_requested`, `emitted_by_audit_cli`, or `operational_error`); `migration_execution_ready_count` is only the number of candidates in `ready_for_human_review` state; `migration_execution_operational_error_count` is the number of candidate-level `operational_error` states copied into the artifact. A candidate-level `operational_error` does not change `migration_execution_status` to `operational_error`; inspect the count output or `status.json` for that candidate state.
 
 ## Migration states are not CI failure classes
 
-Migration execution `blocked` and `ready_for_human_review` candidate states are review routing evidence. `blocked` means the artifact retains a contract/provenance/evidence blocker for a human; it is not an operational CI failure and does not mean the audit CLI failed. `ready_for_human_review` means the generated `.mm` acceptance evidence is complete enough to review, not that the host code is equivalent or that the migration may merge without review. Candidate-level `operational_error` is operational-failure evidence inside a successfully collected artifact; handle it under explicit repository policy and do not confuse it with collection/precheck failure. The composite action fails the job through the normal audit/fail-on policy or through collection/precheck `operational_error`; do not add a separate CI failure merely because a candidate is `blocked` or `ready_for_human_review`.
+Migration execution `blocked` and `ready_for_human_review` candidate states are review routing evidence. `blocked` means the artifact retains a contract/provenance/evidence blocker for a human; it is not an operational CI failure and does not mean the audit CLI failed. `ready_for_human_review` means the generated `.mm` acceptance evidence is complete enough to review, not that the host code is equivalent or that the migration may merge without review. Candidate-level `operational_error` is different: the artifact and companion files are copied first, but the composite action then fails the job as its consumer policy. Use `migration_execution_operational_error_count` or `migration-execution/status.json` to distinguish that candidate failure from collection/precheck failure. Do not add a separate CI failure merely because a candidate is `blocked` or `ready_for_human_review`.
 
 ## Timing evidence
 

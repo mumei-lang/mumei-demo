@@ -470,7 +470,7 @@ def test_ci_reference_quickstart_statically_covers_migration_action_contract() -
 
     uses = re.search(r"mumei-audit@(?<![0-9a-f])([0-9a-f]{40})(?![0-9a-f])", workflow)
     assert uses is not None, "quick start must pin an immutable full action commit"
-    assert uses.group(1) != "b81e8d1a5ebc20a28b256df401cd1594f0443e23"
+    assert uses.group(1) == "f77cdca9fff98c6f90f67ed5a97a0c6a14cc5cca"
 
     lines = workflow.splitlines()
     uses_index = next(index for index, line in enumerate(lines) if "mumei-audit@" in line)
@@ -518,6 +518,8 @@ def test_ci_reference_quickstart_statically_covers_migration_action_contract() -
         "candidate-level `operational_error`",
         "migration_execution_status",
         "migration_execution_ready_count",
+        "migration_execution_operational_error_count",
+        "the artifact and companion files are copied first",
         "`blocked` means",
         "`ready_for_human_review` means",
         "not an operational CI failure",
