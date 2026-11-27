@@ -207,7 +207,7 @@ with `--run-fixed` it is applied to a scratch copy, where `run.sh` must pass and
 
 ![Detection over runs](scoreboard/history.svg)
 
-Latest run — no LLM: mumei-agent `a60016b` · mumei `b777e8e` (mumei 0.6.23) · 2026-11-27T16:46:45Z
+Latest run — no LLM: mumei-agent `beaa286` · mumei `b777e8e` (mumei 0.6.23) · 2026-11-27T18:17:14Z
 Findings — no LLM: 35 (defect evidence 11, real 2, false positive 6, unreviewed 16) · precision 37%–83%
 Fixed variants — no LLM: 16 specimens (171 defects fixed) · 14 false alarms in 14 findings on fixed code · 0 defects still reported
 
@@ -229,16 +229,16 @@ Recent runs:
 
 | Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code | Adjudication |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---|
+| 2026-11-27 (rescored 2026-11-27) | no | `beaa286` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
+| 2026-11-27 (rescored 2026-11-27) | no | `554f018` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
+| 2026-11-27 (rescored 2026-11-27) | no | `220fd51` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
+| 2026-11-27 (rescored 2026-11-27) | no | `b20e984` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
+| 2026-11-27 (rescored 2026-11-27) | no | `bc382db` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
+| 2026-11-27 (rescored 2026-11-27) | no | `662c3eb` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
+| 2026-11-27 (rescored 2026-11-27) | no | `3a5d6cf` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
+| 2026-11-27 | no | `e261b2f` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
+| 2026-11-27 | no | `86fbff5` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 | 2026-11-03 (rescored 2026-11-27) | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
-| 2026-11-27 (rescored 2026-11-27) | no | `a60016b` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
-| 2026-11-03 (rescored 2026-11-27) | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–99% | 212 / 16 specimens | incomplete (391 unreviewed, 0 stale) |
-| 2026-11-27 (rescored 2026-11-27) | no | `a60016b` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
-| 2026-11-03 (rescored 2026-11-27) | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 1 stale) |
-| 2026-11-27 (rescored 2026-11-27) | no | `a60016b` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 1 stale) |
-| 2026-11-27 | no | `a60016b` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–94% | 14 / 16 specimens | incomplete (34 unreviewed, 1 stale) |
-| 2026-11-27 | no | `a5e23d1` | `b777e8e` | 171 | 6% | 14% | 14% | 33%–95% | 22 / 16 specimens | incomplete (46 unreviewed, 1 stale) |
-| 2026-11-27 | no | `b81e8d1` | `b777e8e` | 171 | 6% | 14% | 15% | 33%–88% | 28 / 16 specimens | incomplete (47 unreviewed, 1 stale) |
-| 2026-11-03 | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–87% | 211 / 16 specimens | unknown — rescore |
 
 Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md) (no LLM) and
 [AUDIT_SUMMARY_WITH_LLM.md](AUDIT_SUMMARY_WITH_LLM.md) (with LLM).

@@ -10,13 +10,13 @@ Every row is scored against the same 171 defects in `DEFECTS.json` with the same
 
 Model for both LLM rows: `openai/gpt-6-luna`.
 
-Evidence snapshot: measured 2026-11-03–2026-11-27; mumei-agent commits: mumei + LLM `e8be527`, mumei only `a60016b`; mumei commits: mumei + LLM `36eb534`, mumei only `b777e8e`.
+Evidence snapshot: measured 2026-11-03–2026-11-27; mumei-agent commits: mumei + LLM `e8be527`, mumei only `beaa286`; mumei commits: mumei + LLM `36eb534`, mumei only `b777e8e`.
 
 ## Totals
 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
 |---|---:|---:|---:|---:|---:|---:|
-| mumei only | 11 (6%) | 24 (14%) | 37%–83% | 14 | $0.00 | 107 s wall |
+| mumei only | 11 (6%) | 24 (14%) | 37%–83% | 14 | $0.00 | 112 s wall |
 | mumei + LLM | 12 (7%) | 68 (40%) | 10%–87% | 211 | $0.22 | 54 min wall |
 | LLM only (3 runs, median) | 104 (61%), range 104–105 | 136 (80%), range 135–138 | 62%–100% | 76, range 68–79 | $0.06 | 22 min model time |
 

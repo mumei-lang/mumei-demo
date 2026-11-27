@@ -55,7 +55,7 @@ An executable corpus of deliberately broken Python/TypeScript/Go/Rust/Solidity a
 
 Latest committed baseline:
 
-- No LLM — 2026-11-27, mumei-agent `a60016b`, mumei `b777e8e`: 11/171 detected (6%), 24/171 detected or function-flagged, precision 37%–83% of 35 findings, adjudication incomplete (16 unreviewed, 0 stale), 14 false alarms on fixed code (16 specimens)
+- No LLM — 2026-11-27, mumei-agent `beaa286`, mumei `b777e8e`: 11/171 detected (6%), 24/171 detected or function-flagged, precision 37%–83% of 35 findings, adjudication incomplete (16 unreviewed, 0 stale), 14 false alarms on fixed code (16 specimens)
 - With LLM (`openai/gpt-6-luna`) — 2026-11-03, mumei-agent `e8be527`, mumei `36eb534`: 12/171 detected (7%), 68/171 detected or function-flagged, precision 10%–87% of 200 findings, adjudication incomplete (339 unreviewed, 0 stale), 211 false alarms on fixed code (16 specimens)
 
 Exploratory reruns are not folded into this baseline until finding adjudication is current.
@@ -91,11 +91,11 @@ The reference row uses hand-written ports, so it is a contract-expression check 
 
 ![mumei only vs mumei + LLM vs LLM only](specimens/scoreboard/arms.svg)
 
-Evidence snapshot: measured 2026-11-03–2026-11-27; mumei-agent commits: mumei + LLM `e8be527`, mumei only `a60016b`; mumei commits: mumei + LLM `36eb534`, mumei only `b777e8e`.
+Evidence snapshot: measured 2026-11-03–2026-11-27; mumei-agent commits: mumei + LLM `e8be527`, mumei only `beaa286`; mumei commits: mumei + LLM `36eb534`, mumei only `b777e8e`.
 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
 |---|---:|---:|---:|---:|---:|---:|
-| mumei only | 11 (6%) | 24 (14%) | 37%–83% | 14 | $0.00 | 107 s wall |
+| mumei only | 11 (6%) | 24 (14%) | 37%–83% | 14 | $0.00 | 112 s wall |
 | mumei + LLM | 12 (7%) | 68 (40%) | 10%–87% | 211 | $0.22 | 54 min wall |
 | LLM only (3 runs, median) | 104 (61%), range 104–105 | 136 (80%), range 135–138 | 62%–100% | 76, range 68–79 | $0.06 | 22 min model time |
 
