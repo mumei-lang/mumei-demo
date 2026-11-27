@@ -98,8 +98,11 @@ jobs:
           MUMEI_BIN: ${{ github.workspace }}/.mumei/mumei/target/release/mumei
           AUDIT_TARGET: ${{ github.workspace }}/src
         run: |
-          rm -rf "$GITHUB_WORKSPACE/evidence-pack"
           mkdir -p "$GITHUB_WORKSPACE/evidence-pack"
+          rm -f "$GITHUB_WORKSPACE/evidence-pack/migration_execution.json"
+          rm -f "$GITHUB_WORKSPACE/evidence-pack/migration_execution.status.txt"
+          rm -rf "$GITHUB_WORKSPACE/evidence-pack/migration_execution.migration-execution"
+          rm -rf "$GITHUB_WORKSPACE/evidence-pack/migration_execution.migration-execution"-*
           baseline_input="$GITHUB_WORKSPACE/.mumei/audit-baseline.json"
           if [ ! -f "$baseline_input" ]; then
             baseline_input="$RUNNER_TEMP/mumei-empty-audit-baseline.json"
