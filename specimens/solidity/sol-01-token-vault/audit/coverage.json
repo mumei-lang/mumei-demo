@@ -121,18 +121,7 @@
       "findings": []
     }
   ],
-  "unmatched_findings": [
-    {
-      "file": "src/RewardVault.sol",
-      "kind": "cross_validation_gaps",
-      "text": "spec stronger than implementation: sharesOf"
-    },
-    {
-      "file": "src/RewardVault.sol",
-      "kind": "cross_validation_gaps",
-      "text": "spec precondition assumed, not enforced, by `sharesOf`"
-    }
-  ],
+  "unmatched_findings": [],
   "findings": [
     {
       "file": "src/RewardVault.sol",
@@ -156,29 +145,15 @@
     {
       "file": "src/RewardVault.sol",
       "kind": "cross_validation_gaps",
-      "text": "spec stronger than implementation: sharesOf",
-      "status": "false_positive",
-      "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
-    },
-    {
-      "file": "src/RewardVault.sol",
-      "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `sharePrice`",
       "status": "unreviewed"
-    },
-    {
-      "file": "src/RewardVault.sol",
-      "kind": "cross_validation_gaps",
-      "text": "spec precondition assumed, not enforced, by `sharesOf`",
-      "status": "false_positive",
-      "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
     }
   ],
   "finding_counts": {
-    "total": 6,
+    "total": 4,
     "defect_evidence": 1,
     "real": 1,
-    "false_positive": 2,
+    "false_positive": 0,
     "unreviewed": 2
   },
   "reviews_used": [
@@ -186,114 +161,30 @@
       "sol-01-token-vault",
       "src/RewardVault.sol",
       "Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard"
-    ],
-    [
-      "sol-01-token-vault",
-      "src/RewardVault.sol",
-      "spec precondition assumed, not enforced, by `sharesOf`"
-    ],
-    [
-      "sol-01-token-vault",
-      "src/RewardVault.sol",
-      "spec stronger than implementation: sharesOf"
     ]
   ],
   "source_hash": "06ece590119e0b2330e82017f2ba92081b5a0dc4ccb6ab4d984a80c39283ec89",
   "meta": {
-    "mumei_agent_commit": "beaa28625eaf58e0ac6ead30c74a438634f67392",
+    "mumei_agent_commit": "7a488f43f4a7e30b4e7801a69f51e06cfc0c0894",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-27T18:17:14Z"
+    "generated_at": "2026-11-27T19:27:55Z"
   },
   "fixed": {
     "defects": 10,
     "still_reported": [],
     "still_function_flagged": [],
-    "false_alarms": 6,
-    "findings": [
-      {
-        "file": "src/RewardVault.sol",
-        "kind": "cross_validation_gaps",
-        "text": "spec stronger than implementation: sharesOf",
-        "status": "false_positive",
-        "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
-      },
-      {
-        "file": "src/RewardVault.sol",
-        "kind": "cross_validation_gaps",
-        "text": "spec stronger than implementation: rewards",
-        "status": "false_positive",
-        "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
-      },
-      {
-        "file": "src/RewardVault.sol",
-        "kind": "cross_validation_gaps",
-        "text": "spec stronger than implementation: pending",
-        "status": "false_positive",
-        "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
-      },
-      {
-        "file": "src/RewardVault.sol",
-        "kind": "cross_validation_gaps",
-        "text": "spec precondition assumed, not enforced, by `sharesOf`",
-        "status": "false_positive",
-        "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
-      },
-      {
-        "file": "src/RewardVault.sol",
-        "kind": "cross_validation_gaps",
-        "text": "spec precondition assumed, not enforced, by `rewards`",
-        "status": "false_positive",
-        "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
-      },
-      {
-        "file": "src/RewardVault.sol",
-        "kind": "cross_validation_gaps",
-        "text": "spec precondition assumed, not enforced, by `pending`",
-        "status": "false_positive",
-        "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
-      }
-    ],
+    "false_alarms": 0,
+    "findings": [],
     "finding_counts": {
-      "total": 6,
+      "total": 0,
       "defect_evidence": 0,
       "real": 0,
-      "false_positive": 6,
+      "false_positive": 0,
       "unreviewed": 0
     },
-    "reviews_used": [
-      [
-        "sol-01-token-vault",
-        "src/RewardVault.sol",
-        "spec precondition assumed, not enforced, by `pending`"
-      ],
-      [
-        "sol-01-token-vault",
-        "src/RewardVault.sol",
-        "spec precondition assumed, not enforced, by `rewards`"
-      ],
-      [
-        "sol-01-token-vault",
-        "src/RewardVault.sol",
-        "spec precondition assumed, not enforced, by `sharesOf`"
-      ],
-      [
-        "sol-01-token-vault",
-        "src/RewardVault.sol",
-        "spec stronger than implementation: pending"
-      ],
-      [
-        "sol-01-token-vault",
-        "src/RewardVault.sol",
-        "spec stronger than implementation: rewards"
-      ],
-      [
-        "sol-01-token-vault",
-        "src/RewardVault.sol",
-        "spec stronger than implementation: sharesOf"
-      ]
-    ]
+    "reviews_used": []
   }
 }

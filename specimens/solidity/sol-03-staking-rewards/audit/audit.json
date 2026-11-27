@@ -69,7 +69,7 @@
       },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-27T18:18:40.093585Z",
+        "timestamp": "2026-11-27T19:29:27.745223Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-03-staking-rewards/src/StakeToken.sol",
@@ -77,9 +77,9 @@
           {
             "name": "mint_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "2cc2c66defa336acd417658d848abe651ac5744e8d465142f274599896aa14eb",
+            "content_hash": "abd1104e6fbb3807aacf3bb2494a6a625c2fd997df5b353f127366be88407c22",
             "status": "unknown",
-            "proof_hash": "43ce9a462f05465e462f530017aa9264623e9ef670ff4b0e0f4dfc63f27634d1",
+            "proof_hash": "c538186516956a159928c8ff9059c017327ddf97e9aeec229e22a803e880ec22",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -130,9 +130,9 @@
           {
             "name": "setReceiveHook_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "4e6528676020f28c25ef932a9bd2e715e0e4c5f109ca19e8c49d85f7a94dd80d",
+            "content_hash": "038ee78105d6ba14af0ec541416fb4d50bc630073c1740309b56223cb31113f2",
             "status": "unknown",
-            "proof_hash": "c5050512038364c2d40a1f17fe8d73abc51ecb8365c6f1f5ec34395dc18f2301",
+            "proof_hash": "61bb450ab408a14246a2d9293d4e3fc1e952a86179a411d3daeb8f178a227d71",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -183,9 +183,9 @@
           {
             "name": "approve_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "4a2f92e6bd19e7cf86eaf3ef2b7919de1575290bc816362e1d66ce3426dfc25e",
+            "content_hash": "15b62d5b43e64ad412f619fba46825103412d62dc02835a9871e458da0bffc47",
             "status": "unknown",
-            "proof_hash": "13837109922623c76221c995d46983b55690c531215cb2e89c8f07147d06d40f",
+            "proof_hash": "d9c9724b899603b5f9ed43fa2e3d115775f34f454f597d2e6793c47a025790f0",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -236,9 +236,9 @@
           {
             "name": "transferFrom_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "7c14f4ac05c81dfde6f76ee731fb924e439ea6f94d490955ea924e55adae2381",
+            "content_hash": "35e3f8b8a74ea4d26dead72f3c10fa1f432df65e2f9175350e32b016110a0c00",
             "status": "unknown",
-            "proof_hash": "c3a028f0217c76df85d5a14ddcab9ab7c633081d910e56150d1fdb39730e4132",
+            "proof_hash": "3f5c47f67d140341bd5f6e69b00579887bae13da2666b2f24f2835473d43fecf",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -289,7 +289,7 @@
         ],
         "package_name": "StakeToken",
         "package_version": "0",
-        "certificate_hash": "43501df8479f7a3926801ee05ff12d1db53a6e447a1522d807704c08becdf35b",
+        "certificate_hash": "bb44310be927b950680adea411debdc9dc07e23e9f173444b35f6fcd3e58f0a3",
         "all_verified": false
       },
       "lean_bridge": null,
@@ -323,10 +323,7 @@
           }
         }
       ],
-      "cross_validation_gaps": [
-        "spec stronger than implementation: earned",
-        "spec precondition assumed, not enforced, by `earned`"
-      ],
+      "cross_validation_gaps": [],
       "migration_hints": [],
       "healed_files": [],
       "heal_errors": [],
@@ -338,13 +335,8 @@
           "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
         },
         {
-          "priority": "high",
-          "action": "validate-spec-to-code で制約の対応を確認",
-          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
-        },
-        {
           "priority": "medium",
-          "action": "underspecified な意図を明文化（推測で補完しない）: balanceOf.requires, balanceOf.ensures, transfer.requires, transfer.ensures, transferFrom.requires, transferFrom.ensures, lastTimeRewardApplicable.requires, lastTimeRewardApplicable.ensures, rewardPerToken.requires, rewardPerToken.ensures, earned.ensures, stake.requires, stake.ensures, withdraw.requires, withdraw.ensures, emergencyWithdraw.requires, emergencyWithdraw.ensures, getReward.requires, getReward.ensures, setPayoutAddress.requires, setPayoutAddress.ensures, claimFor.requires, claimFor.ensures, claimBonus.requires, claimBonus.ensures, notifyRewardAmount.requires, notifyRewardAmount.ensures, setOperator.requires, setOperator.ensures",
+          "action": "underspecified な意図を明文化（推測で補完しない）: balanceOf.requires, balanceOf.ensures, transfer.requires, transfer.ensures, transferFrom.requires, transferFrom.ensures, lastTimeRewardApplicable.requires, lastTimeRewardApplicable.ensures, rewardPerToken.requires, rewardPerToken.ensures, earned.requires, earned.ensures, stake.requires, stake.ensures, withdraw.requires, withdraw.ensures, emergencyWithdraw.requires, emergencyWithdraw.ensures, getReward.requires, getReward.ensures, setPayoutAddress.requires, setPayoutAddress.ensures, claimFor.requires, claimFor.ensures, claimBonus.requires, claimBonus.ensures, notifyRewardAmount.requires, notifyRewardAmount.ensures, setOperator.requires, setOperator.ensures",
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
@@ -355,7 +347,7 @@
       "finding_counts": {
         "code": 5,
         "confirmed": 0,
-        "spec": 2,
+        "spec": 0,
         "model_limitations": 0,
         "errors": 0
       },
@@ -419,30 +411,6 @@
           "line": null,
           "triage_bucket": "code_review",
           "fingerprint": "6ec5cb918bfd5121aa87fd7e93b691a9556c6418536b013e83726b5b90469b8d"
-        },
-        {
-          "schema": "mumei.audit-findings/v1",
-          "category": "spec",
-          "severity": "warning",
-          "confidence": "medium",
-          "verification_basis": "cross-validation",
-          "message": "spec stronger than implementation: earned",
-          "source_file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
-          "line": null,
-          "triage_bucket": "spec_review",
-          "fingerprint": "611936ab7ea0b0cc1e8092d99f7f693625d397aa90eab64943c0f8b981dd5b17"
-        },
-        {
-          "schema": "mumei.audit-findings/v1",
-          "category": "spec",
-          "severity": "warning",
-          "confidence": "medium",
-          "verification_basis": "cross-validation",
-          "message": "spec precondition assumed, not enforced, by `earned`",
-          "source_file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
-          "line": null,
-          "triage_bucket": "spec_review",
-          "fingerprint": "d059cc73ffda34d4c18e1ab2ebfd221331657723de70b1b776014eb181675265"
         }
       ],
       "triage": {
@@ -473,7 +441,7 @@
       },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-27T18:18:40.223168Z",
+        "timestamp": "2026-11-27T19:29:27.965234Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
@@ -481,9 +449,9 @@
           {
             "name": "withdraw_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "d2e2798a0b6adfab7c224e2f330902040d36a6d1ba453ba78f1536db6a161ca1",
+            "content_hash": "37967305802bff3f5f4ca0e72223d7928ea9393ad9512f52811c302d9fa2696a",
             "status": "unknown",
-            "proof_hash": "2ea50daabdb205b9cc6a998d4f567adc0324b97d510aa158725ca3b312df8922",
+            "proof_hash": "6db14d25445f5f03116eddc82f2d938412e4a8a637cc64e07547cad5738d2bf3",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -534,9 +502,9 @@
           {
             "name": "emergencyWithdraw_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "d2ce1cc772face4cb22d6feb121c0c5573330ef29f67c03e14dd3ac29c866348",
+            "content_hash": "b5ec3985c78cc6cc21082a4757ddaf1621d424532bccbea1483c98db5ca32d8d",
             "status": "unknown",
-            "proof_hash": "f226860f02a862361885e1e7a56306c9681bfeeb3b2485744d15a287df1324c6",
+            "proof_hash": "162825b6a95d4a65e6a33adcebf5203c00280888d04049ffef7c7897be2ee518",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -587,9 +555,9 @@
           {
             "name": "getReward_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "e439af519709aadfff96cf6cc20bcf3f4eea400b92a6f3c7eaaaba1458aae0c1",
+            "content_hash": "eff6473c8e48539f1eb9200d086dac946a049d23a831eb30330cded9a280aa40",
             "status": "unknown",
-            "proof_hash": "cef9ff1f201f4dc837cb73d38cae16c8e3eccb49e399485db265588c8bc48ab9",
+            "proof_hash": "eedfe5eb0f81f5dc4a345e87fe238041264c59b44b2156949640b64793239945",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -640,9 +608,9 @@
           {
             "name": "claimFor_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "679a7578b73d2712942cd40c2587524434ac49c0edf266e51790f47f7bf341c8",
+            "content_hash": "0f312cab381fbb976f2b501504105e2e2480f85d0a65be44ff9d29d98cdcfcfb",
             "status": "unknown",
-            "proof_hash": "4377ce4b5af0072bd68e5dfbc032adbdfdf9e498f47910c325c2594b84264a35",
+            "proof_hash": "bf46e0ac4e3eef800d88a29b493f69b4ca2b968a4c4e71914f9d5fea84795324",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -693,9 +661,9 @@
           {
             "name": "claimBonus_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "d26c58ce8433ab2079b19cb12a0a8dd91593230641bb52bae00c6e60551fb455",
+            "content_hash": "a66f2f9f7ad8b5882834a56a8a360836fb408864a3e073f9287f6a8c68c3cf0f",
             "status": "unknown",
-            "proof_hash": "ca7a6f8ea4cfdf3afc61ad17deb22542e6e3ae595cad83770cf506910a45c458",
+            "proof_hash": "48dbd278edafd7374602723378a09a68e212c50e903452f2dbf04498544975eb",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -746,9 +714,9 @@
           {
             "name": "earned_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "860d28ca851e2967c1ae46cf6feef17026431250e6a0dccdbf9e088f079b4b2f",
+            "content_hash": "2ec71e9f0ec57b4043f7c34981dfcf0c50dcd3f7876289352b7c0af091e87da2",
             "status": "unknown",
-            "proof_hash": "579485cca7bf9a1c4b0b8fc162dc3a2618fdb9f02fe0586e2b01286b568d76bd",
+            "proof_hash": "d47bd2c9a4209d4d635b3531744ff2afd963e37b0d74b0f95e3136db47924c07",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -799,9 +767,9 @@
           {
             "name": "stake_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "18f9f90c7b8c65eba477bc4ff8d1b0eb0fe157a822bced6c9e4d62bc80c0ed9a",
+            "content_hash": "c876fd4812b889b87a2146fff7a8ee1042bcddede9f99f3779ebde903738a649",
             "status": "unknown",
-            "proof_hash": "4e73c81596e888537b895eedc3254adf33d85c3a83fa18664d4b0eb6e9fc3d48",
+            "proof_hash": "e7182fbd5770570536ba9f93bde4281a6c1241345f4cd026f02d3b41052f3ada",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -852,9 +820,9 @@
           {
             "name": "withdraw_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "2adef1b5364daeea161238765e509c6cb8e8cc7a2111f58d871ef7055c5664c4",
+            "content_hash": "90159d566afd7fd137a39b2cf37fd4976b09347bf579b07c7a7aeed8c2c65c7f",
             "status": "unknown",
-            "proof_hash": "7233b2d14d8123957313e17f13a3469b14b05144005d8e81fbc99decf58472c1",
+            "proof_hash": "d15fbf4ef42e4630ddb5017f49b1f8378014877367014cb6cdce2f72318f49cd",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -905,9 +873,9 @@
           {
             "name": "emergencyWithdraw_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "0d39ef7cb633a75fe969c2692b1ce0fe0705d2cea9f299634e474c189df9f8f6",
+            "content_hash": "d2f53ae084853ec18a1fe4b2b378f1f27882d93cdf3385adc4c1ac9e61184561",
             "status": "unknown",
-            "proof_hash": "4a7763e6ffcd3bd7b1baeab490dd75cdc53c37fae1a13f154c5098c25c660ee2",
+            "proof_hash": "00ba5756dd333569868408a07f1fb8c4aa5fdeaf941a706cfb4cc0fda094f938",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -958,9 +926,9 @@
           {
             "name": "getReward_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "57a24d83b4bd50882cfa5bf6f182d3d1fe2f2ea692e32e931572ed7c832178b4",
+            "content_hash": "7bf046270b4512b8d43b150cb5411f5800e29d051a5c227aa7a32a9cde96b445",
             "status": "unknown",
-            "proof_hash": "e5e4d22798510a46a68f5a5904be2da88b714dc1afb1dcc0542c945f601a633f",
+            "proof_hash": "1e13a4e8c6d4755f6a532912c6042889533c293e2c3a83a4667b468ec3711c88",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -1011,9 +979,9 @@
           {
             "name": "setPayoutAddress_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "95329a13fd34cb503033f203064e075f31e9359e9a86c99a895e78c4297c3061",
+            "content_hash": "ea59637f368a384db7e0dbe329713bf32bbde7635358713717255bba409ec403",
             "status": "unknown",
-            "proof_hash": "0b0d5185238a4903748661f698f0eb5a235a7f8ab854a73d64dd1e57289821f7",
+            "proof_hash": "299eccf68019084c6bf611bc0a1db8c685f5b336168632e6376cf564e54f666c",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -1064,9 +1032,9 @@
           {
             "name": "claimFor_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "c50bfb57193b96eb5262dfb4bf6baa66679ff669523d362c17808ffba5dec854",
+            "content_hash": "5ad0380791ed6e51ed3d389ef5398714f923d76ce4a23d6f765644caa32ebf7f",
             "status": "unknown",
-            "proof_hash": "793b23bf838dfbe62ab4bccb06a998d92ed12bad6a2f29a5f74a0626d3cf5cac",
+            "proof_hash": "8e70fd884ba1e58582615dc992a1ac159aec88be5422f6a343a90924a332769e",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -1117,9 +1085,9 @@
           {
             "name": "notifyRewardAmount_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "c7740a1d0c4196674762d9def340bc6a87c7cfea0fd1f82293350b78459d74a4",
+            "content_hash": "ccde29ab789ba522a04411ae4ef161e150d097f47ba5ff0aaa6c8d0f2edd0c22",
             "status": "unknown",
-            "proof_hash": "246bbf1921a84bf2ce5a242d97a4e91a10da093d026b54c896ae34dcbd7b5017",
+            "proof_hash": "d868bca060ed1a05d6f7d54808183107afdc0fe0dcdb9d6075dcbc0185682999",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -1170,9 +1138,9 @@
           {
             "name": "setOperator_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "b3987b06848e6e02e44955360c3160e4b344405fe8cf5aeb23eb9737ebc330be",
+            "content_hash": "59756eacb07d05fdc4e3d7dc1beda03ce2406bd656288cbed0cd63e19d3d193c",
             "status": "unknown",
-            "proof_hash": "67cfe173e18cf923a9761643cfaf2dfbfd4b1bc406d1726f2fb411952c53473f",
+            "proof_hash": "eb392a131556bef426d2603833cfb6d921efb81514040338b71ecf625d105b07",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -1225,9 +1193,9 @@
           {
             "name": "withdraw_cei",
             "z3_check_result": "unknown",
-            "content_hash": "44e833e0c85569e2c9704ddffe53414c232c3c8d12e049d42090944c1c3b1ea3",
+            "content_hash": "ecaa6929a2f3931903ded0e471fbc0cfe93ae6b317c677a95c0122462c91f243",
             "status": "unknown",
-            "proof_hash": "542da8dde1a7d826e724651d7b96e139c9ff04ee67005638f2f97b3e3d33fa98",
+            "proof_hash": "8cdab2501debfb38e10a4fc5a82cc03e7dcc3a2faa1be8d6007fc594b41f1607",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -1282,9 +1250,9 @@
           {
             "name": "emergencyWithdraw_cei",
             "z3_check_result": "unknown",
-            "content_hash": "ecdbf8ed1d2be5e1d0366494f9495e95d1dde33e28fdc38d7e45182360d622be",
+            "content_hash": "591ec8078f9dd62f384af58ffe3ab1326d636665992cf35b49b27e0d020f78d7",
             "status": "unknown",
-            "proof_hash": "8d713a14997c6c0b9ae1c22aa172545b1f56792c016b46859edf2636760f444f",
+            "proof_hash": "f2df8daec665823ea92b0cb489bfc2706217e5118eaed9e7ce4a408101bcb211",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -1341,9 +1309,9 @@
           {
             "name": "getReward_cei",
             "z3_check_result": "unknown",
-            "content_hash": "9169441c3928a0b4f0c790b1ee749afd7624281701d137ed2cf620ffefb77abd",
+            "content_hash": "b0eb783993b80174346f009b7121182a5b19509a8ef7dd73579db02d8a2b479c",
             "status": "unknown",
-            "proof_hash": "486e22010a0cf6098217ddae5cfc1bc7f0855f88e825b8424902e2fb4524824c",
+            "proof_hash": "5231c9b33910eccde84af0d1560c1d9462a86895d28d48d360d04df37253fefc",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -1398,9 +1366,9 @@
           {
             "name": "claimFor_cei",
             "z3_check_result": "unknown",
-            "content_hash": "831d108aeef848b8feedb4d0a1e69a13749c7cf59d53c56293c00f54f37b3ec6",
+            "content_hash": "8c18bbc2ce679b9b3d2eb8fef37fc4ca555d0500d86f7e23f5e875ecfde8b56c",
             "status": "unknown",
-            "proof_hash": "d5792d27baf8bcb0ec8588fc3225c76a4f7a38412ccf4d0d14711b281a96e44a",
+            "proof_hash": "f0684dd240345bca7f79cc9e85e155fd007d22886bc6b8e781f215a761598e52",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -1455,11 +1423,11 @@
         ],
         "package_name": "StakingRewards",
         "package_version": "0",
-        "certificate_hash": "cb2f7762e72c8cd32eb8dc535dfacbd545325768c87fabfc45102c8b944d3c8a",
+        "certificate_hash": "5a14951d744917d49a9d5f2d623d60a07bee28d64e00c6d15c92fc751813deae",
         "all_verified": false
       },
       "lean_bridge": null,
-      "report": "Audit found issues: specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: refuted\nspec_health_issues: []\nverification_violations: ['Solidity function `earned` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `emergencyWithdraw` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)', 'Solidity function `claimFor` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `notifyRewardAmount` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', \"Z3 Counter-example: reentrancy_trace=['externalCall: stakingToken.transfer(msg.sender, amount),', 'stateWrite: balances[msg.sender]'], guard=absent\"]\ncounterexample_values: [{'function_name': 'emergencyWithdraw', 'counterexample': {'reentrancy_trace': ['externalCall: stakingToken.transfer(msg.sender, amount),', 'stateWrite: balances[msg.sender]'], 'guard': 'absent'}}]\ncross_validation_gaps: ['spec stronger than implementation: earned', 'spec precondition assumed, not enforced, by `earned`']\nfinding_counts: code=5, confirmed=0, spec=2, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: balanceOf.requires, balanceOf.ensures, transfer.requires, transfer.ensures, transferFrom.requires, transferFrom.ensures, lastTimeRewardApplicable.requires, lastTimeRewardApplicable.ensures, rewardPerToken.requires, rewardPerToken.ensures, earned.ensures, stake.requires, stake.ensures, withdraw.requires, withdraw.ensures, emergencyWithdraw.requires, emergencyWithdraw.ensures, getReward.requires, getReward.ensures, setPayoutAddress.requires, setPayoutAddress.ensures, claimFor.requires, claimFor.ensures, claimBonus.requires, claimBonus.ensures, notifyRewardAmount.requires, notifyRewardAmount.ensures, setOperator.requires, setOperator.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit found issues: specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: refuted\nspec_health_issues: []\nverification_violations: ['Solidity function `earned` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `emergencyWithdraw` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)', 'Solidity function `claimFor` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `notifyRewardAmount` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', \"Z3 Counter-example: reentrancy_trace=['externalCall: stakingToken.transfer(msg.sender, amount),', 'stateWrite: balances[msg.sender]'], guard=absent\"]\ncounterexample_values: [{'function_name': 'emergencyWithdraw', 'counterexample': {'reentrancy_trace': ['externalCall: stakingToken.transfer(msg.sender, amount),', 'stateWrite: balances[msg.sender]'], 'guard': 'absent'}}]\ncross_validation_gaps: []\nfinding_counts: code=5, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: balanceOf.requires, balanceOf.ensures, transfer.requires, transfer.ensures, transferFrom.requires, transferFrom.ensures, lastTimeRewardApplicable.requires, lastTimeRewardApplicable.ensures, rewardPerToken.requires, rewardPerToken.ensures, earned.requires, earned.ensures, stake.requires, stake.ensures, withdraw.requires, withdraw.ensures, emergencyWithdraw.requires, emergencyWithdraw.ensures, getReward.requires, getReward.ensures, setPayoutAddress.requires, setPayoutAddress.ensures, claimFor.requires, claimFor.ensures, claimBonus.requires, claimBonus.ensures, notifyRewardAmount.requires, notifyRewardAmount.ensures, setOperator.requires, setOperator.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -1529,14 +1497,14 @@
       },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-27T18:18:40.478104Z",
+        "timestamp": "2026-11-27T19:29:28.371351Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-03-staking-rewards/test/TestBase.sol",
         "atoms": [],
         "package_name": "TestBase",
         "package_version": "0",
-        "certificate_hash": "321bb834c436da18f14b9ca8f79d6928b033a602fc3ec46006247be9bbfae390",
+        "certificate_hash": "1e670bb9ea9ccfaa758b0d472599a591abb48fcebaf4d17e56c01beb320a263d",
         "all_verified": false
       },
       "lean_bridge": null,
@@ -1610,14 +1578,14 @@
       },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-27T18:18:40.545773Z",
+        "timestamp": "2026-11-27T19:29:28.471984Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-03-staking-rewards/test/Vm.sol",
         "atoms": [],
         "package_name": "Vm",
         "package_version": "0",
-        "certificate_hash": "a7c12549450c33ff33d12bad9d25dc1cb33f6796d58786c0537b4e9008777dbb",
+        "certificate_hash": "c83708f95ec1217c07a7b7cf3c448d3dacc804cef5174cf24345b131ff498ad9",
         "all_verified": false
       },
       "lean_bridge": null,
@@ -1626,10 +1594,10 @@
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/solidity/sol-03-staking-rewards\n  src/StakeToken.sol: 0 violations, 0 gaps\n  src/StakingRewards.sol: 5 violations, 2 gaps\n  test/TestBase.sol: 0 violations, 0 gaps\n  test/Vm.sol: 0 violations, 0 gaps\nSummary: 4 files, 1 file with issues, 1 file with spec diagnostics\nfinding_counts: code=5, confirmed=0, spec=2, model_limitations=0, errors=0\ntriage: refuted=1, verified=3, unverifiable=0\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: onTokenReceived.requires, onTokenReceived.ensures, mint.requires, mint.ensures, setReceiveHook.requires, setReceiveHook.ensures, transfer.requires, transfer.ensures, approve.requires, transferFrom.requires, transferFrom.ensures, move.requires, move.ensures, notifyReceiver.requires, notifyReceiver.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: balanceOf.requires, balanceOf.ensures, transfer.requires, transfer.ensures, transferFrom.requires, transferFrom.ensures, lastTimeRewardApplicable.requires, lastTimeRewardApplicable.ensures, rewardPerToken.requires, rewardPerToken.ensures, earned.ensures, stake.requires, stake.ensures, withdraw.requires, withdraw.ensures, emergencyWithdraw.requires, emergencyWithdraw.ensures, getReward.requires, getReward.ensures, setPayoutAddress.requires, setPayoutAddress.ensures, claimFor.requires, claimFor.ensures, claimBonus.requires, claimBonus.ensures, notifyRewardAmount.requires, notifyRewardAmount.ensures, setOperator.requires, setOperator.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: panicCode.requires, panicCode.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deal.requires, deal.ensures, prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, warp.requires, warp.ensures, roll.requires, roll.ensures, load.requires, load.ensures, sign.requires, sign.ensures, addr.requires, addr.ensures, expectRevert.requires, expectRevert.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/solidity/sol-03-staking-rewards\n  src/StakeToken.sol: 0 violations, 0 gaps\n  src/StakingRewards.sol: 5 violations, 0 gaps\n  test/TestBase.sol: 0 violations, 0 gaps\n  test/Vm.sol: 0 violations, 0 gaps\nSummary: 4 files, 1 file with issues, 0 files with spec diagnostics\nfinding_counts: code=5, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=1, verified=3, unverifiable=0\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: onTokenReceived.requires, onTokenReceived.ensures, mint.requires, mint.ensures, setReceiveHook.requires, setReceiveHook.ensures, transfer.requires, transfer.ensures, approve.requires, transferFrom.requires, transferFrom.ensures, move.requires, move.ensures, notifyReceiver.requires, notifyReceiver.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: balanceOf.requires, balanceOf.ensures, transfer.requires, transfer.ensures, transferFrom.requires, transferFrom.ensures, lastTimeRewardApplicable.requires, lastTimeRewardApplicable.ensures, rewardPerToken.requires, rewardPerToken.ensures, earned.requires, earned.ensures, stake.requires, stake.ensures, withdraw.requires, withdraw.ensures, emergencyWithdraw.requires, emergencyWithdraw.ensures, getReward.requires, getReward.ensures, setPayoutAddress.requires, setPayoutAddress.ensures, claimFor.requires, claimFor.ensures, claimBonus.requires, claimBonus.ensures, notifyRewardAmount.requires, notifyRewardAmount.ensures, setOperator.requires, setOperator.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: panicCode.requires, panicCode.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deal.requires, deal.ensures, prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, warp.requires, warp.ensures, roll.requires, roll.ensures, load.requires, load.ensures, sign.requires, sign.ensures, addr.requires, addr.ensures, expectRevert.requires, expectRevert.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 4,
   "files_with_issues": 1,
-  "files_with_spec_diagnostics": 1,
+  "files_with_spec_diagnostics": 0,
   "verification_status": "refuted",
   "spec_health_issues": [],
   "verification_violations": [
@@ -1639,10 +1607,7 @@
     "src/StakingRewards.sol: Solidity function `notifyRewardAmount` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
     "src/StakingRewards.sol: Z3 Counter-example: reentrancy_trace=['externalCall: stakingToken.transfer(msg.sender, amount),', 'stateWrite: balances[msg.sender]'], guard=absent"
   ],
-  "cross_validation_gaps": [
-    "src/StakingRewards.sol: spec stronger than implementation: earned",
-    "src/StakingRewards.sol: spec precondition assumed, not enforced, by `earned`"
-  ],
+  "cross_validation_gaps": [],
   "migration_hints": [],
   "healed_files": [],
   "heal_errors": [],
@@ -1661,13 +1626,8 @@
       "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
     },
     {
-      "priority": "high",
-      "action": "validate-spec-to-code で制約の対応を確認",
-      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
-    },
-    {
       "priority": "medium",
-      "action": "underspecified な意図を明文化（推測で補完しない）: balanceOf.requires, balanceOf.ensures, transfer.requires, transfer.ensures, transferFrom.requires, transferFrom.ensures, lastTimeRewardApplicable.requires, lastTimeRewardApplicable.ensures, rewardPerToken.requires, rewardPerToken.ensures, earned.ensures, stake.requires, stake.ensures, withdraw.requires, withdraw.ensures, emergencyWithdraw.requires, emergencyWithdraw.ensures, getReward.requires, getReward.ensures, setPayoutAddress.requires, setPayoutAddress.ensures, claimFor.requires, claimFor.ensures, claimBonus.requires, claimBonus.ensures, notifyRewardAmount.requires, notifyRewardAmount.ensures, setOperator.requires, setOperator.ensures",
+      "action": "underspecified な意図を明文化（推測で補完しない）: balanceOf.requires, balanceOf.ensures, transfer.requires, transfer.ensures, transferFrom.requires, transferFrom.ensures, lastTimeRewardApplicable.requires, lastTimeRewardApplicable.ensures, rewardPerToken.requires, rewardPerToken.ensures, earned.requires, earned.ensures, stake.requires, stake.ensures, withdraw.requires, withdraw.ensures, emergencyWithdraw.requires, emergencyWithdraw.ensures, getReward.requires, getReward.ensures, setPayoutAddress.requires, setPayoutAddress.ensures, claimFor.requires, claimFor.ensures, claimBonus.requires, claimBonus.ensures, notifyRewardAmount.requires, notifyRewardAmount.ensures, setOperator.requires, setOperator.ensures",
       "command": "mumei-agent validate-spec --input <spec> --format human"
     },
     {
@@ -1684,7 +1644,7 @@
   "finding_counts": {
     "code": 5,
     "confirmed": 0,
-    "spec": 2,
+    "spec": 0,
     "model_limitations": 0,
     "errors": 0
   },
@@ -1748,30 +1708,6 @@
       "line": null,
       "triage_bucket": "code_review",
       "fingerprint": "6ec5cb918bfd5121aa87fd7e93b691a9556c6418536b013e83726b5b90469b8d"
-    },
-    {
-      "schema": "mumei.audit-findings/v1",
-      "category": "spec",
-      "severity": "warning",
-      "confidence": "medium",
-      "verification_basis": "cross-validation",
-      "message": "spec stronger than implementation: earned",
-      "source_file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
-      "line": null,
-      "triage_bucket": "spec_review",
-      "fingerprint": "611936ab7ea0b0cc1e8092d99f7f693625d397aa90eab64943c0f8b981dd5b17"
-    },
-    {
-      "schema": "mumei.audit-findings/v1",
-      "category": "spec",
-      "severity": "warning",
-      "confidence": "medium",
-      "verification_basis": "cross-validation",
-      "message": "spec precondition assumed, not enforced, by `earned`",
-      "source_file": "specimens/solidity/sol-03-staking-rewards/src/StakingRewards.sol",
-      "line": null,
-      "triage_bucket": "spec_review",
-      "fingerprint": "d059cc73ffda34d4c18e1ab2ebfd221331657723de70b1b776014eb181675265"
     }
   ],
   "triage": {

@@ -36,10 +36,10 @@ with different denominators are not directly comparable; compare within a langua
 | rust | Mumei (no LLM) | 1/34 (3%) | 100% | 0 / 3 specimens |
 | rust | clippy | 0/34 (0%) | n/a | 0 / 3 specimens |
 | rust | semgrep | 0/34 (0%) | 0% | 2 / 3 specimens |
-| solidity | Mumei (no LLM) | 6/31 (19%) | 50%–62% | 8 / 3 specimens |
+| solidity | Mumei (no LLM) | 6/31 (19%) | 67%–83% | 0 / 3 specimens |
 | solidity | semgrep | 0/31 (0%) | n/a | 0 / 3 specimens |
 | solidity | slither | 11/31 (35%) | 40% | 28 / 3 specimens |
-| typescript | Mumei (no LLM) | 2/33 (6%) | 100% | 2 / 3 specimens |
+| typescript | Mumei (no LLM) | 2/33 (6%) | 100% | 0 / 3 specimens |
 | typescript | semgrep | 2/33 (6%) | 100% | 2 / 3 specimens |
 
 ### Complementarity
