@@ -675,7 +675,8 @@ def test_build_evidence_pack_supported_migration_execution_is_hashed_and_role_sc
     mumei_bin = tmp_path / "mumei"
     agent_python.write_text("", encoding="utf-8")
     mumei_bin.write_text("", encoding="utf-8")
-    output_dir = tmp_path / "out"
+    output_dir = Path("relative-out")
+    monkeypatch.chdir(tmp_path)
     audit = {key: [] for key in pack.FIXED_AUDIT_KEYS}
     audit.update({"verification_status": "unverifiable", "migration_hints": [{"function_name": "divide", "priority": "high"}]})
 
@@ -713,7 +714,7 @@ def test_build_evidence_pack_supported_migration_execution_is_hashed_and_role_sc
         mumei_bin=mumei_bin,
         env={},
     )
-    pack_dir = output_dir / "evidence-pack"
+    pack_dir = tmp_path / output_dir / "evidence-pack"
     assert manifest["migration_execution"]["status"] == "emitted_by_audit_cli"
     assert manifest["migration_execution"]["path"] == "migration_execution.json"
     assert "migration_execution.json" in manifest["artifact_paths"]
