@@ -131,6 +131,10 @@ def test_result_state_folding_normalizes_predicate_in_own_branch() -> None:
 
     assert "guard_folding" not in kinds
 
+    incorrect = "Finalize { ok: !finalized, finalized: finalized }"
+    incorrect_kinds = [finding["kind"] for finding in pd.lint_findings(case, incorrect, "fixed")]
+    assert "guard_folding" in incorrect_kinds
+
 
 def test_guard_folding_needs_reference_failure_semantics() -> None:
     reference = "if denominator == 0 { Checked { ok: false, value: 0 } } else { Checked { ok: true, value: numerator / denominator } }"
