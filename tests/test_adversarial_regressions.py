@@ -67,7 +67,7 @@ def test_adversarial_evaluator_marks_mismatched_findings_fail(monkeypatch: pytes
     doc = adversarial.load_corpus()
     case = next(case for case in doc["cases"] if case["id"] == "faithful-port-negative-control")
     monkeypatch.setattr(
-        pd,
+        adversarial.fidelity,
         "lint_findings",
         lambda *_args: [{"kind": "added_guard", "message": "possible added guard"}],
     )
@@ -105,6 +105,31 @@ def test_silent_repair_matching_is_exact_after_comments_and_whitespace() -> None
     assert [finding["kind"] for finding in pd.lint_findings(case, "  if denominator <= 0 { 0 } else { numerator / denominator }  // noise")] == ["silent_repair"]
     assert [finding["kind"] for finding in pd.lint_findings(case, "if denominator < 0 { 0 } else { numerator / denominator }")] == ["added_guard"]
     assert pd.lint_findings(case, buggy) == []
+
+
+def test_result_state_folding_is_not_limited_to_success_contracts() -> None:
+    reference = "if transfer_ok { Payout { ok: true, owed: 0 } } else { Payout { ok: false, owed: amount } }"
+    case = _lint_case(reference)
+    case["header"] = case["header"].replace("result.ok => result.value >= 0", "result.owed >= 0")
+    case["functions"]["fixed"] = case["functions"]["buggy"]
+    case["ports"] = {"buggy": pd.bench.assemble(case, reference), "fixed": pd.bench.assemble(case, reference)}
+    folded = "Payout { ok: transfer_ok, owed: amount }"
+
+    kinds = [finding["kind"] for finding in pd.lint_findings(case, folded, "fixed")]
+
+    assert "guard_folding" in kinds
+
+
+def test_result_state_folding_normalizes_predicate_in_own_branch() -> None:
+    reference = "if finalized { Finalize { ok: false, finalized: finalized } } else { Finalize { ok: true, finalized: true } }"
+    case = _lint_case(reference)
+    case["functions"]["fixed"] = case["functions"]["buggy"]
+    case["ports"] = {"buggy": pd.bench.assemble(case, reference), "fixed": pd.bench.assemble(case, reference)}
+    equivalent = "Finalize { ok: !finalized, finalized: true }"
+
+    kinds = [finding["kind"] for finding in pd.lint_findings(case, equivalent, "fixed")]
+
+    assert "guard_folding" not in kinds
 
 
 def test_guard_folding_needs_reference_failure_semantics() -> None:

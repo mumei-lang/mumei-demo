@@ -130,7 +130,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/run_baselines.py` | 13 | Run off-the-shelf static analyzers over the specimens and score them like the audit. |
 | `scripts/run_llm_only.py` | 8 | Ask an LLM alone (no Mumei) to review the specimens, and score it like the baselines. |
 | `scripts/compare_arms.py` | 2 | Compare three ways of reviewing the specimen corpus side by side. |
-| `scripts/run_contract_bench.py` | 9 | Contract benchmark: can a defect be refuted and its fix be proven against one fixed contract? |
+| `scripts/run_contract_bench.py` | 10 | Contract benchmark: can a defect be refuted and its fix be proven against one fixed contract? |
 | `scripts/recheck_lean_dual_checks.py` | 2 | Re-run committed contract-bench proof certificates through the current Lean dual checker. After updating the default results file, run `python3 scripts/run_contract_bench.py --render-only` to regenerate the Markdown summary. |
 | `scripts/run_machine_tv_bench.py` | 5 | Measure native-object acceptance on the paired source-contract benchmark ports. |
 | `scripts/compare_machine_tv_runs.py` | 1 | Compare two machine-TV benchmark reports by case, variant, stage, and diagnostic. |
@@ -253,6 +253,7 @@ Contract benchmark: can a defect be refuted and its fix be proven against one fi
 | `--lean-bridge` | `<DIR>` | no | — | mumei-lean checkout: Lean-check each certified reference fixed port (bridge --dual-check) |
 | `--check` | — | no | `false` | validate cases and committed results offline |
 | `--render-only` | — | no | `false` | re-render RESULTS.md and the README block |
+| `--fidelity-rescore` | — | no | `false` | apply the port fidelity acceptance gate to committed mumei-llm results |
 
 ### `scripts/recheck_lean_dual_checks.py`
 

@@ -21,7 +21,9 @@
       "reference_body": "if denominator == 0 { Checked { ok: false, value: 0 } } else { Checked { ok: true, value: numerator / denominator } }",
       "candidate_body": "if denominator > 0 { Checked { ok: true, value: numerator / denominator } } else { Checked { ok: true, value: 0 } }",
       "expected_findings": [
-        {"kind": "guard_folding"}
+        {
+          "kind": "guard_folding"
+        }
       ],
       "rationale": "The zero-denominator failure branch is folded away: every fallback reports success, so the port no longer means the same thing as the source."
     },
@@ -38,7 +40,9 @@
       "fixed_reference_body": "if days <= 0 { 0 } else { total / days }",
       "candidate_body": "if days <= 0 { 0 } else { total / days }",
       "expected_findings": [
-        {"kind": "silent_repair"}
+        {
+          "kind": "silent_repair"
+        }
       ],
       "rationale": "The candidate translates the fixed reference rather than the buggy source. Exact-shape matching keeps this detector conservative."
     },
@@ -49,7 +53,9 @@
       "requires": "days > 0 && days < 0",
       "ensures": "days > 0 => result == total / days",
       "expected_findings": [
-        {"kind": "vacuous_spec"}
+        {
+          "kind": "vacuous_spec"
+        }
       ],
       "rationale": "No input can satisfy contradictory lower and upper bounds, so every postcondition is vacuously true."
     },
@@ -60,7 +66,9 @@
       "requires": "days >= 0",
       "ensures": "true",
       "expected_findings": [
-        {"kind": "weak_spec"}
+        {
+          "kind": "weak_spec"
+        }
       ],
       "rationale": "A true postconstraint accepts every result and gives the verifier nothing meaningful to enforce."
     },
@@ -71,7 +79,9 @@
       "requires": "days >= 0",
       "ensures": "(result == result) && true",
       "expected_findings": [
-        {"kind": "weak_spec"}
+        {
+          "kind": "weak_spec"
+        }
       ],
       "rationale": "Reflexive equalities and true conjunctions only look like a result constraint."
     },
@@ -87,7 +97,10 @@
       "reference_body": "values[0]",
       "candidate_body": "0",
       "expected_findings": [
-        {"kind": "missing_modeled_operation", "operation": "index/slice"}
+        {
+          "kind": "missing_modeled_operation",
+          "operation": "index/slice"
+        }
       ],
       "rationale": "The modeled index operation present in the source and reference port is replaced by a constant, losing the behavior that mattered."
     },
@@ -103,7 +116,15 @@
       "reference_body": "if denominator == 0 { Checked { ok: false, value: 0 } } else { Checked { ok: true, value: numerator / denominator } }",
       "candidate_body": "Checked { ok: denominator != 0, value: numerator / denominator }",
       "expected_findings": [
-        {"kind": "success_flag_rewrite"}
+        {
+          "kind": "guard_folding"
+        },
+        {
+          "kind": "removed_guard"
+        },
+        {
+          "kind": "success_flag_rewrite"
+        }
       ],
       "rationale": "The success flag is rewritten into a data-dependent value, so it can mask a postcondition clause instead of preserving the modeled branch meaning."
     },
@@ -120,6 +141,71 @@
       "candidate_body": "total / days",
       "expected_findings": [],
       "rationale": "A faithful translation must not produce adversarial warnings."
+    },
+    {
+      "id": "fixed-faithful-port-negative-control",
+      "kind": "port",
+      "failure_mode": "body_port_meaning_loss",
+      "variant": "fixed",
+      "language": "python",
+      "category": "division-by-zero",
+      "atom": "average",
+      "header": "atom average(total: i64, days: i64) -> i64\n    requires: total >= 0;\n    ensures: (days <= 0 => result == 0) && (days > 0 => result == total / days);\n    ",
+      "native_source": "def average(total, days):\n    return total // days\n",
+      "fixed_native_source": "def average(total, days):\n    if days <= 0:\n        return 0\n    return total // days\n",
+      "reference_body": "total / days",
+      "fixed_reference_body": "if days <= 0 { 0 } else { total / days }",
+      "candidate_body": "if days <= 0 { 0 } else { total / days }",
+      "expected_findings": [],
+      "rationale": "A fixed candidate that faithfully translates the fixed source must not be compared with the buggy reference or reported as a silent repair."
+    },
+    {
+      "id": "fixed-added-guard-variant-control",
+      "kind": "port",
+      "failure_mode": "guard_folding",
+      "variant": "fixed",
+      "language": "python",
+      "category": "division-by-zero",
+      "atom": "average",
+      "header": "atom average(total: i64, days: i64) -> i64\n    requires: total >= 0;\n    ensures: (days <= 0 => result == 0) && (days > 0 => result == total / days);\n    ",
+      "native_source": "def average(total, days):\n    return total // days\n",
+      "fixed_native_source": "def average(total, days):\n    if days <= 0:\n        return 0\n    return total // days\n",
+      "reference_body": "total / days",
+      "fixed_reference_body": "if days <= 0 { 0 } else { total / days }",
+      "candidate_body": "if total < 0 { 0 } else { if days <= 0 { 0 } else { total / days } }",
+      "expected_findings": [
+        {
+          "kind": "added_guard"
+        }
+      ],
+      "rationale": "Variant awareness must not disable guard-shape warnings: this fixed candidate is compared with the fixed reference and the extra guard is still visible."
+    },
+    {
+      "id": "fixed-state-guard-folding-reward-control",
+      "kind": "port",
+      "failure_mode": "guard_folding",
+      "variant": "fixed",
+      "language": "solidity",
+      "category": "unchecked-transfer",
+      "atom": "getReward",
+      "header": "atom getReward(transfer_ok: bool, amount: i64) -> Payout\n    requires: amount >= 0;\n    ensures: result.ok => transfer_ok;\n    ",
+      "native_source": "function getReward() { rewardToken.transfer(msg.sender, amount); }",
+      "fixed_native_source": "function getReward() { require(rewardToken.transfer(msg.sender, amount)); }",
+      "reference_body": "if transfer_ok { Payout { ok: true, owed: 0 } } else { Payout { ok: false, owed: amount } }",
+      "fixed_reference_body": "if transfer_ok { Payout { ok: true, owed: 0 } } else { Payout { ok: false, owed: amount } }",
+      "candidate_body": "Payout { ok: transfer_ok, owed: amount }",
+      "expected_findings": [
+        {
+          "kind": "removed_guard"
+        },
+        {
+          "kind": "guard_folding"
+        },
+        {
+          "kind": "success_flag_rewrite"
+        }
+      ],
+      "rationale": "A fixed-side port that folds the owed reset into one unconditional branch value is high-confidence state meaning loss even when a narrow replay input still satisfies the contract."
     },
     {
       "id": "meaningful-contract-negative-control",
