@@ -160,6 +160,7 @@ def test_build_evidence_pack_manifest_and_boundaries(tmp_path: Path, monkeypatch
     assert manifest["sarif"]["required"] is False
     assert not (pack_dir / "audit.sarif").exists()
     assert len(manifest["artifacts"]) == 9
+    assert [row["path"] for row in manifest["artifacts"]] == list(pack.HASHED_ARTIFACT_PATHS)
     assert manifest["artifact_paths"] == list(pack.ARTIFACT_PATHS)
     assert manifest["artifact_roles"] == pack.artifact_roles()
     assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"
