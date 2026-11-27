@@ -37,6 +37,27 @@ def test_load_audit_json_requires_fixed_contract_keys() -> None:
         pack._load_audit_json(_completed(json.dumps({"verification_status": "verified"})))
 
 
+def test_run_audit_respects_explicit_empty_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("UNRELATED_PARENT_VARIABLE", "must-not-be-inherited")
+    captured = {}
+
+    def fake_run(command, *, cwd: Path, env: dict[str, str]):
+        captured["env"] = env
+        return _completed(json.dumps({key: [] for key in pack.FIXED_AUDIT_KEYS}))
+
+    monkeypatch.setattr(pack, "_run", fake_run)
+    pack.run_audit(
+        source=tmp_path / "ledger.py",
+        agent_repo=tmp_path,
+        agent_python=tmp_path / "python",
+        mumei_bin=tmp_path / "mumei",
+        env={},
+    )
+
+    assert "UNRELATED_PARENT_VARIABLE" not in captured["env"]
+    assert captured["env"]["LLM_API_KEY"] == ""
+
+
 def test_migration_plan_marks_hints_as_human_review_required() -> None:
     audit = {
         "verification_status": "unverifiable",
