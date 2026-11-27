@@ -469,3 +469,19 @@ def test_verifier_accepts_relative_migration_claim_paths_after_copy(tmp_path: Pa
     report = verifier.verify_evidence_pack(copied)
 
     assert report["companion_file_count"] == 4
+
+
+def test_unwritten_proof_and_sarif_preplanned_paths_are_non_claims(tmp_path: Path) -> None:
+    root = write_valid_pack(tmp_path / "pack")
+    execution_path = root / "migration_execution.json"
+    execution = json.loads(execution_path.read_text(encoding="utf-8"))
+    verification = execution["candidates"][0]["verification"]
+    for key in ("proof_certificate", "sarif"):
+        verification[key]["written"] = False
+        verification[key]["sha256"] = None
+    _write_json(execution_path, execution)
+    _refresh_migration_execution_hash(root)
+
+    report = verifier.verify_evidence_pack(root)
+
+    assert report["migration_execution_status"] == "emitted_by_audit_cli"
