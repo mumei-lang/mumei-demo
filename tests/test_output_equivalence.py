@@ -114,6 +114,102 @@ acc"""
     assert run["seconds"] < 20
 
 
+def test_simple_helper_rewrite_preserves_boolean_operators() -> None:
+    helpers = {"deref": {"params": [("present", "bool")], "requires": "present", "body": "true"}}
+
+    rewritten = fidelity.expand_simple_helper_calls(
+        "if found { let touched = deref(found); owner || share } else { false }",
+        helpers, {"found", "owner", "share"})
+
+    assert rewritten is not None
+    assert "owner || share" in rewritten["text"]
+    assert "| |" not in rewritten["text"]
+    assert rewritten["calls"][0]["path"] == "(found)"
+
+
+def test_simple_helper_rewrite_rejects_local_binding_arguments() -> None:
+    helpers = {"slice_to": {"params": [("n", "i64"), ("end", "i64")],
+                            "requires": "0 <= end && end <= n", "body": "end"}}
+
+    rewritten = fidelity.expand_simple_helper_calls(
+        "let end = if top < n { top } else { n }; slice_to(n, end)",
+        helpers, {"n", "top"})
+
+    assert rewritten is None
+
+
+def test_helper_body_compare_uses_path_sensitive_validity_domain() -> None:
+    corpus_case = next(case for case in adversarial.load_corpus()["cases"]
+                       if case["id"] == "helper-body-exact-reference-negative-control")
+    case = adversarial._port_case(corpus_case)
+
+    prepared = fidelity.helper_body_compare_text(case, corpus_case["candidate_body"], "fixed")
+
+    assert prepared is not None
+    text, metadata = prepared
+    assert "(!((!(i < 0))) || (0 <= (i) && (i) < (n)))" in text
+    assert metadata == {"inlined_atoms": ["pick"], "call_count": 2, "domain_constraints": 1}
+
+def test_simple_helper_rewrite_rejects_shadowed_parameter_arguments() -> None:
+    helpers = {"pick": {"params": [("n", "i64"), ("i", "i64")],
+                        "requires": "0 <= i && i < n", "body": "i"}}
+
+    rewritten = fidelity.expand_simple_helper_calls("let i = 0; pick(n, i)", helpers, {"n", "i"})
+
+    assert rewritten is None
+
+
+def test_helper_body_compare_rejects_local_branch_conditions_in_domain() -> None:
+    corpus_case = next(case for case in adversarial.load_corpus()["cases"]
+                       if case["id"] == "helper-body-exact-reference-negative-control")
+    case = adversarial._port_case(corpus_case)
+    candidate = "let valid = i >= 0; if valid { pick(n, i) } else { 0 }"
+
+    assert fidelity.helper_body_compare_text(case, candidate, "fixed") is None
+
+
+def test_simple_helper_rewrite_rejects_nested_helper_arguments() -> None:
+    helpers = {"pick": {"params": [("n", "i64"), ("i", "i64")],
+                        "requires": "0 <= i && i < n", "body": "i"}}
+
+    rewritten = fidelity.expand_simple_helper_calls("pick(n, pick(n, i))", helpers, {"n", "i"})
+
+    assert rewritten is None
+
+
+def test_simple_helper_rewrite_substitutes_parameters_simultaneously() -> None:
+    helpers = {"use_first": {"params": [("x", "i64"), ("y", "i64")],
+                             "requires": "x >= 0", "body": "x"}}
+
+    rewritten = fidelity.expand_simple_helper_calls("use_first(y, 1)", helpers, {"y"})
+
+    assert rewritten is not None
+    assert rewritten["text"] == "( ( y ) )"
+    assert rewritten["calls"][0]["requires"] == "(y) >= 0"
+
+
+def test_simple_helper_atoms_rejects_trusted_and_extern_declarations() -> None:
+    prelude = """trusted atom hidden(x: i64) -> i64
+    requires: true;
+    ensures: result == x;
+    body: { x }
+extern atom visible(x: i64) -> i64
+    requires: true;
+    ensures: result == x;
+    body: { x }"""
+
+    assert fidelity.simple_helper_atoms(prelude) == {}
+
+
+def test_simple_helper_rewrite_rejects_rebinding_inside_branches() -> None:
+    helpers = {"pick": {"params": [("i", "i64")], "requires": "i >= 0", "body": "i"}}
+
+    rewritten = fidelity.expand_simple_helper_calls(
+        "if c { x = 1; }; pick(x)", helpers, {"c", "x"})
+
+    assert rewritten is None
+
+
 def test_bounded_interaction_tool_failure_is_inconclusive(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(fidelity, "run_bounded_interaction_text", lambda *_args: {
         "exit_code": 1, "output_tail": "compiler error", "seconds": 0.1, "budget_seconds": 5})

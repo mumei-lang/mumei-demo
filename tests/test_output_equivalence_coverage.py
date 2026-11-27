@@ -24,6 +24,10 @@ def test_output_equivalence_coverage_buckets_are_mutually_exclusive() -> None:
                                    "reason": "bounded_interactions_matched"}}
     assert coverage_report.bucket(gate, {"outcome": "proven"}) == "bounded_finite_agreement"
 
+    gate = {"output_equivalence": {"outcome": "inconclusive", "status": "success",
+                                   "reason": "helper_body_valid_domain_matched"}}
+    assert coverage_report.bucket(gate, {"outcome": "proven"}) == "helper_valid_domain_agreement"
+
     assert coverage_report.bucket(None, {"outcome": "refuted"}) == "not_applicable_not_proven"
     assert coverage_report.bucket(None, {"outcome": "proven"}) == "unavailable_other"
 
@@ -42,3 +46,13 @@ def test_output_equivalence_coverage_counts_every_recorded_row() -> None:
     assert len(result["rows"]) == 6
     for row in result["rows"]:
         assert sum(row["counts"].values()) == 71
+
+
+def test_helper_inventory_classifies_recorded_helper_atoms() -> None:
+    inventory = coverage_report.helper_definitions()
+    pairs = [entry for entries in inventory.values() for entry in entries]
+
+    assert len(inventory) == 12
+    assert len(pairs) == 12
+    assert {entry["shape"] for entry in pairs} == {"pure_nonrecursive_inlineable"}
+    assert all(entry["body_available"] and entry["inline_eligible"] for entry in pairs)
