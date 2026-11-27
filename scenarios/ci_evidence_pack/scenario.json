@@ -15,7 +15,7 @@
    "Run inputs: the current mumei-agent audit CLI with LLM_API_KEY and OPENAI_API_KEY explicitly empty, plus the local mumei verifier.",
    "Generate evidence: evidence-pack/audit.json, migration_plan.json, verification.json, reference.proof.json, github-actions-mumei-audit.yml, summary.md, manifest.json, and verifier logs.",
    "Boundary: audit output is not a proof certificate; migration_plan.json is not a completed migration; reference.proof.json proves only the reviewed reference .mm contract.",
-   "Artifact roles: audit.json, migration_plan.json, and manifest.json carry a closed artifact_paths map; native_bundle and adapter_observation are null and must not be relabeled from audit/migration/proof artifacts.",
+   "Artifact roles: audit.json, migration_plan.json, and manifest.json carry canonical artifact_paths plus a closed artifact_roles map; native_bundle and adapter_observation are empty and must not be relabeled from audit/migration/proof artifacts.",
    "SARIF boundary: audit.sarif is intentionally absent until mumei-agent emits it; this scenario must not fabricate SARIF in mumei-demo."
   ],
   "gate_order": [
@@ -81,10 +81,10 @@
      "evidence-pack/audit.json preserves the current fixed audit keys and records the raw audit CLI exit code without interpreting it as a future fail-on policy.",
      "evidence-pack/migration_plan.json is derived only from migration_hints and marks every candidate human_review_required.",
      "evidence-pack/reference.proof.json is produced by mumei verify and rechecked by mumei verify-cert --strict for reference/safe_divide.mm.",
-     "evidence-pack/manifest.json binds artifact SHA-256 values, keeps native_bundle and adapter_observation absent in artifact_paths, and states that no Python/.mm semantic equivalence is established.",
+     "evidence-pack/manifest.json binds artifact SHA-256 values, keeps native_bundle and adapter_observation empty in artifact_roles, and states that no Python/.mm semantic equivalence is established.",
      "evidence-pack/github-actions-mumei-audit.yml is copied byte-for-byte from the reviewed reference workflow template."
     ],
-    "verifier_gate": "The builder exits 0, audit JSON contains every fixed key, migration_hints yields at least one high-priority review candidate for the division fixture, the reference proof certificate has all_verified=true, and manifest.json declares SARIF as not_available_in_current_cli."
+    "verifier_gate": "The builder exits 0, audit JSON contains every fixed key, migration_hints yields at least one high-priority review candidate for the division fixture, audit/migration/manifest artifact boundary metadata agrees, the reference proof certificate has all_verified=true, and manifest.json declares SARIF as not_available_in_current_cli."
    }
   ]
  },
@@ -109,6 +109,7 @@
   "evidence-pack/manifest.json uses schema mumei-demo.ci-evidence-pack/v1",
   "evidence-pack/audit.json includes all current fixed audit keys",
   "evidence-pack/migration_plan.json contains the divide migration review candidate",
+  "audit.json, migration_plan.json, and manifest.json agree on canonical artifact_paths and closed artifact_roles",
   "evidence-pack/reference.proof.json has all_verified=true",
   "evidence-pack/github-actions-mumei-audit.yml conditionally uploads SARIF only when the file exists"
  ],

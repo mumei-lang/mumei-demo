@@ -32,12 +32,23 @@ FIXED_AUDIT_KEYS = [
 PACK_SCHEMA = "mumei-demo.ci-evidence-pack/v1"
 MIGRATION_PLAN_SCHEMA = "mumei-demo.migration-plan/v1"
 
-ARTIFACT_PATHS = {
-    "audit_report": "audit.json",
-    "migration_plan": "migration_plan.json",
-    "proof_certificate": "reference.proof.json",
-    "native_bundle": None,
-    "adapter_observation": None,
+ARTIFACT_PATHS = (
+    "audit.json",
+    "audit.stderr.log",
+    "migration_plan.json",
+    "verification.json",
+    "reference.proof.json",
+    "reference-verify.log",
+    "reference-verify-cert.log",
+    "github-actions-mumei-audit.yml",
+    "summary.md",
+)
+ARTIFACT_ROLES = {
+    "audit_report": ["audit.json"],
+    "migration_plan": ["migration_plan.json"],
+    "proof_certificate": ["reference.proof.json"],
+    "native_bundle": [],
+    "adapter_observation": [],
 }
 EVIDENCE_BOUNDARIES = {
     "audit_report": "Existing-code audit evidence; not a proof certificate.",
@@ -48,10 +59,15 @@ EVIDENCE_BOUNDARIES = {
 }
 
 
+def artifact_roles() -> dict[str, list[str]]:
+    return {role: list(paths) for role, paths in ARTIFACT_ROLES.items()}
+
+
 def evidence_metadata() -> dict[str, Any]:
     return {
-        "artifact_paths": dict(ARTIFACT_PATHS),
-        "evidence_boundary": dict(EVIDENCE_BOUNDARIES),
+        "artifact_paths": list(ARTIFACT_PATHS),
+        "artifact_roles": artifact_roles(),
+        "evidence_boundary_by_role": dict(EVIDENCE_BOUNDARIES),
     }
 
 
@@ -294,7 +310,7 @@ def write_summary(path: Path, audit: dict[str, Any], plan: dict[str, Any], verif
         "",
         "The audit report identifies review and migration work. The reference certificate proves the standalone `.mm` contract. Neither artifact yet proves semantic equivalence between the Python implementation and the `.mm` contract.",
         "",
-        "`native_bundle` and `adapter_observation` are explicitly absent in `artifact_paths`; neither audit findings nor migration scaffolds may be relabeled as those evidence classes.",
+        "`native_bundle` and `adapter_observation` are empty roles in `artifact_roles`; neither audit findings nor migration scaffolds may be relabeled as those evidence classes.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -361,17 +377,7 @@ def build_evidence_pack(
     shutil.copyfile(workflow_template, pack_dir / "github-actions-mumei-audit.yml")
     write_summary(pack_dir / "summary.md", audit, plan, verification)
 
-    artifact_paths = [
-        pack_dir / "audit.json",
-        pack_dir / "audit.stderr.log",
-        pack_dir / "migration_plan.json",
-        pack_dir / "verification.json",
-        pack_dir / "reference.proof.json",
-        pack_dir / "reference-verify.log",
-        pack_dir / "reference-verify-cert.log",
-        pack_dir / "github-actions-mumei-audit.yml",
-        pack_dir / "summary.md",
-    ]
+    pack_artifact_paths = [pack_dir / path for path in ARTIFACT_PATHS]
     manifest = {
         "schema": PACK_SCHEMA,
         "mode": {
@@ -384,15 +390,17 @@ def build_evidence_pack(
             "reference_contract": {"path": "reference/safe_divide.mm", "sha256": _sha256(reference)},
             "workflow_template": {"path": "reference/workflows/mumei-audit.yml", "sha256": _sha256(workflow_template)},
         },
-        "artifacts": _artifact_rows(artifact_paths, pack_dir),
-        "artifact_paths": dict(ARTIFACT_PATHS),
+        "artifacts": _artifact_rows(pack_artifact_paths, pack_dir),
+        "artifact_paths": list(ARTIFACT_PATHS),
+        "artifact_roles": artifact_roles(),
+        "evidence_boundary_by_role": dict(EVIDENCE_BOUNDARIES),
         "evidence_roles": {
             role: {
-                "path": path,
-                "status": "absent" if path is None else "present",
+                "paths": list(paths),
+                "status": "absent" if not paths else "present",
                 "boundary": EVIDENCE_BOUNDARIES[role],
             }
-            for role, path in ARTIFACT_PATHS.items()
+            for role, paths in ARTIFACT_ROLES.items()
         },
         "sarif": {
             "path": "audit.sarif",
