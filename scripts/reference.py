@@ -33,6 +33,7 @@ CLI_SCRIPTS = (
     ("scripts/check_specimens.py", "check_specimens"),
     ("scripts/check_evidence_regressions.py", "check_evidence_regressions"),
     ("scripts/review_charter_baseline.py", "review_charter_baseline"),
+    ("scripts/build_ci_evidence_pack.py", "build_ci_evidence_pack"),
     ("dashboard/cli_report.py", "cli_report"),
 )
 ENVIRONMENT_VARIABLES = (

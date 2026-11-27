@@ -1,0 +1,128 @@
+{
+ "name": "CI Evidence Pack Reference: Deterministic Audit Adoption Path",
+ "version": "1.0.0",
+ "description": "Reference implementation for the v0.8 CI adoption path. The scenario runs the current mumei-agent audit CLI in deterministic/no-LLM mode, derives a migration plan, verifies a reviewed .mm reference contract, and packages the artifacts with explicit evidence boundaries for GitHub Actions.",
+ "harness_contract": {
+  "policy": "scenario-harness/v1",
+  "acceptance_path": [
+   "l1_ci_reference"
+  ],
+  "state_dir": "{output_dir}",
+  "state_file": "{output_dir}/harness_state.json",
+  "intent": "Demonstrate a reproducible GitHub Actions evidence-pack shape using only the current audit CLI contract while SARIF, baseline, and fail-on policy support remain unavailable upstream.",
+  "artifact_contracts": [
+   "Read inputs: scenarios/ci_evidence_pack/src/ledger.py, reference/safe_divide.mm, and reference/workflows/mumei-audit.yml.",
+   "Run inputs: the current mumei-agent audit CLI with LLM_API_KEY and OPENAI_API_KEY explicitly empty, plus the local mumei verifier.",
+   "Generate evidence: evidence-pack/audit.json, migration_plan.json, verification.json, reference.proof.json, github-actions-mumei-audit.yml, summary.md, manifest.json, and verifier logs.",
+   "Boundary: audit output is not a proof certificate; migration_plan.json is not a completed migration; reference.proof.json proves only the reviewed reference .mm contract.",
+   "SARIF boundary: audit.sarif is intentionally absent until mumei-agent emits it; this scenario must not fabricate SARIF in mumei-demo."
+  ],
+  "gate_order": [
+   "l1_ci_reference"
+  ],
+  "notes": [
+   "The scenario uses the current audit CLI because mumei-agent A-1/A-2 CI contracts are still independent upstream work.",
+   "deterministic/no-LLM means the audit child process receives empty LLM_API_KEY and OPENAI_API_KEY values; it does not mean every upstream extraction ambiguity is resolved.",
+   "The reference workflow uploads SARIF only conditionally, when a future audit CLI writes evidence-pack/audit.sarif."
+  ]
+ },
+ "layers": [
+  "l1_ci_reference"
+ ],
+ "narrative": {
+  "intro": [
+   "Step 1: Run the current audit CLI deterministically against the reference fixture",
+   "Step 2: Pack audit, migration-plan, reference-certificate, workflow, and boundary evidence for CI review"
+  ],
+  "before": "A repository owner can read audit JSON manually, but there is no compact reference showing which files belong in a CI evidence pack or where the trust boundary lies.",
+  "after": "CI uploads one evidence pack containing the current audit contract, migration plan, reference .mm proof certificate, copyable workflow, and explicit non-claims.",
+  "steps": {
+   "build_evidence_pack": {
+    "pass": {
+     "icon": "PASS",
+     "headline": "CI evidence pack built with deterministic audit and explicit boundaries",
+     "follow_up": [
+      "  audit.sarif is absent by design until the upstream CLI emits SARIF",
+      "  migration hints remain human-review input rather than verified migration evidence"
+     ]
+    }
+   }
+  }
+ },
+ "l1_ci_reference": {
+  "steps": [
+   {
+    "id": "build_evidence_pack",
+    "name": "Build deterministic CI audit evidence pack",
+    "repo": "mumei-demo",
+    "command": "python3 {root_dir}/scripts/build_ci_evidence_pack.py --scenario-dir {root_dir}/scenarios/ci_evidence_pack --output-dir {output_dir} --mumei-agent-repo {mumei_agent_repo} --mumei-agent-python {mumei_agent_python} --mumei-bin {mumei_bin}",
+    "cwd": "{root_dir}",
+    "expected_exit": 0,
+    "expected_patterns": [
+     "evidence pack schema: mumei-demo.ci-evidence-pack/v1",
+     "deterministic audit mode: no LLM credentials",
+     "sarif status: not_available_in_current_cli"
+    ],
+    "artifacts": [
+     "evidence-pack/audit.json",
+     "evidence-pack/audit.stderr.log",
+     "evidence-pack/migration_plan.json",
+     "evidence-pack/verification.json",
+     "evidence-pack/reference.proof.json",
+     "evidence-pack/reference-verify.log",
+     "evidence-pack/reference-verify-cert.log",
+     "evidence-pack/github-actions-mumei-audit.yml",
+     "evidence-pack/summary.md",
+     "evidence-pack/manifest.json"
+    ],
+    "harness_stage": "S1_ci_reference_build_evidence_pack",
+    "artifact_contract": [
+     "evidence-pack/audit.json preserves the current fixed audit keys and records the raw audit CLI exit code without interpreting it as a future fail-on policy.",
+     "evidence-pack/migration_plan.json is derived only from migration_hints and marks every candidate human_review_required.",
+     "evidence-pack/reference.proof.json is produced by mumei verify and rechecked by mumei verify-cert --strict for reference/safe_divide.mm.",
+     "evidence-pack/manifest.json binds artifact SHA-256 values and states that no Python/.mm semantic equivalence is established.",
+     "evidence-pack/github-actions-mumei-audit.yml is copied byte-for-byte from the reviewed reference workflow template."
+    ],
+    "verifier_gate": "The builder exits 0, audit JSON contains every fixed key, migration_hints yields at least one high-priority review candidate for the division fixture, the reference proof certificate has all_verified=true, and manifest.json declares SARIF as not_available_in_current_cli."
+   }
+  ]
+ },
+ "intent_fidelity": {
+  "status": "TRACEABLE",
+  "score": 1.0,
+  "source_intent": "v0.8 D-1: provide a deterministic GitHub Actions reference scenario and public evidence pack without changing the audit CLI contract or waiting for upstream SARIF/baseline support.",
+  "success_criteria": [
+   "The current audit CLI runs with no LLM credentials and its fixed JSON keys are preserved.",
+   "The pack contains audit, migration plan, proof-certificate path, workflow template, summary, and manifest artifacts.",
+   "SARIF absence is explicit and no demo-side SARIF file is fabricated.",
+   "Evidence boundaries separate audit findings, migration scaffolding, reference contract proof, and implementation equivalence."
+  ],
+  "expected_user_observable_behavior": [
+   "A reviewer can download one CI artifact and understand what each file does and does not prove.",
+   "A repository owner can copy the reference workflow shape and adjust AUDIT_TARGET for its own source tree.",
+   "CI does not fail because audit.sarif is absent before upstream SARIF support exists."
+  ],
+  "drift_risk": "Upstream audit output can improve or change verdicts; the scenario gates the fixed key contract and deterministic invocation rather than a specific future SARIF or baseline format."
+ },
+ "success_criteria": [
+  "evidence-pack/manifest.json uses schema mumei-demo.ci-evidence-pack/v1",
+  "evidence-pack/audit.json includes all current fixed audit keys",
+  "evidence-pack/migration_plan.json contains the divide migration review candidate",
+  "evidence-pack/reference.proof.json has all_verified=true",
+  "evidence-pack/github-actions-mumei-audit.yml conditionally uploads SARIF only when the file exists"
+ ],
+ "artifact_paths": [
+  "{output_dir}/build_evidence_pack.log",
+  "{output_dir}/evidence-pack/audit.json",
+  "{output_dir}/evidence-pack/migration_plan.json",
+  "{output_dir}/evidence-pack/verification.json",
+  "{output_dir}/evidence-pack/reference.proof.json",
+  "{output_dir}/evidence-pack/github-actions-mumei-audit.yml",
+  "{output_dir}/evidence-pack/summary.md",
+  "{output_dir}/evidence-pack/manifest.json",
+  "{output_dir}/harness_state.json",
+  "{output_dir}/result.json"
+ ],
+ "budget_policy_fingerprint": "deterministic-ci-evidence-pack-v1",
+ "result_message": "Result: deterministic CI evidence pack built; SARIF and baseline boundaries are explicit."
+}
