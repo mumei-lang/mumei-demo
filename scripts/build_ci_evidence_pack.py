@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Build the deterministic CI audit evidence-pack reference artifact.
 
-The pack intentionally uses the current audit CLI contract.  It records the
-absence of SARIF/baseline support as an explicit capability boundary instead
-of synthesizing those artifacts in the demo repository.
+The pack uses the upstream audit CLI contract for SARIF, baselines, and
+fail-on policy.  SARIF is emitted only by `mumei-agent audit`; the demo never
+fabricates it, and baseline artifacts are CI policy rather than evidence.
 """
 from __future__ import annotations
 
@@ -35,6 +35,8 @@ MIGRATION_PLAN_SCHEMA = "mumei-demo.migration-plan/v1"
 ARTIFACT_PATHS = (
     "audit.json",
     "audit.stderr.log",
+    "audit.sarif",
+    "audit-baseline.json",
     "migration_plan.json",
     "verification.json",
     "reference.proof.json",
@@ -46,19 +48,24 @@ ARTIFACT_PATHS = (
 )
 HASHED_ARTIFACT_PATHS = tuple(path for path in ARTIFACT_PATHS if path != "manifest.json")
 ARTIFACT_ROLES = {
-    "audit_report": ["audit.json"],
+    "audit_report": ["audit.json", "audit.sarif"],
     "migration_plan": ["migration_plan.json"],
     "proof_certificate": ["reference.proof.json"],
+    "ci_policy": ["audit-baseline.json"],
     "native_bundle": [],
     "adapter_observation": [],
 }
 EVIDENCE_BOUNDARIES = {
-    "audit_report": "Existing-code audit evidence; not a proof certificate.",
+    "audit_report": "Existing-code audit evidence and its SARIF rendering; not a proof certificate.",
     "migration_plan": "Human-review migration scaffold; not evidence of completed migration.",
     "proof_certificate": "Proof only for the reviewed reference .mm contract; not host-code equivalence.",
+    "ci_policy": "CI suppression and fail-on policy only; not evidence and not part of proof acceptance.",
     "native_bundle": "No native bundle is present or implied by this audit/migration evidence pack.",
     "adapter_observation": "No adapter observation is present or implied by this audit/migration evidence pack.",
 }
+BASELINE_INPUT = "reference/audit-baseline.json"
+BASELINE_SCHEMA = "mumei.audit-baseline/v1"
+FAIL_ON_POLICY = "high-confidence"
 
 
 def artifact_roles() -> dict[str, list[str]]:
@@ -129,6 +136,44 @@ def _load_audit_json(result: subprocess.CompletedProcess[str]) -> dict[str, Any]
     return payload
 
 
+def _validate_sarif(path: Path, *, require_baseline_state: bool = False) -> None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise EvidencePackError(f"audit SARIF output is not valid JSON: {path}") from exc
+    runs = payload.get("runs") if isinstance(payload, dict) else None
+    if payload.get("version") != "2.1.0" or not isinstance(runs, list) or not runs:
+        raise EvidencePackError("audit SARIF output does not have the expected SARIF 2.1.0 shape")
+    if require_baseline_state:
+        results = [
+            row
+            for run in runs
+            if isinstance(run, dict)
+            for row in (run.get("results") or [])
+            if isinstance(row, dict)
+        ]
+        if any(row.get("baselineState") not in {"new", "unchanged"} for row in results):
+            raise EvidencePackError("audit SARIF results do not reflect the --baseline policy overlay")
+
+
+def _validate_baseline_annotations(audit: dict[str, Any]) -> None:
+    rows = audit.get("findings")
+    if isinstance(rows, list) and any(isinstance(row, dict) and "baseline" not in row for row in rows):
+        raise EvidencePackError("audit JSON findings do not reflect the --baseline policy overlay")
+
+
+def _validate_baseline(path: Path) -> None:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise EvidencePackError(f"audit baseline output is not valid JSON: {path}") from exc
+    fingerprints = payload.get("fingerprints") if isinstance(payload, dict) else None
+    if payload.get("version") != BASELINE_SCHEMA or not isinstance(fingerprints, list):
+        raise EvidencePackError("audit baseline output does not use mumei.audit-baseline/v1")
+    if not all(type(item) is str and item for item in fingerprints):
+        raise EvidencePackError("audit baseline fingerprints must be non-empty strings")
+
+
 def _audit_environment(base_env: dict[str, str], mumei_bin: Path) -> dict[str, str]:
     env = dict(base_env)
     # Deterministic reference mode: the current CLI falls back to its parser
@@ -147,6 +192,10 @@ def run_audit(
     agent_repo: Path,
     agent_python: Path,
     mumei_bin: Path,
+    baseline_input: Path,
+    sarif_output: Path,
+    write_baseline: Path,
+    fail_on: str = FAIL_ON_POLICY,
     env: dict[str, str] | None = None,
 ) -> tuple[dict[str, Any], subprocess.CompletedProcess[str]]:
     command = [
@@ -161,13 +210,33 @@ def run_audit(
         "--format",
         "json",
         "--auto-migrate",
+        "--sarif-output",
+        str(sarif_output),
+        "--baseline",
+        str(baseline_input),
+        "--write-baseline",
+        str(write_baseline),
+        "--fail-on",
+        fail_on,
     ]
     completed = _run(
         command,
         cwd=agent_repo,
         env=_audit_environment(os.environ if env is None else env, mumei_bin),
     )
-    return _load_audit_json(completed), completed
+    payload = _load_audit_json(completed)
+    if completed.returncode == 2:
+        raise EvidencePackError("audit failed operationally with exit 2")
+    if completed.returncode not in (0, 1):
+        raise EvidencePackError(f"audit exited with unsupported status {completed.returncode}")
+    if not sarif_output.exists():
+        raise EvidencePackError("audit CLI did not write SARIF output")
+    if not write_baseline.exists():
+        raise EvidencePackError("audit CLI did not write baseline output")
+    _validate_sarif(sarif_output, require_baseline_state=True)
+    _validate_baseline(write_baseline)
+    _validate_baseline_annotations(payload)
+    return payload, completed
 
 
 def run_reference_verification(
@@ -285,6 +354,9 @@ def _artifact_rows(paths: list[Path], pack_dir: Path) -> list[dict[str, str]]:
 
 def write_summary(path: Path, audit: dict[str, Any], plan: dict[str, Any], verification: dict[str, Any]) -> None:
     findings = audit.get("finding_counts") if isinstance(audit.get("finding_counts"), dict) else {}
+    rows = audit.get("findings") if isinstance(audit.get("findings"), list) else []
+    suppressed = sum(isinstance(row, dict) and row.get("baseline") == "suppressed" for row in rows)
+    new = sum(isinstance(row, dict) and row.get("baseline") == "new" for row in rows)
     lines = [
         "# Mumei CI evidence pack",
         "",
@@ -295,24 +367,28 @@ def write_summary(path: Path, audit: dict[str, Any], plan: dict[str, Any], verif
         "| Item | Value |",
         "|---|---|",
         f"| Audit status | `{audit.get('verification_status')}` |",
+        f"| Audit exit code | {audit.get('audit_cli_exit_code', 'not recorded')} |",
+        f"| Fail-on policy | `{audit.get('audit_cli_contract', {}).get('fail_on', 'not recorded')}` |",
         f"| Code findings | {findings.get('code', 'not reported')} |",
         f"| Spec/model findings | {findings.get('spec', 'not reported')} |",
+        f"| Baseline states | {suppressed} suppressed, {new} new |",
         f"| Migration candidates | {plan['summary']['candidate_count']} |",
         f"| Reference `.mm` certificate | `{verification['proof_certificate']}` |",
         "",
         "## Artifact map",
         "",
         "- `audit.json`: normalized current-CLI audit JSON with fixed keys.",
+        "- `audit.sarif`: SARIF emitted by the upstream audit CLI; the demo does not fabricate SARIF.",
+        "- `audit-baseline.json`: refreshed finding-fingerprint baseline; CI policy only, not evidence.",
         "- `migration_plan.json`: prioritized human-review migration plan derived from `migration_hints`.",
         "- `reference.proof.json`: proof certificate for the reviewed reference `.mm` contract only.",
         "- `github-actions-mumei-audit.yml`: copyable reference workflow.",
-        "- `audit.sarif`: intentionally absent until the audit CLI emits SARIF; no demo-side SARIF is fabricated.",
         "",
         "## Evidence boundary",
         "",
-        "The audit report identifies review and migration work. The reference certificate proves the standalone `.mm` contract. Neither artifact yet proves semantic equivalence between the Python implementation and the `.mm` contract.",
+        "The audit report and SARIF rendering identify review and migration work. The reference certificate proves the standalone `.mm` contract. Neither artifact yet proves semantic equivalence between the Python implementation and the `.mm` contract.",
         "",
-        "`native_bundle` and `adapter_observation` are empty roles in `artifact_roles`; neither audit findings nor migration scaffolds may be relabeled as those evidence classes.",
+        "`audit-baseline.json` is a `ci_policy` artifact: it suppresses reviewed findings for CI policy decisions and must not be treated as audit evidence or proof acceptance. `native_bundle` and `adapter_observation` are empty roles in `artifact_roles`; neither audit findings nor migration scaffolds may be relabeled as those evidence classes.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -329,9 +405,11 @@ def build_evidence_pack(
     source = scenario_dir / "src" / "ledger.py"
     reference = scenario_dir / "reference" / "safe_divide.mm"
     workflow_template = scenario_dir / "reference" / "workflows" / "mumei-audit.yml"
-    for required in (source, reference, workflow_template, agent_python, mumei_bin):
+    baseline_input = scenario_dir / BASELINE_INPUT
+    for required in (source, reference, workflow_template, baseline_input, agent_python, mumei_bin):
         if not required.exists():
             raise EvidencePackError(f"required input is missing: {required}")
+    _validate_baseline(baseline_input)
 
     workspace = output_dir / "workspace"
     pack_dir = output_dir / "evidence-pack"
@@ -347,15 +425,20 @@ def build_evidence_pack(
         agent_repo=agent_repo,
         agent_python=agent_python,
         mumei_bin=mumei_bin,
+        baseline_input=baseline_input,
+        sarif_output=pack_dir / "audit.sarif",
+        write_baseline=pack_dir / "audit-baseline.json",
         env=env,
     )
     audit = _redact_source_path(audit_raw, source)
     audit["deterministic_no_llm"] = True
     audit["audit_cli_exit_code"] = audit_completed.returncode
-    audit["capability_boundary"] = {
-        "sarif": "not emitted by the current audit CLI",
-        "baseline": "not implemented by the current audit CLI",
-        "exit_policy": "current CLI exit code is recorded, not interpreted as a fail-on policy",
+    audit["audit_cli_contract"] = {
+        "sarif_output": "audit.sarif",
+        "baseline_input": BASELINE_INPUT,
+        "baseline_output": "audit-baseline.json",
+        "fail_on": FAIL_ON_POLICY,
+        "exit_policy": "0/1 are finding-policy outcomes; 2 is an operational audit failure",
     }
     audit.update(evidence_metadata())
     _write_json(pack_dir / "audit.json", audit)
@@ -391,6 +474,7 @@ def build_evidence_pack(
             "source": {"path": "src/ledger.py", "sha256": _sha256(source)},
             "reference_contract": {"path": "reference/safe_divide.mm", "sha256": _sha256(reference)},
             "workflow_template": {"path": "reference/workflows/mumei-audit.yml", "sha256": _sha256(workflow_template)},
+            "audit_baseline_input": {"path": BASELINE_INPUT, "sha256": _sha256(baseline_input)},
         },
         "artifacts": _artifact_rows(pack_artifact_paths, pack_dir),
         "artifact_paths": list(ARTIFACT_PATHS),
@@ -406,12 +490,26 @@ def build_evidence_pack(
         },
         "sarif": {
             "path": "audit.sarif",
-            "status": "not_available_in_current_cli",
-            "required": False,
-            "boundary": "The demo does not fabricate SARIF; upload is conditional in the workflow for the future audit CLI contract.",
+            "status": "emitted_by_audit_cli",
+            "required": True,
+            "boundary": "SARIF is emitted by the upstream audit CLI as a rendering of audit findings; the demo does not fabricate it.",
+        },
+        "baseline": {
+            "input_path": BASELINE_INPUT,
+            "output_path": "audit-baseline.json",
+            "status": "emitted_by_audit_cli",
+            "role": "ci_policy",
+            "boundary": "Baseline suppression is CI policy only; it is not evidence and must not participate in proof acceptance.",
+        },
+        "fail_on": {
+            "policy": FAIL_ON_POLICY,
+            "audit_exit_code": audit_completed.returncode,
+            "boundary": "Fail-on is a CI policy outcome over non-suppressed findings, not a verdict or proof boundary change.",
         },
         "evidence_boundary": [
             "audit.json is existing-code audit evidence, not a proof certificate.",
+            "audit.sarif is the audit CLI's SARIF rendering of audit findings, not independent evidence.",
+            "audit-baseline.json is CI suppression policy, not evidence or proof acceptance.",
             "migration_plan.json is a human-review plan, not evidence of completed migration.",
             "reference.proof.json proves only the reviewed reference .mm contract.",
             "No native bundle is present or implied by this pack.",
@@ -420,6 +518,10 @@ def build_evidence_pack(
         ],
     }
     _write_json(pack_dir / "manifest.json", manifest)
+    if audit_completed.returncode == 1:
+        raise EvidencePackError(
+            "audit fail-on policy reported non-suppressed high-confidence evidence; see the completed evidence pack"
+        )
     return manifest
 
 
@@ -457,7 +559,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"evidence pack schema: {manifest['schema']}")
     print(f"evidence pack artifacts: {len(manifest['artifacts'])}")
     print("deterministic audit mode: no LLM credentials")
-    print("sarif status: not_available_in_current_cli")
+    print("sarif status: emitted_by_audit_cli")
+    print("baseline status: emitted_by_audit_cli")
+    print(f"fail-on policy: {FAIL_ON_POLICY}")
     return 0
 
 

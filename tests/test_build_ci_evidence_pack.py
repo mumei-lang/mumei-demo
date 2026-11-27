@@ -37,25 +37,137 @@ def test_load_audit_json_requires_fixed_contract_keys() -> None:
         pack._load_audit_json(_completed(json.dumps({"verification_status": "verified"})))
 
 
-def test_run_audit_respects_explicit_empty_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_run_audit_uses_upstream_ci_contract_and_explicit_empty_environment(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("UNRELATED_PARENT_VARIABLE", "must-not-be-inherited")
     captured = {}
+    baseline_input = tmp_path / "baseline-input.json"
+    baseline_input.write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}), encoding="utf-8")
+    sarif_output = tmp_path / "audit.sarif"
+    baseline_output = tmp_path / "audit-baseline.json"
 
     def fake_run(command, *, cwd: Path, env: dict[str, str]):
+        captured["command"] = command
         captured["env"] = env
+        sarif_output.write_text(json.dumps({"version": "2.1.0", "runs": [{"results": []}]}), encoding="utf-8")
+        baseline_output.write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}), encoding="utf-8")
         return _completed(json.dumps({key: [] for key in pack.FIXED_AUDIT_KEYS}))
 
     monkeypatch.setattr(pack, "_run", fake_run)
-    pack.run_audit(
+    payload, completed = pack.run_audit(
         source=tmp_path / "ledger.py",
         agent_repo=tmp_path,
         agent_python=tmp_path / "python",
         mumei_bin=tmp_path / "mumei",
+        baseline_input=baseline_input,
+        sarif_output=sarif_output,
+        write_baseline=baseline_output,
         env={},
     )
 
+    assert payload["verification_status"] == []
+    assert completed.returncode == 0
     assert "UNRELATED_PARENT_VARIABLE" not in captured["env"]
     assert captured["env"]["LLM_API_KEY"] == ""
+    command = captured["command"]
+    assert "--sarif-output" in command
+    assert str(sarif_output) in command
+    assert "--baseline" in command
+    assert str(baseline_input) in command
+    assert "--write-baseline" in command
+    assert str(baseline_output) in command
+    assert command[command.index("--fail-on") + 1] == pack.FAIL_ON_POLICY
+
+
+def test_run_audit_rejects_operational_exit_and_missing_ci_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    baseline_input = tmp_path / "baseline-input.json"
+    baseline_input.write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}), encoding="utf-8")
+
+    def fake_run(command, *, cwd: Path, env: dict[str, str]):
+        return _completed(json.dumps({key: [] for key in pack.FIXED_AUDIT_KEYS}), returncode=2)
+
+    monkeypatch.setattr(pack, "_run", fake_run)
+    with pytest.raises(pack.EvidencePackError, match="operational"):
+        pack.run_audit(
+            source=tmp_path / "ledger.py",
+            agent_repo=tmp_path,
+            agent_python=tmp_path / "python",
+            mumei_bin=tmp_path / "mumei",
+            baseline_input=baseline_input,
+            sarif_output=tmp_path / "audit.sarif",
+            write_baseline=tmp_path / "audit-baseline.json",
+            env={},
+        )
+
+
+def test_ci_artifact_validators_reject_malformed_documents(tmp_path: Path) -> None:
+    sarif = tmp_path / "audit.sarif"
+    sarif.write_text(json.dumps({"version": "2.0.0", "runs": []}), encoding="utf-8")
+    baseline = tmp_path / "audit-baseline.json"
+    baseline.write_text(json.dumps({"version": "wrong", "fingerprints": []}), encoding="utf-8")
+
+    with pytest.raises(pack.EvidencePackError, match="SARIF 2.1.0"):
+        pack._validate_sarif(sarif)
+    with pytest.raises(pack.EvidencePackError, match="mumei.audit-baseline/v1"):
+        pack._validate_baseline(baseline)
+
+    sarif.write_text(json.dumps({"version": "2.1.0", "runs": [{"results": []}]}), encoding="utf-8")
+    baseline.write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}), encoding="utf-8")
+    pack._validate_sarif(sarif)
+    pack._validate_baseline(baseline)
+
+
+def test_baseline_overlay_validation_requires_annotations_when_results_exist(tmp_path: Path) -> None:
+    sarif = tmp_path / "audit.sarif"
+    sarif.write_text(
+        json.dumps({"version": "2.1.0", "runs": [{"results": [{"ruleId": "x"}]}]}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(pack.EvidencePackError, match="baseline policy overlay"):
+        pack._validate_sarif(sarif, require_baseline_state=True)
+    with pytest.raises(pack.EvidencePackError, match="baseline policy overlay"):
+        pack._validate_baseline_annotations({"findings": [{"category": "spec"}]})
+
+    sarif.write_text(
+        json.dumps({"version": "2.1.0", "runs": [{"results": [{"ruleId": "x", "baselineState": "unchanged"}]}]}),
+        encoding="utf-8",
+    )
+    pack._validate_sarif(sarif, require_baseline_state=True)
+    pack._validate_baseline_annotations({"findings": [{"category": "spec", "baseline": "suppressed"}]})
+
+
+def test_reference_baseline_input_is_valid_policy_data() -> None:
+    baseline = SCENARIO_DIR / "reference" / "audit-baseline.json"
+
+    pack._validate_baseline(baseline)
+    payload = json.loads(baseline.read_text(encoding="utf-8"))
+    assert payload["fingerprints"] == sorted(payload["fingerprints"])
+
+
+def test_run_audit_accepts_fail_on_finding_exit_with_valid_artifacts(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    baseline_input = tmp_path / "baseline-input.json"
+    baseline_input.write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}), encoding="utf-8")
+    sarif_output = tmp_path / "audit.sarif"
+    baseline_output = tmp_path / "audit-baseline.json"
+
+    def fake_run(command, *, cwd: Path, env: dict[str, str]):
+        sarif_output.write_text(json.dumps({"version": "2.1.0", "runs": [{"results": []}]}), encoding="utf-8")
+        baseline_output.write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}), encoding="utf-8")
+        return _completed(json.dumps({key: [] for key in pack.FIXED_AUDIT_KEYS}), returncode=1)
+
+    monkeypatch.setattr(pack, "_run", fake_run)
+    _, completed = pack.run_audit(
+        source=tmp_path / "ledger.py",
+        agent_repo=tmp_path,
+        agent_python=tmp_path / "python",
+        mumei_bin=tmp_path / "mumei",
+        baseline_input=baseline_input,
+        sarif_output=sarif_output,
+        write_baseline=baseline_output,
+        env={},
+    )
+
+    assert completed.returncode == 1
 
 
 def test_migration_plan_marks_hints_as_human_review_required() -> None:
@@ -122,6 +234,14 @@ def test_build_evidence_pack_manifest_and_boundaries(tmp_path: Path, monkeypatch
     )
 
     def fake_audit(**kwargs):
+        kwargs["sarif_output"].write_text(
+            json.dumps({"version": "2.1.0", "runs": [{"results": []}]}),
+            encoding="utf-8",
+        )
+        kwargs["write_baseline"].write_text(
+            json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": ["fingerprint-a"]}),
+            encoding="utf-8",
+        )
         return audit, _completed(json.dumps(audit))
 
     def fake_verify(*, pack_dir: Path, **kwargs):
@@ -156,21 +276,37 @@ def test_build_evidence_pack_manifest_and_boundaries(tmp_path: Path, monkeypatch
 
     pack_dir = output_dir / "evidence-pack"
     assert manifest["schema"] == "mumei-demo.ci-evidence-pack/v1"
-    assert manifest["sarif"]["status"] == "not_available_in_current_cli"
-    assert manifest["sarif"]["required"] is False
-    assert not (pack_dir / "audit.sarif").exists()
-    assert len(manifest["artifacts"]) == 9
+    assert manifest["sarif"]["status"] == "emitted_by_audit_cli"
+    assert manifest["sarif"]["required"] is True
+    assert manifest["baseline"]["status"] == "emitted_by_audit_cli"
+    assert manifest["baseline"]["role"] == "ci_policy"
+    assert manifest["fail_on"] == {
+        "policy": pack.FAIL_ON_POLICY,
+        "audit_exit_code": 0,
+        "boundary": "Fail-on is a CI policy outcome over non-suppressed findings, not a verdict or proof boundary change.",
+    }
+    assert (pack_dir / "audit.sarif").is_file()
+    assert (pack_dir / "audit-baseline.json").is_file()
+    assert len(manifest["artifacts"]) == 11
     assert [row["path"] for row in manifest["artifacts"]] == list(pack.HASHED_ARTIFACT_PATHS)
     assert manifest["artifact_paths"] == list(pack.ARTIFACT_PATHS)
     assert manifest["artifact_roles"] == pack.artifact_roles()
     assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"
     assert manifest["evidence_roles"]["adapter_observation"]["status"] == "absent"
+    assert any("audit-baseline.json is CI suppression policy" in line for line in manifest["evidence_boundary"])
     assert any("No native bundle is present or implied" in line for line in manifest["evidence_boundary"])
     assert any("No adapter observation is present or implied" in line for line in manifest["evidence_boundary"])
+    assert manifest["inputs"]["audit_baseline_input"]["path"] == pack.BASELINE_INPUT
     audit_json = json.loads((pack_dir / "audit.json").read_text(encoding="utf-8"))
     assert audit_json["source_file"] == "fixture/ledger.py"
     assert audit_json["deterministic_no_llm"] is True
-    assert audit_json["capability_boundary"]["sarif"] == "not emitted by the current audit CLI"
+    assert audit_json["audit_cli_contract"] == {
+        "sarif_output": "audit.sarif",
+        "baseline_input": pack.BASELINE_INPUT,
+        "baseline_output": "audit-baseline.json",
+        "fail_on": pack.FAIL_ON_POLICY,
+        "exit_policy": "0/1 are finding-policy outcomes; 2 is an operational audit failure",
+    }
     assert audit_json["artifact_paths"] == list(pack.ARTIFACT_PATHS)
     assert audit_json["artifact_roles"] == pack.artifact_roles()
     assert audit_json["evidence_boundary_by_role"] == pack.EVIDENCE_BOUNDARIES
@@ -182,31 +318,88 @@ def test_build_evidence_pack_manifest_and_boundaries(tmp_path: Path, monkeypatch
     assert migration_json["evidence_boundary_by_role"]["migration_plan"].startswith("Human-review migration scaffold")
     summary = (pack_dir / "summary.md").read_text(encoding="utf-8")
     assert "Neither artifact yet proves semantic equivalence" in summary
+    assert "`audit-baseline.json` is a `ci_policy` artifact" in summary
+    assert "must not be treated as audit evidence or proof acceptance" in summary
     assert "empty roles in `artifact_roles`" in summary
     workflow = (pack_dir / "github-actions-mumei-audit.yml").read_text(encoding="utf-8")
     assert workflow == (SCENARIO_DIR / "reference" / "workflows" / "mumei-audit.yml").read_text(encoding="utf-8")
 
 
+def test_build_evidence_pack_writes_pack_then_rejects_fail_on_exit(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    agent_python = tmp_path / "agent-python"
+    mumei_bin = tmp_path / "mumei"
+    agent_python.write_text("", encoding="utf-8")
+    mumei_bin.write_text("", encoding="utf-8")
+    audit = {key: [] for key in pack.FIXED_AUDIT_KEYS}
+    audit.update({
+        "verification_status": "refuted",
+        "migration_hints": [{"function_name": "divide", "priority": "high"}],
+    })
+
+    def fake_audit(**kwargs):
+        kwargs["sarif_output"].write_text(
+            json.dumps({"version": "2.1.0", "runs": [{"results": []}]}),
+            encoding="utf-8",
+        )
+        kwargs["write_baseline"].write_text(
+            json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}),
+            encoding="utf-8",
+        )
+        return audit, _completed(json.dumps(audit), returncode=1)
+
+    def fake_verify(*, pack_dir: Path, **kwargs):
+        (pack_dir / "reference.proof.json").write_text(json.dumps({"all_verified": True}), encoding="utf-8")
+        return ({
+            "schema": "mumei-demo.reference-verification/v1",
+            "reference_contract": "reference/safe_divide.mm",
+            "proof_certificate": "reference.proof.json",
+            "verify_exit_code": 0,
+            "verify_cert_exit_code": 0,
+            "all_verified": True,
+            "atoms": [],
+            "boundary": "reference only",
+        }, "", "")
+
+    monkeypatch.setattr(pack, "run_audit", fake_audit)
+    monkeypatch.setattr(pack, "run_reference_verification", fake_verify)
+
+    with pytest.raises(pack.EvidencePackError, match="fail-on policy"):
+        pack.build_evidence_pack(
+            scenario_dir=SCENARIO_DIR,
+            output_dir=tmp_path / "out",
+            agent_repo=tmp_path,
+            agent_python=agent_python,
+            mumei_bin=mumei_bin,
+            env={},
+        )
+
+    manifest = json.loads((tmp_path / "out" / "evidence-pack" / "manifest.json").read_text(encoding="utf-8"))
+    assert manifest["fail_on"]["audit_exit_code"] == 1
+    assert (tmp_path / "out" / "evidence-pack" / "audit.sarif").is_file()
+
+
 def test_artifact_paths_match_present_manifest_artifacts_and_absent_roles() -> None:
-    assert len(pack.ARTIFACT_PATHS) == 10
-    assert len(pack.HASHED_ARTIFACT_PATHS) == 9
+    assert len(pack.ARTIFACT_PATHS) == 12
+    assert len(pack.HASHED_ARTIFACT_PATHS) == 11
     assert "manifest.json" in pack.ARTIFACT_PATHS
     assert "manifest.json" not in pack.HASHED_ARTIFACT_PATHS
     assert len(set(pack.ARTIFACT_PATHS)) == len(pack.ARTIFACT_PATHS)
-    for role in ("audit_report", "migration_plan", "proof_certificate"):
+    for role in ("audit_report", "migration_plan", "proof_certificate", "ci_policy"):
         assert pack.ARTIFACT_ROLES[role]
         assert all(path in pack.ARTIFACT_PATHS for path in pack.ARTIFACT_ROLES[role])
         assert pack.EVIDENCE_BOUNDARIES[role]
     for role in ("native_bundle", "adapter_observation"):
         assert pack.ARTIFACT_ROLES[role] == []
         assert "not proof" not in pack.EVIDENCE_BOUNDARIES[role].lower()
+    assert "not evidence" in pack.EVIDENCE_BOUNDARIES["ci_policy"]
 
     # Keep this as an explicit golden map rather than comparing the constant to
-    # itself: a wrong audit/proof/native/adapter assignment must fail here.
+    # itself: a wrong audit/proof/policy/native/adapter assignment must fail here.
     assert pack.ARTIFACT_ROLES == {
-        "audit_report": ["audit.json"],
+        "audit_report": ["audit.json", "audit.sarif"],
         "migration_plan": ["migration_plan.json"],
         "proof_certificate": ["reference.proof.json"],
+        "ci_policy": ["audit-baseline.json"],
         "native_bundle": [],
         "adapter_observation": [],
     }
@@ -260,11 +453,17 @@ def test_summary_distinguishes_missing_finding_counts_from_zero(tmp_path: Path) 
     assert "| Code findings | 0 |" not in text
 
 
-def test_reference_workflow_uploads_sarif_only_conditionally() -> None:
+def test_reference_workflow_uses_upstream_sarif_baseline_and_fail_on_contract() -> None:
     workflow = (SCENARIO_DIR / "reference" / "workflows" / "mumei-audit.yml").read_text(encoding="utf-8")
 
-    assert "if: hashFiles('evidence-pack/audit.sarif') != ''" in workflow
+    assert "--sarif-output" in workflow
+    assert "--baseline" in workflow
+    assert "--write-baseline" in workflow
+    assert "--fail-on high-confidence" in workflow
+    assert "mumei.audit-baseline/v1" in workflow
+    assert "if: always() && hashFiles('evidence-pack/audit.sarif') != ''" in workflow
     assert "upload-sarif" in workflow
+    assert "CI policy, not evidence" in workflow
     assert "--emit-sarif" not in workflow
     assert "--format sarif" not in workflow
 
@@ -273,8 +472,9 @@ def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "audit-evidence-pack.yml").read_text(encoding="utf-8")
 
     assert 'manifest["artifact_paths"] == expected_paths' in workflow
-    assert '"audit_report": ["audit.json"]' in workflow
+    assert '"audit_report": ["audit.json", "audit.sarif"]' in workflow
     assert '"proof_certificate": ["reference.proof.json"]' in workflow
+    assert '"ci_policy": ["audit-baseline.json"]' in workflow
     assert '"native_bundle": []' in workflow
     assert '"adapter_observation": []' in workflow
     assert 'audit["artifact_paths"] == manifest["artifact_paths"]' in workflow
@@ -283,6 +483,10 @@ def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:
     assert 'migration["artifact_paths"] == manifest["artifact_paths"]' in workflow
     assert 'migration["artifact_roles"] == manifest["artifact_roles"]' in workflow
     assert 'migration["evidence_boundary_by_role"] == manifest["evidence_boundary_by_role"]' in workflow
+    assert 'manifest["sarif"]["status"] == "emitted_by_audit_cli"' in workflow
+    assert 'manifest["baseline"]["status"] == "emitted_by_audit_cli"' in workflow
+    assert 'manifest["fail_on"]["policy"] == "high-confidence"' in workflow
+    assert 'assert "not evidence" in manifest["evidence_roles"]["ci_policy"]["boundary"]' in workflow
 
 
 def test_scenario_uses_current_cli_builder_and_declares_pack_artifacts() -> None:
@@ -292,6 +496,14 @@ def test_scenario_uses_current_cli_builder_and_declares_pack_artifacts() -> None
     assert "scripts/build_ci_evidence_pack.py" in step["command"]
     assert "--format sarif" not in step["command"]
     assert "evidence-pack/audit.json" in step["artifacts"]
+    assert "evidence-pack/audit.sarif" in step["artifacts"]
+    assert "evidence-pack/audit-baseline.json" in step["artifacts"]
     assert "evidence-pack/manifest.json" in step["artifacts"]
-    assert "must not fabricate SARIF" in json.dumps(scenario["harness_contract"])
+    assert "sarif status: emitted_by_audit_cli" in step["expected_patterns"]
+    assert "baseline status: emitted_by_audit_cli" in step["expected_patterns"]
+    assert "fail-on policy: high-confidence" in step["expected_patterns"]
+    contract_text = json.dumps(scenario["harness_contract"])
+    assert "must not fabricate SARIF" in contract_text
+    assert "ci_policy" in contract_text
+    assert "not evidence" in contract_text
     assert scenario["budget_policy_fingerprint"] == "deterministic-ci-evidence-pack-v1"
