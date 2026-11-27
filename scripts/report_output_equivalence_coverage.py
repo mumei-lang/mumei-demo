@@ -155,7 +155,7 @@ def render(result: dict) -> str:
         "Coverage is counted over every recorded benchmark row. `not_applicable_not_proven` means the raw candidate was not verification-accepted, so the output-equivalence oracle was not needed for acceptance. `timeout` and `operational` are tool/evidence failures rather than semantic classifications. `bounded_finite_agreement` is concrete input/state interaction evidence only: it is not universal output equality. `helper_valid_domain_agreement` is likewise diagnostic agreement on the path-sensitive valid helper-call domain, not universal equality.",
         "",
         "| Variant | Run | Rows | Matched | Diverged | Boundary-only | Bounded finite agreement | Helper valid-domain agreement | Other inconclusive | Loop unavailable | Other unavailable | Timeout | Operational | Not applicable |",
-        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
     ]
     for row in result["rows"]:
         counts = row["counts"]
