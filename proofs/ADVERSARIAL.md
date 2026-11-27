@@ -4,15 +4,15 @@
 
 Static adversarial fixtures for generated contracts and LLM body ports. The cases do not replace Mumei/Z3 verification: they pin whether the deterministic fidelity lint recognizes shapes that previously made false acceptance hard to explain.
 
-Result: **9/9 cases pass**; 0 failing.
+Result: **11/11 cases pass**; 0 failing.
 
 | Failure mode | Cases | Passing |
 |---|---:|---:|
-| `guard_folding` | 1 | 1 |
+| `guard_folding` | 2 | 2 |
 | `silent_repair` | 1 | 1 |
 | `vacuous_spec` | 1 | 1 |
 | `weak_spec` | 3 | 3 |
-| `body_port_meaning_loss` | 3 | 3 |
+| `body_port_meaning_loss` | 4 | 4 |
 
 | Case | Mode | Expected findings | Actual findings | Status |
 |---|---|---|---|---|
@@ -22,8 +22,10 @@ Result: **9/9 cases pass**; 0 failing.
 | `weak-ensures-true` | `weak_spec` | `weak_spec` | `weak_spec` | PASS |
 | `weak-reflexive-result-equality` | `weak_spec` | `weak_spec` | `weak_spec` | PASS |
 | `body-port-drops-modeled-index` | `body_port_meaning_loss` | `missing_modeled_operation:index/slice` | `missing_modeled_operation:index/slice` | PASS |
-| `body-port-success-flag-rewrite` | `body_port_meaning_loss` | `success_flag_rewrite` | `success_flag_rewrite` | PASS |
+| `body-port-success-flag-rewrite` | `body_port_meaning_loss` | `removed_guard`, `success_flag_rewrite` | `removed_guard`, `success_flag_rewrite` | PASS |
 | `faithful-port-negative-control` | `body_port_meaning_loss` | — | — | PASS |
+| `fixed-faithful-port-negative-control` | `body_port_meaning_loss` | — | — | PASS |
+| `fixed-added-guard-variant-control` | `guard_folding` | `added_guard` | `added_guard` | PASS |
 | `meaningful-contract-negative-control` | `weak_spec` | — | — | PASS |
 
 The negative controls are part of the gate: a faithful port and a meaningful contract must produce no adversarial warning.

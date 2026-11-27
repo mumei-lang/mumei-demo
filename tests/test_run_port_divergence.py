@@ -61,7 +61,7 @@ def test_recorded_corpus_requests_every_reference_and_accepted_port(monkeypatch)
     by_id = {case["id"]: case for case in cases}
     accepted = {(run, record["id"]): record["buggy"]["body"]
                 for run, records in enumerate(doc["runs"], 1) for record in records
-                if record["buggy"]["outcome"] == "proven"}
+                if pd.raw_verifier_outcome(record["buggy"]) == "proven"}
     assert len(accepted) == 26
     reference = {}
     candidates = []

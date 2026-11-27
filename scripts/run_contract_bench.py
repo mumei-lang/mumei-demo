@@ -18,13 +18,15 @@ Arms:
              answers whether the function meets it (no Mumei).
   mumei-llm  the model gets the same input plus the prelude and writes only
              the atom body. The body is assembled under the pinned header and
-             verified; a body that declares an atom is rejected.
+             verified; a body that declares an atom is rejected, and a proven
+             body must also pass the variant-aware fidelity acceptance gate.
   llm-contract
              the model writes the contract instead: it gets the requirement,
              the modelling notes, the prelude and the atom signature, but no
              code and not the reference requires/ensures. Its one contract is
              put on both reference bodies, which mumei verifies, with the
-             same vacuity control as the mumei arm. This measures the step
+             same vacuity control as the mumei arm. Weak or vacuous generated
+             contracts cannot support proof acceptance. This measures the step
              the mumei arm skips: turning a requirement into a contract
              without knowing the defect.
 
@@ -59,6 +61,9 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import port_fidelity as fidelity  # noqa: E402
+from port_fidelity import assemble, header_ensures, split_port  # noqa: E402
+from mumei_verify import REFUTATION, classify, verify_text  # noqa: E402
 import run_llm_only as llm_only  # noqa: E402
 from run_specimen_audits import TARGET_CATEGORIES  # noqa: E402
 
@@ -76,9 +81,6 @@ PROMPT_VERSION = 2
 ARMS = ("mumei", "llm", "mumei-llm", "llm-contract")
 RATE_LIMIT_RETRIES = 8
 TRANSPORT_ERROR = "LLM request failed"
-REFUTATION = re.compile(r"^Verification Error: (Postcondition|Call to \S+: precondition|Potential |"
-                        r"(Loop )?[Ii]nvariant|[Tt]ermination|[Dd]ecreases)")
-
 FUNC_PATTERNS = {
     "go": r"^func\s+(\([^)]*\)\s*)?{n}\s*\(",
     "rust": r"^\s*(pub(\([^)]*\))?\s+)?fn\s+{n}\s*[<(]",
@@ -128,22 +130,6 @@ def prompt_hash(arm: str | None = None) -> str:
                                  sort_keys=True))[:16]
     templates = [inspect.getsource(f) for f in (llm_prompt, port_prompt, assemble)]
     return sha256(json.dumps([PROMPT_VERSION, LLM_SYSTEM, PORT_SYSTEM, templates], sort_keys=True))[:16]
-
-
-def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
-    """(prelude, header, body) of a port whose last atom is `atom`; header ends before `body:`."""
-    m = re.search(rf"^(?:trusted\s+)?atom\s+{re.escape(atom)}\s*\(", text, re.M)
-    if not m:
-        return None
-    b = text.find("body:", m.start())
-    if b < 0:
-        return None
-    return text[:m.start()], text[m.start():b], text[b:]
-
-
-def header_ensures(header: str) -> str | None:
-    m = re.search(r"^\s*ensures:\s*(.*);\s*$", header, re.M)
-    return m.group(1) if m else None
 
 
 def defects_by_id(lang: str, specimen: str) -> dict[str, dict]:
@@ -279,60 +265,171 @@ def failure_kind(result: dict) -> str | None:
     return "inconclusive"
 
 
-def classify(doc: dict | None, returncode: int) -> dict:
-    """proven / refuted / inconclusive from `mumei verify --json` output."""
-    if doc is None:
-        return {"outcome": "inconclusive", "status": f"no-json (exit {returncode})",
-                "failure_kind": "environment_failure", "diagnostics": []}
-    status = str(doc.get("status", ""))
-    diags = [{"atom": d.get("atom", ""), "code": d.get("code", ""),
-              "message": str(d.get("message", ""))[:300]}
-             for d in doc.get("diagnostics", []) if d.get("severity", "error") == "error"]
-    if status == "success" and returncode == 0:
-        outcome = "proven"
-    elif status == "failed" and int(doc.get("unverifiable", 0) or 0) == 0 and int(doc.get("infra_errors", 0) or 0) == 0:
-        # Only a verification failure refutes; an unknown function or a type error says nothing about the code.
-        outcome = "refuted" if diags and all(REFUTATION.search(d["message"]) for d in diags) else "inconclusive"
-    else:
-        outcome = "inconclusive"
-    out = {"outcome": outcome, "status": status, "diagnostics": diags}
-    if outcome == "inconclusive":
-        if int(doc.get("infra_errors", 0) or 0):
-            kind = "environment_failure"
-        elif int(doc.get("unverifiable", 0) or 0) or status == "input_error" or any(
-                d.get("code") == "input_error" or "Unknown function" in d.get("message", "") for d in diags):
-            kind = "unsupported"
-        else:
-            kind = "inconclusive"
-        out["failure_kind"] = kind
-    return out
+def fidelity_replay_verdict(mumei_bin: str, case: dict, port: str, values: dict, timeout: int) -> dict:
+    try:
+        return fidelity.port_verdict(mumei_bin, port, case["atom"], values, timeout)
+    except ValueError as error:
+        return {"verdict": "inconclusive", "status": "bad input", "diagnostics": [str(error)],
+                "verification_attempted": False}
 
 
-def verify_text(mumei_bin: str, text: str, timeout: int) -> dict:
-    started = time.monotonic()
-    with tempfile.TemporaryDirectory(prefix="contract-bench-") as tmp:
-        path = Path(tmp) / "case.mm"
-        path.write_text(text)
-        try:
-            proc = subprocess.run([mumei_bin, "verify", "--json", path.name], cwd=tmp,
-                                  capture_output=True, text=True, timeout=timeout)
-        except subprocess.TimeoutExpired:
-            return {"outcome": "inconclusive", "status": "timeout",
-                    "failure_kind": "budget_exhausted", "diagnostics": [],
-                    "seconds": round(time.monotonic() - started, 3),
-                    "budget_seconds": timeout}
-        except OSError as error:
-            return {"outcome": "inconclusive", "status": f"verifier startup failed ({type(error).__name__})",
-                    "failure_kind": "environment_failure", "diagnostics": [],
-                    "seconds": round(time.monotonic() - started, 3),
-                    "budget_seconds": timeout}
-        try:
-            doc = json.loads(proc.stdout[proc.stdout.index("{"):]) if "{" in proc.stdout else None
-        except json.JSONDecodeError:
-            doc = None
-        return {**classify(doc, proc.returncode),
-                "seconds": round(time.monotonic() - started, 3),
-                "budget_seconds": timeout}
+def replay_verification_measurement(verdicts: list[dict]) -> dict:
+    """Aggregate verifier-call measurement for semantic replay verdicts."""
+    seconds, budget, timed, budgeted, expected = 0.0, 0.0, 0, 0, 0
+    for verdict in verdicts:
+        attempted = verdict.get("verification_attempted")
+        if attempted is False or verdict.get("status") in {"bad input", "missing or invalid body"}:
+            continue
+        expected += 1
+        if numeric_measurement(verdict.get("seconds")):
+            timed += 1
+            seconds += verdict["seconds"]
+        if numeric_measurement(verdict.get("budget_seconds")):
+            budgeted += 1
+            budget += verdict["budget_seconds"]
+    return {"seconds": round(seconds, 1), "timed_calls": timed, "expected_calls": expected,
+            "budget_seconds": round(budget, 1), "budgeted_calls": budgeted}
+
+
+def replay_unresolved_counts(verdicts: list[dict]) -> dict:
+    """Unresolved semantic-replay verdicts by the shared failure-kind vocabulary."""
+    counts = Counter()
+    for verdict in verdicts:
+        if verdict.get("verdict") != "inconclusive":
+            continue
+        kind = verdict.get("failure_kind")
+        if kind not in FAILURE_KINDS:
+            kind = "unsupported" if verdict.get("status") == "bad input" else "inconclusive"
+        counts[kind] += 1
+    return {kind: counts[kind] for kind in FAILURE_KINDS}
+
+
+def semantic_port_replay(case: dict, body: str, mumei_bin: str, timeout: int,
+                         variant: str = "buggy") -> dict:
+    """Replay reference inputs on a proven candidate port of one source variant.
+
+    This is semantic fidelity evidence, not a verdict change. For a buggy
+    candidate, ``diverged`` means the pinned buggy reference breaks where the
+    candidate holds; for a fixed candidate, it means the candidate breaks where
+    the fixed reference holds. Missing fixtures or verifier-unresolved rows are
+    explicit non-evidence.
+    """
+    try:
+        inputs, _ = fidelity.replay_inputs(case)
+    except (OSError, ValueError, KeyError) as error:
+        return {"outcome": "unavailable", "inputs": [], "error": type(error).__name__}
+    try:
+        port = assemble(case, body)
+    except (KeyError, ValueError) as error:
+        return {"outcome": "unavailable", "inputs": [], "error": str(error)}
+    rows = []
+    for witness in inputs:
+        if not isinstance(witness.get("values"), dict):
+            return {"outcome": "unavailable", "inputs": [], "error": "missing witness values"}
+        reference = fidelity_replay_verdict(mumei_bin, case, case["ports"][variant], witness["values"], timeout)
+        candidate = fidelity_replay_verdict(mumei_bin, case, port, witness["values"], timeout)
+        rows.append({"name": witness.get("name", "input"),
+                     "reference": reference["verdict"], "candidate": candidate["verdict"],
+                     "input": {**witness, "reference": reference, "llm": candidate}})
+    verdicts = [part for row in rows for part in (row["input"]["reference"], row["input"]["llm"])]
+    outcome = fidelity.outcome if variant == "buggy" else fidelity.fixed_variant_outcome
+    return {"outcome": outcome([row["input"] for row in rows]),
+            "inputs": [{"name": row["name"], "source": row["input"].get("source"),
+                        "values": row["input"].get("values"),
+                        "reference": row["reference"], "candidate": row["candidate"]} for row in rows],
+            "unresolved": replay_unresolved_counts(verdicts),
+            "verification": replay_verification_measurement(verdicts)}
+
+
+def fidelity_gate_reasons(gate: dict) -> list[str]:
+    """Human-readable reasons a fidelity gate blocks acceptance."""
+    reasons = []
+    blocking = fidelity.blocking_lint_findings(gate.get("lint_findings") or [])
+    if blocking:
+        reasons.append("lint:" + ",".join(sorted({finding["kind"] for finding in blocking})))
+    if gate.get("source") == "generated_contract":
+        if gate.get("vacuity") == "vacuous":
+            reasons.append("vacuity:vacuous")
+        return reasons
+    semantic = gate.get("semantic_replay", {})
+    outcome = semantic.get("outcome")
+    confirming = "still_refutes" if gate.get("variant", "buggy") == "buggy" else "still_holds"
+    if outcome == "diverged":
+        reasons.append("replay:diverged")
+    elif outcome != confirming:
+        reasons.append(f"replay:no-confirming-evidence:{outcome}")
+    return reasons
+
+
+def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str, timeout: int,
+                             variant: str = "buggy") -> dict:
+    """Attach fidelity acceptance evidence to a raw verifier result.
+
+    The recorded benchmark outcome remains the raw verifier outcome. Consumers
+    that need product-level verification acceptance use ``project_fidelity_result``;
+    neither lint nor replay is represented as a formal proof verdict.
+    """
+    if result.get("outcome") != "proven":
+        return result
+    linted = fidelity.lint_findings(case, body, variant) if fidelity.usable_body(body) else [
+        {"kind": "invalid_body", "message": "candidate body cannot be pinned safely"}
+    ]
+    semantic = semantic_port_replay(case, body, mumei_bin, timeout, variant)
+    confirming = "still_refutes" if variant == "buggy" else "still_holds"
+    blocking = fidelity.blocking_lint_findings(linted)
+    blocked = bool(blocking) or semantic["outcome"] != confirming
+    gate = {"schema": "mumei-demo.port-fidelity-gate/v2", "variant": variant,
+            "decision": "blocked" if blocked else "accepted",
+            "lint_findings": linted, "blocking_lint_findings": blocking,
+            "semantic_replay": semantic}
+    return {**result, "fidelity_gate": gate}
+
+
+def fidelity_projection_failure_kind(gate: dict) -> str:
+    """Failure subtype for a blocked fidelity acceptance projection.
+
+    High-confidence lint or semantic divergence means the candidate is unsupported
+    as fidelity evidence. Missing confirming replay without such evidence remains
+    inconclusive, while verifier transport/budget/input subtypes stay explicit.
+    """
+    if gate.get("source") == "generated_contract" and (gate.get("lint_findings") or gate.get("vacuity") == "vacuous"):
+        return "unsupported"
+    blocking = gate.get("blocking_lint_findings")
+    if blocking is None:
+        blocking = fidelity.blocking_lint_findings(gate.get("lint_findings") or [])
+    semantic = gate.get("semantic_replay", {})
+    if blocking or semantic.get("outcome") == "diverged":
+        return "unsupported"
+    unresolved = semantic.get("unresolved") or {}
+    for kind in ("environment_failure", "budget_exhausted", "unsupported"):
+        if unresolved.get(kind):
+            return kind
+    return "inconclusive"
+
+
+def project_fidelity_result(result: dict) -> dict:
+    """Project a raw verifier result through its fidelity acceptance gate.
+
+    This copy is report/scoring state only: the committed result keeps the raw
+    verifier outcome in ``outcome``. A blocked raw proof becomes unsupported/
+    inconclusive evidence, never a formal refutation.
+    """
+    gate = result.get("fidelity_gate") or {}
+    if result.get("outcome") != "proven" or gate.get("decision") != "blocked":
+        return result
+    reasons = fidelity_gate_reasons(gate)
+    return {**result,
+            "verifier_outcome": result["outcome"],
+            "verifier_status": result.get("status", ""),
+            "outcome": "inconclusive",
+            "status": "fidelity-gate (" + "; ".join(reasons) + ")",
+            "failure_kind": fidelity_projection_failure_kind(gate)}
+
+
+def project_fidelity_record(record: dict) -> dict:
+    """Project both variant results in one benchmark record through fidelity gates."""
+    return {**record, **{variant: project_fidelity_result(record[variant])
+                         for variant in VARIANTS if isinstance(record.get(variant), dict)}}
 
 
 def vacuity_text(case: dict, header: str | None = None) -> str:
@@ -629,7 +726,7 @@ def run_contract_case(case: dict, provider, seed: int, mumei_bin: str, timeout: 
     for v in VARIANTS:
         out[v] = verify_text(mumei_bin, case["prelude"] + header + split_port(case["ports"][v], case["atom"])[2], timeout)
     out["vacuity"], out["vacuity_control"] = vacuity_result(case, out, mumei_bin, timeout, header)
-    return out
+    return apply_contract_fidelity_gate(out)
 
 
 def parse_json_reply(text: str) -> dict | None:
@@ -641,10 +738,6 @@ def parse_json_reply(text: str) -> dict | None:
     except json.JSONDecodeError:
         return None
     return doc if isinstance(doc, dict) else None
-
-
-def assemble(case: dict, body: str) -> str:
-    return case["prelude"] + case["header"] + "body: {\n" + body.rstrip() + "\n    }\n"
 
 
 def run_llm_case(case: dict, provider, arm: str, seed: int, mumei_bin: str | None, timeout: int) -> dict:
@@ -669,6 +762,8 @@ def run_llm_case(case: dict, provider, arm: str, seed: int, mumei_bin: str | Non
             result = verify_text(mumei_bin, assemble(case, body), timeout)
             if verifier_startup_failure(result):
                 raise RuntimeError("verifier startup failed; benchmark results and certificates were not updated")
+            if arm == "mumei-llm":
+                result = apply_port_fidelity_gate(case, body, result, mumei_bin, timeout, v)
             out[v] = {**result, "body": body, "usage": usage}
     if arm == "mumei-llm":
         fail_on_verifier_startup([out[v] for v in VARIANTS])
@@ -684,10 +779,11 @@ def run_llm_case(case: dict, provider, arm: str, seed: int, mumei_bin: str | Non
 
 
 def score(records: list[dict]) -> dict:
+    records = [project_fidelity_record(r) for r in records]
     s = {"cases": len(records), "buggy_refuted": 0, "fixed_proven": 0, "both": 0,
          "wrong_accept": 0, "wrong_reject": 0, "false_acceptance": 0, "false_positive": 0,
          "unsupported": 0, "inconclusive": 0, "environment_failure": 0,
-         "budget_exhausted": 0, "errors": 0, "vacuous": 0}
+         "budget_exhausted": 0, "errors": 0, "vacuous": 0, "fidelity_blocked": 0}
     for r in records:
         b, f = r["buggy"]["outcome"], r["fixed"]["outcome"]
         s["buggy_refuted"] += b == "refuted"
@@ -704,6 +800,9 @@ def score(records: list[dict]) -> dict:
                 if kind == "environment_failure":
                     s["errors"] += 1
         s["vacuous"] += r.get("vacuity") == "vacuous"
+        s["fidelity_blocked"] += sum(
+            r[v].get("fidelity_gate", {}).get("decision") == "blocked" for v in VARIANTS
+        )
     return s
 
 
@@ -743,6 +842,13 @@ def usage_total(records: list[dict]) -> dict:
             if numeric_measurement(result.get("budget_seconds")):
                 verification_budgeted += 1
                 verification_budget += result["budget_seconds"]
+        for v in VARIANTS:
+            measurement = (r[v].get("fidelity_gate", {}).get("semantic_replay", {}) or {}).get("verification") or {}
+            verification_expected += measurement.get("expected_calls", 0)
+            verification_timed += measurement.get("timed_calls", 0)
+            verification_seconds += measurement.get("seconds", 0.0)
+            verification_budgeted += measurement.get("budgeted_calls", 0)
+            verification_budget += measurement.get("budget_seconds", 0.0)
         for u in [r[v].get("usage") for v in VARIANTS] + [r.get("usage")]:
             if not u:
                 continue
@@ -805,6 +911,11 @@ def arm_rows(results: list[dict]) -> list[dict]:
             vals = [s[k] for s in scores]
             row[k] = median(vals)
             row[k + "_range"] = (min(vals), max(vals))
+        for variant in VARIANTS:
+            key = f"raw_{variant}_proven"
+            vals = [sum(1 for r in run if r[variant].get("outcome") == "proven") for run in doc["runs"]]
+            row[key] = median(vals)
+            row[key + "_range"] = (min(vals), max(vals))
         row["usage"] = usage_total([r for run in doc["runs"] for r in run])
         row["by_language"] = {}
         for lang in LANGUAGES:
@@ -866,17 +977,46 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
            f"Each of the {rows[0]['cases'] if rows else 0} specimen defects in a category Mumei targets has a requirement and one contract "
            "(requires/ensures) that the buggy and the fixed function are both checked against. "
            "The right answer is: buggy version refuted, fixed version proven. "
-           "Values are medians over runs, with the range in brackets.", "",
+           "Values are medians over runs, with the range in brackets. Arm tables score the fidelity-acceptance "
+           "projection; committed result JSON keeps raw verifier outcomes separately.", "",
            render_table(rows), "",
            "Outcome taxonomy: false acceptance is a buggy body proven; false positive is a fixed body refuted; "
            "unsupported means the input, generated port/contract or verifier capability cannot represent the case; "
            "inconclusive means no evidence either way; environment failure means tool/transport failure; budget "
            "exhausted means the declared timeout was consumed. These categories are mutually exclusive per-variant "
            "outcomes, not proof grades; one shared LLM request failure can therefore produce two environment-failure "
-           "outcomes.", "",
-           render_measurement_table(rows), "",
+           "outcomes.", ""]
+    gated = [r for r in rows if r.get("fidelity_blocked")]
+    if gated:
+        out += ["Fidelity acceptance gate: " + "; ".join(
+            f"{ARM_LABEL.get(r['arm'], r['arm'])} blocks {fmt(r, 'fidelity_blocked')} candidate variant(s) per run"
+            for r in gated) + ". The committed rows keep the raw verifier proof outcome; only the report projection "
+            "counts a blocked candidate as unsupported/inconclusive evidence rather than verification acceptance. "
+            "Lint is variant-aware and only high-confidence kinds block by themselves: silent repair, missing modeled "
+            "operations, guard folding, self-calls and success-flag rewrites. Added or removed guard-count warnings "
+            "stay visible but do not block alone. Reference replay is the semantic check: a buggy candidate must "
+            "still refute every supplied input beside the buggy reference, a fixed candidate must still hold every "
+            "supplied input beside the fixed reference, and weak/vacuous generated contracts cannot support proof acceptance. "
+            + " ".join(
+                f"For {ARM_LABEL.get(r['arm'], r['arm'])}, raw verifier proofs before projection were buggy "
+                f"{fmt(r, 'raw_buggy_proven')} and fixed {fmt(r, 'raw_fixed_proven')} per run, while projected acceptance leaves "
+                f"fixed proven at {fmt(r, 'fixed_proven')} and unresolved/unsupported at {fmt(r, 'unsupported')}"
+                for r in gated) + ".", ""]
+        provenance = []
+        for doc in results:
+            meta = doc.get("fidelity_rescore")
+            if not meta:
+                continue
+            verifier = meta.get("replay_verifier") or {}
+            version = verifier.get("version") or "unknown verifier"
+            commit = verifier.get("commit")
+            identity = f"`{version}`" + (f" (`{commit[:7]}`)" if commit else " (commit unavailable)")
+            provenance.append(f"{ARM_LABEL.get(doc['arm'], doc['arm'])} replayed at {meta.get('rescored_at')} with {identity}")
+        if provenance:
+            out += ["Fidelity rescore evidence: " + "; ".join(provenance) + ".", ""]
+    out += [render_measurement_table(rows), "",
            "Verification time and budget are wall seconds and the declared per-attempt timeout aggregated over "
-           "recorded outcome-determining verifier calls, including vacuity controls and the per-call input/output "
+           "recorded outcome-determining verifier calls, including vacuity controls, fidelity replay calls and the per-call input/output "
            "glue inside `verify_text`. Certificate emission/rechecks, case-level orchestration and provider calls "
            "are outside that measurement. Older committed rows show the measured fraction of "
            "expected verifier calls, so partial `--only` refreshes cannot look fully instrumented. Model time/cost "
@@ -927,8 +1067,8 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
         if d["arm"] == "llm-contract":
             passes = [f"{sum(r.get('vacuity') == 'ok' for r in run)} / {len(run)}" for run in d["runs"]]
             out += [f"Vacuity control for {ARM_LABEL['llm-contract']} ({d['model']}), per run: {', '.join(passes)} pass. "
-                    "A contract that fails it is still scored: whether it is vacuous or only too weak, accepting "
-                    "the buggy body is a contract-writing error.", ""]
+                    "A raw verifier proof under a weak or vacuous contract still indicates a contract-writing error, "
+                    "but the fidelity gate keeps it out of benchmark acceptance as unsupported/inconclusive evidence.", ""]
     wrong = []
     for d in results:
         if d["arm"] == "mumei":
@@ -1012,8 +1152,14 @@ def render_readme_block(rows: list[dict]) -> str:
     lines = [README_START, ""]
     if evidence:
         lines += [f"Evidence snapshot: {evidence}.", ""]
-    lines += [render_readme_table(rows), "",
-              "The reference row uses hand-written ports, so it is a contract-expression check rather than a detection result. "
+    lines += [render_readme_table(rows), ""]
+    gated = [r for r in rows if r.get("fidelity_blocked")]
+    if gated:
+        lines += ["Fidelity gate note: " + "; ".join(
+            f"{ARM_LABEL.get(r['arm'], r['arm'])} excludes {fmt(r, 'fidelity_blocked')} raw verifier proof(s) per run "
+            "from acceptance" for r in gated) + ". False acceptance and fixed-proven are post-gate projections; "
+            "raw verifier outcomes, unresolved/unsupported rows and fixed-side impact are in [proofs/RESULTS.md](proofs/RESULTS.md).", ""]
+    lines += ["The reference row uses hand-written ports, so it is a contract-expression check rather than a detection result. "
               "Full outcome taxonomy, per-language results and caveats: [proofs/RESULTS.md](proofs/RESULTS.md).", "", README_END]
     return "\n".join(lines)
 
@@ -1164,6 +1310,144 @@ def write_result(arm: str, model: str | None, runs: list[list[dict]], mumei_bin:
     return path
 
 
+def apply_contract_fidelity_gate(out: dict) -> dict:
+    """Keep proofs under weak or vacuous generated contracts out of acceptance.
+
+    The raw verifier outcomes remain on each variant as ``verifier_outcome``.
+    This does not call a lint warning or a vacuity control a formal refutation;
+    it marks the affected benchmark evidence unsupported/inconclusive instead.
+    """
+    contract = out.get("contract")
+    if not contract:
+        return out
+    linted = fidelity.lint_contract(contract["requires"], contract["ensures"])
+    out["contract_lint_findings"] = linted
+    reasons = []
+    if linted:
+        reasons.append("lint:" + ",".join(sorted({finding["kind"] for finding in linted})))
+    if out.get("vacuity") == "vacuous":
+        reasons.append("vacuity:vacuous")
+    if not reasons:
+        return out
+    for variant in VARIANTS:
+        result = out[variant]
+        if result.get("outcome") != "proven":
+            continue
+        gate = {"schema": "mumei-demo.contract-fidelity-gate/v1", "decision": "blocked",
+                "source": "generated_contract", "lint_findings": linted, "vacuity": out.get("vacuity")}
+        result["fidelity_gate"] = gate
+    return out
+
+
+def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> dict:
+    """Apply the fidelity acceptance gate to committed mumei-llm records.
+
+    This annotation uses the recorded model body and preserves the raw
+    verifier outcome in each blocked row; it does not call an LLM or rewrite a
+    formal proof verdict. The replay verifier identity is recorded separately
+    because it is diagnostic fidelity evidence, not the original bench verdict.
+    """
+    by_id = {case["id"]: case for case in cases}
+    updated = []
+    blocked = 0
+    gated = 0
+    for path in sorted(RESULTS_DIR.glob("mumei-llm-*.json")):
+        doc = json.loads(path.read_text())
+        changed = False
+        for run in doc.get("runs", []):
+            for record in run:
+                case = by_id.get(record.get("id"))
+                if case is None:
+                    continue
+                for variant in VARIANTS:
+                    result = record.get(variant)
+                    if not isinstance(result, dict) or result.get("outcome") != "proven" or "fidelity_gate" in result:
+                        continue
+                    body = result.get("body")
+                    if not isinstance(body, str):
+                        continue
+                    new_result = apply_port_fidelity_gate(case, body, result, mumei_bin, timeout, variant)
+                    if new_result is not result:
+                        record[variant] = new_result
+                        changed = True
+                        gated += 1
+                        blocked += new_result.get("fidelity_gate", {}).get("decision") == "blocked"
+        if changed:
+            doc["fidelity_rescore"] = {
+                "schema": "mumei-demo.port-fidelity-gate/v2",
+                "rescored_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
+                "replay_verifier": verifier_identity(mumei_bin),
+            }
+            path.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
+            updated.append(path.relative_to(REPO_ROOT).as_posix())
+    return {"updated": updated, "gated": gated, "blocked": blocked}
+
+
+def fidelity_problems(results: list[dict]) -> list[str]:
+    """Offline validation that raw verifier proofs are not promoted past fidelity gates."""
+    problems = []
+
+    def raw_outcome(result: dict) -> str | None:
+        return result.get("verifier_outcome", result.get("outcome"))
+
+    for doc in results:
+        label = f"{doc['arm']} ({doc.get('model')})"
+        for run_index, run in enumerate(doc.get("runs", []), 1):
+            if doc["arm"] == "mumei-llm":
+                false_acceptance = score(run)["false_acceptance"]
+                if false_acceptance > 2:
+                    problems.append(f"{label} run {run_index}: false acceptance {false_acceptance} exceeds budget 2")
+                for record in run:
+                    for variant in VARIANTS:
+                        result = record.get(variant, {})
+                        if raw_outcome(result) != "proven":
+                            continue
+                        gate = result.get("fidelity_gate")
+                        prefix = f"{label} run {run_index}: {record.get('id')} {variant} raw verifier proof"
+                        if not gate:
+                            problems.append(f"{prefix} has no fidelity gate")
+                            continue
+                        if gate.get("variant") != variant:
+                            problems.append(f"{prefix} has a gate for the wrong variant")
+                        if gate.get("decision") == "blocked":
+                            projected = project_fidelity_result(result)
+                            if (projected.get("outcome") != "inconclusive"
+                                    or projected.get("failure_kind") != fidelity_projection_failure_kind(gate)):
+                                problems.append(f"{prefix} is blocked without the explicit unsupported/inconclusive projection")
+                        if gate.get("decision") == "accepted":
+                            semantic = gate.get("semantic_replay", {})
+                            confirming = "still_refutes" if variant == "buggy" else "still_holds"
+                            blocking = gate.get("blocking_lint_findings")
+                            if blocking is None:
+                                blocking = fidelity.blocking_lint_findings(gate.get("lint_findings") or [])
+                            if blocking or semantic.get("outcome") != confirming:
+                                problems.append(f"{prefix} is accepted without clean high-confidence lint and confirming replay")
+            if doc["arm"] == "llm-contract":
+                for record in run:
+                    contract = record.get("contract")
+                    if not contract:
+                        continue
+                    linted = fidelity.lint_contract(contract["requires"], contract["ensures"])
+                    weak_or_vacuous = bool(linted) or record.get("vacuity") == "vacuous"
+                    if not weak_or_vacuous:
+                        continue
+                    for variant in VARIANTS:
+                        result = record.get(variant, {})
+                        if raw_outcome(result) != "proven":
+                            continue
+                        gate = result.get("fidelity_gate", {})
+                        projected = project_fidelity_result(result)
+                        correctly_blocked = (gate.get("source") == "generated_contract" and gate.get("decision") == "blocked"
+                                             and projected.get("outcome") == "inconclusive"
+                                             and projected.get("failure_kind") == "unsupported")
+                        if not correctly_blocked:
+                            problems.append(
+                                f"{label} run {run_index}: {record.get('id')} {variant} proof under weak/vacuous contract "
+                                "is not fidelity-gated"
+                            )
+    return problems
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("--arm", action="append", choices=ARMS, help="arm to run (repeatable)")
@@ -1178,6 +1462,8 @@ def build_parser() -> argparse.ArgumentParser:
     mode = p.add_mutually_exclusive_group()
     mode.add_argument("--check", action="store_true", help="validate cases and committed results offline")
     mode.add_argument("--render-only", action="store_true", help="re-render RESULTS.md and the README block")
+    mode.add_argument("--fidelity-rescore", action="store_true",
+                      help="apply the port fidelity acceptance gate to committed mumei-llm results")
     return p
 
 
@@ -1186,7 +1472,7 @@ def main(argv: list[str], provider=None) -> int:
     cases, errors = load_cases()
     if args.check:
         results = load_results()
-        problems = errors + stale_records(cases, results) + certificate_problems(cases, results)
+        problems = errors + stale_records(cases, results) + certificate_problems(cases, results) + fidelity_problems(results)
         ref = next((d for d in results if d["arm"] == "mumei"), None)
         if ref is None:
             problems.append("no reference result (proofs/results/mumei.json); run --arm mumei")
@@ -1208,6 +1494,17 @@ def main(argv: list[str], provider=None) -> int:
         return 1
     if args.render_only:
         render_all(cases, write=True)
+        return 0
+    if args.fidelity_rescore:
+        if not args.mumei_bin:
+            raise SystemExit("mumei binary not found; pass --mumei-bin or set MUMEI_BIN")
+        stale = stale_records(cases, load_results())
+        if stale:
+            raise SystemExit("committed results are stale; refresh or restore them before fidelity rescoring: " + "; ".join(stale))
+        summary = rescore_port_fidelity(cases, args.mumei_bin, args.timeout)
+        render_all(cases, write=True)
+        print(f"fidelity gate: {summary['blocked']} blocked of {summary['gated']} newly gated raw proven ports "
+              f"across {len(summary['updated'])} result file(s)")
         return 0
     if args.only:
         cases = [c for c in cases if c["id"] in set(args.only)]

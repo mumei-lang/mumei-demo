@@ -356,16 +356,43 @@ def test_main_without_mumei_binary_fails(monkeypatch):
 
 
 def test_check_notices_edited_llm_results(committed, cases, monkeypatch, tmp_path):
-    for attr in ("LLM_RESULT", "PORT_RESULT"):
-        original = getattr(nr, attr)
-        edited = tmp_path / original.name
-        edited.write_text(original.read_text() + "\n")
-        monkeypatch.setattr(nr, attr, edited)
-        stored = copy.deepcopy(committed)
-        stored["input_hashes"] = {nr.rel(edited) if k == nr.rel(original) else k: v
-                                  for k, v in stored["input_hashes"].items()}
-        assert any(f"{nr.rel(edited)} changed" in p for p in nr.check(stored, cases))
-        monkeypatch.setattr(nr, attr, original)
+    original = nr.LLM_RESULT
+    edited = tmp_path / original.name
+    edited.write_text(original.read_text() + "\n")
+    monkeypatch.setattr(nr, "LLM_RESULT", edited)
+    stored = copy.deepcopy(committed)
+    stored["input_hashes"] = {nr.rel(edited) if k == nr.rel(original) else k: v
+                              for k, v in stored["input_hashes"].items()}
+    assert any(f"{nr.rel(edited)} changed" in p for p in nr.check(stored, cases))
+
+
+def test_check_notices_replayed_port_body_changes(committed, cases, monkeypatch, tmp_path):
+    original = nr.PORT_RESULT
+    doc = json.loads(original.read_text())
+    doc["runs"][0][0]["buggy"]["body"] = "changed"
+    edited = tmp_path / original.name
+    edited.write_text(json.dumps(doc))
+    monkeypatch.setattr(nr, "PORT_RESULT", edited)
+    stored = copy.deepcopy(committed)
+    stored["input_hashes"] = {nr.rel(edited) if k == nr.rel(original) else k: v
+                              for k, v in stored["input_hashes"].items()}
+    assert any(f"{nr.rel(edited)} changed" in p for p in nr.check(stored, cases))
+
+
+def test_port_replay_input_hash_ignores_fidelity_reclassification(tmp_path):
+    doc = {"arm": "mumei-llm", "runs": [[{"id": "X", "language": "go",
+                                          "buggy": {"outcome": "proven", "body": "a", "usage": {"cost_usd": 1}},
+                                          "fixed": {"outcome": "proven", "body": "b"}}]]}
+    path = tmp_path / "result.json"
+    path.write_text(json.dumps(doc))
+    before = nr.port_replay_input_hash(path)
+    doc["runs"][0][0]["buggy"].update({"outcome": "inconclusive", "verifier_outcome": "proven",
+                                       "fidelity_gate": {"decision": "blocked"}, "usage": None})
+    path.write_text(json.dumps(doc, indent=2) + "\n")
+    assert nr.port_replay_input_hash(path) == before
+    doc["runs"][0][0]["buggy"]["body"] = "changed"
+    path.write_text(json.dumps(doc))
+    assert nr.port_replay_input_hash(path) != before
 
 
 def git_specimen(tmp_path, monkeypatch):

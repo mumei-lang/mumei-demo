@@ -67,7 +67,7 @@ def test_adversarial_evaluator_marks_mismatched_findings_fail(monkeypatch: pytes
     doc = adversarial.load_corpus()
     case = next(case for case in doc["cases"] if case["id"] == "faithful-port-negative-control")
     monkeypatch.setattr(
-        pd,
+        adversarial.fidelity,
         "lint_findings",
         lambda *_args: [{"kind": "added_guard", "message": "possible added guard"}],
     )

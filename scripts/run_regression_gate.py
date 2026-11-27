@@ -53,12 +53,16 @@ GATE_LABEL = {"mumei": "mumei (hand-written ports)", "mumei-llm": "mumei + LLM p
 DECISION = {"refuted": "block", "proven": "pass"}
 
 
+def projected_result(record: dict, variant: str) -> dict:
+    return cb.project_fidelity_result(record[variant])
+
+
 def decision(record: dict, variant: str) -> str:
-    return DECISION.get(record[variant]["outcome"], "unresolved")
+    return DECISION.get(projected_result(record, variant)["outcome"], "unresolved")
 
 
 def unresolved_kind(record: dict, variant: str) -> str | None:
-    result = record[variant]
+    result = projected_result(record, variant)
     if result.get("outcome") != "inconclusive":
         return None
     return cb.failure_kind(result) or "inconclusive"
@@ -150,7 +154,9 @@ def render(results: list[dict], mutation: dict | None) -> str:
            "fixed function landed. A later change either turns the function back into the buggy version "
            "(a regression the gate should block) or keeps the fix (a change the gate should let through). "
            "An unresolved answer sends the change to a human. Values are medians over runs, with the range "
-           "in brackets; see [RESULTS.md](RESULTS.md) for the per-case answers.", "",
+           "in brackets; see [RESULTS.md](RESULTS.md) for the per-case answers. The mumei + LLM port row is "
+           "post-fidelity-gate: a raw verifier proof that fails port fidelity evidence is unresolved rather than "
+           "a passed regression.", "",
            "| Gate | Model | Runs | Regressions blocked | Regressions let through | Regressions unresolved "
            "| Good changes blocked | Good changes unresolved | Flaky cases | Model cost per gate pass |",
            "|---|---|---|---|---|---|---|---|---|---|"]

@@ -25,66 +25,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import run_contract_bench as rb  # noqa: E402
+from port_fidelity import atom_params, pin_requires, pinned_port  # noqa: E402
 
 PARAM_RE = re.compile(r"(\w+)\s*:\s*(\[i64\]|i64|bool)")
-
-
-def atom_params(header: str) -> list[tuple[str, str]]:
-    """(name, type) of the target atom's parameters."""
-    sig = header[header.index("(") + 1:header.index(")")]
-    return PARAM_RE.findall(sig)
-
-
-def mm_literal(value: object) -> str:
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, int):
-        return str(value) if value >= 0 else f"(0 - {-value})"
-    raise ValueError(f"unsupported input value {value!r}")
-
-
-def pin_requires(header: str, values: dict) -> str:
-    """The `requires` clause that fixes every parameter to `values`."""
-    clauses = []
-    for name, typ in atom_params(header):
-        if name not in values:
-            raise ValueError(f"input has no value for parameter {name!r}")
-        v = values[name]
-        if typ == "[i64]":
-            if not isinstance(v, list):
-                raise ValueError(f"{name} must be a list")
-            clauses.append(f"len({name}) == {len(v)}")
-            clauses += [f"{name}[{i}] == {mm_literal(x)}" for i, x in enumerate(v)]
-        elif typ == "bool":
-            if not isinstance(v, bool):
-                raise ValueError(f"{name} must be a bool")
-            clauses.append(name if v else f"!{name}")
-        else:
-            if isinstance(v, bool) or not isinstance(v, int):
-                raise ValueError(f"{name} must be an integer")
-            clauses.append(f"{name} == {mm_literal(v)}")
-    extra = set(values) - {n for n, _ in atom_params(header)}
-    if extra:
-        raise ValueError(f"input names unknown parameters: {sorted(extra)}")
-    return " && ".join(clauses) or "true"
-
-
-def pinned_port(port_text: str, atom: str, values: dict) -> str:
-    """The port with its target atom's `requires` narrowed to the pinned input.
-
-    The original precondition stays in place, so mumei reports an input outside it as a
-    requires contradiction instead of checking a state the contract excludes.
-    """
-    parts = rb.split_port(port_text, atom)
-    if parts is None:
-        raise ValueError(f"atom {atom!r} not found in port")
-    prelude, header, body = parts
-    pins = pin_requires(header, values)
-    pinned, found = re.subn(r"^(\s*requires:\s*)(.*?)\s*;\s*$",
-                            lambda m: f"{m.group(1)}({m.group(2)}) && {pins};", header, count=1, flags=re.M)
-    if not found:
-        raise ValueError(f"atom {atom!r} has no single-line requires")
-    return prelude + pinned + body
 
 
 REQUIRES_CONTRADICTION = re.compile(r"Spec contradiction in atom '[^']*': requires")
@@ -285,10 +228,37 @@ def specimen_hashes(cases: list[dict]) -> dict:
             for lang, spec in sorted({(c["language"], c["specimen"]) for c in cases})}
 
 
+def port_replay_input_hash(path: Path) -> str:
+    """Hash only the mumei-llm result fields native replay consumes.
+
+    Fidelity-gate outcome reclassification must not invalidate otherwise valid
+    native replay evidence: the replay uses each row's id/language/body, not the
+    benchmark acceptance outcome, lint findings, usage or verifier diagnostics.
+    """
+    doc = json.loads(path.read_text())
+    rows = []
+    for run in doc.get("runs", []):
+        rows.append([
+            {"id": record.get("id"), "language": record.get("language"),
+             "buggy": {"body": record.get("buggy", {}).get("body")},
+             "fixed": {"body": record.get("fixed", {}).get("body")}}
+            for record in run
+        ])
+    payload = json.dumps({"runs": rows}, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
 def input_hashes() -> dict:
-    """Hashes of the LLM results whose witnesses and ports are replayed."""
-    return {rel(p): hashlib.sha256(p.read_bytes()).hexdigest() if p.exists() else None
-            for p in (LLM_RESULT, PORT_RESULT)}
+    """Hashes of the LLM result inputs whose witnesses and ports are replayed."""
+    out = {}
+    for path in (LLM_RESULT, PORT_RESULT):
+        if not path.exists():
+            out[rel(path)] = None
+        elif path == PORT_RESULT:
+            out[rel(path)] = port_replay_input_hash(path)
+        else:
+            out[rel(path)] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return out
 
 
 def replay_inputs(case: dict) -> tuple[list[dict], str]:

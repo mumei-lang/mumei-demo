@@ -15,7 +15,7 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import run_port_divergence as port_divergence  # noqa: E402
+import port_fidelity as fidelity  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 CORPUS_PATH = REPO_ROOT / "proofs" / "adversarial" / "intent-fidelity-corpus.json"
@@ -31,8 +31,8 @@ FAILURE_MODES = (
 TOP_KEYS = {"schema", "purpose", "failure_modes", "cases"}
 CASE_KEYS = {
     "id", "kind", "failure_mode", "language", "category", "atom", "header",
-    "native_source", "reference_body", "fixed_reference_body", "candidate_body",
-    "requires", "ensures", "expected_findings", "rationale",
+    "native_source", "fixed_native_source", "reference_body", "fixed_reference_body",
+    "candidate_body", "variant", "requires", "ensures", "expected_findings", "rationale",
 }
 PORT_REQUIRED = {
     "id", "kind", "failure_mode", "language", "category", "atom", "header",
@@ -77,7 +77,9 @@ def validate_case(case: object, index: int, errors: list[str]) -> None:
             if (not isinstance(finding, dict) or set(finding) - {"kind", "operation"}
                     or not isinstance(finding.get("kind"), str) or not finding["kind"]):
                 _error(errors, case_id, f"expected_findings[{finding_index}] must contain a non-empty kind")
-    string_keys = (PORT_REQUIRED | CONTRACT_REQUIRED | {"fixed_reference_body"}) - {"expected_findings"}
+    if "variant" in case and case["variant"] not in {"buggy", "fixed"}:
+        _error(errors, case_id, "variant must be 'buggy' or 'fixed'")
+    string_keys = (PORT_REQUIRED | CONTRACT_REQUIRED | {"fixed_reference_body", "fixed_native_source"}) - {"expected_findings"}
     for key in string_keys:
         if key in case and not isinstance(case[key], str):
             _error(errors, case_id, f"{key} must be a string")
@@ -131,26 +133,27 @@ def _port_case(case: dict) -> dict:
         "prelude": "",
         "language": case["language"],
         "category": case["category"],
-        "functions": {"buggy": case["native_source"]},
+        "functions": {"buggy": case["native_source"], "fixed": case.get("fixed_native_source", case["native_source"])},
     }
     shell["ports"] = {
-        "buggy": port_divergence.bench.assemble(shell, case["reference_body"]),
-        "fixed": port_divergence.bench.assemble(shell, case.get("fixed_reference_body", case["reference_body"])),
+        "buggy": fidelity.assemble(shell, case["reference_body"]),
+        "fixed": fidelity.assemble(shell, case.get("fixed_reference_body", case["reference_body"])),
     }
     return shell
 
 
 def evaluate_case(case: dict) -> dict:
     if case["kind"] == "port":
-        actual = port_divergence.lint_findings(_port_case(case), case["candidate_body"])
+        actual = fidelity.lint_findings(_port_case(case), case["candidate_body"], case.get("variant", "buggy"))
     else:
-        actual = port_divergence.lint_contract(case["requires"], case["ensures"])
+        actual = fidelity.lint_contract(case["requires"], case["ensures"])
     expected_labels = sorted(finding_label(finding) for finding in case["expected_findings"])
     actual_labels = sorted(finding_label(finding) for finding in actual)
     return {
         "id": case["id"],
         "kind": case["kind"],
         "failure_mode": case["failure_mode"],
+        "variant": case.get("variant", "buggy"),
         "expected": expected_labels,
         "actual": actual_labels,
         "status": "pass" if actual_labels == expected_labels else "fail",

@@ -1,9 +1,6 @@
 # Contract bench: why buggy LLM ports passed verification
 
-The three recorded `openai/gpt-6-luna` runs accepted a buggy port **26 times (10, 8,
-and 8 per run), across 12 distinct cases**. On the concrete input in each case's
-`replay.json`, Mumei's Z3 verifier refuted the buggy reference port but accepted
-the corresponding recorded LLM port in all 26 case-runs.
+Before the fidelity acceptance gate, the three recorded `openai/gpt-6-luna` runs had raw verifier accepts of a buggy port **26 times (10, 8, and 8 per run), across 12 distinct cases**. On the concrete input in each case's `replay.json`, Mumei's Z3 verifier refuted the buggy reference port but accepted the corresponding recorded LLM port in all 26 case-runs. The committed rows still keep those raw verifier outcomes; the benchmark's fidelity projection excludes every one of the 26 candidates from verification acceptance and counts it as unsupported/inconclusive evidence instead.
 
 | Case | Runs | Primary mechanism in the recorded body |
 | --- | --- | --- |
@@ -36,7 +33,7 @@ Add `--json` to see witness values and provenance, the two replay verdicts and
 their diagnostics, and the lint findings. Add `--model` to select a single
 recorded model. No provider credentials, native specimen execution, or benchmark
 regeneration are needed. The command uses the verifier you supply; it does not
-assert that your binary is the one that produced the recorded bench scores.
+assert that your binary is the one that produced the recorded bench scores. To annotate already committed benchmark rows without calling a model, use `python3 scripts/run_contract_bench.py --fidelity-rescore --mumei-bin <path>`; the command is idempotent, preserves raw outcomes, and records the replay verifier identity separately from the original bench verifier.
 
 The detector preserves the pinned signature, prelude, and contract and adds
 the same concrete input constraints to both ports' `requires`. It records
@@ -45,7 +42,7 @@ port, `still_refutes` if both refute every supplied input, and `inconclusive`
 otherwise. Missing or failed verification is not evidence of divergence. The
 inputs include both solver counterexamples and hand-picked counterexamples
 rechecked by the verifier; this is not an equivalence proof or a search for
-counterexamples outside the fixture. The diagnostic does not change bench scores.
+counterexamples outside the fixture. `run_contract_bench.py` uses the same lint and replay evidence as a fidelity acceptance gate for newly verified LLM ports. The lint is variant-aware and only high-confidence kinds block by themselves: silent repair, missing modeled operations, guard folding, self-calls and success-flag rewrites. Added or removed guard-count warnings remain visible but do not block alone, because legitimate fixed-side translations can differ in guard shape. Replay divergence is semantic evidence, and neither lint nor replay is represented as a formal `refuted` verdict. A buggy candidate needs a `still_refutes` replay; a fixed candidate needs a `still_holds` replay. Divergence, unavailable replay and inconclusive replay all leave the candidate unresolved in the projection. A blocked candidate keeps its raw verifier outcome in the committed JSON but is counted as unsupported/inconclusive evidence rather than verification acceptance. The same harness also keeps proofs under weak or vacuous LLM-generated contracts out of acceptance while preserving their raw verifier outcomes.
 
 The JSON report also keeps unresolved verifier outcomes and measurement separate:
 unsupported input/generated output or capability, residual inconclusive outcome,
@@ -57,7 +54,9 @@ expected verifier-call measurement slots. Verifier wall time and declared timeou
 budget exclude report rendering and replay orchestration.
 
 Risky-op lint looks for index/slice, division/modulo, dereference and narrow-cast
-patterns represented in both the source function and its buggy reference port.
+patterns represented in both the source function and the reference port for the
+same variant. In this buggy-side report that is the buggy source/reference pair; a
+fixed candidate is instead compared with the fixed source/reference pair.
 It warns if no operation of that kind remains in the LLM body, and separately
 notes extra conditionals relative to the reference, new ways for an `ok` flag to
 be false compared with the reference flag expressions and their branch conditions,
