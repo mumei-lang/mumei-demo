@@ -14,7 +14,7 @@ ORIGINAL_MIGRATION_EXECUTION_SUPPORTED = pack.migration_execution_supported
 
 
 @pytest.fixture(autouse=True)
-def migration_execution_unsupported(monkeypatch: pytest.MonkeyPatch):
+def migration_execution_unsupported(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(pack, "migration_execution_supported", lambda **_kwargs: False)
 
 
@@ -532,7 +532,7 @@ def valid_execution() -> dict:
     return {
         "schema": pack.MIGRATION_EXECUTION_SCHEMA,
         "generated_at": "now",
-        "source": {"path": "fixture/ledger.py", "language": "python", "kind": "file", "sha256": "abc"},
+        "source": {"path": "fixture/ledger.py", "language": "python", "kind": "file", "sha256": "0" * 64},
         "audit": {},
         "selection": {"basis": "all audit migration_hints candidates", "requested_functions": [], "missing_requested_functions": []},
         "candidates": [{
@@ -542,9 +542,19 @@ def valid_execution() -> dict:
             "evidence_blockers": [], "operational_errors": [], "review_required": True,
             "execution_state": "ready_for_human_review",
         }],
-        "operational_errors": [], "artifact_paths": {"migration_execution": "migration_execution.json", "generated_artifacts": "migration_execution.migration-execution"},
+        "operational_errors": [],
+        "artifact_paths": {
+            "migration_execution": "migration_execution.json",
+            "generated_artifacts": "migration_execution.migration-execution",
+        },
         "evidence_boundary": ["A verified generated .mm skeleton proves only the skeleton contract as written; it is not proof that host-language code implements the same behavior."],
-        "summary": {"candidate_count": 1, "ready_for_human_review": 1, "blocked": 0, "operational_error": 0, "review_required": True},
+        "summary": {
+            "candidate_count": 1,
+            "ready_for_human_review": 1,
+            "blocked": 0,
+            "operational_error": 0,
+            "review_required": True,
+        },
     }
 
 
