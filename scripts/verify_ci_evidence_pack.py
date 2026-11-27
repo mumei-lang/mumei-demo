@@ -385,6 +385,8 @@ def verify_evidence_pack(
     mumei_bin: Path | None = None,
     reference_contract: Path | None = None,
 ) -> dict[str, Any]:
+    if pack_dir.is_symlink():
+        raise EvidencePackVerificationError("evidence pack root must not be a symlink")
     root = pack_dir.resolve()
     try:
         actual_files = _scan_regular_files(root)

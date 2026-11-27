@@ -563,3 +563,12 @@ def test_upstream_output_path_must_bind_to_canonical_migration_report(tmp_path: 
 
     with pytest.raises(verifier.EvidencePackVerificationError, match="output path is not bound"):
         verifier.verify_evidence_pack(root)
+
+
+def test_pack_root_symlink_is_operational_failure(tmp_path: Path) -> None:
+    root = write_valid_pack(tmp_path / "pack")
+    link = tmp_path / "pack-link"
+    link.symlink_to(root, target_is_directory=True)
+
+    with pytest.raises(verifier.EvidencePackVerificationError, match="root must not be a symlink"):
+        verifier.verify_evidence_pack(link)
