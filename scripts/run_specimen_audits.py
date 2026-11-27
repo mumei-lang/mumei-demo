@@ -1009,6 +1009,7 @@ def corpus_info(root: Path) -> dict:
 
 
 ADJUDICATIONS_FILE = "adjudications.json"
+AUDIT_COMMAND = "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never"
 
 
 def load_adjudications(root: Path) -> list[dict]:
@@ -1107,6 +1108,18 @@ def latest_by_mode(runs: list[dict]) -> dict[bool, dict | None]:
 
 
 RUN_STATS = ("audit_seconds", "llm_cost_usd")
+
+
+def prior_run_stats(runs: list[dict], llm: bool) -> dict:
+    """Latest persisted audit cost/time for a mode, skipping newer rescore entries
+    that did not carry those measurements yet."""
+    for run in reversed(runs):
+        if entry_llm(run) != llm:
+            continue
+        stats = {key: run[key] for key in RUN_STATS if run.get(key) is not None}
+        if stats:
+            return stats
+    return {}
 
 
 def history_entry(coverages: list[dict], meta: dict, corpus: dict,
@@ -1779,7 +1792,14 @@ def main(argv: list[str]) -> int:
                 write_coverage(d, cov)
             for cov in coverages:
                 _print_coverage(cov)
-            finish_run(coverages, dict(coverages[0]["meta"], rescored_at=stamp),
+            run_meta = dict(coverages[0]["meta"], rescored_at=stamp)
+            previous_runs = load_history(Path(args.scoreboard_dir) / "history.json").get("runs") or []
+            mode = entry_llm(coverages[0]["meta"])
+            for stat, value in prior_run_stats(previous_runs, mode).items():
+                if stat not in run_meta:
+                    run_meta[stat] = value
+            run_meta["command"] = AUDIT_COMMAND
+            finish_run(coverages, run_meta,
                        finding_reviews, args, staleness_coverages=all_rescored)
         return 0
 
@@ -1795,7 +1815,7 @@ def main(argv: list[str]) -> int:
         "mumei_commit": git_rev(mumei_repo),
         "mumei_version": version,
         "llm_configured": llm_configured(agent_repo),
-        "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
+        "command": AUDIT_COMMAND,
         "generated_at": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
     if meta["llm_configured"]:

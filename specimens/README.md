@@ -212,8 +212,8 @@ Findings — no LLM: 35 (defect evidence 11, real 2, false positive 6, unreviewe
 Fixed variants — no LLM: 16 specimens (171 defects fixed) · 14 false alarms in 14 findings on fixed code · 0 defects still reported
 
 Latest run — with LLM (`openai/gpt-6-luna`): mumei-agent `e8be527` · mumei `36eb534` (mumei 0.6.23) · 2026-11-03T05:18:58Z
-Findings — with LLM (`openai/gpt-6-luna`): 200 (defect evidence 17, real 2, false positive 2, unreviewed 179) · precision 10%–99%
-Fixed variants — with LLM (`openai/gpt-6-luna`): 16 specimens (171 defects fixed) · 212 false alarms in 212 findings on fixed code · 5 defects still reported
+Findings — with LLM (`openai/gpt-6-luna`): 200 (defect evidence 17, real 3, false positive 26, unreviewed 154) · precision 10%–87%
+Fixed variants — with LLM (`openai/gpt-6-luna`): 16 specimens (171 defects fixed) · 211 false alarms in 212 findings on fixed code · 5 defects still reported
 
 
 | Language | Defects | No LLM detected | No LLM detected or flagged | With LLM detected | With LLM detected or flagged |
@@ -229,6 +229,8 @@ Recent runs:
 
 | Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code | Adjudication |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---|
+| 2026-11-03 (rescored 2026-11-27) | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
+| 2026-11-27 (rescored 2026-11-27) | no | `a60016b` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 | 2026-11-03 (rescored 2026-11-27) | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–99% | 212 / 16 specimens | incomplete (391 unreviewed, 0 stale) |
 | 2026-11-27 (rescored 2026-11-27) | no | `a60016b` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 | 2026-11-03 (rescored 2026-11-27) | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 1 stale) |
@@ -237,8 +239,6 @@ Recent runs:
 | 2026-11-27 | no | `a5e23d1` | `b777e8e` | 171 | 6% | 14% | 14% | 33%–95% | 22 / 16 specimens | incomplete (46 unreviewed, 1 stale) |
 | 2026-11-27 | no | `b81e8d1` | `b777e8e` | 171 | 6% | 14% | 15% | 33%–88% | 28 / 16 specimens | incomplete (47 unreviewed, 1 stale) |
 | 2026-11-03 | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–87% | 211 / 16 specimens | unknown — rescore |
-| 2026-11-03 | no | `e8be527` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens | unknown — rescore |
-| 2026-11-01 (rescored 2026-11-01) | no | `dffe7e8` | `36eb534` | 171 | 6% | 13% | 17% | 32% | 29 / 16 specimens | unknown — rescore |
 
 Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md) (no LLM) and
 [AUDIT_SUMMARY_WITH_LLM.md](AUDIT_SUMMARY_WITH_LLM.md) (with LLM).

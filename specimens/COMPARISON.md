@@ -16,8 +16,8 @@ Evidence snapshot: measured 2026-11-03–2026-11-27; mumei-agent commits: mumei 
 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
 |---|---:|---:|---:|---:|---:|---:|
-| mumei only | 11 (6%) | 24 (14%) | 37%–83% | 14 | $0.00 | — |
-| mumei + LLM | 12 (7%) | 68 (40%) | 10%–99% | 212 | unknown | — |
+| mumei only | 11 (6%) | 24 (14%) | 37%–83% | 14 | $0.00 | 107 s wall |
+| mumei + LLM | 12 (7%) | 68 (40%) | 10%–87% | 211 | $0.22 | 54 min wall |
 | LLM only (3 runs, median) | 104 (61%), range 104–105 | 136 (80%), range 135–138 | 62%–100% | 76, range 68–79 | $0.06 | 22 min model time |
 
 Precision is (defect evidence + findings reviewed as real) / findings, a range while findings are unreviewed. False alarms on fixed code count findings on the specimens with their `fixed.patch` applied. Cost per pass is the OpenRouter spend for one pass over the corpus (buggy and fixed code). Time per pass is the audit wall time for the mumei rows and the summed model response time for LLM only, so the two are not directly comparable.
@@ -42,7 +42,7 @@ Findings of the two audit rows by the audit section they come from, on the buggy
 | Spec vs code cross-check gaps | 20 | 14 | 105 | 151 |
 | Spec health issues | 1 | 0 | 56 | 32 |
 
-Of the 212 mumei + LLM findings on fixed code, 183 are spec diagnostics (cross-check gaps and spec health issues) rather than verifier violations.
+Of the 212 mumei + LLM findings on fixed code (211 false alarms, 1 reviewed as real), 183 are spec diagnostics (cross-check gaps and spec health issues) rather than verifier violations.
 
 ## Detected by language
 
