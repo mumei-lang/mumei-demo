@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -299,6 +301,7 @@ def test_build_evidence_pack_manifest_and_boundaries(tmp_path: Path, monkeypatch
     assert manifest["artifact_paths"] == pack.pack_artifact_paths(False)
     assert manifest["artifact_roles"] == pack.artifact_roles(False)
     assert manifest["migration_execution"]["generated_artifacts"] == []
+    assert manifest["migration_execution"]["generated_artifacts_dir"] is None
     assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"
     assert manifest["evidence_roles"]["adapter_observation"]["status"] == "absent"
     assert any("audit-baseline.json is CI suppression policy" in line for line in manifest["evidence_boundary"])
@@ -571,6 +574,7 @@ def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:
     assert 'manifest["sarif"]["status"] == "emitted_by_audit_cli"' in workflow
     assert 'manifest["baseline"]["status"] == "emitted_by_audit_cli"' in workflow
     assert 'manifest["fail_on"]["policy"] == "high-confidence"' in workflow
+    assert "include-hidden-files: true" in workflow
     assert 'not_available_in_current_cli' in workflow
     assert 'assert "not evidence" in manifest["evidence_roles"]["ci_policy"]["boundary"]' in workflow
 
@@ -626,6 +630,46 @@ def valid_execution() -> dict:
             "review_required": True,
         },
     }
+
+
+def _sha256_path(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def valid_execution_with_claimed_companions(generated: Path) -> dict:
+    generated.mkdir(parents=True, exist_ok=True)
+    mm = generated / "divide.mm"
+    proof = generated / "divide.proof.json"
+    sarif_dir = generated / "divide"
+    sarif_dir.mkdir(exist_ok=True)
+    sarif = sarif_dir / "report.sarif"
+    mm.write_text("atom divide\n", encoding="utf-8")
+    proof.write_text("{\"all_verified\": true}\n", encoding="utf-8")
+    sarif.write_text("{\"version\": \"2.1.0\"}\n", encoding="utf-8")
+    cache = generated / ".mumei" / "cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    (cache / "verification_cache.json").write_text("{}\n", encoding="utf-8")
+    payload = valid_execution()
+    candidate = payload["candidates"][0]
+    candidate["generated_mm"] = {
+        "path": str(mm),
+        "sha256": _sha256_path(mm),
+        "origin": "generated_skeleton",
+        "healed_source_path": None,
+    }
+    candidate["verification"] = {
+        "proof_certificate": {"path": str(proof), "sha256": _sha256_path(proof), "written": True},
+        "sarif": {"path": str(sarif), "sha256": _sha256_path(sarif), "written": True},
+    }
+    return payload
+
+
+def companion_rows_fixture(tmp_path: Path) -> tuple[dict, Path, Path, list[dict[str, object]]]:
+    pack_dir = tmp_path / "evidence-pack"
+    generated = pack_dir / "migration_execution.migration-execution"
+    payload = valid_execution_with_claimed_companions(generated)
+    rows = pack._artifact_rows(pack._generated_artifact_files(generated), pack_dir, include_bytes=True)
+    return payload, generated, pack_dir, rows
 
 
 def test_migration_execution_validator_accepts_complete_upstream_shape(tmp_path: Path) -> None:
@@ -752,10 +796,10 @@ def test_build_evidence_pack_supported_migration_execution_is_hashed_and_role_sc
     def fake_audit(**kwargs):
         kwargs["sarif_output"].write_text(json.dumps({"version": "2.1.0", "runs": [{"results": []}]}), encoding="utf-8")
         kwargs["write_baseline"].write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}), encoding="utf-8")
-        kwargs["migration_execution_output"].write_text(json.dumps(valid_execution()), encoding="utf-8")
         generated = kwargs["migration_execution_output"].parent / "migration_execution.migration-execution"
         generated.mkdir()
-        (generated / "divide.mm").write_text("atom divide\n", encoding="utf-8")
+        payload = valid_execution_with_claimed_companions(generated)
+        kwargs["migration_execution_output"].write_text(json.dumps(payload), encoding="utf-8")
         return audit, _completed(json.dumps(audit))
 
     def fake_verify(*, pack_dir: Path, **kwargs):
@@ -790,9 +834,146 @@ def test_build_evidence_pack_supported_migration_execution_is_hashed_and_role_sc
     assert manifest["artifact_roles"]["migration_execution"] == ["migration_execution.json"]
     assert len(manifest["artifacts"]) == 12
     assert any(row["path"] == "migration_execution.json" for row in manifest["artifacts"])
-    assert [row["path"] for row in manifest["migration_execution"]["generated_artifacts"]] == ["migration_execution.migration-execution/divide.mm"]
-    assert all(row["sha256"] for row in manifest["migration_execution"]["generated_artifacts"])
+    rows = manifest["migration_execution"]["generated_artifacts"]
+    rows_by_path = {row["path"]: row for row in rows}
+    assert set(rows_by_path) == {
+        "migration_execution.migration-execution/.mumei/cache/verification_cache.json",
+        "migration_execution.migration-execution/divide.mm",
+        "migration_execution.migration-execution/divide.proof.json",
+        "migration_execution.migration-execution/divide/report.sarif",
+    }
+    for relative, row in rows_by_path.items():
+        artifact = pack_dir / relative
+        assert row["sha256"] == hashlib.sha256(artifact.read_bytes()).hexdigest()
+        assert row["bytes"] == artifact.stat().st_size
     assert json.loads((pack_dir / "audit.json").read_text())["artifact_roles"]["migration_execution"] == ["migration_execution.json"]
     assert json.loads((pack_dir / "migration_plan.json").read_text())["artifact_roles"]["migration_execution"] == ["migration_execution.json"]
     assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"
     assert manifest["evidence_roles"]["adapter_observation"]["status"] == "absent"
+
+def test_build_evidence_pack_rejects_claimed_companion_hash_mismatch(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    agent_python = tmp_path / "agent-python"
+    mumei_bin = tmp_path / "mumei"
+    agent_python.write_text("", encoding="utf-8")
+    mumei_bin.write_text("", encoding="utf-8")
+    audit = {key: [] for key in pack.FIXED_AUDIT_KEYS}
+    audit.update({"verification_status": "unverifiable", "migration_hints": [{"function_name": "divide", "priority": "high"}]})
+
+    def fake_audit(**kwargs):
+        kwargs["sarif_output"].write_text(json.dumps({"version": "2.1.0", "runs": [{"results": []}]}), encoding="utf-8")
+        kwargs["write_baseline"].write_text(json.dumps({"version": pack.BASELINE_SCHEMA, "fingerprints": []}), encoding="utf-8")
+        generated = kwargs["migration_execution_output"].parent / "migration_execution.migration-execution"
+        payload = valid_execution_with_claimed_companions(generated)
+        payload["candidates"][0]["generated_mm"]["sha256"] = "0" * 64
+        kwargs["migration_execution_output"].write_text(json.dumps(payload), encoding="utf-8")
+        return audit, _completed(json.dumps(audit))
+
+    def fake_verify(*, pack_dir: Path, **kwargs):
+        (pack_dir / "reference.proof.json").write_text(json.dumps({"all_verified": True}), encoding="utf-8")
+        return ({"schema": "mumei-demo.reference-verification/v1", "proof_certificate": "reference.proof.json", "verify_exit_code": 0, "verify_cert_exit_code": 0, "all_verified": True, "atoms": [], "boundary": "reference only"}, "", "")
+
+    monkeypatch.setattr(pack, "migration_execution_supported", lambda **_kwargs: True)
+    monkeypatch.setattr(pack, "run_audit", fake_audit)
+    monkeypatch.setattr(pack, "run_reference_verification", fake_verify)
+
+    with pytest.raises(pack.EvidencePackError, match="sha256 does not match"):
+        pack.build_evidence_pack(
+            scenario_dir=SCENARIO_DIR,
+            output_dir=tmp_path / "out",
+            agent_repo=tmp_path,
+            agent_python=agent_python,
+            mumei_bin=mumei_bin,
+            env={},
+        )
+
+
+def test_migration_companion_hash_manifest_matches_claimed_generated_mm_proof_and_sarif(tmp_path: Path) -> None:
+    payload, generated, pack_dir, rows = companion_rows_fixture(tmp_path)
+
+    pack._validate_migration_companion_rows(payload, generated, pack_dir, rows)
+
+    assert all(set(row) == {"path", "sha256", "bytes"} for row in rows)
+    assert len(rows) == 4
+
+
+def test_migration_companion_hash_mismatch_is_operational_failure(tmp_path: Path) -> None:
+    payload, generated, pack_dir, rows = companion_rows_fixture(tmp_path)
+    payload["candidates"][0]["generated_mm"]["sha256"] = "0" * 64
+
+    with pytest.raises(pack.EvidencePackError, match="sha256 does not match"):
+        pack._validate_migration_companion_rows(payload, generated, pack_dir, rows)
+
+
+def test_migration_companion_missing_claimed_file_is_operational_failure(tmp_path: Path) -> None:
+    payload, generated, pack_dir, rows = companion_rows_fixture(tmp_path)
+    missing = generated / "missing.mm"
+    payload["candidates"][0]["generated_mm"].update({"path": str(missing), "sha256": "0" * 64})
+
+    with pytest.raises(pack.EvidencePackError, match="missing from the companion hash manifest"):
+        pack._validate_migration_companion_rows(payload, generated, pack_dir, rows)
+
+
+def test_migration_companion_path_outside_generated_directory_is_operational_failure(tmp_path: Path) -> None:
+    payload, generated, pack_dir, rows = companion_rows_fixture(tmp_path)
+    outside = pack_dir / "audit.json"
+    outside.write_text("{}\n", encoding="utf-8")
+    payload["candidates"][0]["generated_mm"].update({"path": str(outside), "sha256": _sha256_path(outside)})
+
+    with pytest.raises(pack.EvidencePackError, match="outside the generated artifact directory"):
+        pack._validate_migration_companion_rows(payload, generated, pack_dir, rows)
+
+
+def test_migration_companion_symlink_escape_and_nonregular_file_are_operational_failures(tmp_path: Path) -> None:
+    root = tmp_path / "migration_execution.migration-execution"
+    root.mkdir()
+    target = tmp_path / "target.mm"
+    target.write_text("atom target\n", encoding="utf-8")
+    (root / "linked.mm").symlink_to(target)
+    with pytest.raises(pack.EvidencePackError, match="symlink|non-regular"):
+        pack._generated_artifact_files(root)
+
+    (root / "linked.mm").unlink()
+    directory_target = tmp_path / "directory-target"
+    directory_target.mkdir()
+    (root / "linked-dir").symlink_to(directory_target, target_is_directory=True)
+    with pytest.raises(pack.EvidencePackError, match="symlink"):
+        pack._generated_artifact_files(root)
+
+    (root / "linked-dir").unlink()
+    os.mkfifo(root / "fifo")
+    with pytest.raises(pack.EvidencePackError, match="non-regular file"):
+        pack._generated_artifact_files(root)
+
+    payload = valid_execution()
+    payload["artifact_paths"]["generated_artifacts"] = "../outside"
+    with pytest.raises(pack.EvidencePackError, match="escapes the evidence pack"):
+        pack._migration_generated_dir(payload, tmp_path / "migration_execution.json")
+
+    linked_root = tmp_path / "linked-root"
+    linked_root.symlink_to(root, target_is_directory=True)
+    payload["artifact_paths"]["generated_artifacts"] = "linked-root"
+    with pytest.raises(pack.EvidencePackError, match="symlink component"):
+        pack._migration_generated_dir(payload, tmp_path / "migration_execution.json")
+
+    payload["artifact_paths"]["generated_artifacts"] = "."
+    with pytest.raises(pack.EvidencePackError, match="does not match the migration execution output"):
+        pack._migration_generated_dir(payload, tmp_path / "migration_execution.json")
+
+
+def test_migration_companion_accepts_unwritten_proof_and_sarif_partial_metadata(tmp_path: Path) -> None:
+    payload, generated, pack_dir, rows = companion_rows_fixture(tmp_path)
+    verification = payload["candidates"][0]["verification"]
+    for key in ("proof_certificate", "sarif"):
+        verification[key]["written"] = False
+        verification[key]["sha256"] = None
+
+    pack._validate_migration_companion_rows(payload, generated, pack_dir, rows)
+
+
+def test_migration_companion_inconsistent_written_metadata_is_operational_failure(tmp_path: Path) -> None:
+    payload, generated, pack_dir, rows = companion_rows_fixture(tmp_path)
+    proof = payload["candidates"][0]["verification"]["proof_certificate"]
+    proof["written"] = False
+
+    with pytest.raises(pack.EvidencePackError, match="hash metadata is inconsistent"):
+        pack._validate_migration_companion_rows(payload, generated, pack_dir, rows)

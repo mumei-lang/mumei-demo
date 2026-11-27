@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -281,10 +282,22 @@ def _audit_environment(base_env: dict[str, str], mumei_bin: Path) -> dict[str, s
 
 def _migration_generated_dir(payload: dict[str, Any], output_path: Path) -> Path:
     generated_value = Path(payload["artifact_paths"]["generated_artifacts"])
-    generated_dir = generated_value if generated_value.is_absolute() else output_path.parent / generated_value
-    generated_dir = generated_dir.resolve()
-    if not generated_dir.is_relative_to(output_path.parent.resolve()):
+    raw_dir = generated_value if generated_value.is_absolute() else output_path.parent / generated_value
+    output_parent = output_path.parent.resolve()
+    probe = raw_dir
+    while probe != output_parent and output_parent in probe.parents:
+        if probe.is_symlink():
+            raise EvidencePackError("migration execution generated artifact directory contains a symlink component")
+        probe = probe.parent
+    generated_dir = raw_dir.resolve()
+    if not generated_dir.is_relative_to(output_parent):
         raise EvidencePackError("migration execution generated artifact directory escapes the evidence pack")
+    expected_base = output_parent / f"{output_path.stem}.migration-execution"
+    if generated_dir.parent != output_parent or (
+        generated_dir != expected_base
+        and not re.fullmatch(re.escape(expected_base.name) + r"-\d+", generated_dir.name)
+    ):
+        raise EvidencePackError("migration execution generated artifact directory does not match the migration execution output")
     return generated_dir
 
 
@@ -453,21 +466,95 @@ def migration_plan(audit: dict[str, Any], include_migration_execution: bool = Tr
 
 
 def _generated_artifact_files(root: Path) -> list[Path]:
-    if not root.is_dir():
-        return []
-    return sorted(path for path in root.rglob("*") if path.is_file() and not path.is_symlink())
+    if root.is_symlink() or not root.is_dir():
+        raise EvidencePackError("migration execution generated artifact directory is missing or is not a regular directory")
+    root = root.resolve()
+    files = []
+
+    def raise_walk_error(error: OSError) -> None:
+        raise EvidencePackError(f"migration execution generated artifact directory is not readable: {error.filename}") from error
+
+    for current, dirnames, filenames in os.walk(root, onerror=raise_walk_error, followlinks=False):
+        current_path = Path(current)
+        for name in dirnames:
+            path = current_path / name
+            if path.is_symlink():
+                raise EvidencePackError("migration execution generated artifact directory contains a symlink")
+            if not path.resolve().is_relative_to(root):
+                raise EvidencePackError("migration execution generated artifact directory contains an escaping directory")
+        for name in filenames:
+            path = current_path / name
+            if path.is_symlink() or not path.is_file():
+                raise EvidencePackError("migration execution generated artifact directory contains a non-regular file")
+            if not path.resolve().is_relative_to(root):
+                raise EvidencePackError("migration execution generated artifact directory contains an escaping file")
+            files.append(path)
+    return sorted(files)
 
 
-def _artifact_rows(paths: list[Path], pack_dir: Path) -> list[dict[str, str]]:
+def _artifact_rows(paths: list[Path], pack_dir: Path, *, include_bytes: bool = False) -> list[dict[str, object]]:
     rows = []
     for path in paths:
-        rows.append(
-            {
-                "path": path.relative_to(pack_dir).as_posix(),
-                "sha256": _sha256(path),
-            }
-        )
+        row: dict[str, object] = {
+            "path": path.relative_to(pack_dir).as_posix(),
+            "sha256": _sha256(path),
+        }
+        if include_bytes:
+            row["bytes"] = path.stat().st_size
+        rows.append(row)
     return rows
+
+
+def _valid_sha256(value: object) -> bool:
+    return isinstance(value, str) and len(value) == 64 and all(char in "0123456789abcdef" for char in value)
+
+
+def _validate_migration_companion_rows(
+    payload: dict[str, Any],
+    generated_root: Path,
+    pack_dir: Path,
+    rows: list[dict[str, object]],
+) -> None:
+    rows_by_path = {str(row["path"]): row for row in rows}
+    pack_root = pack_dir.resolve()
+    generated_root = generated_root.resolve()
+    claims: list[tuple[str, object, object]] = []
+    candidates = payload.get("candidates") if isinstance(payload.get("candidates"), list) else []
+    for index, candidate in enumerate(candidates):
+        if not isinstance(candidate, dict):
+            continue
+        generated_mm = candidate.get("generated_mm") if isinstance(candidate.get("generated_mm"), dict) else {}
+        mm_path = generated_mm.get("path")
+        mm_sha = generated_mm.get("sha256")
+        if mm_path is not None or mm_sha is not None:
+            claims.append((f"candidates[{index}].generated_mm", mm_path, mm_sha))
+        verification = candidate.get("verification") if isinstance(candidate.get("verification"), dict) else {}
+        for key in ("proof_certificate", "sarif"):
+            record = verification.get(key) if isinstance(verification.get(key), dict) else {}
+            path = record.get("path")
+            sha = record.get("sha256")
+            written = record.get("written")
+            if written is True or sha is not None:
+                if written is not True:
+                    raise EvidencePackError(f"migration execution {key} hash metadata is inconsistent")
+                claims.append((f"candidates[{index}].verification.{key}", path, sha))
+
+    for label, path_value, sha_value in claims:
+        if not isinstance(path_value, str) or not path_value or not _valid_sha256(sha_value):
+            raise EvidencePackError(f"migration execution {label} is missing a complete path and sha256")
+        raw_path = Path(path_value)
+        artifact_path = raw_path if raw_path.is_absolute() else pack_root / raw_path
+        artifact_path = artifact_path.resolve(strict=False)
+        if not artifact_path.is_relative_to(generated_root):
+            raise EvidencePackError(f"migration execution {label} path is outside the generated artifact directory")
+        if not artifact_path.is_relative_to(pack_root):
+            raise EvidencePackError(f"migration execution {label} path is outside the evidence pack")
+        pack_relative = artifact_path.relative_to(pack_root).as_posix()
+        row = rows_by_path.get(pack_relative)
+        if row is None:
+            raise EvidencePackError(f"migration execution {label} path is missing from the companion hash manifest")
+        if row["sha256"] != sha_value:
+            raise EvidencePackError(f"migration execution {label} sha256 does not match the companion hash manifest")
 
 
 def write_summary(path: Path, audit: dict[str, Any], plan: dict[str, Any], verification: dict[str, Any], migration_status: str = "not_available_in_current_cli") -> None:
@@ -589,12 +676,13 @@ def build_evidence_pack(
     write_summary(pack_dir / "summary.md", audit, plan, verification, migration_status)
 
     migration_generated_dir = None
-    migration_generated_artifacts: list[dict[str, str]] = []
+    migration_generated_artifacts: list[dict[str, object]] = []
     if migration_output is not None:
         execution_payload = json.loads(migration_output.read_text(encoding="utf-8"))
         generated_root = _migration_generated_dir(execution_payload, migration_output)
         migration_generated_dir = generated_root.relative_to(pack_dir.resolve()).as_posix()
-        migration_generated_artifacts = _artifact_rows(_generated_artifact_files(generated_root), pack_dir)
+        migration_generated_artifacts = _artifact_rows(_generated_artifact_files(generated_root), pack_dir, include_bytes=True)
+        _validate_migration_companion_rows(execution_payload, generated_root, pack_dir, migration_generated_artifacts)
 
     hashed_paths = [pack_dir / path for path in HASHED_ARTIFACT_PATHS if migration_supported or path != "migration_execution.json"]
     manifest = {
