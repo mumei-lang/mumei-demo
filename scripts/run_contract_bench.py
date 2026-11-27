@@ -397,7 +397,8 @@ def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str
             "variant": variant,
             "decision": "blocked" if blocked else "accepted",
             "lint_findings": linted, "blocking_lint_findings": blocking,
-            "semantic_replay": semantic, "output_equivalence": equivalence}
+            "semantic_replay": semantic, "output_equivalence": equivalence,
+            "output_policy_hash": fidelity.output_policy_hash()}
     return {**result, "fidelity_gate": gate}
 
 
@@ -1389,9 +1390,11 @@ def current_replay_input_hash(case: dict) -> str | None:
 
 
 def fidelity_gate_stale(case: dict, gate: dict) -> bool:
-    """Whether a stored port-fidelity gate no longer matches its replay fixture."""
+    """Whether a stored gate no longer matches replay inputs or output policy."""
     expected = current_replay_input_hash(case)
     if gate.get("detector_version") != fidelity.DETECTOR_VERSION:
+        return True
+    if "output_policy_hash" in gate and gate.get("output_policy_hash") != fidelity.output_policy_hash():
         return True
     return expected is not None and gate.get("semantic_replay", {}).get("input_hash") != expected
 
@@ -1476,7 +1479,7 @@ def fidelity_problems(results: list[dict], cases: list[dict] | None = None) -> l
                             problems.append(f"{prefix} has a gate for the wrong variant")
                         case = cases_by_id.get(record.get("id"))
                         if case is not None and fidelity_gate_stale(case, gate):
-                            problems.append(f"{prefix} has a fidelity gate stale against replay inputs")
+                            problems.append(f"{prefix} has a fidelity gate stale against current fidelity inputs")
                         if gate.get("decision") == "blocked":
                             projected = project_fidelity_result(result)
                             if (projected.get("outcome") != "inconclusive"

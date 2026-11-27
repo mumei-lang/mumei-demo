@@ -528,7 +528,9 @@ def test_fidelity_gate_staleness_follows_replay_input_hash(repo):
     assert cb.fidelity_gate_stale(case, gate)
     assert cb.fidelity_gate_stale(case, {**gate, "detector_version": -1, "semantic_replay": matching_replay})
     assert not cb.fidelity_gate_stale(case, {**gate, "semantic_replay": matching_replay})
-    assert any("stale against replay inputs" in problem for problem in cb.fidelity_problems([doc], [case]))
+    assert cb.fidelity_gate_stale(case, {**gate, "semantic_replay": matching_replay,
+                                         "output_policy_hash": "stale-policy"})
+    assert any("stale against current fidelity inputs" in problem for problem in cb.fidelity_problems([doc], [case]))
 
 
 def test_fidelity_problems_flags_ungated_or_inconsistent_raw_proofs():

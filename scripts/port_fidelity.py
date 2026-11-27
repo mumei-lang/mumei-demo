@@ -7,6 +7,7 @@ the same detector without importing each other.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -488,6 +489,14 @@ def struct_field_types(prelude: str, struct_name: str) -> list[tuple[str, str]]:
     if not fields:
         raise ValueError(f"struct {struct_name!r} has no supported scalar fields")
     return fields
+
+
+def output_policy_hash() -> str | None:
+    """Hash of the committed output-equivalence adjudication input."""
+    path = REPO_ROOT / "proofs/output-equivalence-policy.json"
+    if not path.exists():
+        return None
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def output_policy(case: dict) -> dict:
