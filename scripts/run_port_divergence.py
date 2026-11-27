@@ -146,6 +146,7 @@ def _trivial_clause(text: str) -> bool:
 
 
 def _top_level_conjuncts(text: str) -> list[str]:
+    text = _strip_wrapping_parens(text)
     parts, start, depth = [], 0, 0
     i = 0
     while i < len(text):
@@ -221,6 +222,10 @@ def _has_direct_complement(parts: list[str]) -> bool:
     return False
 
 
+def _references_result(text: str) -> bool:
+    return re.search(r"\bresult\b", text) is not None
+
+
 def lint_contract(requires: str, ensures: str) -> list[dict]:
     """Static adversarial contract warnings for generated `requires`/`ensures` clauses.
 
@@ -229,13 +234,15 @@ def lint_contract(requires: str, ensures: str) -> list[dict]:
     trying to prove general satisfiability.  Mumei/Z3 remains the semantic checker.
     """
     findings = []
-    requires_parts = _top_level_conjuncts(scrub(requires, "mumei"))
+    requires_text = scrub(requires, "mumei")
+    requires_parts = _top_level_conjuncts(requires_text)
+    numeric_contradiction = "||" not in requires_text and _numeric_bound_contradiction(requires_text)
     if (any(re.sub(r"[\s()]+", "", part) == "false" for part in requires_parts)
-            or _has_direct_complement(requires_parts) or _numeric_bound_contradiction(requires)):
+            or _has_direct_complement(requires_parts) or numeric_contradiction):
         findings.append({"kind": "vacuous_spec",
                          "message": "requires clause is trivially unsatisfiable"})
     ensures_parts = _top_level_conjuncts(scrub(ensures, "mumei"))
-    if not ensures_parts or all(_trivial_clause(part) or "result" not in part for part in ensures_parts):
+    if not ensures_parts or all(_trivial_clause(part) or not _references_result(part) for part in ensures_parts):
         findings.append({"kind": "weak_spec",
                          "message": "ensures clause carries no result constraint"})
     return findings
