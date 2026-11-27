@@ -4,6 +4,8 @@ import os
 import sys
 from pathlib import Path
 
+import json
+
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
@@ -144,6 +146,33 @@ def test_bounded_interaction_timeout_is_budget_exhaustion(monkeypatch: pytest.Mo
     assert evidence["status"] == "timeout"
     assert evidence["reason"] == "bounded_interaction_timeout"
     assert evidence["failure_kind"] == "budget_exhausted"
+
+
+def test_bounded_interaction_policy_rejects_extra_input_keys(tmp_path, monkeypatch: pytest.MonkeyPatch) -> None:
+    case = {**case_by_id("PY02-D05"), "id": "PY02-D05-extra-input-key"}
+    proofs = tmp_path / "proofs"
+    proofs.mkdir()
+    data = json.loads((fidelity.REPO_ROOT / "proofs/output-equivalence-policy.json").read_text())
+    data["cases"][case["id"]] = {"bounded_interaction_inputs": [
+        {"name": "bad", "values": {"daily": [1], "n": 1, "threshold": 0}, "extra": True}]}
+    (proofs / "output-equivalence-policy.json").write_text(json.dumps(data))
+    monkeypatch.setattr(fidelity, "REPO_ROOT", tmp_path)
+
+    with pytest.raises(ValueError, match="exactly name and values"):
+        fidelity.output_policy(case)
+
+
+def test_bounded_interaction_outside_requires_is_inconclusive(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(fidelity, "run_bounded_interaction_text", lambda *_args: {
+        "exit_code": 43, "seconds": 0.1, "budget_seconds": 5})
+    case = case_by_id("PY02-D05")
+    reference = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
+
+    evidence = fidelity.output_equivalence(case, reference, "unused", 5, "fixed")
+
+    assert evidence["outcome"] == "inconclusive"
+    assert evidence["reason"] == "bounded_interaction_input_outside_requires"
+    assert evidence["failure_kind"] == "unsupported"
 
 
 def test_bounded_interaction_does_not_execute_effectful_or_ffi_preludes() -> None:
