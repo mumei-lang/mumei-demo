@@ -32,9 +32,7 @@
       "in_target_category": true,
       "status": "function_flagged",
       "findings": [
-        "Solidity function `earned` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-        "spec stronger than implementation: earned",
-        "spec precondition assumed, not enforced, by `earned`"
+        "Solidity function `earned` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
       ]
     },
     {
@@ -151,27 +149,13 @@
       "kind": "verification_violations",
       "text": "Solidity function `notifyRewardAmount` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
       "status": "defect_evidence"
-    },
-    {
-      "file": "src/StakingRewards.sol",
-      "kind": "cross_validation_gaps",
-      "text": "spec stronger than implementation: earned",
-      "status": "false_positive",
-      "reason": "This is an auto-generated mapping-view precondition artifact; the fixed view function has no caller-actionable implementation defect."
-    },
-    {
-      "file": "src/StakingRewards.sol",
-      "kind": "cross_validation_gaps",
-      "text": "spec precondition assumed, not enforced, by `earned`",
-      "status": "false_positive",
-      "reason": "This is an auto-generated mapping-view precondition artifact; the fixed view function has no caller-actionable implementation defect."
     }
   ],
   "finding_counts": {
-    "total": 6,
+    "total": 4,
     "defect_evidence": 3,
     "real": 0,
-    "false_positive": 3,
+    "false_positive": 1,
     "unreviewed": 0
   },
   "reviews_used": [
@@ -179,68 +163,30 @@
       "sol-03-staking-rewards",
       "src/StakingRewards.sol",
       "Solidity function `earned` is an externally callable state-mutating function with no access-control guard"
-    ],
-    [
-      "sol-03-staking-rewards",
-      "src/StakingRewards.sol",
-      "spec precondition assumed, not enforced, by `earned`"
-    ],
-    [
-      "sol-03-staking-rewards",
-      "src/StakingRewards.sol",
-      "spec stronger than implementation: earned"
     ]
   ],
   "source_hash": "43cf94281eb7b1fc324c24c7529726d100f9f62e5b24741bdc3284eee4d494ff",
   "meta": {
-    "mumei_agent_commit": "beaa28625eaf58e0ac6ead30c74a438634f67392",
+    "mumei_agent_commit": "7a488f43f4a7e30b4e7801a69f51e06cfc0c0894",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-27T18:17:14Z"
+    "generated_at": "2026-11-27T19:27:55Z"
   },
   "fixed": {
     "defects": 10,
     "still_reported": [],
-    "still_function_flagged": [
-      "SOL03-D02"
-    ],
-    "false_alarms": 2,
-    "findings": [
-      {
-        "file": "src/StakingRewards.sol",
-        "kind": "cross_validation_gaps",
-        "text": "spec stronger than implementation: earned",
-        "status": "false_positive",
-        "reason": "This is an auto-generated mapping-view precondition artifact; the fixed view function has no caller-actionable implementation defect."
-      },
-      {
-        "file": "src/StakingRewards.sol",
-        "kind": "cross_validation_gaps",
-        "text": "spec precondition assumed, not enforced, by `earned`",
-        "status": "false_positive",
-        "reason": "This is an auto-generated mapping-view precondition artifact; the fixed view function has no caller-actionable implementation defect."
-      }
-    ],
+    "still_function_flagged": [],
+    "false_alarms": 0,
+    "findings": [],
     "finding_counts": {
-      "total": 2,
+      "total": 0,
       "defect_evidence": 0,
       "real": 0,
-      "false_positive": 2,
+      "false_positive": 0,
       "unreviewed": 0
     },
-    "reviews_used": [
-      [
-        "sol-03-staking-rewards",
-        "src/StakingRewards.sol",
-        "spec precondition assumed, not enforced, by `earned`"
-      ],
-      [
-        "sol-03-staking-rewards",
-        "src/StakingRewards.sol",
-        "spec stronger than implementation: earned"
-      ]
-    ]
+    "reviews_used": []
   }
 }

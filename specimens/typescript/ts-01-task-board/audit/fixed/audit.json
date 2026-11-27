@@ -12,23 +12,20 @@
       "spec_health_issues": [],
       "verification_violations": [],
       "counterexample_values": [],
-      "cross_validation_gaps": [
-        "spec stronger than implementation: canMove",
-        "spec precondition assumed, not enforced, by `canMove`"
-      ],
+      "cross_validation_gaps": [],
       "migration_hints": [],
       "healed_files": [],
       "heal_errors": [],
       "trusted_atoms": [],
       "next_steps": [
         {
-          "priority": "high",
-          "action": "validate-spec-to-code で制約の対応を確認",
-          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+          "priority": "info",
+          "action": "監査完了。追加の .mm 移行は不要",
+          "command": ""
         },
         {
           "priority": "medium",
-          "action": "underspecified な意図を明文化（推測で補完しない）: isStatus.requires, isStatus.ensures, canMove.ensures, parsePriority.requires, parsePriority.ensures, newTask.requires, newTask.ensures, applyPatch.requires, applyPatch.ensures, moveTask.requires, moveTask.ensures, columnOrder.requires, columnOrder.ensures, completionPercent.requires, completionPercent.ensures, summarizeBoard.requires, summarizeBoard.ensures, searchTasks.requires, searchTasks.ensures, paginate.requires, paginate.ensures, escapeHtml.requires, escapeHtml.ensures, renderResults.requires, renderResults.ensures",
+          "action": "underspecified な意図を明文化（推測で補完しない）: isStatus.requires, isStatus.ensures, canMove.requires, canMove.ensures, parsePriority.requires, parsePriority.ensures, newTask.requires, newTask.ensures, applyPatch.requires, applyPatch.ensures, moveTask.requires, moveTask.ensures, columnOrder.requires, columnOrder.ensures, completionPercent.requires, completionPercent.ensures, summarizeBoard.requires, summarizeBoard.ensures, searchTasks.requires, searchTasks.ensures, paginate.requires, paginate.ensures, escapeHtml.requires, escapeHtml.ensures, renderResults.requires, renderResults.ensures",
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
@@ -39,36 +36,11 @@
       "finding_counts": {
         "code": 0,
         "confirmed": 0,
-        "spec": 2,
+        "spec": 0,
         "model_limitations": 0,
         "errors": 0
       },
-      "findings": [
-        {
-          "schema": "mumei.audit-findings/v1",
-          "category": "spec",
-          "severity": "warning",
-          "confidence": "medium",
-          "verification_basis": "cross-validation",
-          "message": "spec stronger than implementation: canMove",
-          "source_file": "specimens/typescript/ts-01-task-board/board.ts",
-          "line": null,
-          "triage_bucket": "spec_review",
-          "fingerprint": "37bcd2979dea9401e5ae68cb5518ea8bcad30d3698b168383b58f4bd3916d6e4"
-        },
-        {
-          "schema": "mumei.audit-findings/v1",
-          "category": "spec",
-          "severity": "warning",
-          "confidence": "medium",
-          "verification_basis": "cross-validation",
-          "message": "spec precondition assumed, not enforced, by `canMove`",
-          "source_file": "specimens/typescript/ts-01-task-board/board.ts",
-          "line": null,
-          "triage_bucket": "spec_review",
-          "fingerprint": "22c5708bc651bdf3a8c3ba421663874d11dcc0f642558ced019e485438fc1a3f"
-        }
-      ],
+      "findings": [],
       "triage": {
         "schema": "mumei.audit-triage/v1",
         "refuted": [],
@@ -97,7 +69,7 @@
       },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed with 2 spec diagnostics to review: specimens/typescript/ts-01-task-board/board.ts\nlanguage: typescript\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec stronger than implementation: canMove', 'spec precondition assumed, not enforced, by `canMove`']\nfinding_counts: code=0, confirmed=0, spec=2, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: isStatus.requires, isStatus.ensures, canMove.ensures, parsePriority.requires, parsePriority.ensures, newTask.requires, newTask.ensures, applyPatch.requires, applyPatch.ensures, moveTask.requires, moveTask.ensures, columnOrder.requires, columnOrder.ensures, completionPercent.requires, completionPercent.ensures, summarizeBoard.requires, summarizeBoard.ensures, searchTasks.requires, searchTasks.ensures, paginate.requires, paginate.ensures, escapeHtml.requires, escapeHtml.ensures, renderResults.requires, renderResults.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/typescript/ts-01-task-board/board.ts\nlanguage: typescript\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: isStatus.requires, isStatus.ensures, canMove.requires, canMove.ensures, parsePriority.requires, parsePriority.ensures, newTask.requires, newTask.ensures, applyPatch.requires, applyPatch.ensures, moveTask.requires, moveTask.ensures, columnOrder.requires, columnOrder.ensures, completionPercent.requires, completionPercent.ensures, summarizeBoard.requires, summarizeBoard.ensures, searchTasks.requires, searchTasks.ensures, paginate.requires, paginate.ensures, escapeHtml.requires, escapeHtml.ensures, renderResults.requires, renderResults.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -172,17 +144,14 @@
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/typescript/ts-01-task-board\n  board.ts: 0 violations, 2 gaps\n  server.ts: 0 violations, 0 gaps\nSummary: 2 files, 0 files with issues, 1 file with spec diagnostics\nfinding_counts: code=0, confirmed=0, spec=2, model_limitations=0, errors=0\ntriage: refuted=0, verified=2, unverifiable=0\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: isStatus.requires, isStatus.ensures, canMove.ensures, parsePriority.requires, parsePriority.ensures, newTask.requires, newTask.ensures, applyPatch.requires, applyPatch.ensures, moveTask.requires, moveTask.ensures, columnOrder.requires, columnOrder.ensures, completionPercent.requires, completionPercent.ensures, summarizeBoard.requires, summarizeBoard.ensures, searchTasks.requires, searchTasks.ensures, paginate.requires, paginate.ensures, escapeHtml.requires, escapeHtml.ensures, renderResults.requires, renderResults.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: readBody.requires, readBody.ensures, readJson.requires, readJson.ensures, sendJson.requires, sendJson.ensures, sendError.requires, sendError.ensures, currentUser.requires, currentUser.ensures, withNext.requires, withNext.ensures, handleCreate.requires, handleCreate.ensures, handlePatch.requires, handlePatch.ensures, handleMove.requires, handleMove.ensures, handleSearch.requires, handleSearch.ensures, route.requires, route.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/typescript/ts-01-task-board\n  board.ts: 0 violations, 0 gaps\n  server.ts: 0 violations, 0 gaps\nSummary: 2 files, 0 files with issues, 0 files with spec diagnostics\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=0, verified=2, unverifiable=0\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: isStatus.requires, isStatus.ensures, canMove.requires, canMove.ensures, parsePriority.requires, parsePriority.ensures, newTask.requires, newTask.ensures, applyPatch.requires, applyPatch.ensures, moveTask.requires, moveTask.ensures, columnOrder.requires, columnOrder.ensures, completionPercent.requires, completionPercent.ensures, summarizeBoard.requires, summarizeBoard.ensures, searchTasks.requires, searchTasks.ensures, paginate.requires, paginate.ensures, escapeHtml.requires, escapeHtml.ensures, renderResults.requires, renderResults.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: readBody.requires, readBody.ensures, readJson.requires, readJson.ensures, sendJson.requires, sendJson.ensures, sendError.requires, sendError.ensures, currentUser.requires, currentUser.ensures, withNext.requires, withNext.ensures, handleCreate.requires, handleCreate.ensures, handlePatch.requires, handlePatch.ensures, handleMove.requires, handleMove.ensures, handleSearch.requires, handleSearch.ensures, route.requires, route.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 2,
   "files_with_issues": 0,
-  "files_with_spec_diagnostics": 1,
+  "files_with_spec_diagnostics": 0,
   "verification_status": "verified",
   "spec_health_issues": [],
   "verification_violations": [],
-  "cross_validation_gaps": [
-    "board.ts: spec stronger than implementation: canMove",
-    "board.ts: spec precondition assumed, not enforced, by `canMove`"
-  ],
+  "cross_validation_gaps": [],
   "migration_hints": [],
   "healed_files": [],
   "heal_errors": [],
@@ -191,13 +160,8 @@
   "summary_plans": [],
   "next_steps": [
     {
-      "priority": "high",
-      "action": "validate-spec-to-code で制約の対応を確認",
-      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
-    },
-    {
       "priority": "medium",
-      "action": "underspecified な意図を明文化（推測で補完しない）: isStatus.requires, isStatus.ensures, canMove.ensures, parsePriority.requires, parsePriority.ensures, newTask.requires, newTask.ensures, applyPatch.requires, applyPatch.ensures, moveTask.requires, moveTask.ensures, columnOrder.requires, columnOrder.ensures, completionPercent.requires, completionPercent.ensures, summarizeBoard.requires, summarizeBoard.ensures, searchTasks.requires, searchTasks.ensures, paginate.requires, paginate.ensures, escapeHtml.requires, escapeHtml.ensures, renderResults.requires, renderResults.ensures",
+      "action": "underspecified な意図を明文化（推測で補完しない）: isStatus.requires, isStatus.ensures, canMove.requires, canMove.ensures, parsePriority.requires, parsePriority.ensures, newTask.requires, newTask.ensures, applyPatch.requires, applyPatch.ensures, moveTask.requires, moveTask.ensures, columnOrder.requires, columnOrder.ensures, completionPercent.requires, completionPercent.ensures, summarizeBoard.requires, summarizeBoard.ensures, searchTasks.requires, searchTasks.ensures, paginate.requires, paginate.ensures, escapeHtml.requires, escapeHtml.ensures, renderResults.requires, renderResults.ensures",
       "command": "mumei-agent validate-spec --input <spec> --format human"
     },
     {
@@ -209,36 +173,11 @@
   "finding_counts": {
     "code": 0,
     "confirmed": 0,
-    "spec": 2,
+    "spec": 0,
     "model_limitations": 0,
     "errors": 0
   },
-  "findings": [
-    {
-      "schema": "mumei.audit-findings/v1",
-      "category": "spec",
-      "severity": "warning",
-      "confidence": "medium",
-      "verification_basis": "cross-validation",
-      "message": "spec stronger than implementation: canMove",
-      "source_file": "specimens/typescript/ts-01-task-board/board.ts",
-      "line": null,
-      "triage_bucket": "spec_review",
-      "fingerprint": "37bcd2979dea9401e5ae68cb5518ea8bcad30d3698b168383b58f4bd3916d6e4"
-    },
-    {
-      "schema": "mumei.audit-findings/v1",
-      "category": "spec",
-      "severity": "warning",
-      "confidence": "medium",
-      "verification_basis": "cross-validation",
-      "message": "spec precondition assumed, not enforced, by `canMove`",
-      "source_file": "specimens/typescript/ts-01-task-board/board.ts",
-      "line": null,
-      "triage_bucket": "spec_review",
-      "fingerprint": "22c5708bc651bdf3a8c3ba421663874d11dcc0f642558ced019e485438fc1a3f"
-    }
-  ],
+  "findings": [],
   "triage": {
     "schema": "mumei.audit-triage/v1",
     "refuted": [],
