@@ -120,6 +120,18 @@ def test_result_state_folding_is_not_limited_to_success_contracts() -> None:
     assert "guard_folding" in kinds
 
 
+def test_result_state_folding_normalizes_predicate_in_own_branch() -> None:
+    reference = "if finalized { Finalize { ok: false, finalized: finalized } } else { Finalize { ok: true, finalized: true } }"
+    case = _lint_case(reference)
+    case["functions"]["fixed"] = case["functions"]["buggy"]
+    case["ports"] = {"buggy": pd.bench.assemble(case, reference), "fixed": pd.bench.assemble(case, reference)}
+    equivalent = "Finalize { ok: !finalized, finalized: true }"
+
+    kinds = [finding["kind"] for finding in pd.lint_findings(case, equivalent, "fixed")]
+
+    assert "guard_folding" not in kinds
+
+
 def test_guard_folding_needs_reference_failure_semantics() -> None:
     reference = "if denominator == 0 { Checked { ok: false, value: 0 } } else { Checked { ok: true, value: numerator / denominator } }"
     case = _lint_case(reference)

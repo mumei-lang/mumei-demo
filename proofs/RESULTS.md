@@ -15,13 +15,13 @@ Outcome taxonomy: false acceptance is a buggy body proven; false positive is a f
 
 Fidelity acceptance gate: mumei + LLM (LLM ports, mumei checks) blocks 9 (8–10) candidate variant(s) per run. The committed rows keep the raw verifier proof outcome; only the report projection counts a blocked candidate as unsupported/inconclusive evidence rather than verification acceptance. Lint is variant-aware and records high-confidence meaning-loss evidence: silent repair, missing modeled operations, guard folding, self-calls and success-flag rewrites. Confirming replay overrides lint warnings except exact success/result-state guard folding, which is high-confidence meaning loss. Added or removed guard-count warnings stay visible without blocking alone. Replay divergence always blocks; other high-confidence lint blocks when replay does not supply confirming evidence; inconclusive replay alone does not rewrite a raw proof. Weak/vacuous generated contracts cannot support proof acceptance. For mumei + LLM (LLM ports, mumei checks), raw verifier proofs before projection were buggy 8 (8–10) and fixed 71 (70–71) per run, while projected acceptance leaves fixed proven at 71 (69–71) and unresolved/unsupported at 10 (8–11).
 
-Fidelity rescore evidence: mumei + LLM (LLM ports, mumei checks) replayed at 2026-11-27T17:56:07+00:00 with `mumei 0.6.23` (commit unavailable).
+Fidelity rescore evidence: mumei + LLM (LLM ports, mumei checks) replayed at 2026-11-27T18:00:57+00:00 with `mumei 0.6.23` (commit unavailable).
 
 | Arm | Model | Model time | Verification time | Verification budget |
 |---|---|---:|---:|---:|
 | mumei (reference ports) | — | — | — / 0 of 213 calls | — / 0 of 213 calls |
 | LLM only (judges the source) | openai/gpt-6-luna | 1876.1s | — | — |
-| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 2896.1s | 23.9s / 476 of 902 calls | 14280.0s / 476 of 902 calls |
+| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 2896.1s | 26.0s / 476 of 902 calls | 14280.0s / 476 of 902 calls |
 | mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 1464.5s | — / 0 of 639 calls | — / 0 of 639 calls |
 
 Verification time and budget are wall seconds and the declared per-attempt timeout aggregated over recorded outcome-determining verifier calls, including vacuity controls, fidelity replay calls and the per-call input/output glue inside `verify_text`. Certificate emission/rechecks, case-level orchestration and provider calls are outside that measurement. Older committed rows show the measured fraction of expected verifier calls, so partial `--only` refreshes cannot look fully instrumented. Model time/cost come only from provider usage metadata.

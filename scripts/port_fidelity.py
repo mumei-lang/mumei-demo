@@ -101,6 +101,14 @@ def success_flag_paths(body: str) -> set[tuple]:
     return field_value_paths(body, "ok")
 
 
+def _path_sensitive_expr(expr: tuple[str, ...], path: tuple) -> tuple[str, ...]:
+    """Simplify a boolean expression known from its enclosing branch predicate."""
+    for predicate, positive in path:
+        if expr == predicate:
+            return ("true",) if positive else ("false",)
+    return expr
+
+
 def _struct_fields(text: str) -> set[str]:
     return set(re.findall(r"\b(\w+)\s*:", text)) - {"ok"}
 
@@ -119,7 +127,7 @@ def _has_folded_state_field(reference: str, port: str) -> bool:
         if len(port_entries) != 1 or len(reference_entries) < 2:
             continue
         (port_path, port_expr), = port_entries
-        reference_exprs = {expr for path, expr in reference_entries if path}
+        reference_exprs = {_path_sensitive_expr(expr, path) for path, expr in reference_entries if path}
         if (not port_path and len(reference_exprs) >= 2 and port_expr in reference_exprs
                 and all(path for path, _ in reference_entries)):
             return True
@@ -144,7 +152,7 @@ def token_pattern(text: str) -> tuple[str, ...]:
 
 
 VARIANTS = ("buggy", "fixed")
-DETECTOR_VERSION = 4
+DETECTOR_VERSION = 5
 
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
