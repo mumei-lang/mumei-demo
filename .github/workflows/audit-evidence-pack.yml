@@ -124,11 +124,16 @@ jobs:
           expected_paths = [
               "audit.json", "audit.stderr.log", "migration_plan.json", "verification.json",
               "reference.proof.json", "reference-verify.log", "reference-verify-cert.log",
-              "github-actions-mumei-audit.yml", "summary.md",
+              "github-actions-mumei-audit.yml", "summary.md", "manifest.json",
           ]
           assert manifest["artifact_paths"] == expected_paths
-          assert manifest["artifact_roles"]["native_bundle"] == []
-          assert manifest["artifact_roles"]["adapter_observation"] == []
+          assert manifest["artifact_roles"] == {
+              "audit_report": ["audit.json"],
+              "migration_plan": ["migration_plan.json"],
+              "proof_certificate": ["reference.proof.json"],
+              "native_bundle": [],
+              "adapter_observation": [],
+          }
           assert audit["artifact_paths"] == manifest["artifact_paths"]
           assert audit["artifact_roles"] == manifest["artifact_roles"]
           assert audit["evidence_boundary_by_role"] == manifest["evidence_boundary_by_role"]

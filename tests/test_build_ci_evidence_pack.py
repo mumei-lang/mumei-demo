@@ -187,7 +187,10 @@ def test_build_evidence_pack_manifest_and_boundaries(tmp_path: Path, monkeypatch
 
 
 def test_artifact_paths_match_present_manifest_artifacts_and_absent_roles() -> None:
-    assert len(pack.ARTIFACT_PATHS) == 9
+    assert len(pack.ARTIFACT_PATHS) == 10
+    assert len(pack.HASHED_ARTIFACT_PATHS) == 9
+    assert "manifest.json" in pack.ARTIFACT_PATHS
+    assert "manifest.json" not in pack.HASHED_ARTIFACT_PATHS
     assert len(set(pack.ARTIFACT_PATHS)) == len(pack.ARTIFACT_PATHS)
     for role in ("audit_report", "migration_plan", "proof_certificate"):
         assert pack.ARTIFACT_ROLES[role]
@@ -197,9 +200,15 @@ def test_artifact_paths_match_present_manifest_artifacts_and_absent_roles() -> N
         assert pack.ARTIFACT_ROLES[role] == []
         assert "not proof" not in pack.EVIDENCE_BOUNDARIES[role].lower()
 
-    # The roles are deliberately closed: adding native-bundle or adapter-observation
-    # artifacts to an audit/migration pack requires an explicit schema/policy change,
-    # not reuse of these passive evidence channels.
+    # Keep this as an explicit golden map rather than comparing the constant to
+    # itself: a wrong audit/proof/native/adapter assignment must fail here.
+    assert pack.ARTIFACT_ROLES == {
+        "audit_report": ["audit.json"],
+        "migration_plan": ["migration_plan.json"],
+        "proof_certificate": ["reference.proof.json"],
+        "native_bundle": [],
+        "adapter_observation": [],
+    }
     assert set(pack.ARTIFACT_ROLES) == set(pack.EVIDENCE_BOUNDARIES)
 
 
@@ -263,8 +272,10 @@ def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "audit-evidence-pack.yml").read_text(encoding="utf-8")
 
     assert 'manifest["artifact_paths"] == expected_paths' in workflow
-    assert 'manifest["artifact_roles"]["native_bundle"] == []' in workflow
-    assert 'manifest["artifact_roles"]["adapter_observation"] == []' in workflow
+    assert '"audit_report": ["audit.json"]' in workflow
+    assert '"proof_certificate": ["reference.proof.json"]' in workflow
+    assert '"native_bundle": []' in workflow
+    assert '"adapter_observation": []' in workflow
     assert 'audit["artifact_paths"] == manifest["artifact_paths"]' in workflow
     assert 'audit["artifact_roles"] == manifest["artifact_roles"]' in workflow
     assert 'audit["evidence_boundary_by_role"] == manifest["evidence_boundary_by_role"]' in workflow

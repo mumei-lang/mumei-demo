@@ -46,7 +46,7 @@ The copyable workflow is [`scenarios/ci_evidence_pack/reference/workflows/mumei-
 - No adapter observation is present or implied by this audit/migration evidence pack; runtime observations must not be folded into proof evidence.
 - SARIF, baseline suppression, and CI fail-on policies remain upstream audit CLI work. Until then, their absence is recorded explicitly instead of being emulated in this repository.
 
-`artifact_paths` is the canonical ordered list of pack files in `audit.json`, `migration_plan.json`, and `manifest.json`. `artifact_roles` is the closed evidence-role map: `audit_report`, `migration_plan`, and `proof_certificate` point at their respective files, while `native_bundle` and `adapter_observation` are empty lists. Treating those absent roles as present, or pointing them at audit/migration artifacts, is a schema/policy regression rather than evidence acceptance.
+`artifact_paths` is the canonical ordered list of pack files in `audit.json`, `migration_plan.json`, and `manifest.json`, including `manifest.json` itself. The manifest's `artifacts` hash rows cover every file except the self-referential manifest. `artifact_roles` is the closed evidence-role map: `audit_report`, `migration_plan`, and `proof_certificate` point at their respective files, while `native_bundle` and `adapter_observation` are empty lists. Treating those absent roles as present, or pointing them at audit/migration artifacts, is a schema/policy regression rather than evidence acceptance.
 
 ## Deterministic versus fixture mode
 

@@ -42,7 +42,9 @@ ARTIFACT_PATHS = (
     "reference-verify-cert.log",
     "github-actions-mumei-audit.yml",
     "summary.md",
+    "manifest.json",
 )
+HASHED_ARTIFACT_PATHS = tuple(path for path in ARTIFACT_PATHS if path != "manifest.json")
 ARTIFACT_ROLES = {
     "audit_report": ["audit.json"],
     "migration_plan": ["migration_plan.json"],
@@ -377,7 +379,7 @@ def build_evidence_pack(
     shutil.copyfile(workflow_template, pack_dir / "github-actions-mumei-audit.yml")
     write_summary(pack_dir / "summary.md", audit, plan, verification)
 
-    pack_artifact_paths = [pack_dir / path for path in ARTIFACT_PATHS]
+    pack_artifact_paths = [pack_dir / path for path in HASHED_ARTIFACT_PATHS]
     manifest = {
         "schema": PACK_SCHEMA,
         "mode": {
