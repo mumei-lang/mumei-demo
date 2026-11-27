@@ -487,6 +487,12 @@ def test_rescore_port_fidelity_annotates_committed_rows_without_an_llm(repo):
     assert projected["verifier_outcome"] == "proven"
     assert cb.rescore_port_fidelity([case], "mumei", 5) == {"updated": [], "gated": 0, "blocked": 0}
 
+    timeout_doc = json.loads(path.read_text())
+    timeout_doc["runs"][0][0]["fixed"]["fidelity_gate"]["output_equivalence"] = {
+        "outcome": "inconclusive", "status": "timeout"}
+    path.write_text(json.dumps(timeout_doc))
+    assert cb.rescore_port_fidelity([case], "mumei", 5)["gated"] == 1
+
     stale_doc = json.loads(path.read_text())
     stale_doc["runs"][0][0]["buggy"]["fidelity_gate"]["semantic_replay"]["input_hash"] = "stale"
     path.write_text(json.dumps(stale_doc))
@@ -626,6 +632,23 @@ def test_usage_total_includes_output_equivalence_verification_measurement():
     assert u["verification_seconds"] == 0.5
     assert u["verification_budgeted_calls"] == 1
     assert u["verification_budget_seconds"] == 30.0
+
+
+def test_usage_total_uses_output_equivalence_call_measurement():
+    r = rec("a", "go", "inconclusive", "proven")
+    r.pop("vacuity")
+    r["buggy"]["fidelity_gate"] = {"decision": "accepted", "output_equivalence": {
+        "outcome": "inconclusive", "status": "success", "seconds": 0.5, "budget_seconds": 30.0,
+        "verification": {"expected_calls": 2, "timed_calls": 2, "seconds": 1.1,
+                         "budgeted_calls": 2, "budget_seconds": 60.0}}}
+
+    u = cb.usage_total([r])
+
+    assert u["verification_expected_calls"] == 2
+    assert u["verification_timed_calls"] == 2
+    assert u["verification_seconds"] == 1.1
+    assert u["verification_budgeted_calls"] == 2
+    assert u["verification_budget_seconds"] == 60.0
 
 
 def test_usage_total_includes_fidelity_replay_verification_measurement():

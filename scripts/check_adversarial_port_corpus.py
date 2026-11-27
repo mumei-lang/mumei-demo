@@ -33,7 +33,7 @@ CASE_KEYS = {
     "id", "kind", "failure_mode", "language", "category", "atom", "header",
     "native_source", "fixed_native_source", "reference_body", "fixed_reference_body",
     "candidate_body", "variant", "requires", "ensures", "expected_findings", "rationale",
-    "prelude", "expected_output_equivalence",
+    "prelude", "expected_output_equivalence", "policy_case",
 }
 PORT_REQUIRED = {
     "id", "kind", "failure_mode", "language", "category", "atom", "header",
@@ -85,7 +85,9 @@ def validate_case(case: object, index: int, errors: list[str]) -> None:
             _error(errors, case_id, "expected_output_equivalence must be a solver-comparison outcome")
         if kind != "port":
             _error(errors, case_id, "expected_output_equivalence requires a port case")
-    string_keys = (PORT_REQUIRED | CONTRACT_REQUIRED | {"fixed_reference_body", "fixed_native_source", "prelude"}) - {"expected_findings"}
+    if "policy_case" in case and kind != "port":
+        _error(errors, case_id, "policy_case requires a port case")
+    string_keys = (PORT_REQUIRED | CONTRACT_REQUIRED | {"fixed_reference_body", "fixed_native_source", "prelude", "policy_case"}) - {"expected_findings"}
     for key in string_keys:
         if key in case and not isinstance(case[key], str):
             _error(errors, case_id, f"{key} must be a string")
@@ -133,7 +135,7 @@ def load_corpus(path: Path = CORPUS_PATH) -> dict:
 
 def _port_case(case: dict) -> dict:
     shell = {
-        "id": case["id"],
+        "id": case.get("policy_case", case["id"]),
         "atom": case["atom"],
         "header": case["header"],
         "prelude": case.get("prelude", ""),

@@ -152,7 +152,7 @@ def token_pattern(text: str) -> tuple[str, ...]:
 
 
 VARIANTS = ("buggy", "fixed")
-DETECTOR_VERSION = 8
+DETECTOR_VERSION = 10
 
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
@@ -490,12 +490,61 @@ def struct_field_types(prelude: str, struct_name: str) -> list[tuple[str, str]]:
     return fields
 
 
-def output_compare_text(case: dict, candidate_body: str, variant: str = "buggy") -> str:
+def output_policy(case: dict) -> dict:
+    """Committed adjudications for abstraction boundaries in output comparison."""
+    path = REPO_ROOT / "proofs/output-equivalence-policy.json"
+    if not path.exists():
+        return {}
+    data = json.loads(path.read_text())
+    if data.get("schema") != "mumei-demo.output-equivalence-policy/v1":
+        raise ValueError("unsupported output-equivalence policy schema")
+    cases = data.get("cases", {})
+    if not isinstance(cases, dict):
+        raise ValueError("output-equivalence policy cases must be an object")
+    entry = cases.get(case.get("id"), {})
+    if not isinstance(entry, dict):
+        raise ValueError("output-equivalence policy case entry must be an object")
+    allowed = {"rationale", "field_relevance", "failure_state_fields",
+               "rounding_tolerance_fields", "canonical_integer_arithmetic"}
+    unknown_keys = set(entry) - allowed
+    if unknown_keys:
+        raise ValueError(f"unsupported output-equivalence policy keys: {sorted(unknown_keys)}")
+    if "canonical_integer_arithmetic" in entry and entry["canonical_integer_arithmetic"] is not True:
+        raise ValueError("canonical_integer_arithmetic must be true when present")
+    for key in ("field_relevance", "rounding_tolerance_fields"):
+        if key in entry and not isinstance(entry[key], dict):
+            raise ValueError(f"output-equivalence policy {key} must be an object")
+    if "failure_state_fields" in entry and not isinstance(entry["failure_state_fields"], list):
+        raise ValueError("output-equivalence policy failure_state_fields must be a list")
+    return entry
+
+
+def field_comparison(name: str, policy: dict) -> str:
+    tolerance = (policy.get("rounding_tolerance_fields") or {}).get(name)
+    if tolerance is None:
+        relation = f"(reference.{name} == candidate.{name})"
+    else:
+        if isinstance(tolerance, bool) or not isinstance(tolerance, int) or tolerance < 1:
+            raise ValueError("rounding tolerance must be a positive integer")
+        forward = f"((reference.{name} - candidate.{name}) <= {tolerance})"
+        backward = f"((candidate.{name} - reference.{name}) <= {tolerance})"
+        relation = f"({forward} && {backward})"
+    relevance = (policy.get("field_relevance") or {}).get(name)
+    if relevance is not None:
+        if not isinstance(relevance, str) or not relevance.strip():
+            raise ValueError("field relevance must be a non-empty Mumei boolean expression")
+        relation = f"(!({relevance}) || {relation})"
+    return relation
+
+
+def output_compare_text(case: dict, candidate_body: str, variant: str = "buggy",
+                        use_policy: bool = True) -> str:
     """A solver harness comparing reference and candidate output values.
 
     Struct payload fields other than ``ok`` are compared on jointly successful
-    outputs. Failure-path sentinel payload values are therefore not treated as
-    meaningful state; primitive results and success flags are always compared.
+    outputs unless the committed output-equivalence policy marks them as
+    meaningful failure-path state. Field relevance and rounding tolerances are
+    explicit per-case abstraction adjudications, not inferred verdicts.
     """
     parts = split_port(case["ports"][variant], case["atom"])
     if parts is None:
@@ -505,23 +554,35 @@ def output_compare_text(case: dict, candidate_body: str, variant: str = "buggy")
     candidate = candidate_body.strip()
     if not reference or not candidate:
         raise ValueError("empty reference or candidate body")
+    policy = output_policy(case) if use_policy else {}
     return_type = atom_return_type(case["header"])
     if return_type in {"i64", "bool"}:
         comparison = "reference == candidate"
-        mode = "exact_value"
     else:
         fields = struct_field_types(case["prelude"], return_type)
         names = [name for name, _ in fields]
         non_ok = [name for name in names if name != "ok"]
+        for key in ("field_relevance", "rounding_tolerance_fields"):
+            unknown = set((policy.get(key) or {})) - set(names)
+            if unknown:
+                raise ValueError(f"output-equivalence policy names unknown fields: {sorted(unknown)}")
+        unknown_failure = set(policy.get("failure_state_fields") or []) - set(non_ok)
+        if unknown_failure:
+            raise ValueError(f"failure-state fields are unknown or not payload fields: {sorted(unknown_failure)}")
+        payload = " && ".join(field_comparison(name, policy) for name in non_ok)
         if "ok" in names:
             comparison = "(reference.ok == candidate.ok)"
-            if non_ok:
-                payload = " && ".join(f"(reference.{name} == candidate.{name})" for name in non_ok)
-                comparison += f" && (!(reference.ok && candidate.ok) || ({payload}))"
-            mode = "accepted_output"
+            if use_policy:
+                if payload:
+                    comparison += f" && (!(reference.ok && candidate.ok) || ({payload}))"
+                failure = [f"(reference.{name} == candidate.{name})"
+                           for name in (policy.get("failure_state_fields") or [])]
+                if failure:
+                    comparison += " && " + " && ".join(failure)
+            elif payload:
+                comparison += f" && ({payload})"
         else:
-            comparison = " && ".join(f"(reference.{name} == candidate.{name})" for name in names)
-            mode = "exact_fields"
+            comparison = payload
     params = atom_param_text(case["header"])
     requires = atom_requires(case["header"])
     return (case["prelude"]
@@ -547,11 +608,12 @@ def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout:
                        variant: str = "buggy") -> dict:
     """Diagnostic reference-vs-candidate output equality evidence.
 
-    ``diverged`` is positive solver evidence that an input inside the reference
-    contract separates the two outputs. ``matched`` is stronger than fixture
-    replay when the solver proves equality. Loop-containing bodies are explicit
-    non-evidence because loop-invariant abstraction can manufacture spurious
-    differences even between two copies of the same reference body.
+    ``matched`` is exact solver equality. ``diverged`` means a separating input
+    remains after the committed relevance/rounding/failure-state adjudication;
+    a difference confined to those boundary regions is explicitly inconclusive
+    rather than blocking evidence. Loop-containing bodies are non-evidence
+    because loop-invariant abstraction can manufacture spurious differences
+    even between two copies of the same reference body.
     """
     try:
         parts = split_port(case["ports"][variant], case["atom"])
@@ -559,33 +621,85 @@ def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout:
         if re.search(r"\bwhile\b", reference) or re.search(r"\bwhile\b", candidate_body):
             return {"outcome": "unavailable", "reason": "loop_equivalence_unverified",
                     "method": "solver_output_compare"}
-        text = output_compare_text(case, candidate_body, variant)
+        text = output_compare_text(case, candidate_body, variant, use_policy=False)
+        policy = output_policy(case)
         if any(finding.get("kind") == "vacuous_spec"
                for finding in lint_contract(atom_requires(case["header"]), "result == result")):
             return {"outcome": "unavailable", "reason": "vacuous_compare_domain",
                     "method": "solver_output_compare"}
     except (KeyError, ValueError, IndexError) as error:
         return {"outcome": "unavailable", "reason": str(error), "method": "solver_output_compare"}
-    verification = verify_text(mumei_bin, text, timeout)
-    postcondition_failure = any("Postcondition" in diagnostic["message"]
-                                for diagnostic in verification["diagnostics"])
     helpers = re.findall(r"\batom\s+(\w+)\s*\(", case["prelude"])
     opaque_calls = sorted({name for name in helpers
                            if re.search(rf"\b{re.escape(name)}\s*\(", reference)
                            or re.search(rf"\b{re.escape(name)}\s*\(", candidate_body)})
-    if verification["outcome"] == "proven":
-        outcome = "matched"
-    elif verification["outcome"] == "refuted" and postcondition_failure and not opaque_calls:
-        outcome = "diverged"
-    else:
-        outcome = "inconclusive"
+
+    def classify(result: dict) -> str:
+        postcondition_failure = any("Postcondition" in diagnostic["message"]
+                                    for diagnostic in result["diagnostics"])
+        if result["outcome"] == "proven":
+            return "matched"
+        if result["outcome"] == "refuted" and postcondition_failure and not opaque_calls:
+            return "diverged"
+        return "inconclusive"
+
+    verifications = []
+    exact_verification = verify_text(mumei_bin, text, timeout)
+    verifications.append(exact_verification)
+    exact_outcome = classify(exact_verification)
+    outcome = exact_outcome
+    verification = exact_verification
+    boundary_only = False
+    operational_policy = any(key in policy for key in
+                             ("field_relevance", "failure_state_fields", "rounding_tolerance_fields"))
+    return_type = atom_return_type(case["header"])
+    failure_payload_boundary = False
+    if return_type not in {"i64", "bool"}:
+        names = [name for name, _ in struct_field_types(case["prelude"], return_type)]
+        failure_payload_boundary = "ok" in names
+    if exact_outcome == "diverged" and (operational_policy or failure_payload_boundary):
+        adjusted_text = output_compare_text(case, candidate_body, variant, use_policy=True)
+        adjusted_verification = verify_text(mumei_bin, adjusted_text, timeout)
+        verifications.append(adjusted_verification)
+        adjusted_outcome = classify(adjusted_verification)
+        verification = adjusted_verification
+        if adjusted_outcome == "matched":
+            outcome = "inconclusive"
+            boundary_only = True
+        else:
+            outcome = adjusted_outcome
     evidence = {"outcome": outcome, "method": "solver_output_compare",
                 "status": verification["status"],
                 "diagnostics": verification["diagnostics"][:2]}
+    if boundary_only:
+        evidence["reason"] = "abstraction_boundary_only"
+        evidence["exact_output"] = {"outcome": exact_outcome, "status": exact_verification["status"],
+                                    "diagnostics": exact_verification["diagnostics"][:2]}
+    if policy:
+        evidence["comparison_policy"] = policy
     if opaque_calls:
         evidence["opaque_atom_calls"] = opaque_calls
-        if verification["outcome"] == "refuted" and postcondition_failure:
+        final_postcondition_failure = any("Postcondition" in diagnostic["message"]
+                                          for diagnostic in verification["diagnostics"])
+        if verification["outcome"] == "refuted" and final_postcondition_failure and not boundary_only:
             evidence["reason"] = "opaque_atom_call_counterexample"
+    measured = [result for result in verifications
+                if any(isinstance(result.get(key), (int, float)) and not isinstance(result.get(key), bool)
+                       for key in ("seconds", "budget_seconds"))]
+    if measured:
+        evidence["verification"] = {
+            "expected_calls": len(verifications),
+            "timed_calls": sum(isinstance(result.get("seconds"), (int, float))
+                               and not isinstance(result.get("seconds"), bool) for result in verifications),
+            "seconds": sum(result.get("seconds", 0.0) for result in verifications
+                           if isinstance(result.get("seconds"), (int, float))
+                           and not isinstance(result.get("seconds"), bool)),
+            "budgeted_calls": sum(isinstance(result.get("budget_seconds"), (int, float))
+                                  and not isinstance(result.get("budget_seconds"), bool) for result in verifications),
+            "budget_seconds": sum(result.get("budget_seconds", 0.0) for result in verifications
+                                  if isinstance(result.get("budget_seconds"), (int, float))
+                                  and not isinstance(result.get("budget_seconds"), bool)),
+        }
     for key in ("failure_kind", "seconds", "budget_seconds"):
         if key in verification:
             evidence[key] = verification[key]

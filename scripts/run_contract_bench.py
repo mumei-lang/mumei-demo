@@ -393,7 +393,7 @@ def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str
     blocked = (semantic["outcome"] == "diverged" or equivalence.get("outcome") == "diverged"
                or structural_meaning_loss or hard_meaning_loss
                or (not confirming_evidence and bool(blocking)))
-    gate = {"schema": "mumei-demo.port-fidelity-gate/v8", "detector_version": fidelity.DETECTOR_VERSION,
+    gate = {"schema": "mumei-demo.port-fidelity-gate/v10", "detector_version": fidelity.DETECTOR_VERSION,
             "variant": variant,
             "decision": "blocked" if blocked else "accepted",
             "lint_findings": linted, "blocking_lint_findings": blocking,
@@ -867,7 +867,14 @@ def usage_total(records: list[dict]) -> dict:
             verification_budgeted += measurement.get("budgeted_calls", 0)
             verification_budget += measurement.get("budget_seconds", 0.0)
             equivalence = gate.get("output_equivalence", {}) or {}
-            if "status" in equivalence:
+            equivalence_measurement = equivalence.get("verification") or {}
+            if equivalence_measurement:
+                verification_expected += equivalence_measurement.get("expected_calls", 0)
+                verification_timed += equivalence_measurement.get("timed_calls", 0)
+                verification_seconds += equivalence_measurement.get("seconds", 0.0)
+                verification_budgeted += equivalence_measurement.get("budgeted_calls", 0)
+                verification_budget += equivalence_measurement.get("budget_seconds", 0.0)
+            elif "status" in equivalence:
                 verification_expected += 1
                 if numeric_measurement(equivalence.get("seconds")):
                     verification_timed += 1
@@ -1020,8 +1027,10 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             "counts a blocked candidate as unsupported/inconclusive evidence rather than verification acceptance. "
             "Lint is variant-aware and records high-confidence meaning-loss evidence: silent repair, missing modeled "
             "operations, guard folding, self-calls and success-flag rewrites. A separate solver-backed output comparison "
-            "inlines the reference and candidate bodies and compares primitive results or accepted-output struct fields; "
-            "matched output is confirming evidence, while output divergence blocks. Loop-containing bodies are unavailable "
+            "inlines the reference and candidate bodies and compares primitive results or struct output fields. "
+            "Committed per-case policy adjudicates don't-care fields, meaningful failure state and integer-rounding "
+            "boundaries; matched exact output is confirming evidence, adjudicated divergence blocks, and boundary-only "
+            "differences are inconclusive diagnostic evidence. Loop-containing bodies are unavailable "
             "rather than risk invariant-abstraction false positives. Confirming replay or matched output overrides guard-shape "
             "and success-flag lint-only warnings; exact result-state guard folding remains blocking unless output equality matches. Added or removed "
             "guard-count warnings stay visible without blocking alone. Replay divergence always blocks; other high-confidence "
@@ -1412,7 +1421,11 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                     if not isinstance(result, dict) or result.get("outcome") != "proven":
                         continue
                     existing_gate = result.get("fidelity_gate")
-                    if existing_gate and not fidelity_gate_stale(case, existing_gate):
+                    equivalence = (existing_gate or {}).get("output_equivalence", {})
+                    retry_timed_out_comparison = (equivalence.get("outcome") == "inconclusive"
+                                                  and equivalence.get("status") == "timeout")
+                    if (existing_gate and not fidelity_gate_stale(case, existing_gate)
+                            and not retry_timed_out_comparison):
                         continue
                     body = result.get("body")
                     if not isinstance(body, str):
@@ -1425,7 +1438,7 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                         blocked += new_result.get("fidelity_gate", {}).get("decision") == "blocked"
         if changed:
             doc["fidelity_rescore"] = {
-                "schema": "mumei-demo.port-fidelity-gate/v8",
+                "schema": "mumei-demo.port-fidelity-gate/v10",
                 "rescored_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
                 "replay_verifier": verifier_identity(mumei_bin),
             }

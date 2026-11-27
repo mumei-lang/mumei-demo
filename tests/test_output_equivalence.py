@@ -80,6 +80,8 @@ def test_postcondition_refutation_is_divergence_but_safety_failure_is_not(monkey
         {"outcome": "refuted", "status": "failed", "diagnostics": [
             {"atom": "compare_getReward", "code": "failed", "message": "Verification Error: Postcondition (ensures) is not satisfied."}]},
         {"outcome": "refuted", "status": "failed", "diagnostics": [
+            {"atom": "compare_getReward", "code": "failed", "message": "Verification Error: Postcondition (ensures) is not satisfied."}]},
+        {"outcome": "refuted", "status": "failed", "diagnostics": [
             {"atom": "compare_getReward", "code": "failed", "message": "Verification Error: Division by zero."}]},
     ])
     monkeypatch.setattr(fidelity, "verify_text", lambda *_args: next(responses))
@@ -209,10 +211,48 @@ def test_exact_nonloop_fixed_reference_copies_match_with_real_verifier() -> None
 
 
 @requires_mumei
-def test_failure_path_payload_noise_is_not_output_divergence_with_real_verifier() -> None:
+def test_failure_path_payload_noise_is_boundary_only_not_output_divergence_with_real_verifier() -> None:
     case = case_by_id("PY01-D10")
     candidate = "if value <= 0 { Parsed { ok: false, value: value } } else { Parsed { ok: true, value: value } }"
 
     evidence = fidelity.output_equivalence(case, candidate, MUMEI_BIN, 10, "fixed")
 
-    assert evidence["outcome"] == "matched"
+    assert evidence["outcome"] == "inconclusive"
+    assert evidence["reason"] == "abstraction_boundary_only"
+    assert evidence["exact_output"]["outcome"] == "diverged"
+    assert evidence["verification"]["expected_calls"] == 2
+
+
+def test_output_policy_adjudicates_dontcare_failure_state_and_rounding() -> None:
+    sol02 = case_by_id("SOL02-D11")
+    sol03 = case_by_id("SOL03-D08")
+    ts09 = case_by_id("TS03-D09")
+
+    sol02_text = fidelity.output_compare_text(sol02, "Outbid { bid_of: new_bid, pending: prev_pending }", "fixed")
+    sol03_text = fidelity.output_compare_text(sol03, "Payout { ok: transfer_ok, owed: 0 }", "fixed")
+    ts09_text = fidelity.output_compare_text(ts09, "Parsed { ok: true, value: amount }", "fixed")
+
+    assert "!(has_previous) || (reference.bid_of == candidate.bid_of)" in sol02_text
+    assert sol03_text.count("(reference.owed == candidate.owed)") == 2
+    assert "(reference.value - candidate.value) <= 1" in ts09_text
+
+
+def test_output_equivalence_reports_applied_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(fidelity, "verify_text", lambda *_args: {
+        "outcome": "proven", "status": "success", "diagnostics": []})
+    evidence = fidelity.output_equivalence(case_by_id("SOL02-D11"), "Outbid { bid_of: new_bid, pending: prev_pending }",
+                                           "unused", 5, "fixed")
+    assert evidence["comparison_policy"]["field_relevance"] == {"bid_of": "has_previous"}
+    assert "no previous bidder" in evidence["comparison_policy"]["rationale"]
+
+
+def test_output_policy_rejects_unknown_adjudication_keys(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import json
+    (tmp_path / "proofs").mkdir()
+    (tmp_path / "proofs/output-equivalence-policy.json").write_text(json.dumps({
+        "schema": "mumei-demo.output-equivalence-policy/v1",
+        "cases": {"SOL03-D08": {"unsupported_key": True}}}))
+    monkeypatch.setattr(fidelity, "REPO_ROOT", tmp_path)
+
+    with pytest.raises(ValueError, match="unsupported output-equivalence policy keys"):
+        fidelity.output_policy(case_by_id("SOL03-D08"))

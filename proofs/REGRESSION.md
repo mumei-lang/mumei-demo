@@ -7,7 +7,7 @@ The 71 contract-benchmark cases read as a pull-request gate. The contract was pi
 | Gate | Model | Runs | Regressions blocked | Regressions let through | Regressions unresolved | Good changes blocked | Good changes unresolved | Flaky cases | Model cost per gate pass |
 |---|---|---|---|---|---|---|---|---|---|
 | mumei (hand-written ports) | — | 1 | 71 | 0 | 0 | 0 | 0 | — | $0 (no model) |
-| mumei + LLM port | openai/gpt-6-luna | 3 | 63 (60–63) | 0 | 8 (8–11) | 0 | 5 (4–5) | 12 | $0.05 |
+| mumei + LLM port | openai/gpt-6-luna | 3 | 63 (60–63) | 0 | 8 (8–11) | 0 | 4 (3–5) | 10 | $0.05 |
 | LLM review | openai/gpt-6-luna | 3 | 71 (70–71) | 0 (0–1) | 0 | 5 (4–5) | 0 | 6 | $0.04 |
 
 ## Unresolved outcome taxonomy
@@ -19,7 +19,7 @@ Regressions let through are false acceptance and good changes blocked are false 
 | mumei (hand-written ports) | — | regression | 0 | 0 | 0 | 0 |
 | mumei (hand-written ports) | — | keep fix | 0 | 0 | 0 | 0 |
 | mumei + LLM port | openai/gpt-6-luna | regression | 8 (8–11) | 0 | 0 | 0 |
-| mumei + LLM port | openai/gpt-6-luna | keep fix | 5 (4–5) | 0 | 0 | 0 |
+| mumei + LLM port | openai/gpt-6-luna | keep fix | 4 (3–5) | 0 | 0 | 0 |
 | LLM review | openai/gpt-6-luna | regression | 0 | 0 | 0 | 0 |
 | LLM review | openai/gpt-6-luna | keep fix | 0 | 0 | 0 | 0 |
 
@@ -30,16 +30,16 @@ Model and verifier measurements are totals over the recorded runs. Model time su
 | Gate | Model | Model time | Verification time | Verification budget |
 |---|---|---:|---:|---:|
 | mumei (hand-written ports) | — | — | — / 0 of 213 calls | — / 0 of 213 calls |
-| mumei + LLM port | openai/gpt-6-luna | 2896.1s | 34.0s / 711 of 1137 calls | 21330.0s / 711 of 1137 calls |
+| mumei + LLM port | openai/gpt-6-luna | 2896.1s | 34.0s / 734 of 1160 calls | 22020.0s / 734 of 1160 calls |
 | LLM review | openai/gpt-6-luna | 1876.1s | — | — |
 
 How to read it:
 
 - **mumei (hand-written ports)** is the gate once a port exists for the function. The ports were written with knowledge of the defects, so this row shows what the pinned contracts can enforce, not detection. mumei is deterministic, so one run is enough; a block comes with a counterexample and a pass with a proof certificate.
-- **mumei + LLM port** is the gate without hand-written ports. The LLM only writes the `.mm` body of the changed function; mumei decides. A regression let through here is a translation that dropped the defect, a flaky case is a port that differs between runs. Output-equivalence evidence reports fixed-side output differences in `GO01-D04`, `PY02-D08`, `RS01-D06`, `SOL02-D11`, `SOL03-D08`, `TS03-D03`, `TS03-D09`; exact fixed-reference copies are pinned as negative controls, so these rows should not be read as correct-port overblocking without case review.
+- **mumei + LLM port** is the gate without hand-written ports. The LLM only writes the `.mm` body of the changed function; mumei decides. A regression let through here is a translation that dropped the defect, a flaky case is a port that differs between runs. Output-equivalence evidence reports fixed-side output differences in `GO01-D04`, `PY02-D08`, `RS01-D06`, `SOL03-D08`, `TS03-D03`; exact fixed-reference copies and adjudicated abstraction-boundary controls are pinned as negative controls, so these rows should not be read as correct-port overblocking without case review.
 - **LLM review** answers holds/violated itself. A pass is the model's opinion, not a proof, and the same change can get a different answer on another run.
 
-Flaky under mumei + LLM port: `PY02-D05`, `PY04-D11`, `RS01-D06`, `RS01-D12`, `SOL01-D03`, `SOL02-D11`, `SOL03-D07`, `SOL03-D08`, `TS01-D03`, `TS01-D07`, `TS02-D11`, `TS03-D09`.
+Flaky under mumei + LLM port: `PY02-D05`, `PY04-D11`, `RS01-D06`, `RS01-D12`, `SOL01-D03`, `SOL03-D07`, `SOL03-D08`, `TS01-D03`, `TS01-D07`, `TS02-D11`.
 
 Flaky under LLM review: `GO02-D03`, `GO03-D06`, `GO03-D07`, `PY03-D05`, `RS03-D08`, `TS01-D12`.
 

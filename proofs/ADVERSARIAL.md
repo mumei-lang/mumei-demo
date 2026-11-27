@@ -4,7 +4,7 @@
 
 Static adversarial fixtures for generated contracts and LLM body ports. The cases do not replace Mumei/Z3 verification: they pin whether the deterministic fidelity lint recognizes shapes that previously made false acceptance hard to explain.
 
-Result: **14/14 cases pass**; 0 failing.
+Result: **20/20 cases pass**; 0 failing.
 
 | Failure mode | Cases | Passing |
 |---|---:|---:|
@@ -12,7 +12,7 @@ Result: **14/14 cases pass**; 0 failing.
 | `silent_repair` | 1 | 1 |
 | `vacuous_spec` | 1 | 1 |
 | `weak_spec` | 3 | 3 |
-| `body_port_meaning_loss` | 6 | 6 |
+| `body_port_meaning_loss` | 12 | 12 |
 
 | Case | Mode | Expected findings | Actual findings | Output comparison | Status |
 |---|---|---|---|---|---|
@@ -29,6 +29,12 @@ Result: **14/14 cases pass**; 0 failing.
 | `fixed-state-guard-folding-reward-control` | `guard_folding` | `guard_folding`, `removed_guard`, `success_flag_rewrite` | `guard_folding`, `removed_guard`, `success_flag_rewrite` | `diverged` | PASS |
 | `fixed-output-equivalence-exact-reference-control` | `body_port_meaning_loss` | — | — | `matched` | PASS |
 | `fixed-legitimate-success-flag-rewrite-control` | `body_port_meaning_loss` | `success_flag_rewrite` | `success_flag_rewrite` | `matched` | PASS |
+| `sol03-failure-owed-reset-positive-control` | `body_port_meaning_loss` | — | — | `diverged` | PASS |
+| `sol02-dontcare-bidof-negative-control` | `body_port_meaning_loss` | — | — | `inconclusive` | PASS |
+| `sol02-meaningful-bidof-positive-control` | `body_port_meaning_loss` | — | — | `diverged` | PASS |
+| `ts03-rounding-abstraction-negative-control` | `body_port_meaning_loss` | `success_flag_rewrite` | `success_flag_rewrite` | `inconclusive` | PASS |
+| `ts03-beyond-rounding-tolerance-positive-control` | `body_port_meaning_loss` | — | — | `diverged` | PASS |
+| `ts03-canonical-division-positive-control` | `body_port_meaning_loss` | — | — | `diverged` | PASS |
 | `meaningful-contract-negative-control` | `weak_spec` | — | — | `—` | PASS |
 
 The negative controls are part of the gate: a faithful port and a meaningful contract must produce no adversarial warning. Output-comparison expectations are pinned here and checked against a real Mumei binary by `tests/test_output_equivalence.py` in the integration workflow; this offline report does not run the solver.
