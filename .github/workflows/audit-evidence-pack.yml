@@ -175,8 +175,9 @@ jobs:
           PY
         working-directory: mumei-demo
 
-      - name: Verify copied evidence pack as a consumer
+      - name: Verify copied evidence pack as a consumer (strict proof revalidation)
         run: |
+          echo "copy-based verification includes strict reference proof revalidation"
           rm -rf consumer-evidence-pack
           cp -a reports/ci_evidence_pack/latest/evidence-pack consumer-evidence-pack
           python scripts/verify_ci_evidence_pack.py consumer-evidence-pack
@@ -217,3 +218,64 @@ jobs:
           path: mumei-demo/ci-evidence-pack-artifact/
           include-hidden-files: true
           if-no-files-found: warn
+
+  audit-evidence-pack-download-verification:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    needs: audit-evidence-pack
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout mumei-demo
+        uses: actions/checkout@v7
+        with:
+          path: mumei-demo
+
+      - name: Download evidence pack artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: ci-audit-evidence-pack
+          path: downloaded-evidence-pack
+
+      - name: Resolve downloaded evidence-pack directory
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          root = Path("downloaded-evidence-pack")
+          candidates = [root, root / "ci-audit-evidence-pack"]
+          matches = [path for path in candidates if (path / "manifest.json").is_file()]
+          if len(matches) != 1:
+              raise SystemExit(f"expected exactly one downloaded evidence pack, found {len(matches)}")
+          pack_dir = matches[0]
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
+              env.write(f"EVIDENCE_PACK_DIR={pack_dir}\n")
+          print(f"downloaded evidence pack directory: {pack_dir}")
+          PY
+
+      - name: Verify downloaded evidence pack as a consumer (structural/hash only)
+        run: |
+          echo "download verification mode: structural/hash only; strict reference proof revalidation remains in the copy-based harness"
+          python3 mumei-demo/scripts/verify_ci_evidence_pack.py "$EVIDENCE_PACK_DIR"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path, PurePosixPath
+
+          root = Path(os.environ["EVIDENCE_PACK_DIR"])
+          manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+          migration_status = manifest["migration_execution"]["status"]
+          rows = manifest["migration_execution"]["generated_artifacts"]
+          hidden_rows = [
+              row for row in rows
+              if any(part.startswith(".") for part in PurePosixPath(row["path"]).parts)
+          ]
+          if migration_status == "emitted_by_audit_cli":
+              assert hidden_rows, "expected hidden migration companion rows in the downloaded artifact"
+              assert any(PurePosixPath(row["path"]).name == ".mumei-generated-artifacts" for row in hidden_rows)
+              print(f"hidden migration companion rows verified: {len(hidden_rows)}")
+          else:
+              assert migration_status == "not_available_in_current_cli"
+              print("migration execution unavailable in current CLI; hidden row check not applicable")
+          PY
