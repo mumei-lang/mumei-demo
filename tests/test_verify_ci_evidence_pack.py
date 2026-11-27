@@ -551,3 +551,15 @@ def test_bundled_workflow_template_hash_mismatch_is_operational_failure(tmp_path
 
     with pytest.raises(verifier.EvidencePackVerificationError, match="workflow does not match"):
         verifier.verify_evidence_pack(root)
+
+
+def test_upstream_output_path_must_bind_to_canonical_migration_report(tmp_path: Path) -> None:
+    root = write_valid_pack(tmp_path / "pack")
+    execution_path = root / "migration_execution.json"
+    execution = json.loads(execution_path.read_text(encoding="utf-8"))
+    execution["artifact_paths"]["migration_execution"] = str(tmp_path / "other.json")
+    _write_json(execution_path, execution)
+    _refresh_migration_execution_hash(root)
+
+    with pytest.raises(verifier.EvidencePackVerificationError, match="output path is not bound"):
+        verifier.verify_evidence_pack(root)

@@ -226,6 +226,14 @@ def _map_claimed_path(path_text: str, *, pack_root: Path, generated_root: Path, 
     return (pack_root / Path(path_text)).resolve(strict=False)
 
 
+def _validate_upstream_output_path_binding(output_path_text: str) -> None:
+    normalized = posixpath.normpath(output_path_text)
+    if PurePosixPath(normalized).name != "migration_execution.json":
+        raise EvidencePackVerificationError("upstream migration execution output path is not bound to migration_execution.json")
+    if not posixpath.isabs(output_path_text) and normalized != "migration_execution.json":
+        raise EvidencePackVerificationError("relative upstream migration execution output path is inconsistent with the canonical artifact")
+
+
 def _validate_upstream_generated_root_binding(original_generated_root_text: str, generated_dir: str) -> None:
     normalized = posixpath.normpath(original_generated_root_text)
     basename = PurePosixPath(normalized).name
@@ -243,6 +251,7 @@ def _validate_migration_claims(root: Path, rows: list[dict[str, Any]], generated
     rows_by_path = {row["path"]: row for row in rows}
     pack_root = root.resolve()
     generated_root = (pack_root / generated_dir).resolve(strict=False)
+    _validate_upstream_output_path_binding(payload["artifact_paths"]["migration_execution"])
     original_generated_root_text = payload["artifact_paths"]["generated_artifacts"]
     _validate_upstream_generated_root_binding(original_generated_root_text, generated_dir)
     claims: list[tuple[str, object, object]] = []
