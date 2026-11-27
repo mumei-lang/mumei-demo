@@ -688,6 +688,9 @@ def expand_simple_helper_calls(text: str, helpers: dict[str, dict],
     if re.search(r"^\s*(?!let\b)\w+\s*=\s*[^=]", text, re.M):
         return None
     tokens = re.findall(REWRITE_TOKEN, text)
+    if any(token == "=" and (index < 2 or tokens[index - 2] != "let")
+           for index, token in enumerate(tokens)):
+        return None
     braces = _delimiter_pairs(tokens, "{", "}")
     parens = _delimiter_pairs(tokens, "(", ")")
     calls = []

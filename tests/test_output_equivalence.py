@@ -201,6 +201,15 @@ extern atom visible(x: i64) -> i64
     assert fidelity.simple_helper_atoms(prelude) == {}
 
 
+def test_simple_helper_rewrite_rejects_rebinding_inside_branches() -> None:
+    helpers = {"pick": {"params": [("i", "i64")], "requires": "i >= 0", "body": "i"}}
+
+    rewritten = fidelity.expand_simple_helper_calls(
+        "if c { x = 1; }; pick(x)", helpers, {"c", "x"})
+
+    assert rewritten is None
+
+
 def test_bounded_interaction_tool_failure_is_inconclusive(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(fidelity, "run_bounded_interaction_text", lambda *_args: {
         "exit_code": 1, "output_tail": "compiler error", "seconds": 0.1, "budget_seconds": 5})
