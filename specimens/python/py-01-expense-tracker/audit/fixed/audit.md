@@ -1,25 +1,23 @@
 ## No-.mm ディレクトリ監査レポート
 
-- ステータス: **要レビュー**
+- ステータス: **合格**
 - 言語: `mixed`
 - Source: `specimens/python/py-01-expense-tracker`
 - verification_status: `unverifiable`
-- Summary: Audit directory: specimens/python/py-01-expense-tracker\n  app.py: 0 violations, 0 gaps\n  config.py: 0 violations, 0 gaps\n  ledger.py: 0 violations, 0 gaps\n  store.py: 0 violations, 0 gaps\nSummary: 4 files, 1 file with issues\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, read_json.requires, respond.requires, respond.ensures, respond_text.requires, respond_text.ensures, dispatch.requires, dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, caller.requires, require_self.requires, require_self.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, daily_average.requires, daily_average.ensures, average_expense.requires, average_expense.ensures, is_over_budget.requires, subcategory.requires\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, acquire.requires, release.requires, release.ensures, open_count.requires\n    command: mumei-agent validate-spec --input <spec> --format human
+- finding_counts: `code=0, confirmed=0, spec=0, model_limitations=0, errors=0`
+- files_with_spec_diagnostics: `0`
+- Summary: Audit directory: specimens/python/py-01-expense-tracker\n  app.py: 0 violations, 0 gaps\n  config.py: 0 violations, 0 gaps\n  ledger.py: 0 violations, 0 gaps\n  store.py: 0 violations, 0 gaps\nSummary: 4 files, 0 files with issues, 0 files with spec diagnostics\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=0, verified=1, unverifiable=3\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, _read_json.requires, _respond.requires, _respond.ensures, _respond_text.requires, _respond_text.ensures, _dispatch.requires, _dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, _caller.requires, _require_self.requires, _require_self.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, daily_average.requires, daily_average.ensures, average_expense.requires, average_expense.ensures, is_over_budget.requires, subcategory.requires\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: __init__.requires, __init__.ensures, acquire.requires, release.requires, release.ensures, open_count.requires\n    command: mumei-agent validate-spec --input <spec> --format human
 
 ### 次の手順 (V1-E-1)
-1. **[V1-E-1:通常]** underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, read_json.requires, respond.requires, respond.ensures, respond_text.requires, respond_text.ensures, dispatch.requires, dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, caller.requires, require_self.requires, require_self.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures
+1. **[V1-E-1:通常]** underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, _read_json.requires, _respond.requires, _respond.ensures, _respond_text.requires, _respond_text.ensures, _dispatch.requires, _dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, _caller.requires, _require_self.requires, _require_self.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures
    ```bash
    mumei-agent validate-spec --input <spec> --format human
    ```
-2. **[V1-E-1:通常]** validate-spec で仕様の矛盾を修正
+2. **[V1-E-1:通常]** underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, daily_average.requires, daily_average.ensures, average_expense.requires, average_expense.ensures, is_over_budget.requires, subcategory.requires
    ```bash
    mumei-agent validate-spec --input <spec> --format human
    ```
-3. **[V1-E-1:通常]** underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, daily_average.requires, daily_average.ensures, average_expense.requires, average_expense.ensures, is_over_budget.requires, subcategory.requires
-   ```bash
-   mumei-agent validate-spec --input <spec> --format human
-   ```
-4. **[V1-E-1:通常]** underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, acquire.requires, release.requires, release.ensures, open_count.requires
+3. **[V1-E-1:通常]** underspecified な意図を明文化（推測で補完しない）: __init__.requires, __init__.ensures, acquire.requires, release.requires, release.ensures, open_count.requires
    ```bash
    mumei-agent validate-spec --input <spec> --format human
    ```
@@ -29,5 +27,4 @@
 - レビュー専用のギャップはありません。
 
 ### 検出事項
-- `spec_health_issues`
-  - ledger.py: encoding-gap: is_over_budget: spec_lowering_failed: failed to lower ensures clause 'result == spent_cents >= limit_cents': Verification Error: Expected bool for == (constraints: ["result == spent_cents >= limit_cents"])
+- 検出事項はありません。

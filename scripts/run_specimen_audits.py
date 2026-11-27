@@ -184,7 +184,10 @@ def apply_fixed_patch(patch: Path, scratch: Path) -> None:
 
 def run_audit(agent_repo: Path, mumei_bin: str, target: Path, fmt: str, timeout: int) -> tuple[int, str, str]:
     env = dict(os.environ, MUMEI_BIN=mumei_bin)
-    cmd = ["uv", "run", "python", "-m", "agent", "audit", "--code-file", str(target), "--format", fmt]
+    cmd = [
+        "uv", "run", "python", "-m", "agent", "audit",
+        "--code-file", str(target), "--format", fmt, "--fail-on", "never",
+    ]
     proc = subprocess.run(cmd, cwd=agent_repo, env=env, capture_output=True, text=True, timeout=timeout)
     return proc.returncode, proc.stdout, proc.stderr
 

@@ -252,15 +252,13 @@
       "file": "server.ts",
       "kind": "verification_violations",
       "text": "TypeScript function `handlePatch` uses `task` (from `.find(...)`) without an `undefined`/`null` check — `find` returns `undefined` when no element matches",
-      "status": "false_positive",
-      "reason": "`if (!task) return sendJson(res, 404, ...)` runs right after the find."
+      "status": "unreviewed"
     },
     {
       "file": "server.ts",
       "kind": "verification_violations",
       "text": "TypeScript function `handlePatch` indexes with the result of `.indexOf((…)` inline — a miss yields a sentinel (`-1`) used directly as an index",
-      "status": "real",
-      "reason": "handlePatch awaits the request body between find and indexOf, and replaces the task object. A concurrent PATCH of the same task makes indexOf return -1, so `tasks[-1] = updated` silently drops one update. The ground truth does not list this."
+      "status": "unreviewed"
     },
     {
       "file": "server.ts",
@@ -386,22 +384,11 @@
   "finding_counts": {
     "total": 25,
     "defect_evidence": 1,
-    "real": 1,
-    "false_positive": 1,
-    "unreviewed": 22
+    "real": 0,
+    "false_positive": 0,
+    "unreviewed": 24
   },
-  "reviews_used": [
-    [
-      "ts-01-task-board",
-      "server.ts",
-      "TypeScript function `handlePatch` indexes with the result of `.indexOf("
-    ],
-    [
-      "ts-01-task-board",
-      "server.ts",
-      "TypeScript function `handlePatch` uses `task` (from `.find(...)`)"
-    ]
-  ],
+  "reviews_used": [],
   "source_hash": "6bb7847600bb5841c7963e094222d5adbc986c2824fd3e900cd373e7b64c8f02",
   "meta": {
     "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
@@ -424,7 +411,7 @@
       "TS01-D10",
       "TS01-D11"
     ],
-    "false_alarms": 24,
+    "false_alarms": 25,
     "findings": [
       {
         "file": "board.ts",
@@ -454,15 +441,13 @@
         "file": "server.ts",
         "kind": "verification_violations",
         "text": "TypeScript function `handlePatch` uses `task` (from `.find(...)`) without an `undefined`/`null` check — `find` returns `undefined` when no element matches",
-        "status": "false_positive",
-        "reason": "`if (!task) return sendJson(res, 404, ...)` runs right after the find."
+        "status": "unreviewed"
       },
       {
         "file": "server.ts",
         "kind": "verification_violations",
         "text": "TypeScript function `handlePatch` indexes with the result of `.indexOf((…)` inline — a miss yields a sentinel (`-1`) used directly as an index",
-        "status": "real",
-        "reason": "handlePatch awaits the request body between find and indexOf, and replaces the task object. A concurrent PATCH of the same task makes indexOf return -1, so `tasks[-1] = updated` silently drops one update. The ground truth does not list this."
+        "status": "unreviewed"
       },
       {
         "file": "server.ts",
@@ -582,21 +567,10 @@
     "finding_counts": {
       "total": 25,
       "defect_evidence": 0,
-      "real": 1,
-      "false_positive": 1,
-      "unreviewed": 23
+      "real": 0,
+      "false_positive": 0,
+      "unreviewed": 25
     },
-    "reviews_used": [
-      [
-        "ts-01-task-board",
-        "server.ts",
-        "TypeScript function `handlePatch` indexes with the result of `.indexOf("
-      ],
-      [
-        "ts-01-task-board",
-        "server.ts",
-        "TypeScript function `handlePatch` uses `task` (from `.find(...)`)"
-      ]
-    ]
+    "reviews_used": []
   }
 }

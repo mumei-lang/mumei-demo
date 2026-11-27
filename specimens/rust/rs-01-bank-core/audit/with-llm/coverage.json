@@ -177,8 +177,7 @@
       "file": "src/bank.rs",
       "kind": "verification_violations",
       "text": "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64` without a range contract (amount_cents outside 0..=18446744073709551615 wraps)",
-      "status": "false_positive",
-      "reason": "Both casts sit inside `if amount_cents > 0`, so the i64 value is always in u64 range."
+      "status": "unreviewed"
     },
     {
       "file": "src/bank.rs",
@@ -221,16 +220,10 @@
     "total": 7,
     "defect_evidence": 1,
     "real": 0,
-    "false_positive": 1,
-    "unreviewed": 5
+    "false_positive": 0,
+    "unreviewed": 6
   },
-  "reviews_used": [
-    [
-      "rs-01-bank-core",
-      "src/bank.rs",
-      "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64`"
-    ]
-  ],
+  "reviews_used": [],
   "source_hash": "bdf0e46563e4a6ecd2f5328f78c91f9a5f5e2280c83965bb4c4934e45ac6484c",
   "meta": {
     "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
@@ -258,15 +251,13 @@
         "file": "src/bank.rs",
         "kind": "verification_violations",
         "text": "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64` without a range contract (amount_cents outside 0..=18446744073709551615 wraps)",
-        "status": "false_positive",
-        "reason": "Both casts sit inside `if amount_cents > 0`, so the i64 value is always in u64 range."
+        "status": "unreviewed"
       },
       {
         "file": "src/bank.rs",
         "kind": "verification_violations",
         "text": "Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)",
-        "status": "false_positive",
-        "reason": "On the fixed code, charge_fee rejects cents <= 0 before the cast, so the i64 value is always in u64 range."
+        "status": "unreviewed"
       },
       {
         "file": "src/main.rs",
@@ -333,20 +324,9 @@
       "total": 12,
       "defect_evidence": 0,
       "real": 0,
-      "false_positive": 2,
-      "unreviewed": 10
+      "false_positive": 0,
+      "unreviewed": 12
     },
-    "reviews_used": [
-      [
-        "rs-01-bank-core",
-        "src/bank.rs",
-        "Rust function `charge_fee` can truncate `cents` in cast to `u64`"
-      ],
-      [
-        "rs-01-bank-core",
-        "src/bank.rs",
-        "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64`"
-      ]
-    ]
+    "reviews_used": []
   }
 }

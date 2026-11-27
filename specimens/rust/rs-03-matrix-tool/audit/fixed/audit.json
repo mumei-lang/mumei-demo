@@ -29,16 +29,55 @@
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [
+          "specimens/rust/rs-03-matrix-tool/src/main.rs"
+        ],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": []
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 1,
+          "unverifiable": 0,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 0
+          }
+        }
+      },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/rust/rs-03-matrix-tool/src/main.rs\nlanguage: rust\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_cells.requires, parse_cells.ensures, load_matrix.requires, load_matrix.ensures, at.requires, at.ensures, column_total.requires, column_total.ensures, mean.requires, mean.ensures, scale.requires, scale.ensures, transpose.requires, transpose.ensures, invert2x2.requires, invert2x2.ensures, checksum_file.requires, checksum_file.ensures, sha256.requires, sha256.ensures, print_matrix.requires, print_matrix.ensures, write_cache.requires, write_cache.ensures, cache_dir.requires, cache_dir.ensures, append_report.requires, append_report.ensures, fail.requires, fail.ensures, usage.requires, usage.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/rust/rs-03-matrix-tool/src/main.rs\nlanguage: rust\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_cells.requires, parse_cells.ensures, load_matrix.requires, load_matrix.ensures, at.requires, at.ensures, column_total.requires, column_total.ensures, mean.requires, mean.ensures, scale.requires, scale.ensures, transpose.requires, transpose.ensures, invert2x2.requires, invert2x2.ensures, checksum_file.requires, checksum_file.ensures, sha256.requires, sha256.ensures, print_matrix.requires, print_matrix.ensures, write_cache.requires, write_cache.ensures, cache_dir.requires, cache_dir.ensures, append_report.requires, append_report.ensures, fail.requires, fail.ensures, usage.requires, usage.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/rust/rs-03-matrix-tool\n  src/main.rs: 0 violations, 0 gaps\nSummary: 1 file, 0 files with issues\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_cells.requires, parse_cells.ensures, load_matrix.requires, load_matrix.ensures, at.requires, at.ensures, column_total.requires, column_total.ensures, mean.requires, mean.ensures, scale.requires, scale.ensures, transpose.requires, transpose.ensures, invert2x2.requires, invert2x2.ensures, checksum_file.requires, checksum_file.ensures, sha256.requires, sha256.ensures, print_matrix.requires, print_matrix.ensures, write_cache.requires, write_cache.ensures, cache_dir.requires, cache_dir.ensures, append_report.requires, append_report.ensures, fail.requires, fail.ensures, usage.requires, usage.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/rust/rs-03-matrix-tool\n  src/main.rs: 0 violations, 0 gaps\nSummary: 1 file, 0 files with issues, 0 files with spec diagnostics\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=0, verified=1, unverifiable=0\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_cells.requires, parse_cells.ensures, load_matrix.requires, load_matrix.ensures, at.requires, at.ensures, column_total.requires, column_total.ensures, mean.requires, mean.ensures, scale.requires, scale.ensures, transpose.requires, transpose.ensures, invert2x2.requires, invert2x2.ensures, checksum_file.requires, checksum_file.ensures, sha256.requires, sha256.ensures, print_matrix.requires, print_matrix.ensures, write_cache.requires, write_cache.ensures, cache_dir.requires, cache_dir.ensures, append_report.requires, append_report.ensures, fail.requires, fail.ensures, usage.requires, usage.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 1,
   "files_with_issues": 0,
+  "files_with_spec_diagnostics": 0,
   "verification_status": "verified",
   "spec_health_issues": [],
   "verification_violations": [],
@@ -47,6 +86,8 @@
   "healed_files": [],
   "heal_errors": [],
   "trusted_atoms": [],
+  "summary_audits": [],
+  "summary_plans": [],
   "next_steps": [
     {
       "priority": "medium",
@@ -54,6 +95,40 @@
       "command": "mumei-agent validate-spec --input <spec> --format human"
     }
   ],
+  "finding_counts": {
+    "code": 0,
+    "confirmed": 0,
+    "spec": 0,
+    "model_limitations": 0,
+    "errors": 0
+  },
+  "findings": [],
+  "triage": {
+    "schema": "mumei.audit-triage/v1",
+    "refuted": [],
+    "verified": [
+      "specimens/rust/rs-03-matrix-tool/src/main.rs"
+    ],
+    "unverifiable": {
+      "skipped_rate_limited": [],
+      "timeout": [],
+      "encoding_gap": [],
+      "no_function_declarations": [],
+      "other": []
+    },
+    "counts": {
+      "refuted": 0,
+      "verified": 1,
+      "unverifiable": 0,
+      "unverifiable_by_cause": {
+        "skipped_rate_limited": 0,
+        "timeout": 0,
+        "encoding_gap": 0,
+        "no_function_declarations": 0,
+        "other": 0
+      }
+    }
+  },
   "errors": [],
   "skipped_rate_limited_files": []
 }

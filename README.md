@@ -55,8 +55,8 @@ An executable corpus of deliberately broken Python/TypeScript/Go/Rust/Solidity a
 
 Latest committed baseline:
 
-- No LLM — 2026-11-03, mumei-agent `e8be527`, mumei `36eb534`: 10/171 detected (6%), 29/171 detected or function-flagged, precision 32% of 40 findings, 29 false alarms on fixed code (16 specimens)
-- With LLM (`openai/gpt-6-luna`) — 2026-11-03, mumei-agent `e8be527`, mumei `36eb534`: 12/171 detected (7%), 68/171 detected or function-flagged, precision 10%–87% of 200 findings, 211 false alarms on fixed code (16 specimens)
+- No LLM — 2026-11-27, mumei-agent `a60016b`, mumei `b777e8e`: 11/171 detected (6%), 24/171 detected or function-flagged, precision 37%–83% of 35 findings, adjudication incomplete (16 unreviewed, 0 stale), 14 false alarms on fixed code (16 specimens)
+- With LLM (`openai/gpt-6-luna`) — 2026-11-03, mumei-agent `e8be527`, mumei `36eb534`: 12/171 detected (7%), 68/171 detected or function-flagged, precision 10%–99% of 200 findings, adjudication incomplete (391 unreviewed, 0 stale), 212 false alarms on fixed code (16 specimens)
 
 Exploratory reruns are not folded into this baseline until finding adjudication is current.
 

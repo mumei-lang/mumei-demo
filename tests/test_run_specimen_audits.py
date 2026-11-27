@@ -1554,6 +1554,25 @@ def _fake_run_audit(seen):
     return fake
 
 
+def test_run_audit_disables_finding_exit_failure(tmp_path, monkeypatch):
+    calls = []
+
+    def fake_run(cmd, cwd, env, capture_output, text, timeout):
+        calls.append((cmd, cwd, env, capture_output, text, timeout))
+        return subprocess.CompletedProcess(cmd, 0, stdout="{}", stderr="")
+
+    monkeypatch.setattr(rsa.subprocess, "run", fake_run)
+    rc, stdout, stderr = rsa.run_audit(tmp_path, "/trusted/mumei", tmp_path / "specimen", "json", 12)
+
+    assert (rc, stdout, stderr) == (0, "{}", "")
+    cmd, cwd, env, capture_output, text, timeout = calls[0]
+    assert cmd[:5] == ["uv", "run", "python", "-m", "agent"]
+    assert cmd[-4:] == ["--format", "json", "--fail-on", "never"]
+    assert env["MUMEI_BIN"] == "/trusted/mumei"
+    assert cwd == tmp_path
+    assert capture_output is True and text is True and timeout == 12
+
+
 def test_audit_specimen_audits_original_and_fixed(tmp_path, monkeypatch):
     d = _git_specimen(tmp_path, monkeypatch, MINI_FIX)
     seen = []

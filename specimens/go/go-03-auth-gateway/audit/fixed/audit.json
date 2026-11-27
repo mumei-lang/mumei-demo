@@ -12,16 +12,19 @@
       "spec_health_issues": [],
       "verification_violations": [],
       "counterexample_values": [],
-      "cross_validation_gaps": [],
+      "cross_validation_gaps": [
+        "spec stronger than implementation: passwordMatches",
+        "spec precondition assumed, not enforced, by `passwordMatches`"
+      ],
       "migration_hints": [],
       "healed_files": [],
       "heal_errors": [],
       "trusted_atoms": [],
       "next_steps": [
         {
-          "priority": "info",
-          "action": "監査完了。追加の .mm 移行は不要",
-          "command": ""
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
         },
         {
           "priority": "medium",
@@ -29,9 +32,72 @@
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 2,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "spec",
+          "severity": "warning",
+          "confidence": "medium",
+          "verification_basis": "cross-validation",
+          "message": "spec stronger than implementation: passwordMatches",
+          "source_file": "specimens/go/go-03-auth-gateway/auth.go",
+          "line": null,
+          "triage_bucket": "spec_review",
+          "fingerprint": "371d1c2dde6c33212c8d6f3e6cd8d75cc871abf4f7fe7af72649ecb622d85530"
+        },
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "spec",
+          "severity": "warning",
+          "confidence": "medium",
+          "verification_basis": "cross-validation",
+          "message": "spec precondition assumed, not enforced, by `passwordMatches`",
+          "source_file": "specimens/go/go-03-auth-gateway/auth.go",
+          "line": null,
+          "triage_bucket": "spec_review",
+          "fingerprint": "d941192ecf10368f13b03b83db02d00fbe75175cd7f361084719310f87947179"
+        }
+      ],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [
+          "specimens/go/go-03-auth-gateway/auth.go"
+        ],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": []
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 1,
+          "unverifiable": 0,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 0
+          }
+        }
+      },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/go/go-03-auth-gateway/auth.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: randomHex.requires, randomHex.ensures, seedUsers.requires, seedUsers.ensures, newUser.requires, newUser.ensures, hashPassword.requires, hashPassword.ensures, passwordMatches.ensures, tokenMatches.requires, tokenMatches.ensures, sessionUser.requires, sessionUser.ensures, bearerUser.requires, bearerUser.ensures, allowAttempt.requires, allowAttempt.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed with 2 spec diagnostics to review: specimens/go/go-03-auth-gateway/auth.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec stronger than implementation: passwordMatches', 'spec precondition assumed, not enforced, by `passwordMatches`']\nfinding_counts: code=0, confirmed=0, spec=2, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: randomHex.requires, randomHex.ensures, seedUsers.requires, seedUsers.ensures, newUser.requires, newUser.ensures, hashPassword.requires, hashPassword.ensures, passwordMatches.ensures, tokenMatches.requires, tokenMatches.ensures, sessionUser.requires, sessionUser.ensures, bearerUser.requires, bearerUser.ensures, allowAttempt.requires, allowAttempt.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -61,9 +127,47 @@
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [
+          "specimens/go/go-03-auth-gateway/handlers.go"
+        ],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": []
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 1,
+          "unverifiable": 0,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 0
+          }
+        }
+      },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/go/go-03-auth-gateway/handlers.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: loginHandler.requires, loginHandler.ensures, profileHandler.requires, profileHandler.ensures, proxyHandler.requires, proxyHandler.ensures, rotateHandler.requires, rotateHandler.ensures, healthHandler.requires, healthHandler.ensures, writeJSON.requires, writeJSON.ensures, publicAddress.requires, publicAddress.ensures, localPath.requires, localPath.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/go/go-03-auth-gateway/handlers.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: loginHandler.requires, loginHandler.ensures, profileHandler.requires, profileHandler.ensures, proxyHandler.requires, proxyHandler.ensures, rotateHandler.requires, rotateHandler.ensures, healthHandler.requires, healthHandler.ensures, writeJSON.requires, writeJSON.ensures, publicAddress.requires, publicAddress.ensures, localPath.requires, localPath.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -93,25 +197,74 @@
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [
+          "specimens/go/go-03-auth-gateway/main.go"
+        ],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": []
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 1,
+          "unverifiable": 0,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 0
+          }
+        }
+      },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/go/go-03-auth-gateway/main.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/go/go-03-auth-gateway/main.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/go/go-03-auth-gateway\n  auth.go: 0 violations, 0 gaps\n  handlers.go: 0 violations, 0 gaps\n  main.go: 0 violations, 0 gaps\nSummary: 3 files, 0 files with issues\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: randomHex.requires, randomHex.ensures, seedUsers.requires, seedUsers.ensures, newUser.requires, newUser.ensures, hashPassword.requires, hashPassword.ensures, passwordMatches.ensures, tokenMatches.requires, tokenMatches.ensures, sessionUser.requires, sessionUser.ensures, bearerUser.requires, bearerUser.ensures, allowAttempt.requires, allowAttempt.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: loginHandler.requires, loginHandler.ensures, profileHandler.requires, profileHandler.ensures, proxyHandler.requires, proxyHandler.ensures, rotateHandler.requires, rotateHandler.ensures, healthHandler.requires, healthHandler.ensures, writeJSON.requires, writeJSON.ensures, publicAddress.requires, publicAddress.ensures, localPath.requires, localPath.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/go/go-03-auth-gateway\n  auth.go: 0 violations, 2 gaps\n  handlers.go: 0 violations, 0 gaps\n  main.go: 0 violations, 0 gaps\nSummary: 3 files, 0 files with issues, 1 file with spec diagnostics\nfinding_counts: code=0, confirmed=0, spec=2, model_limitations=0, errors=0\ntriage: refuted=0, verified=3, unverifiable=0\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: randomHex.requires, randomHex.ensures, seedUsers.requires, seedUsers.ensures, newUser.requires, newUser.ensures, hashPassword.requires, hashPassword.ensures, passwordMatches.ensures, tokenMatches.requires, tokenMatches.ensures, sessionUser.requires, sessionUser.ensures, bearerUser.requires, bearerUser.ensures, allowAttempt.requires, allowAttempt.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: loginHandler.requires, loginHandler.ensures, profileHandler.requires, profileHandler.ensures, proxyHandler.requires, proxyHandler.ensures, rotateHandler.requires, rotateHandler.ensures, healthHandler.requires, healthHandler.ensures, writeJSON.requires, writeJSON.ensures, publicAddress.requires, publicAddress.ensures, localPath.requires, localPath.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 3,
   "files_with_issues": 0,
+  "files_with_spec_diagnostics": 1,
   "verification_status": "verified",
   "spec_health_issues": [],
   "verification_violations": [],
-  "cross_validation_gaps": [],
+  "cross_validation_gaps": [
+    "auth.go: spec stronger than implementation: passwordMatches",
+    "auth.go: spec precondition assumed, not enforced, by `passwordMatches`"
+  ],
   "migration_hints": [],
   "healed_files": [],
   "heal_errors": [],
   "trusted_atoms": [],
+  "summary_audits": [],
+  "summary_plans": [],
   "next_steps": [
+    {
+      "priority": "high",
+      "action": "validate-spec-to-code で制約の対応を確認",
+      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+    },
     {
       "priority": "medium",
       "action": "underspecified な意図を明文化（推測で補完しない）: randomHex.requires, randomHex.ensures, seedUsers.requires, seedUsers.ensures, newUser.requires, newUser.ensures, hashPassword.requires, hashPassword.ensures, passwordMatches.ensures, tokenMatches.requires, tokenMatches.ensures, sessionUser.requires, sessionUser.ensures, bearerUser.requires, bearerUser.ensures, allowAttempt.requires, allowAttempt.ensures",
@@ -128,6 +281,67 @@
       "command": "mumei-agent validate-spec --input <spec> --format human"
     }
   ],
+  "finding_counts": {
+    "code": 0,
+    "confirmed": 0,
+    "spec": 2,
+    "model_limitations": 0,
+    "errors": 0
+  },
+  "findings": [
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "spec",
+      "severity": "warning",
+      "confidence": "medium",
+      "verification_basis": "cross-validation",
+      "message": "spec stronger than implementation: passwordMatches",
+      "source_file": "specimens/go/go-03-auth-gateway/auth.go",
+      "line": null,
+      "triage_bucket": "spec_review",
+      "fingerprint": "371d1c2dde6c33212c8d6f3e6cd8d75cc871abf4f7fe7af72649ecb622d85530"
+    },
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "spec",
+      "severity": "warning",
+      "confidence": "medium",
+      "verification_basis": "cross-validation",
+      "message": "spec precondition assumed, not enforced, by `passwordMatches`",
+      "source_file": "specimens/go/go-03-auth-gateway/auth.go",
+      "line": null,
+      "triage_bucket": "spec_review",
+      "fingerprint": "d941192ecf10368f13b03b83db02d00fbe75175cd7f361084719310f87947179"
+    }
+  ],
+  "triage": {
+    "schema": "mumei.audit-triage/v1",
+    "refuted": [],
+    "verified": [
+      "specimens/go/go-03-auth-gateway/auth.go",
+      "specimens/go/go-03-auth-gateway/handlers.go",
+      "specimens/go/go-03-auth-gateway/main.go"
+    ],
+    "unverifiable": {
+      "skipped_rate_limited": [],
+      "timeout": [],
+      "encoding_gap": [],
+      "no_function_declarations": [],
+      "other": []
+    },
+    "counts": {
+      "refuted": 0,
+      "verified": 3,
+      "unverifiable": 0,
+      "unverifiable_by_cause": {
+        "skipped_rate_limited": 0,
+        "timeout": 0,
+        "encoding_gap": 0,
+        "no_function_declarations": 0,
+        "other": 0
+      }
+    }
+  },
   "errors": [],
   "skipped_rate_limited_files": []
 }

@@ -1,15 +1,17 @@
 ## No-.mm ディレクトリ監査レポート
 
-- ステータス: **要レビュー**
+- ステータス: **合格**
 - 言語: `mixed`
 - Source: `specimens/solidity/sol-01-token-vault`
-- verification_status: `refuted`
-- Summary: Audit directory: specimens/solidity/sol-01-token-vault\n  src/RewardVault.sol: 5 violations, 0 gaps\n  src/VaultToken.sol: 2 violations, 0 gaps\n  test/TestBase.sol: 0 violations, 0 gaps\n  test/Vm.sol: 0 violations, 0 gaps\nSummary: 4 files, 2 files with issues\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deposit.requires, deposit.ensures, previewDeposit.requires, previewDeposit.ensures, totalAssets.requires, totalAssets.ensures, sharePrice.requires, sharePrice.ensures, sharesOf.ensures, rewards.ensures, withdraw.requires, withdraw.ensures, distributeRewards.requires, distributeRewards.ensures, claimRewards.requires, claimRewards.ensures, setFeeRecipient.requires, setFeeRecipient.ensures, setWithdrawFeeBps.requires, setWithdrawFeeBps.ensures, pause.requires, pause.ensures, unpause.requires, unpause.ensures, holderCount.requires, holderCount.ensures, sharesFor.requires, sharesFor.ensures, pending.ensures, accrue.requires, accrue.ensures, payout.requires, payout.ensures, payFee.requires, payFee.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: mint.requires, mint.ensures, transfer.requires, approve.requires, transferFrom.requires, move.requires, move.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: panicCode.requires, panicCode.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deal.requires, deal.ensures, prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, warp.requires, warp.ensures, roll.requires, roll.ensures, load.requires, load.ensures, sign.requires, sign.ensures, addr.requires, addr.ensures, expectRevert.requires, expectRevert.ensures\n    command: mumei-agent validate-spec --input <spec> --format human
+- verification_status: `verified`
+- finding_counts: `code=0, confirmed=0, spec=6, model_limitations=0, errors=0`
+- files_with_spec_diagnostics: `1`
+- Summary: Audit directory: specimens/solidity/sol-01-token-vault\n  src/RewardVault.sol: 0 violations, 6 gaps\n  src/VaultToken.sol: 0 violations, 0 gaps\n  test/TestBase.sol: 0 violations, 0 gaps\n  test/Vm.sol: 0 violations, 0 gaps\nSummary: 4 files, 0 files with issues, 1 file with spec diagnostics\nfinding_counts: code=0, confirmed=0, spec=6, model_limitations=0, errors=0\ntriage: refuted=0, verified=4, unverifiable=0\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deposit.requires, deposit.ensures, previewDeposit.requires, previewDeposit.ensures, totalAssets.requires, totalAssets.ensures, sharePrice.requires, sharePrice.ensures, sharesOf.ensures, rewards.ensures, withdraw.requires, withdraw.ensures, distributeRewards.requires, distributeRewards.ensures, claimRewards.requires, claimRewards.ensures, setFeeRecipient.requires, setFeeRecipient.ensures, setWithdrawFeeBps.requires, setWithdrawFeeBps.ensures, pause.requires, pause.ensures, unpause.requires, unpause.ensures, holderCount.requires, holderCount.ensures, sharesFor.requires, sharesFor.ensures, pending.ensures, accrue.requires, accrue.ensures, payout.requires, payout.ensures, payFee.requires, payFee.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: mint.requires, mint.ensures, transfer.requires, approve.requires, transferFrom.requires, move.requires, move.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: panicCode.requires, panicCode.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deal.requires, deal.ensures, prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, warp.requires, warp.ensures, roll.requires, roll.ensures, load.requires, load.ensures, sign.requires, sign.ensures, addr.requires, addr.ensures, expectRevert.requires, expectRevert.ensures\n    command: mumei-agent validate-spec --input <spec> --format human
 
 ### 次の手順 (V1-E-1)
-1. **[V1-E-1:重要]** migrate-suggest で .mm スケルトンを生成
+1. **[V1-E-1:重要]** validate-spec-to-code で制約の対応を確認
    ```bash
-   mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm
+   mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human
    ```
 2. **[V1-E-1:通常]** underspecified な意図を明文化（推測で補完しない）: deposit.requires, deposit.ensures, previewDeposit.requires, previewDeposit.ensures, totalAssets.requires, totalAssets.ensures, sharePrice.requires, sharePrice.ensures, sharesOf.ensures, rewards.ensures, withdraw.requires, withdraw.ensures, distributeRewards.requires, distributeRewards.ensures, claimRewards.requires, claimRewards.ensures, setFeeRecipient.requires, setFeeRecipient.ensures, setWithdrawFeeBps.requires, setWithdrawFeeBps.ensures, pause.requires, pause.ensures, unpause.requires, unpause.ensures, holderCount.requires, holderCount.ensures, sharesFor.requires, sharesFor.ensures, pending.ensures, accrue.requires, accrue.ensures, payout.requires, payout.ensures, payFee.requires, payFee.ensures
    ```bash
@@ -30,14 +32,13 @@
 
 ### 人手レビュー入口
 - `next_steps` が human review の最初の入口です。
-- `verification_violations`: ["src/RewardVault.sol: Solidity function `withdraw` can truncate `shares` in cast to `uint128` without a range contract (shares outside 0..=340282366920938463463374607431768211455 wraps)", "src/RewardVault.sol: Solidity function `deposit` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless", "src/RewardVault.sol: Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"]
+- `cross_validation_gaps`: ["src/RewardVault.sol: spec stronger than implementation: sharesOf", "src/RewardVault.sol: spec stronger than implementation: rewards", "src/RewardVault.sol: spec stronger than implementation: pending"]
 
 ### 検出事項
-- `verification_violations`
-  - src/RewardVault.sol: Solidity function `withdraw` can truncate `shares` in cast to `uint128` without a range contract (shares outside 0..=340282366920938463463374607431768211455 wraps)
-  - src/RewardVault.sol: Solidity function `deposit` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless
-  - src/RewardVault.sol: Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless
-  - src/RewardVault.sol: Solidity function `claimRewards` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless
-  - src/RewardVault.sol: Z3 Counter-example: shares=340282366920938463463374607431768211456
-  - src/VaultToken.sol: Solidity function `approve` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless
-  - src/VaultToken.sol: Solidity function `transferFrom` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless
+- `cross_validation_gaps`
+  - src/RewardVault.sol: spec stronger than implementation: sharesOf
+  - src/RewardVault.sol: spec stronger than implementation: rewards
+  - src/RewardVault.sol: spec stronger than implementation: pending
+  - src/RewardVault.sol: spec precondition assumed, not enforced, by `sharesOf`
+  - src/RewardVault.sol: spec precondition assumed, not enforced, by `rewards`
+  - src/RewardVault.sol: spec precondition assumed, not enforced, by `pending`

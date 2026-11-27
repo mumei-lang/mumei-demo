@@ -1,5 +1,5 @@
 {
-  "success": false,
+  "success": true,
   "source_dir": "specimens/python/py-01-expense-tracker",
   "language": "mixed",
   "file_results": [
@@ -8,7 +8,7 @@
       "source_file": "specimens/python/py-01-expense-tracker/app.py",
       "language": "python",
       "spec_extracted": true,
-      "verification_status": "verified",
+      "verification_status": "unverifiable",
       "spec_health_issues": [],
       "verification_violations": [],
       "counterexample_values": [],
@@ -25,13 +25,51 @@
         },
         {
           "priority": "medium",
-          "action": "underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, read_json.requires, respond.requires, respond.ensures, respond_text.requires, respond_text.ensures, dispatch.requires, dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, caller.requires, require_self.requires, require_self.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures",
+          "action": "underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, _read_json.requires, _respond.requires, _respond.ensures, _respond_text.requires, _respond_text.ensures, _dispatch.requires, _dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, _caller.requires, _require_self.requires, _require_self.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures",
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": [
+            "specimens/python/py-01-expense-tracker/app.py"
+          ]
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 0,
+          "unverifiable": 1,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 1
+          }
+        }
+      },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/python/py-01-expense-tracker/app.py\nlanguage: python\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, read_json.requires, respond.requires, respond.ensures, respond_text.requires, respond_text.ensures, dispatch.requires, dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, caller.requires, require_self.requires, require_self.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/python/py-01-expense-tracker/app.py\nlanguage: python\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, _read_json.requires, _respond.requires, _respond.ensures, _respond_text.requires, _respond_text.ensures, _dispatch.requires, _dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, _caller.requires, _require_self.requires, _require_self.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -56,52 +94,56 @@
           "command": ""
         }
       ],
-      "proof_certificate": null,
-      "lean_bridge": null,
-      "report": "Audit passed: specimens/python/py-01-expense-tracker/config.py\nlanguage: python\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: ",
-      "errors": [],
-      "skipped_rate_limited": false
-    },
-    {
-      "success": false,
-      "source_file": "specimens/python/py-01-expense-tracker/ledger.py",
-      "language": "python",
-      "spec_extracted": true,
-      "verification_status": "unverifiable",
-      "spec_health_issues": [
-        "encoding-gap: is_over_budget: spec_lowering_failed: failed to lower ensures clause 'result == spent_cents >= limit_cents': Verification Error: Expected bool for == (constraints: [\"result == spent_cents >= limit_cents\"])"
-      ],
-      "verification_violations": [],
-      "counterexample_values": [],
-      "cross_validation_gaps": [],
-      "migration_hints": [],
-      "healed_files": [],
-      "heal_errors": [],
-      "trusted_atoms": [],
-      "next_steps": [
-        {
-          "priority": "medium",
-          "action": "validate-spec で仕様の矛盾を修正",
-          "command": "mumei-agent validate-spec --input <spec> --format human"
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [
+          "specimens/python/py-01-expense-tracker/config.py"
+        ],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": []
         },
-        {
-          "priority": "medium",
-          "action": "underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, daily_average.requires, daily_average.ensures, average_expense.requires, average_expense.ensures, is_over_budget.requires, subcategory.requires",
-          "command": "mumei-agent validate-spec --input <spec> --format human"
+        "counts": {
+          "refuted": 0,
+          "verified": 1,
+          "unverifiable": 0,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 0
+          }
         }
-      ],
+      },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit found issues: specimens/python/py-01-expense-tracker/ledger.py\nlanguage: python\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: ['encoding-gap: is_over_budget: spec_lowering_failed: failed to lower ensures clause \\'result == spent_cents >= limit_cents\\': Verification Error: Expected bool for == (constraints: [\"result == spent_cents >= limit_cents\"])']\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, daily_average.requires, daily_average.ensures, average_expense.requires, average_expense.ensures, is_over_budget.requires, subcategory.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/python/py-01-expense-tracker/config.py\nlanguage: python\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: ",
       "errors": [],
       "skipped_rate_limited": false
     },
     {
       "success": true,
-      "source_file": "specimens/python/py-01-expense-tracker/store.py",
+      "source_file": "specimens/python/py-01-expense-tracker/ledger.py",
       "language": "python",
       "spec_extracted": true,
-      "verification_status": "verified",
+      "verification_status": "unverifiable",
       "spec_health_issues": [],
       "verification_violations": [],
       "counterexample_values": [],
@@ -118,39 +160,143 @@
         },
         {
           "priority": "medium",
-          "action": "underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, acquire.requires, release.requires, release.ensures, open_count.requires",
+          "action": "underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, daily_average.requires, daily_average.ensures, average_expense.requires, average_expense.ensures, is_over_budget.requires, subcategory.requires",
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": [
+            "specimens/python/py-01-expense-tracker/ledger.py"
+          ]
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 0,
+          "unverifiable": 1,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 1
+          }
+        }
+      },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/python/py-01-expense-tracker/store.py\nlanguage: python\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, acquire.requires, release.requires, release.ensures, open_count.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/python/py-01-expense-tracker/ledger.py\nlanguage: python\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, daily_average.requires, daily_average.ensures, average_expense.requires, average_expense.ensures, is_over_budget.requires, subcategory.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "errors": [],
+      "skipped_rate_limited": false
+    },
+    {
+      "success": true,
+      "source_file": "specimens/python/py-01-expense-tracker/store.py",
+      "language": "python",
+      "spec_extracted": true,
+      "verification_status": "unverifiable",
+      "spec_health_issues": [],
+      "verification_violations": [],
+      "counterexample_values": [],
+      "cross_validation_gaps": [],
+      "migration_hints": [],
+      "healed_files": [],
+      "heal_errors": [],
+      "trusted_atoms": [],
+      "next_steps": [
+        {
+          "priority": "info",
+          "action": "監査完了。追加の .mm 移行は不要",
+          "command": ""
+        },
+        {
+          "priority": "medium",
+          "action": "underspecified な意図を明文化（推測で補完しない）: __init__.requires, __init__.ensures, acquire.requires, release.requires, release.ensures, open_count.requires",
+          "command": "mumei-agent validate-spec --input <spec> --format human"
+        }
+      ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": [
+            "specimens/python/py-01-expense-tracker/store.py"
+          ]
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 0,
+          "unverifiable": 1,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 1
+          }
+        }
+      },
+      "proof_certificate": null,
+      "lean_bridge": null,
+      "report": "Audit passed: specimens/python/py-01-expense-tracker/store.py\nlanguage: python\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: __init__.requires, __init__.ensures, acquire.requires, release.requires, release.ensures, open_count.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/python/py-01-expense-tracker\n  app.py: 0 violations, 0 gaps\n  config.py: 0 violations, 0 gaps\n  ledger.py: 0 violations, 0 gaps\n  store.py: 0 violations, 0 gaps\nSummary: 4 files, 1 file with issues\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, read_json.requires, respond.requires, respond.ensures, respond_text.requires, respond_text.ensures, dispatch.requires, dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, caller.requires, require_self.requires, require_self.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: validate-spec で仕様の矛盾を修正\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, daily_average.requires, daily_average.ensures, average_expense.requires, average_expense.ensures, is_over_budget.requires, subcategory.requires\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, acquire.requires, release.requires, release.ensures, open_count.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/python/py-01-expense-tracker\n  app.py: 0 violations, 0 gaps\n  config.py: 0 violations, 0 gaps\n  ledger.py: 0 violations, 0 gaps\n  store.py: 0 violations, 0 gaps\nSummary: 4 files, 0 files with issues, 0 files with spec diagnostics\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=0, verified=1, unverifiable=3\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, _read_json.requires, _respond.requires, _respond.ensures, _respond_text.requires, _respond_text.ensures, _dispatch.requires, _dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, _caller.requires, _require_self.requires, _require_self.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, daily_average.requires, daily_average.ensures, average_expense.requires, average_expense.ensures, is_over_budget.requires, subcategory.requires\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: __init__.requires, __init__.ensures, acquire.requires, release.requires, release.ensures, open_count.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 4,
-  "files_with_issues": 1,
+  "files_with_issues": 0,
+  "files_with_spec_diagnostics": 0,
   "verification_status": "unverifiable",
-  "spec_health_issues": [
-    "ledger.py: encoding-gap: is_over_budget: spec_lowering_failed: failed to lower ensures clause 'result == spent_cents >= limit_cents': Verification Error: Expected bool for == (constraints: [\"result == spent_cents >= limit_cents\"])"
-  ],
+  "spec_health_issues": [],
   "verification_violations": [],
   "cross_validation_gaps": [],
   "migration_hints": [],
   "healed_files": [],
   "heal_errors": [],
   "trusted_atoms": [],
+  "summary_audits": [],
+  "summary_plans": [],
   "next_steps": [
     {
       "priority": "medium",
-      "action": "underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, read_json.requires, respond.requires, respond.ensures, respond_text.requires, respond_text.ensures, dispatch.requires, dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, caller.requires, require_self.requires, require_self.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures",
-      "command": "mumei-agent validate-spec --input <spec> --format human"
-    },
-    {
-      "priority": "medium",
-      "action": "validate-spec で仕様の矛盾を修正",
+      "action": "underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, _read_json.requires, _respond.requires, _respond.ensures, _respond_text.requires, _respond_text.ensures, _dispatch.requires, _dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, _caller.requires, _require_self.requires, _require_self.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures",
       "command": "mumei-agent validate-spec --input <spec> --format human"
     },
     {
@@ -160,10 +306,48 @@
     },
     {
       "priority": "medium",
-      "action": "underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, acquire.requires, release.requires, release.ensures, open_count.requires",
+      "action": "underspecified な意図を明文化（推測で補完しない）: __init__.requires, __init__.ensures, acquire.requires, release.requires, release.ensures, open_count.requires",
       "command": "mumei-agent validate-spec --input <spec> --format human"
     }
   ],
+  "finding_counts": {
+    "code": 0,
+    "confirmed": 0,
+    "spec": 0,
+    "model_limitations": 0,
+    "errors": 0
+  },
+  "findings": [],
+  "triage": {
+    "schema": "mumei.audit-triage/v1",
+    "refuted": [],
+    "verified": [
+      "specimens/python/py-01-expense-tracker/config.py"
+    ],
+    "unverifiable": {
+      "skipped_rate_limited": [],
+      "timeout": [],
+      "encoding_gap": [],
+      "no_function_declarations": [],
+      "other": [
+        "specimens/python/py-01-expense-tracker/app.py",
+        "specimens/python/py-01-expense-tracker/ledger.py",
+        "specimens/python/py-01-expense-tracker/store.py"
+      ]
+    },
+    "counts": {
+      "refuted": 0,
+      "verified": 1,
+      "unverifiable": 3,
+      "unverifiable_by_cause": {
+        "skipped_rate_limited": 0,
+        "timeout": 0,
+        "encoding_gap": 0,
+        "no_function_declarations": 0,
+        "other": 3
+      }
+    }
+  },
   "errors": [],
   "skipped_rate_limited_files": []
 }

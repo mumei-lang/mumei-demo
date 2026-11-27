@@ -193,15 +193,13 @@
       "file": "src/EnglishAuction.sol",
       "kind": "verification_violations",
       "text": "Solidity function `bid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-      "status": "false_positive",
-      "reason": "Public bidding entry point; anyone may bid."
+      "status": "unreviewed"
     },
     {
       "file": "src/EnglishAuction.sol",
       "kind": "verification_violations",
       "text": "Solidity function `cancelBid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-      "status": "false_positive",
-      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+      "status": "unreviewed"
     },
     {
       "file": "src/EnglishAuction.sol",
@@ -213,22 +211,19 @@
       "file": "src/EnglishAuction.sol",
       "kind": "verification_violations",
       "text": "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-      "status": "false_positive",
-      "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+      "status": "unreviewed"
     },
     {
       "file": "src/EnglishAuction.sol",
       "kind": "verification_violations",
       "text": "Solidity function `finalize` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-      "status": "false_positive",
-      "reason": "Paying the fixed seller after the end is safe to leave permissionless. The planted defect (SOL02-D03, repeated finalize) is a missing state flag, not a missing caller check."
+      "status": "unreviewed"
     },
     {
       "file": "src/EnglishAuction.sol",
       "kind": "verification_violations",
       "text": "Solidity function `fundBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-      "status": "false_positive",
-      "reason": "Anyone may top up the bonus pool; it only adds funds."
+      "status": "unreviewed"
     },
     {
       "file": "src/EnglishAuction.sol",
@@ -241,8 +236,7 @@
       "file": "src/EnglishAuction.sol",
       "kind": "verification_violations",
       "text": "Solidity function `drawEarlyBirdBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-      "status": "false_positive",
-      "reason": "Triggering the draw after the end is safe to leave permissionless. The planted defect (SOL02-D10) is the predictable seed."
+      "status": "unreviewed"
     },
     {
       "file": "src/EnglishAuction.sol",
@@ -273,15 +267,10 @@
     "total": 14,
     "defect_evidence": 2,
     "real": 1,
-    "false_positive": 7,
-    "unreviewed": 4
+    "false_positive": 1,
+    "unreviewed": 10
   },
   "reviews_used": [
-    [
-      "sol-02-auction",
-      "src/EnglishAuction.sol",
-      "Solidity function `bid` is an externally callable state-mutating function with no access-control guard"
-    ],
     [
       "sol-02-auction",
       "src/EnglishAuction.sol",
@@ -290,32 +279,7 @@
     [
       "sol-02-auction",
       "src/EnglishAuction.sol",
-      "Solidity function `cancelBid` is an externally callable state-mutating function with no access-control guard"
-    ],
-    [
-      "sol-02-auction",
-      "src/EnglishAuction.sol",
-      "Solidity function `drawEarlyBirdBonus` is an externally callable state-mutating function with no access-control guard"
-    ],
-    [
-      "sol-02-auction",
-      "src/EnglishAuction.sol",
       "Solidity function `drawEarlyBirdBonus` may be vulnerable to reentrancy"
-    ],
-    [
-      "sol-02-auction",
-      "src/EnglishAuction.sol",
-      "Solidity function `finalize` is an externally callable state-mutating function with no access-control guard"
-    ],
-    [
-      "sol-02-auction",
-      "src/EnglishAuction.sol",
-      "Solidity function `fundBonus` is an externally callable state-mutating function with no access-control guard"
-    ],
-    [
-      "sol-02-auction",
-      "src/EnglishAuction.sol",
-      "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard"
     ]
   ],
   "source_hash": "4649be3a3bdce49e82b5def4dfe169569c315e6c5d99cb98a9ed599d54e37a9e",
@@ -347,43 +311,37 @@
         "file": "src/EnglishAuction.sol",
         "kind": "verification_violations",
         "text": "Solidity function `bid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-        "status": "false_positive",
-        "reason": "Public bidding entry point; anyone may bid."
+        "status": "unreviewed"
       },
       {
         "file": "src/EnglishAuction.sol",
         "kind": "verification_violations",
         "text": "Solidity function `cancelBid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-        "status": "false_positive",
-        "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+        "status": "unreviewed"
       },
       {
         "file": "src/EnglishAuction.sol",
         "kind": "verification_violations",
         "text": "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-        "status": "false_positive",
-        "reason": "Acts only on the caller's own balance, position or settings, so it is permissionless by design."
+        "status": "unreviewed"
       },
       {
         "file": "src/EnglishAuction.sol",
         "kind": "verification_violations",
         "text": "Solidity function `finalize` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-        "status": "false_positive",
-        "reason": "Paying the fixed seller after the end is safe to leave permissionless. The planted defect (SOL02-D03, repeated finalize) is a missing state flag, not a missing caller check."
+        "status": "unreviewed"
       },
       {
         "file": "src/EnglishAuction.sol",
         "kind": "verification_violations",
         "text": "Solidity function `fundBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-        "status": "false_positive",
-        "reason": "Anyone may top up the bonus pool; it only adds funds."
+        "status": "unreviewed"
       },
       {
         "file": "src/EnglishAuction.sol",
         "kind": "verification_violations",
         "text": "Solidity function `drawEarlyBirdBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-        "status": "false_positive",
-        "reason": "Triggering the draw after the end is safe to leave permissionless. The planted defect (SOL02-D10) is the predictable seed."
+        "status": "unreviewed"
       },
       {
         "file": "src/EnglishAuction.sol",
@@ -408,40 +366,9 @@
       "total": 9,
       "defect_evidence": 0,
       "real": 0,
-      "false_positive": 6,
-      "unreviewed": 3
+      "false_positive": 0,
+      "unreviewed": 9
     },
-    "reviews_used": [
-      [
-        "sol-02-auction",
-        "src/EnglishAuction.sol",
-        "Solidity function `bid` is an externally callable state-mutating function with no access-control guard"
-      ],
-      [
-        "sol-02-auction",
-        "src/EnglishAuction.sol",
-        "Solidity function `cancelBid` is an externally callable state-mutating function with no access-control guard"
-      ],
-      [
-        "sol-02-auction",
-        "src/EnglishAuction.sol",
-        "Solidity function `drawEarlyBirdBonus` is an externally callable state-mutating function with no access-control guard"
-      ],
-      [
-        "sol-02-auction",
-        "src/EnglishAuction.sol",
-        "Solidity function `finalize` is an externally callable state-mutating function with no access-control guard"
-      ],
-      [
-        "sol-02-auction",
-        "src/EnglishAuction.sol",
-        "Solidity function `fundBonus` is an externally callable state-mutating function with no access-control guard"
-      ],
-      [
-        "sol-02-auction",
-        "src/EnglishAuction.sol",
-        "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard"
-      ]
-    ]
+    "reviews_used": []
   }
 }

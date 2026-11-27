@@ -8,7 +8,7 @@
       "source_file": "specimens/python/py-04-doc-vault/app.py",
       "language": "python",
       "spec_extracted": true,
-      "verification_status": "verified",
+      "verification_status": "unverifiable",
       "spec_health_issues": [],
       "verification_violations": [],
       "counterexample_values": [],
@@ -25,13 +25,51 @@
         },
         {
           "priority": "medium",
-          "action": "underspecified な意図を明文化（推測で補完しない）: log_message.requires, log_message.ensures, read_json.requires, respond.requires, respond.ensures, respond_html.requires, respond_html.ensures, respond_text.requires, respond_text.ensures, api_key.requires, dispatch.requires, dispatch.ensures, route.requires, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, upload.requires, upload.ensures, get_doc.requires, share.requires, share.ensures, fetch.requires, fetch.ensures, purge.requires, go.requires, go.ensures, docs_html.requires, docs_html.ensures, quota.requires, quota.ensures, main.requires, main.ensures",
+          "action": "underspecified な意図を明文化（推測で補完しない）: log_message.requires, log_message.ensures, _read_json.requires, _respond.requires, _respond.ensures, _respond_html.requires, _respond_html.ensures, _respond_text.requires, _respond_text.ensures, _api_key.requires, _dispatch.requires, _dispatch.ensures, _route.requires, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, upload.requires, upload.ensures, get_doc.requires, share.requires, share.ensures, fetch.requires, fetch.ensures, purge.requires, go.requires, go.ensures, docs_html.requires, docs_html.ensures, quota.requires, quota.ensures, main.requires, main.ensures",
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": [
+            "specimens/python/py-04-doc-vault/app.py"
+          ]
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 0,
+          "unverifiable": 1,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 1
+          }
+        }
+      },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/python/py-04-doc-vault/app.py\nlanguage: python\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: log_message.requires, log_message.ensures, read_json.requires, respond.requires, respond.ensures, respond_html.requires, respond_html.ensures, respond_text.requires, respond_text.ensures, api_key.requires, dispatch.requires, dispatch.ensures, route.requires, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, upload.requires, upload.ensures, get_doc.requires, share.requires, share.ensures, fetch.requires, fetch.ensures, purge.requires, go.requires, go.ensures, docs_html.requires, docs_html.ensures, quota.requires, quota.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/python/py-04-doc-vault/app.py\nlanguage: python\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: log_message.requires, log_message.ensures, _read_json.requires, _respond.requires, _respond.ensures, _respond_html.requires, _respond_html.ensures, _respond_text.requires, _respond_text.ensures, _api_key.requires, _dispatch.requires, _dispatch.ensures, _route.requires, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, upload.requires, upload.ensures, get_doc.requires, share.requires, share.ensures, fetch.requires, fetch.ensures, purge.requires, go.requires, go.ensures, docs_html.requires, docs_html.ensures, quota.requires, quota.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -40,57 +78,194 @@
       "source_file": "specimens/python/py-04-doc-vault/vault.py",
       "language": "python",
       "spec_extracted": true,
-      "verification_status": "verified",
+      "verification_status": "unverifiable",
       "spec_health_issues": [],
       "verification_violations": [],
       "counterexample_values": [],
-      "cross_validation_gaps": [],
+      "cross_validation_gaps": [
+        "spec stronger than implementation: make_share_token",
+        "spec precondition assumed, not enforced, by `make_share_token`"
+      ],
       "migration_hints": [],
       "healed_files": [],
       "heal_errors": [],
       "trusted_atoms": [],
       "next_steps": [
         {
-          "priority": "info",
-          "action": "監査完了。追加の .mm 移行は不要",
-          "command": ""
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
         },
         {
           "priority": "medium",
-          "action": "underspecified な意図を明文化（推測で補完しない）: token_matches.requires, token_matches.ensures, share_expiry.requires, remaining_quota.requires, can_read.requires, can_read.ensures, init.requires, init.ensures, stage.requires, save_upload.requires, decode_body.requires, fetch_remote.requires, get.requires, create_share.requires, usage_for.requires, purge.requires",
+          "action": "underspecified な意図を明文化（推測で補完しない）: token_matches.requires, token_matches.ensures, share_expiry.requires, remaining_quota.requires, can_read.requires, can_read.ensures, __init__.requires, __init__.ensures, _stage.requires, save_upload.requires, decode_body.requires, fetch_remote.requires, get.requires, create_share.requires, usage_for.requires, purge.requires",
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 2,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "spec",
+          "severity": "warning",
+          "confidence": "medium",
+          "verification_basis": "cross-validation",
+          "message": "spec stronger than implementation: make_share_token",
+          "source_file": "specimens/python/py-04-doc-vault/vault.py",
+          "line": null,
+          "triage_bucket": "spec_review",
+          "fingerprint": "b5163a37311657c65d654b0de46d33836491993bc4f64f512a47bc1ad9306239"
+        },
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "spec",
+          "severity": "warning",
+          "confidence": "medium",
+          "verification_basis": "cross-validation",
+          "message": "spec precondition assumed, not enforced, by `make_share_token`",
+          "source_file": "specimens/python/py-04-doc-vault/vault.py",
+          "line": null,
+          "triage_bucket": "spec_review",
+          "fingerprint": "29449c102f6b8642a6b0be55380426ed1b953ab8fc31c73e52d8d393c352cabe"
+        }
+      ],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": [
+            "specimens/python/py-04-doc-vault/vault.py"
+          ]
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 0,
+          "unverifiable": 1,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 1
+          }
+        }
+      },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/python/py-04-doc-vault/vault.py\nlanguage: python\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: token_matches.requires, token_matches.ensures, share_expiry.requires, remaining_quota.requires, can_read.requires, can_read.ensures, init.requires, init.ensures, stage.requires, save_upload.requires, decode_body.requires, fetch_remote.requires, get.requires, create_share.requires, usage_for.requires, purge.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed with 2 spec diagnostics to review: specimens/python/py-04-doc-vault/vault.py\nlanguage: python\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec stronger than implementation: make_share_token', 'spec precondition assumed, not enforced, by `make_share_token`']\nfinding_counts: code=0, confirmed=0, spec=2, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: token_matches.requires, token_matches.ensures, share_expiry.requires, remaining_quota.requires, can_read.requires, can_read.ensures, __init__.requires, __init__.ensures, _stage.requires, save_upload.requires, decode_body.requires, fetch_remote.requires, get.requires, create_share.requires, usage_for.requires, purge.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/python/py-04-doc-vault\n  app.py: 0 violations, 0 gaps\n  vault.py: 0 violations, 0 gaps\nSummary: 2 files, 0 files with issues\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: log_message.requires, log_message.ensures, read_json.requires, respond.requires, respond.ensures, respond_html.requires, respond_html.ensures, respond_text.requires, respond_text.ensures, api_key.requires, dispatch.requires, dispatch.ensures, route.requires, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, upload.requires, upload.ensures, get_doc.requires, share.requires, share.ensures, fetch.requires, fetch.ensures, purge.requires, go.requires, go.ensures, docs_html.requires, docs_html.ensures, quota.requires, quota.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: token_matches.requires, token_matches.ensures, share_expiry.requires, remaining_quota.requires, can_read.requires, can_read.ensures, init.requires, init.ensures, stage.requires, save_upload.requires, decode_body.requires, fetch_remote.requires, get.requires, create_share.requires, usage_for.requires, purge.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/python/py-04-doc-vault\n  app.py: 0 violations, 0 gaps\n  vault.py: 0 violations, 2 gaps\nSummary: 2 files, 0 files with issues, 1 file with spec diagnostics\nfinding_counts: code=0, confirmed=0, spec=2, model_limitations=0, errors=0\ntriage: refuted=0, verified=0, unverifiable=2\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: log_message.requires, log_message.ensures, _read_json.requires, _respond.requires, _respond.ensures, _respond_html.requires, _respond_html.ensures, _respond_text.requires, _respond_text.ensures, _api_key.requires, _dispatch.requires, _dispatch.ensures, _route.requires, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, upload.requires, upload.ensures, get_doc.requires, share.requires, share.ensures, fetch.requires, fetch.ensures, purge.requires, go.requires, go.ensures, docs_html.requires, docs_html.ensures, quota.requires, quota.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: token_matches.requires, token_matches.ensures, share_expiry.requires, remaining_quota.requires, can_read.requires, can_read.ensures, __init__.requires, __init__.ensures, _stage.requires, save_upload.requires, decode_body.requires, fetch_remote.requires, get.requires, create_share.requires, usage_for.requires, purge.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 2,
   "files_with_issues": 0,
-  "verification_status": "verified",
+  "files_with_spec_diagnostics": 1,
+  "verification_status": "unverifiable",
   "spec_health_issues": [],
   "verification_violations": [],
-  "cross_validation_gaps": [],
+  "cross_validation_gaps": [
+    "vault.py: spec stronger than implementation: make_share_token",
+    "vault.py: spec precondition assumed, not enforced, by `make_share_token`"
+  ],
   "migration_hints": [],
   "healed_files": [],
   "heal_errors": [],
   "trusted_atoms": [],
+  "summary_audits": [],
+  "summary_plans": [],
   "next_steps": [
     {
       "priority": "medium",
-      "action": "underspecified な意図を明文化（推測で補完しない）: log_message.requires, log_message.ensures, read_json.requires, respond.requires, respond.ensures, respond_html.requires, respond_html.ensures, respond_text.requires, respond_text.ensures, api_key.requires, dispatch.requires, dispatch.ensures, route.requires, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, upload.requires, upload.ensures, get_doc.requires, share.requires, share.ensures, fetch.requires, fetch.ensures, purge.requires, go.requires, go.ensures, docs_html.requires, docs_html.ensures, quota.requires, quota.ensures, main.requires, main.ensures",
+      "action": "underspecified な意図を明文化（推測で補完しない）: log_message.requires, log_message.ensures, _read_json.requires, _respond.requires, _respond.ensures, _respond_html.requires, _respond_html.ensures, _respond_text.requires, _respond_text.ensures, _api_key.requires, _dispatch.requires, _dispatch.ensures, _route.requires, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, upload.requires, upload.ensures, get_doc.requires, share.requires, share.ensures, fetch.requires, fetch.ensures, purge.requires, go.requires, go.ensures, docs_html.requires, docs_html.ensures, quota.requires, quota.ensures, main.requires, main.ensures",
       "command": "mumei-agent validate-spec --input <spec> --format human"
     },
     {
+      "priority": "high",
+      "action": "validate-spec-to-code で制約の対応を確認",
+      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
+    },
+    {
       "priority": "medium",
-      "action": "underspecified な意図を明文化（推測で補完しない）: token_matches.requires, token_matches.ensures, share_expiry.requires, remaining_quota.requires, can_read.requires, can_read.ensures, init.requires, init.ensures, stage.requires, save_upload.requires, decode_body.requires, fetch_remote.requires, get.requires, create_share.requires, usage_for.requires, purge.requires",
+      "action": "underspecified な意図を明文化（推測で補完しない）: token_matches.requires, token_matches.ensures, share_expiry.requires, remaining_quota.requires, can_read.requires, can_read.ensures, __init__.requires, __init__.ensures, _stage.requires, save_upload.requires, decode_body.requires, fetch_remote.requires, get.requires, create_share.requires, usage_for.requires, purge.requires",
       "command": "mumei-agent validate-spec --input <spec> --format human"
     }
   ],
+  "finding_counts": {
+    "code": 0,
+    "confirmed": 0,
+    "spec": 2,
+    "model_limitations": 0,
+    "errors": 0
+  },
+  "findings": [
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "spec",
+      "severity": "warning",
+      "confidence": "medium",
+      "verification_basis": "cross-validation",
+      "message": "spec stronger than implementation: make_share_token",
+      "source_file": "specimens/python/py-04-doc-vault/vault.py",
+      "line": null,
+      "triage_bucket": "spec_review",
+      "fingerprint": "b5163a37311657c65d654b0de46d33836491993bc4f64f512a47bc1ad9306239"
+    },
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "spec",
+      "severity": "warning",
+      "confidence": "medium",
+      "verification_basis": "cross-validation",
+      "message": "spec precondition assumed, not enforced, by `make_share_token`",
+      "source_file": "specimens/python/py-04-doc-vault/vault.py",
+      "line": null,
+      "triage_bucket": "spec_review",
+      "fingerprint": "29449c102f6b8642a6b0be55380426ed1b953ab8fc31c73e52d8d393c352cabe"
+    }
+  ],
+  "triage": {
+    "schema": "mumei.audit-triage/v1",
+    "refuted": [],
+    "verified": [],
+    "unverifiable": {
+      "skipped_rate_limited": [],
+      "timeout": [],
+      "encoding_gap": [],
+      "no_function_declarations": [],
+      "other": [
+        "specimens/python/py-04-doc-vault/app.py",
+        "specimens/python/py-04-doc-vault/vault.py"
+      ]
+    },
+    "counts": {
+      "refuted": 0,
+      "verified": 0,
+      "unverifiable": 2,
+      "unverifiable_by_cause": {
+        "skipped_rate_limited": 0,
+        "timeout": 0,
+        "encoding_gap": 0,
+        "no_function_declarations": 0,
+        "other": 2
+      }
+    }
+  },
   "errors": [],
   "skipped_rate_limited_files": []
 }

@@ -340,8 +340,7 @@
         "file": "calc.go",
         "kind": "verification_violations",
         "text": "Go function `reorderPoint` can divide by `int32(len(locations))` without a non-zero contract (Z3 counterexample: int32(len(locations))=0)",
-        "status": "false_positive",
-        "reason": "On the fixed code, reorderPoint returns 0 when locations is empty, so the divisor is never zero."
+        "status": "unreviewed"
       },
       {
         "file": "calc.go",
@@ -450,15 +449,9 @@
       "total": 18,
       "defect_evidence": 0,
       "real": 0,
-      "false_positive": 1,
-      "unreviewed": 17
+      "false_positive": 0,
+      "unreviewed": 18
     },
-    "reviews_used": [
-      [
-        "go-01-inventory-api",
-        "calc.go",
-        "Go function `reorderPoint` can divide by `int32(len(locations))`"
-      ]
-    ]
+    "reviews_used": []
   }
 }
