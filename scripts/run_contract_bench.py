@@ -381,7 +381,7 @@ def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str
     # Confirming reference replay is stronger semantic evidence than syntactic lint.
     # Lint can still block when replay is unavailable or inconclusive, and replay
     # divergence always blocks; neither is represented as a formal refutation.
-    blocked = semantic["outcome"] != confirming
+    blocked = semantic["outcome"] == "diverged" or (semantic["outcome"] != confirming and bool(blocking))
     gate = {"schema": "mumei-demo.port-fidelity-gate/v2", "variant": variant,
             "decision": "blocked" if blocked else "accepted",
             "lint_findings": linted, "blocking_lint_findings": blocking,
@@ -1445,8 +1445,9 @@ def fidelity_problems(results: list[dict], cases: list[dict] | None = None) -> l
                             blocking = gate.get("blocking_lint_findings")
                             if blocking is None:
                                 blocking = fidelity.blocking_lint_findings(gate.get("lint_findings") or [])
-                            if semantic.get("outcome") != confirming:
-                                problems.append(f"{prefix} is accepted without confirming semantic replay")
+                            outcome = semantic.get("outcome")
+                            if outcome == "diverged" or (outcome != confirming and blocking):
+                                problems.append(f"{prefix} is accepted despite blocking fidelity evidence")
             if doc["arm"] == "llm-contract":
                 for record in run:
                     contract = record.get("contract")

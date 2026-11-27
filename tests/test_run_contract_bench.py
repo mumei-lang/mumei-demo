@@ -462,7 +462,7 @@ def test_rescore_port_fidelity_annotates_committed_rows_without_an_llm(repo):
     path.write_text(json.dumps({"arm": "mumei-llm", "model": "test", "runs": [[record]]}))
 
     summary = cb.rescore_port_fidelity([case], "mumei", 5)
-    assert summary == {"updated": ["proofs/results/mumei-llm-test.json"], "gated": 2, "blocked": 2}
+    assert summary == {"updated": ["proofs/results/mumei-llm-test.json"], "gated": 2, "blocked": 1}
     rescored = json.loads(path.read_text())["runs"][0][0]["buggy"]
     assert rescored["outcome"] == "proven" and rescored["body"] == fixed_body
     assert rescored["fidelity_gate"]["decision"] == "blocked"
@@ -510,13 +510,13 @@ def test_fidelity_problems_flags_ungated_or_inconsistent_raw_proofs():
     ungated = rec("u", "go", "proven", "refuted")
     bad_accepted = rec("a", "go", "proven", "refuted")
     bad_accepted["buggy"]["fidelity_gate"] = {
-        "decision": "accepted", "variant": "buggy", "lint_findings": [], "semantic_replay": {"outcome": "inconclusive"}}
+        "decision": "accepted", "variant": "buggy", "lint_findings": [{"kind": "silent_repair"}], "semantic_replay": {"outcome": "inconclusive"}}
     doc = {"arm": "mumei-llm", "model": "test", "runs": [[ungated, bad_accepted, bad_accepted]]}
 
     problems = cb.fidelity_problems([doc])
 
     assert any("u buggy raw verifier proof has no fidelity gate" in p for p in problems)
-    assert any("a buggy raw verifier proof is accepted without confirming semantic replay" in p for p in problems)
+    assert any("a buggy raw verifier proof is accepted despite blocking fidelity evidence" in p for p in problems)
     assert any("false acceptance 3 exceeds budget 2" in p for p in problems)
 
 
