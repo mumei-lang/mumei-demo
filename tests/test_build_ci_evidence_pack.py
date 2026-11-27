@@ -505,6 +505,7 @@ def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:
     assert 'manifest["sarif"]["status"] == "emitted_by_audit_cli"' in workflow
     assert 'manifest["baseline"]["status"] == "emitted_by_audit_cli"' in workflow
     assert 'manifest["fail_on"]["policy"] == "high-confidence"' in workflow
+    assert "include-hidden-files: true" in workflow
     assert 'not_available_in_current_cli' in workflow
     assert 'assert "not evidence" in manifest["evidence_roles"]["ci_policy"]["boundary"]' in workflow
 
