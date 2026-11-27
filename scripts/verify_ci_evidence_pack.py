@@ -12,10 +12,11 @@ import argparse
 import hashlib
 import json
 import os
+import posixpath
 import re
 import subprocess
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -207,31 +208,29 @@ def _validate_companion_files(root: Path, rows: list[dict[str, Any]]) -> None:
             raise EvidencePackVerificationError(f"migration companion artifact bytes mismatch: {path}")
 
 
-def _normalized_absolute(path_text: str) -> Path:
-    return Path(os.path.normpath(path_text))
+def _normalized_absolute(path_text: str) -> PurePosixPath:
+    return PurePosixPath(posixpath.normpath(path_text))
 
 
 def _map_claimed_path(path_text: str, *, pack_root: Path, generated_root: Path, original_generated_root_text: str) -> Path:
-    raw = Path(path_text)
-    if raw.is_absolute():
-        original_generated_root = Path(original_generated_root_text)
-        if not original_generated_root.is_absolute():
+    if posixpath.isabs(path_text):
+        if not posixpath.isabs(original_generated_root_text):
             raise EvidencePackVerificationError("migration execution mixes absolute artifact claims with a relative generated directory")
-        normalized_root = _normalized_absolute(str(original_generated_root))
+        normalized_root = _normalized_absolute(original_generated_root_text)
         normalized_claim = _normalized_absolute(path_text)
         try:
             suffix = normalized_claim.relative_to(normalized_root)
         except ValueError as exc:
             raise EvidencePackVerificationError("migration execution artifact claim is outside the generated artifact directory") from exc
-        return generated_root / suffix
-    return (pack_root / raw).resolve(strict=False)
+        return generated_root.joinpath(*suffix.parts)
+    return (pack_root / Path(path_text)).resolve(strict=False)
 
 
 def _validate_upstream_generated_root_binding(original_generated_root_text: str, generated_dir: str) -> None:
-    normalized = os.path.normpath(original_generated_root_text)
-    basename = Path(normalized).name
+    normalized = posixpath.normpath(original_generated_root_text)
+    basename = PurePosixPath(normalized).name
     _generated_dir_name(basename)
-    if Path(original_generated_root_text).is_absolute():
+    if posixpath.isabs(original_generated_root_text):
         if basename != generated_dir:
             raise EvidencePackVerificationError("upstream generated artifact directory basename is inconsistent with the manifest")
     elif normalized != generated_dir:
