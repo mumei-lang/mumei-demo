@@ -381,19 +381,22 @@ def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str
     equivalence = fidelity.output_equivalence(case, body, mumei_bin, timeout, variant)
     confirming = "still_refutes" if variant == "buggy" else "still_holds"
     blocking = fidelity.blocking_lint_findings(linted)
-    # Confirming reference replay or solver output equality is stronger semantic
-    # evidence than guard-shape lint. Structural fidelity loss still blocks, and
+    # Confirming reference replay, solver output equality or proof that a difference
+    # is confined to an adjudicated boundary is stronger semantic evidence than
+    # guard-shape lint. Structural fidelity loss still blocks, and
     # divergence always blocks; neither replay nor output equality is represented
     # as a formal refutation of the candidate.
     structural_meaning_loss = any(finding.get("kind") in {"silent_repair", "missing_modeled_operation", "self_call"}
                                   for finding in blocking)
+    nonblocking_output = (equivalence.get("outcome") == "matched"
+                          or equivalence.get("reason") == "abstraction_boundary_only")
     hard_meaning_loss = (any(finding.get("kind") == "guard_folding" for finding in blocking)
-                         and equivalence.get("outcome") != "matched")
-    confirming_evidence = semantic["outcome"] == confirming or equivalence.get("outcome") == "matched"
+                         and not nonblocking_output)
+    nonblocking_semantic_evidence = semantic["outcome"] == confirming or nonblocking_output
     blocked = (semantic["outcome"] == "diverged" or equivalence.get("outcome") == "diverged"
                or structural_meaning_loss or hard_meaning_loss
-               or (not confirming_evidence and bool(blocking)))
-    gate = {"schema": "mumei-demo.port-fidelity-gate/v10", "detector_version": fidelity.DETECTOR_VERSION,
+               or (not nonblocking_semantic_evidence and bool(blocking)))
+    gate = {"schema": "mumei-demo.port-fidelity-gate/v11", "detector_version": fidelity.DETECTOR_VERSION,
             "variant": variant,
             "decision": "blocked" if blocked else "accepted",
             "lint_findings": linted, "blocking_lint_findings": blocking,
@@ -1031,11 +1034,11 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             "inlines the reference and candidate bodies and compares primitive results or struct output fields. "
             "Committed per-case policy adjudicates don't-care fields, meaningful failure state and integer-rounding "
             "boundaries; matched exact output is confirming evidence, adjudicated divergence blocks, and boundary-only "
-            "differences are inconclusive diagnostic evidence. Loop-containing bodies are unavailable "
-            "rather than risk invariant-abstraction false positives. Confirming replay or matched output overrides guard-shape "
-            "and success-flag lint-only warnings; exact result-state guard folding remains blocking unless output equality matches. Added or removed "
+            "differences are inconclusive diagnostic evidence that still prevents lint-only rejection. Loop-containing bodies are unavailable "
+            "rather than risk invariant-abstraction false positives. Confirming replay, matched exact output or boundary-only output overrides guard-shape "
+            "and success-flag lint-only warnings; exact result-state guard folding remains blocking unless output comparison shows no meaningful divergence. Added or removed "
             "guard-count warnings stay visible without blocking alone. Replay divergence always blocks; other high-confidence "
-            "lint blocks when neither replay nor output comparison supplies confirming evidence, except silent repair, "
+            "lint blocks when neither replay nor output comparison supplies nonblocking semantic evidence, except silent repair, "
             "missing modeled operations and self-calls, which are structural fidelity loss even when outputs coincide. "
             "Inconclusive evidence alone does not rewrite a raw proof. These are fidelity acceptance diagnostics, not formal proof verdicts. "
             "Weak/vacuous generated contracts cannot support proof acceptance. "
@@ -1053,7 +1056,13 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             version = verifier.get("version") or "unknown verifier"
             commit = verifier.get("commit")
             identity = f"`{version}`" + (f" (`{commit[:7]}`)" if commit else " (commit unavailable)")
-            provenance.append(f"{ARM_LABEL.get(doc['arm'], doc['arm'])} replayed at {meta.get('rescored_at')} with {identity}")
+            rescored_rows = meta.get("rescored_rows")
+            reused_rows = meta.get("reused_rows")
+            scope = ""
+            if rescored_rows is not None and reused_rows is not None:
+                scope = (f" for {rescored_rows} recomputed row(s); {reused_rows} existing row(s) were reused "
+                         "and may predate this verifier")
+            provenance.append(f"{ARM_LABEL.get(doc['arm'], doc['arm'])} replayed at {meta.get('rescored_at')} with {identity}{scope}")
         if provenance:
             out += ["Fidelity rescore evidence: " + "; ".join(provenance) + ".", ""]
     out += [render_measurement_table(rows), "",
@@ -1414,6 +1423,8 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
     for path in sorted(RESULTS_DIR.glob("mumei-llm-*.json")):
         doc = json.loads(path.read_text())
         changed = False
+        doc_gated = 0
+        doc_reused = 0
         for run in doc.get("runs", []):
             for record in run:
                 case = by_id.get(record.get("id"))
@@ -1429,6 +1440,7 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                                                   and equivalence.get("status") == "timeout")
                     if (existing_gate and not fidelity_gate_stale(case, existing_gate)
                             and not retry_timed_out_comparison):
+                        doc_reused += 1
                         continue
                     body = result.get("body")
                     if not isinstance(body, str):
@@ -1438,12 +1450,15 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                         record[variant] = new_result
                         changed = True
                         gated += 1
+                        doc_gated += 1
                         blocked += new_result.get("fidelity_gate", {}).get("decision") == "blocked"
         if changed:
             doc["fidelity_rescore"] = {
-                "schema": "mumei-demo.port-fidelity-gate/v10",
+                "schema": "mumei-demo.port-fidelity-gate/v11",
                 "rescored_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
                 "replay_verifier": verifier_identity(mumei_bin),
+                "rescored_rows": doc_gated,
+                "reused_rows": doc_reused,
             }
             path.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n")
             updated.append(path.relative_to(REPO_ROOT).as_posix())

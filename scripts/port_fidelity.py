@@ -153,7 +153,7 @@ def token_pattern(text: str) -> tuple[str, ...]:
 
 
 VARIANTS = ("buggy", "fixed")
-DETECTOR_VERSION = 10
+DETECTOR_VERSION = 11
 
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:

@@ -256,3 +256,19 @@ def test_output_policy_rejects_unknown_adjudication_keys(tmp_path: Path, monkeyp
 
     with pytest.raises(ValueError, match="unsupported output-equivalence policy keys"):
         fidelity.output_policy(case_by_id("SOL03-D08"))
+
+
+def test_boundary_only_output_prevents_lint_only_guard_block(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(fidelity, "replay_inputs", lambda case: (_ for _ in ()).throw(OSError("no fixture")))
+    monkeypatch.setattr(fidelity, "lint_findings", lambda *_args: [
+        {"kind": "guard_folding", "message": "syntactic warning"}])
+    monkeypatch.setattr(fidelity, "output_equivalence", lambda *_args, **_kwargs: {
+        "outcome": "inconclusive", "reason": "abstraction_boundary_only",
+        "method": "solver_output_compare", "status": "success"})
+    case = case_by_id("PY01-D10")
+
+    gated = cb.apply_port_fidelity_gate(case, "Parsed { ok: value > 0, value: value }",
+                                        {"outcome": "proven", "status": "success", "diagnostics": []},
+                                        "unused", 5, "fixed")
+
+    assert gated["fidelity_gate"]["decision"] == "accepted"

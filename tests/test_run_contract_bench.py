@@ -479,6 +479,8 @@ def test_rescore_port_fidelity_annotates_committed_rows_without_an_llm(repo):
 
     summary = cb.rescore_port_fidelity([case], "mumei", 5)
     assert summary == {"updated": ["proofs/results/mumei-llm-test.json"], "gated": 2, "blocked": 1}
+    meta = json.loads(path.read_text())["fidelity_rescore"]
+    assert meta["rescored_rows"] == 2 and meta["reused_rows"] == 0
     rescored = json.loads(path.read_text())["runs"][0][0]["buggy"]
     assert rescored["outcome"] == "proven" and rescored["body"] == fixed_body
     assert rescored["fidelity_gate"]["decision"] == "blocked"
@@ -492,6 +494,8 @@ def test_rescore_port_fidelity_annotates_committed_rows_without_an_llm(repo):
         "outcome": "inconclusive", "status": "timeout"}
     path.write_text(json.dumps(timeout_doc))
     assert cb.rescore_port_fidelity([case], "mumei", 5)["gated"] == 1
+    retry_meta = json.loads(path.read_text())["fidelity_rescore"]
+    assert retry_meta["rescored_rows"] == 1 and retry_meta["reused_rows"] == 1
 
     stale_doc = json.loads(path.read_text())
     stale_doc["runs"][0][0]["buggy"]["fidelity_gate"]["semantic_replay"]["input_hash"] = "stale"
