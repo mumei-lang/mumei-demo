@@ -9,13 +9,6 @@
   ],
   "finding_reviews": [
     {
-      "specimen": "py-01-expense-tracker",
-      "file": "ledger.py",
-      "finding_contains": "encoding-gap: is_over_budget: spec_lowering_failed",
-      "verdict": "false_positive",
-      "reason": "Tool diagnostic: the extracted ensures clause failed to lower. It names no problem in is_over_budget (the planted off-by-one is not mentioned)."
-    },
-    {
       "specimen": "rs-01-bank-core",
       "file": "src/bank.rs",
       "finding_contains": "Rust function `request_transfer` can truncate `amount_cents` in cast to `u64`",
@@ -231,6 +224,104 @@
       "finding_contains": "Rust function `charge_fee` can truncate `cents` in cast to `u64`",
       "verdict": "false_positive",
       "reason": "On the fixed code, charge_fee rejects cents <= 0 before the cast, so the i64 value is always in u64 range."
+    },
+    {
+      "specimen": "ts-01-task-board",
+      "file": "board.ts",
+      "finding_contains": "spec stronger than implementation: canMove",
+      "verdict": "false_positive",
+      "reason": "The Status type is a closed union and NEXT_STATUSES is total over Status, so the generated bounds assumption does not identify a fixed-variant defect."
+    },
+    {
+      "specimen": "ts-01-task-board",
+      "file": "board.ts",
+      "finding_contains": "spec precondition assumed, not enforced, by `canMove`",
+      "verdict": "false_positive",
+      "reason": "The Status type is a closed union and NEXT_STATUSES is total over Status, so the generated bounds assumption does not identify a fixed-variant defect."
+    },
+    {
+      "specimen": "go-03-auth-gateway",
+      "file": "auth.go",
+      "finding_contains": "spec stronger than implementation: passwordMatches",
+      "verdict": "false_positive",
+      "reason": "The non-nil request/input precondition is a generated caller assumption for an authentication helper and does not identify a defect in the fixed constant-time comparison."
+    },
+    {
+      "specimen": "go-03-auth-gateway",
+      "file": "auth.go",
+      "finding_contains": "spec precondition assumed, not enforced, by `passwordMatches`",
+      "verdict": "false_positive",
+      "reason": "The non-nil request/input precondition is a generated caller assumption for an authentication helper and does not identify a defect in the fixed constant-time comparison."
+    },
+    {
+      "specimen": "go-01-inventory-api",
+      "file": "main.go",
+      "finding_contains": "spec stronger than implementation: adminAuthorized",
+      "verdict": "false_positive",
+      "reason": "The non-nil request precondition is generated for an HTTP middleware helper whose only production caller is net/http; it does not identify a defect in the fixed token comparison."
+    },
+    {
+      "specimen": "go-01-inventory-api",
+      "file": "main.go",
+      "finding_contains": "spec precondition assumed, not enforced, by `adminAuthorized`",
+      "verdict": "false_positive",
+      "reason": "The non-nil request precondition is generated for an HTTP middleware helper whose only production caller is net/http; it does not identify a defect in the fixed token comparison."
+    },
+    {
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "spec stronger than implementation: earned",
+      "verdict": "false_positive",
+      "reason": "This is an auto-generated mapping-view precondition artifact; the fixed view function has no caller-actionable implementation defect."
+    },
+    {
+      "specimen": "sol-03-staking-rewards",
+      "file": "src/StakingRewards.sol",
+      "finding_contains": "spec precondition assumed, not enforced, by `earned`",
+      "verdict": "false_positive",
+      "reason": "This is an auto-generated mapping-view precondition artifact; the fixed view function has no caller-actionable implementation defect."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "spec stronger than implementation: sharesOf",
+      "verdict": "false_positive",
+      "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "spec stronger than implementation: rewards",
+      "verdict": "false_positive",
+      "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "spec stronger than implementation: pending",
+      "verdict": "false_positive",
+      "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "spec precondition assumed, not enforced, by `sharesOf`",
+      "verdict": "false_positive",
+      "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "spec precondition assumed, not enforced, by `rewards`",
+      "verdict": "false_positive",
+      "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "spec precondition assumed, not enforced, by `pending`",
+      "verdict": "false_positive",
+      "reason": "This is an auto-generated mapping-view precondition artifact; the fixed public getter has no caller-actionable implementation defect."
     }
   ]
 }

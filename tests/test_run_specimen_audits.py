@@ -1247,6 +1247,7 @@ def test_committed_finding_reviews_load_and_are_not_stale():
     reviews = rsa.load_finding_reviews(rsa.SPECIMENS_ROOT)
     coverages = [json.loads(p.read_text())
                  for p in sorted(rsa.SPECIMENS_ROOT.glob("*/*/audit/coverage.json"))]
+    coverages += rsa.load_complementary_coverages(coverages, llm=False)
     assert rsa.stale_reviews(coverages, reviews) == []
     for cov in coverages:
         fc = cov["finding_counts"]
@@ -1554,6 +1555,25 @@ def _fake_run_audit(seen):
     return fake
 
 
+def test_run_audit_disables_finding_exit_failure(tmp_path, monkeypatch):
+    calls = []
+
+    def fake_run(cmd, cwd, env, capture_output, text, timeout):
+        calls.append((cmd, cwd, env, capture_output, text, timeout))
+        return subprocess.CompletedProcess(cmd, 0, stdout="{}", stderr="")
+
+    monkeypatch.setattr(rsa.subprocess, "run", fake_run)
+    rc, stdout, stderr = rsa.run_audit(tmp_path, "/trusted/mumei", tmp_path / "specimen", "json", 12)
+
+    assert (rc, stdout, stderr) == (0, "{}", "")
+    cmd, cwd, env, capture_output, text, timeout = calls[0]
+    assert cmd[:5] == ["uv", "run", "python", "-m", "agent"]
+    assert cmd[-4:] == ["--format", "json", "--fail-on", "never"]
+    assert env["MUMEI_BIN"] == "/trusted/mumei"
+    assert cwd == tmp_path
+    assert capture_output is True and text is True and timeout == 12
+
+
 def test_audit_specimen_audits_original_and_fixed(tmp_path, monkeypatch):
     d = _git_specimen(tmp_path, monkeypatch, MINI_FIX)
     seen = []
@@ -1769,6 +1789,23 @@ def test_history_entry_records_llm_run_stats():
         assert key not in bare
 
 
+def test_prior_run_stats_skips_unmeasured_rescored_entries():
+    measured = {"llm": True, "audit_seconds": 3244.0, "llm_cost_usd": 0.2176}
+    rescored = {"llm": True, "rescored_at": "now"}
+    assert rsa.prior_run_stats([measured, rescored], True) == {
+        "audit_seconds": 3244.0,
+        "llm_cost_usd": 0.2176,
+    }
+    assert rsa.prior_run_stats([{"llm": False, "audit_seconds": 1.0}], True) == {}
+
+
+
+def test_prior_run_stats_requires_matching_audit_provenance_when_scoped():
+    measured = {"llm": True, "generated_at": "audit-a", "audit_seconds": 20.0}
+    assert rsa.prior_run_stats([measured], True, "audit-a") == {"audit_seconds": 20.0}
+    assert rsa.prior_run_stats([measured], True, "audit-b") == {}
+
+
 def test_record_run_rescore_keeps_run_stats(tmp_path):
     hp = tmp_path / "history.json"
     rsa.record_run(hp, {**_run(), "llm": True, "audit_seconds": 9.0, "llm_cost_usd": 0.2})
@@ -1924,13 +1961,21 @@ def test_summary_path(tmp_path, name, llm, expected):
 
 
 def test_main_rescore_both_modes_keeps_separate_summaries(tmp_path, monkeypatch):
-    _, d = _rescore_tree(tmp_path, monkeypatch)
+    specimens, d = _rescore_tree(tmp_path, monkeypatch)
     _add_llm_audit(d)
+    history = {"schema": 2, "runs": [
+        {**_run(llm=False, date="2025-01-01"), "audit_seconds": 10.0},
+        {**_run(llm=True, date="2025-01-01"), "audit_seconds": 20.0, "llm_cost_usd": 0.25},
+    ]}
+    (specimens / "scoreboard").mkdir(exist_ok=True)
+    (specimens / "scoreboard" / "history.json").write_text(json.dumps(history))
     assert rsa.main(_rescore_args(tmp_path)) == 0
     no_llm = (tmp_path / "AUDIT_SUMMARY.md").read_text()
     with_llm = (tmp_path / "AUDIT_SUMMARY_WITH_LLM.md").read_text()
     assert "- Mode: no LLM" in no_llm and "m/x" not in no_llm
     assert "- Mode: with LLM" in with_llm and "`m/x`" in with_llm
+    assert "- Audit time: 10 s" in no_llm and "- LLM cost" not in no_llm
+    assert "- Audit time: 20 s" in with_llm and "- LLM cost: $0.2500" in with_llm
 
 
 def test_main_rescore_no_llm_only_writes_no_with_llm_summary(tmp_path, monkeypatch):

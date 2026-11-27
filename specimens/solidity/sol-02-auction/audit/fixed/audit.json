@@ -1,23 +1,16 @@
 {
-  "success": false,
+  "success": true,
   "source_dir": "specimens/solidity/sol-02-auction",
   "language": "mixed",
   "file_results": [
     {
-      "success": false,
+      "success": true,
       "source_file": "specimens/solidity/sol-02-auction/src/EnglishAuction.sol",
       "language": "solidity",
       "spec_extracted": true,
       "verification_status": "verified",
       "spec_health_issues": [],
-      "verification_violations": [
-        "Solidity function `bid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-        "Solidity function `cancelBid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-        "Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-        "Solidity function `finalize` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-        "Solidity function `fundBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-        "Solidity function `drawEarlyBirdBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
-      ],
+      "verification_violations": [],
       "counterexample_values": [],
       "cross_validation_gaps": [],
       "migration_hints": [],
@@ -26,9 +19,9 @@
       "trusted_atoms": [],
       "next_steps": [
         {
-          "priority": "high",
-          "action": "migrate-suggest で .mm スケルトンを生成",
-          "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
+          "priority": "info",
+          "action": "監査完了。追加の .mm 移行は不要",
+          "command": ""
         },
         {
           "priority": "medium",
@@ -36,9 +29,47 @@
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [
+          "specimens/solidity/sol-02-auction/src/EnglishAuction.sol"
+        ],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": []
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 1,
+          "unverifiable": 0,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 0
+          }
+        }
+      },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-03T05:08:38.170587Z",
+        "timestamp": "2026-11-27T18:18:37.002013Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-02-auction/src/EnglishAuction.sol",
@@ -46,9 +77,9 @@
           {
             "name": "withdraw_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "a362c508c1aeba79bd2f153214a2cc79e2fab50c541cdc1440a81fdec1e6180b",
+            "content_hash": "9b1378c8397b315a43d86afe5f235564257733fdfd87ef5e6780312039dd5d38",
             "status": "unknown",
-            "proof_hash": "a735f5b8f2b6bda5c0b2ceb29142f54f03a88e7f2c6d070350c4531dcc1b7d68",
+            "proof_hash": "b1e0f7f95d3a55a9755dbc2cfb4cf0bc64cadae6be98e20419f6d8023324a3a2",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -99,9 +130,9 @@
           {
             "name": "finalize_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "c3990a7bdb42740975a2670cfce236498dca60a2109946258b62f4317c92e3fc",
+            "content_hash": "50d252beedef2bb506f8e1e2205bbdd11148773738221e103970c4680072ade0",
             "status": "unknown",
-            "proof_hash": "aeb0486db93e6dfc7456b4f36f1887305c71e9222c58d52b809de889ad379c51",
+            "proof_hash": "ece0bc4227ce322d27cf10418db479965455f2fd084ae9e771782a39cb6f9ddf",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -152,9 +183,9 @@
           {
             "name": "drawEarlyBirdBonus_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "8bb2976d7e4d2eb5e2367faaa2f8131905f7be714e13f10d3a816d67948c4f77",
+            "content_hash": "39a4e440b170341cc0cccc4d3e2d1b7b90098e4557d095d99ee54a64079ff483",
             "status": "unknown",
-            "proof_hash": "7cb6e3cd64296008dfa5c23b80a18d6ab5b0a310f5fb5919b63b67c9ff5968a3",
+            "proof_hash": "4d54b48b81c22843634b127f1492838bb0762a4aa211b36a2e8d9ee0bf705a08",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -205,9 +236,9 @@
           {
             "name": "init_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "2b2ccde42bd806445450e97c8934cce33560b35d0815bc3cbd92ac6e4e8dc59e",
+            "content_hash": "676bcf1f0aa6d366dc76a20788203424e40292f79b035161fc9714a51f3cd3cb",
             "status": "unknown",
-            "proof_hash": "d1c925e7d5142f08c9988bca87f64f4aed16c976b156e8c84950936706feace0",
+            "proof_hash": "c5140cce0b2e5352d81fb3935f827ebd8d33a8e75df2bfad19fbbe3c070a9058",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -260,9 +291,9 @@
           {
             "name": "bid_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "518541f5f59f27ea1e1775ed3937c0b021225dec48f042880d096579cc60d91f",
+            "content_hash": "fce17aa4bb8b65124a6e21083615b91bc16170530cf31ee8f0e1480528f9ba83",
             "status": "unknown",
-            "proof_hash": "121394205a69210ee01c62610ec9866b6635681afa509eeb2870f0d167bec1b4",
+            "proof_hash": "2617a17b403c9883853333beb5db93687da2d4e3b4358c3185158e2239644e01",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -313,9 +344,9 @@
           {
             "name": "cancelBid_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "a310e160d98685f9c3233d8f0dd64b0c51146fcfab7845e1418c7bee71482eb4",
+            "content_hash": "8de171458a50c04922ad4760da3d53fa98359651630432aa4024632c8a4d3377",
             "status": "unknown",
-            "proof_hash": "cbe95343d324be945dc07910fc01dcf4d67c4fbccb9ff690c0acde055ab24bba",
+            "proof_hash": "001ff48316bc907394428dda8ba9aadaca34944440d2cbb906fe1f079e6f6521",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -366,9 +397,9 @@
           {
             "name": "withdraw_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "d6778341f8c467a4a7469d00fb66b68ef1f6a7fa048591bf555d43ffaf02b0f3",
+            "content_hash": "e110d9915bff4dda46c4e08bfb679d348a64885f340e038c1049d00dc65c6b9b",
             "status": "unknown",
-            "proof_hash": "a334ef438a9390cff35e7aec3f8b8e242ddd19395bf9d0a316456d4a00725cd4",
+            "proof_hash": "11a5dbaa390e0ea398f8ef55d36796ce4938b6e0e12933de1b38b2dfb4740977",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -419,9 +450,9 @@
           {
             "name": "finalize_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "4a7f3027d09c3260f8c3ad861153568d2f2c4752b38ff6999d8e604a0a446532",
+            "content_hash": "813cf042d40d9282711f3b546ffcbb4b16d2c97d1f0b35e245fef9e5262990d6",
             "status": "unknown",
-            "proof_hash": "46d9fbf154d3a0a1e25a6bcff98af84560b414a32c76ee6633602bbb4491d91b",
+            "proof_hash": "7cca47fb51d3eaf5332cd2d491e3ec09a3176d7993e51c3d53224b35cd057c41",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -472,9 +503,9 @@
           {
             "name": "fundBonus_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "f7057cb98cfb0da3fa23bdcad2846689842844cfb471feeb87dd55b587a91798",
+            "content_hash": "25b041266c692db4942e9bce408fda2f593cb0eaff6c81514e0156a0045a4306",
             "status": "unknown",
-            "proof_hash": "95b02f78e7a4287f21937afe4869ce695a6b68dab95443e5c8dc6b877c447761",
+            "proof_hash": "ed69497de94e321f7c17af05373da42e38da1ed342dc0464c822ff87bdf07720",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -525,9 +556,9 @@
           {
             "name": "drawEarlyBirdBonus_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "6b1f7a233d390213b888f0b54c7065a76d7e3b18f25bfc997b42457f7d1b0d1a",
+            "content_hash": "ec2ebd2272d504791ca298eab74b93dab9b80d607796b6efcf5ec0c57d3de5c3",
             "status": "unknown",
-            "proof_hash": "443cac24bbde590ea23564520a2249acc40c5bfd3eae6a2a91feb8cdbe6f6a74",
+            "proof_hash": "ea37c65d5d67ec3a52706126bb672147718690903fc5244d222410960ce8ca48",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -578,9 +609,9 @@
           {
             "name": "withdraw_cei",
             "z3_check_result": "unknown",
-            "content_hash": "69a4385106de7936c4f72e51495ba58cf358074adbade8c1bd3c45bac7f556a4",
+            "content_hash": "92c9fdd1ba5999d90b119b5699f72003f318200c8f0a85ae7343336f8604c89f",
             "status": "unknown",
-            "proof_hash": "53f06a0924a59a0832ec552a415cf204c8f5ba37a3628d741fb10a04ec6f01c2",
+            "proof_hash": "5da75f7deec9c0dd929edb717f1e1d095b65aa0954f2466d3ae75fa88f96955a",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -633,9 +664,9 @@
           {
             "name": "finalize_cei",
             "z3_check_result": "unknown",
-            "content_hash": "588159af2ba02a36aa5a11d1c54499d1aff6cfdb5e5ca56ec18dd230bc7ae166",
+            "content_hash": "7342efe894a7da9d24f1287379ca55a51151c235f7723497f2fdfd798ec536dc",
             "status": "unknown",
-            "proof_hash": "00c4ded9e722e1886a55a5f66e8ce7096ea0826613bd96e8a5ab7513918174e1",
+            "proof_hash": "47d086a7f18f18669816d887642fe727b2a9572ac6f43c856b67ad2b88e5f584",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -690,9 +721,9 @@
           {
             "name": "drawEarlyBirdBonus_cei",
             "z3_check_result": "unknown",
-            "content_hash": "6394e565bd04bd10d935ef3462fc1eab7c95e216e721e378160bd1fece204a94",
+            "content_hash": "d2ba95c4e7a7834c7cd586af3a71d1eca49dd251d151a65f9ce17817d5db07df",
             "status": "unknown",
-            "proof_hash": "af843ccccf65b2b490c6347fc96a111c4874649b3b26579f948fe5ddcb6a239d",
+            "proof_hash": "a6bc8f247bc2708ea14796e4ab855cb6104e88234cdb632f8017cc135114c5bc",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -747,11 +778,11 @@
         ],
         "package_name": "EnglishAuction",
         "package_version": "0",
-        "certificate_hash": "adf5fc77dcefd121e5f02e1432ca82e3f50be18dc3ac2f6572e2e0e90ef5390b",
+        "certificate_hash": "febd2e01a4ab1f36ff076122d956508652643a52eb71bdf2147c13b54aea8915",
         "all_verified": false
       },
       "lean_bridge": null,
-      "report": "Audit found issues: specimens/solidity/sol-02-auction/src/EnglishAuction.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: ['Solidity function `bid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `cancelBid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `finalize` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `fundBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `drawEarlyBirdBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless']\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, minNextBid.requires, minNextBid.ensures, bid.requires, bid.ensures, cancelBid.requires, cancelBid.ensures, withdraw.requires, withdraw.ensures, hasEnded.requires, hasEnded.ensures, finalize.requires, finalize.ensures, earlyBirdCount.requires, earlyBirdCount.ensures, fundBonus.requires, fundBonus.ensures, drawEarlyBirdBonus.requires, drawEarlyBirdBonus.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/solidity/sol-02-auction/src/EnglishAuction.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, minNextBid.requires, minNextBid.ensures, bid.requires, bid.ensures, cancelBid.requires, cancelBid.ensures, withdraw.requires, withdraw.ensures, hasEnded.requires, hasEnded.ensures, finalize.requires, finalize.ensures, earlyBirdCount.requires, earlyBirdCount.ensures, fundBonus.requires, fundBonus.ensures, drawEarlyBirdBonus.requires, drawEarlyBirdBonus.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -781,20 +812,58 @@
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [
+          "specimens/solidity/sol-02-auction/test/TestBase.sol"
+        ],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": []
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 1,
+          "unverifiable": 0,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 0
+          }
+        }
+      },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-03T05:08:38.322042Z",
+        "timestamp": "2026-11-27T18:18:37.186012Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-02-auction/test/TestBase.sol",
         "atoms": [],
         "package_name": "TestBase",
         "package_version": "0",
-        "certificate_hash": "38cb63f9a651753573d32be925e342e7ad1da7dcc35ebe833ad1f792a3c8aa4a",
+        "certificate_hash": "51eb21bb9145dd782c2d009a5b18c080a40e3e571d40c6e93e80e5dd20d101ea",
         "all_verified": false
       },
       "lean_bridge": null,
-      "report": "Audit passed: specimens/solidity/sol-02-auction/test/TestBase.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: panicCode.requires, panicCode.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/solidity/sol-02-auction/test/TestBase.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: panicCode.requires, panicCode.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -824,48 +893,77 @@
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [
+          "specimens/solidity/sol-02-auction/test/Vm.sol"
+        ],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": []
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 1,
+          "unverifiable": 0,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 0
+          }
+        }
+      },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-03T05:08:38.364589Z",
+        "timestamp": "2026-11-27T18:18:37.250468Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-02-auction/test/Vm.sol",
         "atoms": [],
         "package_name": "Vm",
         "package_version": "0",
-        "certificate_hash": "79903ab2aeb59d001029a5edfba2da0133c955b38172284d94bc27e05f8ab444",
+        "certificate_hash": "5de12d2982330010b9842e2a2ab39705ce9d7490b7d0cb311f8517b65cc23175",
         "all_verified": false
       },
       "lean_bridge": null,
-      "report": "Audit passed: specimens/solidity/sol-02-auction/test/Vm.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deal.requires, deal.ensures, prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, warp.requires, warp.ensures, roll.requires, roll.ensures, load.requires, load.ensures, sign.requires, sign.ensures, addr.requires, addr.ensures, expectRevert.requires, expectRevert.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/solidity/sol-02-auction/test/Vm.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deal.requires, deal.ensures, prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, warp.requires, warp.ensures, roll.requires, roll.ensures, load.requires, load.ensures, sign.requires, sign.ensures, addr.requires, addr.ensures, expectRevert.requires, expectRevert.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/solidity/sol-02-auction\n  src/EnglishAuction.sol: 6 violations, 0 gaps\n  test/TestBase.sol: 0 violations, 0 gaps\n  test/Vm.sol: 0 violations, 0 gaps\nSummary: 3 files, 1 file with issues\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, minNextBid.requires, minNextBid.ensures, bid.requires, bid.ensures, cancelBid.requires, cancelBid.ensures, withdraw.requires, withdraw.ensures, hasEnded.requires, hasEnded.ensures, finalize.requires, finalize.ensures, earlyBirdCount.requires, earlyBirdCount.ensures, fundBonus.requires, fundBonus.ensures, drawEarlyBirdBonus.requires, drawEarlyBirdBonus.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: panicCode.requires, panicCode.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deal.requires, deal.ensures, prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, warp.requires, warp.ensures, roll.requires, roll.ensures, load.requires, load.ensures, sign.requires, sign.ensures, addr.requires, addr.ensures, expectRevert.requires, expectRevert.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/solidity/sol-02-auction\n  src/EnglishAuction.sol: 0 violations, 0 gaps\n  test/TestBase.sol: 0 violations, 0 gaps\n  test/Vm.sol: 0 violations, 0 gaps\nSummary: 3 files, 0 files with issues, 0 files with spec diagnostics\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=0, verified=3, unverifiable=0\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, minNextBid.requires, minNextBid.ensures, bid.requires, bid.ensures, cancelBid.requires, cancelBid.ensures, withdraw.requires, withdraw.ensures, hasEnded.requires, hasEnded.ensures, finalize.requires, finalize.ensures, earlyBirdCount.requires, earlyBirdCount.ensures, fundBonus.requires, fundBonus.ensures, drawEarlyBirdBonus.requires, drawEarlyBirdBonus.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: panicCode.requires, panicCode.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deal.requires, deal.ensures, prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, warp.requires, warp.ensures, roll.requires, roll.ensures, load.requires, load.ensures, sign.requires, sign.ensures, addr.requires, addr.ensures, expectRevert.requires, expectRevert.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 3,
-  "files_with_issues": 1,
+  "files_with_issues": 0,
+  "files_with_spec_diagnostics": 0,
   "verification_status": "verified",
   "spec_health_issues": [],
-  "verification_violations": [
-    "src/EnglishAuction.sol: Solidity function `bid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-    "src/EnglishAuction.sol: Solidity function `cancelBid` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-    "src/EnglishAuction.sol: Solidity function `withdraw` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-    "src/EnglishAuction.sol: Solidity function `finalize` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-    "src/EnglishAuction.sol: Solidity function `fundBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-    "src/EnglishAuction.sol: Solidity function `drawEarlyBirdBonus` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
-  ],
+  "verification_violations": [],
   "cross_validation_gaps": [],
   "migration_hints": [],
   "healed_files": [],
   "heal_errors": [],
   "trusted_atoms": [],
+  "summary_audits": [],
+  "summary_plans": [],
   "next_steps": [
-    {
-      "priority": "high",
-      "action": "migrate-suggest で .mm スケルトンを生成",
-      "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
-    },
     {
       "priority": "medium",
       "action": "underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, minNextBid.requires, minNextBid.ensures, bid.requires, bid.ensures, cancelBid.requires, cancelBid.ensures, withdraw.requires, withdraw.ensures, hasEnded.requires, hasEnded.ensures, finalize.requires, finalize.ensures, earlyBirdCount.requires, earlyBirdCount.ensures, fundBonus.requires, fundBonus.ensures, drawEarlyBirdBonus.requires, drawEarlyBirdBonus.ensures",
@@ -882,6 +980,42 @@
       "command": "mumei-agent validate-spec --input <spec> --format human"
     }
   ],
+  "finding_counts": {
+    "code": 0,
+    "confirmed": 0,
+    "spec": 0,
+    "model_limitations": 0,
+    "errors": 0
+  },
+  "findings": [],
+  "triage": {
+    "schema": "mumei.audit-triage/v1",
+    "refuted": [],
+    "verified": [
+      "specimens/solidity/sol-02-auction/src/EnglishAuction.sol",
+      "specimens/solidity/sol-02-auction/test/TestBase.sol",
+      "specimens/solidity/sol-02-auction/test/Vm.sol"
+    ],
+    "unverifiable": {
+      "skipped_rate_limited": [],
+      "timeout": [],
+      "encoding_gap": [],
+      "no_function_declarations": [],
+      "other": []
+    },
+    "counts": {
+      "refuted": 0,
+      "verified": 3,
+      "unverifiable": 0,
+      "unverifiable_by_cause": {
+        "skipped_rate_limited": 0,
+        "timeout": 0,
+        "encoding_gap": 0,
+        "no_function_declarations": 0,
+        "other": 0
+      }
+    }
+  },
   "errors": [],
   "skipped_rate_limited_files": []
 }

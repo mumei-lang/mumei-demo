@@ -1,27 +1,17 @@
 {
-  "success": false,
+  "success": true,
   "source_dir": "specimens/go/go-01-inventory-api",
   "language": "mixed",
   "file_results": [
     {
-      "success": false,
+      "success": true,
       "source_file": "specimens/go/go-01-inventory-api/calc.go",
       "language": "go",
       "spec_extracted": true,
-      "verification_status": "refuted",
+      "verification_status": "verified",
       "spec_health_issues": [],
-      "verification_violations": [
-        "Go function `reorderPoint` can divide by `int32(len(locations))` without a non-zero contract (Z3 counterexample: int32(len(locations))=0)",
-        "Z3 Counter-example: int32(len(locations))=0"
-      ],
-      "counterexample_values": [
-        {
-          "function_name": "reorderPoint",
-          "counterexample": {
-            "int32(len(locations))": 0
-          }
-        }
-      ],
+      "verification_violations": [],
+      "counterexample_values": [],
       "cross_validation_gaps": [],
       "migration_hints": [],
       "healed_files": [],
@@ -29,9 +19,9 @@
       "trusted_atoms": [],
       "next_steps": [
         {
-          "priority": "high",
-          "action": "migrate-suggest で .mm スケルトンを生成",
-          "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
+          "priority": "info",
+          "action": "監査完了。追加の .mm 移行は不要",
+          "command": ""
         },
         {
           "priority": "medium",
@@ -39,9 +29,47 @@
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [
+          "specimens/go/go-01-inventory-api/calc.go"
+        ],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": []
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 1,
+          "unverifiable": 0,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 0
+          }
+        }
+      },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit found issues: specimens/go/go-01-inventory-api/calc.go\nlanguage: go\nspec_extracted: True\nverification_status: refuted\nspec_health_issues: []\nverification_violations: ['Go function `reorderPoint` can divide by `int32(len(locations))` without a non-zero contract (Z3 counterexample: int32(len(locations))=0)', 'Z3 Counter-example: int32(len(locations))=0']\ncounterexample_values: [{'function_name': 'reorderPoint', 'counterexample': {'int32(len(locations))': 0}}]\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: reorderPoint.ensures, appendMovement.requires, appendMovement.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/go/go-01-inventory-api/calc.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: reorderPoint.ensures, appendMovement.requires, appendMovement.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -71,9 +99,47 @@
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [
+          "specimens/go/go-01-inventory-api/handlers.go"
+        ],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": []
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 1,
+          "unverifiable": 0,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 0
+          }
+        }
+      },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/go/go-01-inventory-api/handlers.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: itemHandler.requires, itemHandler.ensures, createItem.requires, createItem.ensures, viewItem.ensures, decodeMovement.requires, decodeMovement.ensures, writeMovement.requires, writeMovement.ensures, reserveHandler.requires, reserveHandler.ensures, releaseHandler.requires, releaseHandler.ensures, restockHandler.requires, restockHandler.ensures, reportHandler.requires, reportHandler.ensures, searchHandler.requires, searchHandler.ensures, resetHandler.requires, resetHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/go/go-01-inventory-api/handlers.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: itemHandler.requires, itemHandler.ensures, createItem.requires, createItem.ensures, viewItem.ensures, decodeMovement.requires, decodeMovement.ensures, writeMovement.requires, writeMovement.ensures, reserveHandler.requires, reserveHandler.ensures, releaseHandler.requires, releaseHandler.ensures, restockHandler.requires, restockHandler.ensures, reportHandler.requires, reportHandler.ensures, searchHandler.requires, searchHandler.ensures, resetHandler.requires, resetHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -86,16 +152,19 @@
       "spec_health_issues": [],
       "verification_violations": [],
       "counterexample_values": [],
-      "cross_validation_gaps": [],
+      "cross_validation_gaps": [
+        "spec stronger than implementation: adminAuthorized",
+        "spec precondition assumed, not enforced, by `adminAuthorized`"
+      ],
       "migration_hints": [],
       "healed_files": [],
       "heal_errors": [],
       "trusted_atoms": [],
       "next_steps": [
         {
-          "priority": "info",
-          "action": "監査完了。追加の .mm 移行は不要",
-          "command": ""
+          "priority": "high",
+          "action": "validate-spec-to-code で制約の対応を確認",
+          "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
         },
         {
           "priority": "medium",
@@ -103,9 +172,72 @@
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 2,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "spec",
+          "severity": "warning",
+          "confidence": "medium",
+          "verification_basis": "cross-validation",
+          "message": "spec stronger than implementation: adminAuthorized",
+          "source_file": "specimens/go/go-01-inventory-api/main.go",
+          "line": null,
+          "triage_bucket": "spec_review",
+          "fingerprint": "14a02becef0d867ad9701e2c397364016fb214c445d9dd7b8d86ad9a9bea312d"
+        },
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "spec",
+          "severity": "warning",
+          "confidence": "medium",
+          "verification_basis": "cross-validation",
+          "message": "spec precondition assumed, not enforced, by `adminAuthorized`",
+          "source_file": "specimens/go/go-01-inventory-api/main.go",
+          "line": null,
+          "triage_bucket": "spec_review",
+          "fingerprint": "a00219c1d0d5fe93eddaf03c078af6b3e9837164209288df08764dbac42df29e"
+        }
+      ],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [
+          "specimens/go/go-01-inventory-api/main.go"
+        ],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": []
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 1,
+          "unverifiable": 0,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 0
+          }
+        }
+      },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/go/go-01-inventory-api/main.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures, auditRequests.requires, auditRequests.ensures, adminAuthorized.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed with 2 spec diagnostics to review: specimens/go/go-01-inventory-api/main.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec stronger than implementation: adminAuthorized', 'spec precondition assumed, not enforced, by `adminAuthorized`']\nfinding_counts: code=0, confirmed=0, spec=2, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures, auditRequests.requires, auditRequests.ensures, adminAuthorized.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -135,33 +267,69 @@
           "command": "mumei-agent validate-spec --input <spec> --format human"
         }
       ],
+      "body_ports": [],
+      "native_replays": [],
+      "scheduled_verification": null,
+      "scheduled_verification_check": null,
+      "finding_counts": {
+        "code": 0,
+        "confirmed": 0,
+        "spec": 0,
+        "model_limitations": 0,
+        "errors": 0
+      },
+      "findings": [],
+      "triage": {
+        "schema": "mumei.audit-triage/v1",
+        "refuted": [],
+        "verified": [
+          "specimens/go/go-01-inventory-api/store.go"
+        ],
+        "unverifiable": {
+          "skipped_rate_limited": [],
+          "timeout": [],
+          "encoding_gap": [],
+          "no_function_declarations": [],
+          "other": []
+        },
+        "counts": {
+          "refuted": 0,
+          "verified": 1,
+          "unverifiable": 0,
+          "unverifiable_by_cause": {
+            "skipped_rate_limited": 0,
+            "timeout": 0,
+            "encoding_gap": 0,
+            "no_function_declarations": 0,
+            "other": 0
+          }
+        }
+      },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/go/go-01-inventory-api/store.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: NewStore.requires, NewStore.ensures, Put.requires, Put.ensures, Get.requires, Get.ensures, Update.requires, Update.ensures, All.requires, All.ensures, Reset.requires, Reset.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit passed: specimens/go/go-01-inventory-api/store.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: NewStore.requires, NewStore.ensures, Put.requires, Put.ensures, Get.requires, Get.ensures, Update.requires, Update.ensures, All.requires, All.ensures, Reset.requires, Reset.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/go/go-01-inventory-api\n  calc.go: 2 violations, 0 gaps\n  handlers.go: 0 violations, 0 gaps\n  main.go: 0 violations, 0 gaps\n  store.go: 0 violations, 0 gaps\nSummary: 4 files, 1 file with issues\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: reorderPoint.ensures, appendMovement.requires, appendMovement.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: itemHandler.requires, itemHandler.ensures, createItem.requires, createItem.ensures, viewItem.ensures, decodeMovement.requires, decodeMovement.ensures, writeMovement.requires, writeMovement.ensures, reserveHandler.requires, reserveHandler.ensures, releaseHandler.requires, releaseHandler.ensures, restockHandler.requires, restockHandler.ensures, reportHandler.requires, reportHandler.ensures, searchHandler.requires, searchHandler.ensures, resetHandler.requires, resetHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures, auditRequests.requires, auditRequests.ensures, adminAuthorized.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: NewStore.requires, NewStore.ensures, Put.requires, Put.ensures, Get.requires, Get.ensures, Update.requires, Update.ensures, All.requires, All.ensures, Reset.requires, Reset.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/go/go-01-inventory-api\n  calc.go: 0 violations, 0 gaps\n  handlers.go: 0 violations, 0 gaps\n  main.go: 0 violations, 2 gaps\n  store.go: 0 violations, 0 gaps\nSummary: 4 files, 0 files with issues, 1 file with spec diagnostics\nfinding_counts: code=0, confirmed=0, spec=2, model_limitations=0, errors=0\ntriage: refuted=0, verified=4, unverifiable=0\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: reorderPoint.ensures, appendMovement.requires, appendMovement.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: itemHandler.requires, itemHandler.ensures, createItem.requires, createItem.ensures, viewItem.ensures, decodeMovement.requires, decodeMovement.ensures, writeMovement.requires, writeMovement.ensures, reserveHandler.requires, reserveHandler.ensures, releaseHandler.requires, releaseHandler.ensures, restockHandler.requires, restockHandler.ensures, reportHandler.requires, reportHandler.ensures, searchHandler.requires, searchHandler.ensures, resetHandler.requires, resetHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures, auditRequests.requires, auditRequests.ensures, adminAuthorized.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: NewStore.requires, NewStore.ensures, Put.requires, Put.ensures, Get.requires, Get.ensures, Update.requires, Update.ensures, All.requires, All.ensures, Reset.requires, Reset.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 4,
-  "files_with_issues": 1,
-  "verification_status": "refuted",
+  "files_with_issues": 0,
+  "files_with_spec_diagnostics": 1,
+  "verification_status": "verified",
   "spec_health_issues": [],
-  "verification_violations": [
-    "calc.go: Go function `reorderPoint` can divide by `int32(len(locations))` without a non-zero contract (Z3 counterexample: int32(len(locations))=0)",
-    "calc.go: Z3 Counter-example: int32(len(locations))=0"
+  "verification_violations": [],
+  "cross_validation_gaps": [
+    "main.go: spec stronger than implementation: adminAuthorized",
+    "main.go: spec precondition assumed, not enforced, by `adminAuthorized`"
   ],
-  "cross_validation_gaps": [],
   "migration_hints": [],
   "healed_files": [],
   "heal_errors": [],
   "trusted_atoms": [],
+  "summary_audits": [],
+  "summary_plans": [],
   "next_steps": [
-    {
-      "priority": "high",
-      "action": "migrate-suggest で .mm スケルトンを生成",
-      "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
-    },
     {
       "priority": "medium",
       "action": "underspecified な意図を明文化（推測で補完しない）: reorderPoint.ensures, appendMovement.requires, appendMovement.ensures",
@@ -171,6 +339,11 @@
       "priority": "medium",
       "action": "underspecified な意図を明文化（推測で補完しない）: itemHandler.requires, itemHandler.ensures, createItem.requires, createItem.ensures, viewItem.ensures, decodeMovement.requires, decodeMovement.ensures, writeMovement.requires, writeMovement.ensures, reserveHandler.requires, reserveHandler.ensures, releaseHandler.requires, releaseHandler.ensures, restockHandler.requires, restockHandler.ensures, reportHandler.requires, reportHandler.ensures, searchHandler.requires, searchHandler.ensures, resetHandler.requires, resetHandler.ensures, writeJSON.requires, writeJSON.ensures",
       "command": "mumei-agent validate-spec --input <spec> --format human"
+    },
+    {
+      "priority": "high",
+      "action": "validate-spec-to-code で制約の対応を確認",
+      "command": "mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human"
     },
     {
       "priority": "medium",
@@ -183,6 +356,68 @@
       "command": "mumei-agent validate-spec --input <spec> --format human"
     }
   ],
+  "finding_counts": {
+    "code": 0,
+    "confirmed": 0,
+    "spec": 2,
+    "model_limitations": 0,
+    "errors": 0
+  },
+  "findings": [
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "spec",
+      "severity": "warning",
+      "confidence": "medium",
+      "verification_basis": "cross-validation",
+      "message": "spec stronger than implementation: adminAuthorized",
+      "source_file": "specimens/go/go-01-inventory-api/main.go",
+      "line": null,
+      "triage_bucket": "spec_review",
+      "fingerprint": "14a02becef0d867ad9701e2c397364016fb214c445d9dd7b8d86ad9a9bea312d"
+    },
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "spec",
+      "severity": "warning",
+      "confidence": "medium",
+      "verification_basis": "cross-validation",
+      "message": "spec precondition assumed, not enforced, by `adminAuthorized`",
+      "source_file": "specimens/go/go-01-inventory-api/main.go",
+      "line": null,
+      "triage_bucket": "spec_review",
+      "fingerprint": "a00219c1d0d5fe93eddaf03c078af6b3e9837164209288df08764dbac42df29e"
+    }
+  ],
+  "triage": {
+    "schema": "mumei.audit-triage/v1",
+    "refuted": [],
+    "verified": [
+      "specimens/go/go-01-inventory-api/calc.go",
+      "specimens/go/go-01-inventory-api/handlers.go",
+      "specimens/go/go-01-inventory-api/main.go",
+      "specimens/go/go-01-inventory-api/store.go"
+    ],
+    "unverifiable": {
+      "skipped_rate_limited": [],
+      "timeout": [],
+      "encoding_gap": [],
+      "no_function_declarations": [],
+      "other": []
+    },
+    "counts": {
+      "refuted": 0,
+      "verified": 4,
+      "unverifiable": 0,
+      "unverifiable_by_cause": {
+        "skipped_rate_limited": 0,
+        "timeout": 0,
+        "encoding_gap": 0,
+        "no_function_declarations": 0,
+        "other": 0
+      }
+    }
+  },
   "errors": [],
   "skipped_rate_limited_files": []
 }

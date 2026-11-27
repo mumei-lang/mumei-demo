@@ -5,12 +5,12 @@
   "audit_markdown_exit_code": 0,
   "verification_status": "unverifiable",
   "files_audited": 4,
-  "files_with_issues": 1,
+  "files_with_issues": 0,
   "counts": {
     "total": 11,
     "detected": 0,
-    "function_flagged": 1,
-    "missed": 10
+    "function_flagged": 2,
+    "missed": 9
   },
   "defects": [
     {
@@ -40,8 +40,11 @@
       "category": "division-by-zero",
       "class": "bug",
       "in_target_category": true,
-      "status": "missed",
-      "findings": []
+      "status": "function_flagged",
+      "findings": [
+        "spec stronger than implementation: daily_average",
+        "spec precondition assumed, not enforced, by `daily_average`"
+      ]
     },
     {
       "id": "PY01-D04",
@@ -50,8 +53,11 @@
       "category": "rounding-error",
       "class": "bug",
       "in_target_category": false,
-      "status": "missed",
-      "findings": []
+      "status": "function_flagged",
+      "findings": [
+        "spec stronger than implementation: average_expense",
+        "spec precondition assumed, not enforced, by `average_expense`"
+      ]
     },
     {
       "id": "PY01-D05",
@@ -60,10 +66,8 @@
       "category": "off-by-one",
       "class": "bug",
       "in_target_category": true,
-      "status": "function_flagged",
-      "findings": [
-        "encoding-gap: is_over_budget: spec_lowering_failed: failed to lower ensures clause 'result == spent_cents > limit_cents': Verification Error: Expected bool for == (constraints: [\"result == spent_cents > limit_cents\"])"
-      ]
+      "status": "missed",
+      "findings": []
     },
     {
       "id": "PY01-D06",
@@ -130,64 +134,59 @@
   "findings": [
     {
       "file": "ledger.py",
-      "kind": "spec_health_issues",
-      "text": "encoding-gap: is_over_budget: spec_lowering_failed: failed to lower ensures clause 'result == spent_cents > limit_cents': Verification Error: Expected bool for == (constraints: [\"result == spent_cents > limit_cents\"])",
-      "status": "false_positive",
-      "reason": "Tool diagnostic: the extracted ensures clause failed to lower. It names no problem in is_over_budget (the planted off-by-one is not mentioned)."
+      "kind": "cross_validation_gaps",
+      "text": "spec stronger than implementation: daily_average",
+      "status": "unreviewed"
+    },
+    {
+      "file": "ledger.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec stronger than implementation: average_expense",
+      "status": "unreviewed"
+    },
+    {
+      "file": "ledger.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec precondition assumed, not enforced, by `daily_average`",
+      "status": "unreviewed"
+    },
+    {
+      "file": "ledger.py",
+      "kind": "cross_validation_gaps",
+      "text": "spec precondition assumed, not enforced, by `average_expense`",
+      "status": "unreviewed"
     }
   ],
   "finding_counts": {
-    "total": 1,
+    "total": 4,
     "defect_evidence": 0,
     "real": 0,
-    "false_positive": 1,
-    "unreviewed": 0
+    "false_positive": 0,
+    "unreviewed": 4
   },
-  "reviews_used": [
-    [
-      "py-01-expense-tracker",
-      "ledger.py",
-      "encoding-gap: is_over_budget: spec_lowering_failed"
-    ]
-  ],
+  "reviews_used": [],
   "source_hash": "0468722f07853392606cdfb4cd0014613e56edf40f4506d4dcfe2007d466c3d2",
   "meta": {
-    "mumei_agent_commit": "e8be527273238327ad76847bc271d56bd8876b33",
-    "mumei_commit": "36eb5346fbe3d401cf3229cd17739fa28c8bbf3f",
+    "mumei_agent_commit": "beaa28625eaf58e0ac6ead30c74a438634f67392",
+    "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
-    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown",
-    "generated_at": "2026-11-03T05:07:38Z"
+    "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
+    "generated_at": "2026-11-27T18:17:14Z"
   },
   "fixed": {
     "defects": 11,
     "still_reported": [],
-    "still_function_flagged": [
-      "PY01-D05"
-    ],
-    "false_alarms": 1,
-    "findings": [
-      {
-        "file": "ledger.py",
-        "kind": "spec_health_issues",
-        "text": "encoding-gap: is_over_budget: spec_lowering_failed: failed to lower ensures clause 'result == spent_cents >= limit_cents': Verification Error: Expected bool for == (constraints: [\"result == spent_cents >= limit_cents\"])",
-        "status": "false_positive",
-        "reason": "Tool diagnostic: the extracted ensures clause failed to lower. It names no problem in is_over_budget (the planted off-by-one is not mentioned)."
-      }
-    ],
+    "still_function_flagged": [],
+    "false_alarms": 0,
+    "findings": [],
     "finding_counts": {
-      "total": 1,
+      "total": 0,
       "defect_evidence": 0,
       "real": 0,
-      "false_positive": 1,
+      "false_positive": 0,
       "unreviewed": 0
     },
-    "reviews_used": [
-      [
-        "py-01-expense-tracker",
-        "ledger.py",
-        "encoding-gap: is_over_budget: spec_lowering_failed"
-      ]
-    ]
+    "reviews_used": []
   }
 }
