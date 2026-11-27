@@ -500,6 +500,8 @@ def test_ci_reference_quickstart_statically_covers_migration_action_contract() -
             input_indent = indent
         if indent == input_indent:
             input_lines.append(stripped)
+        else:
+            raise AssertionError(f"quick start action inputs must be flat scalar entries, got nested line: {stripped}")
     inputs = dict(line.split(":", 1) for line in input_lines)
     inputs = {key.strip(): re.sub(r"\s+#.*$", "", value).strip() for key, value in inputs.items()}
     assert inputs["audit-args"] == "--baseline audit-baseline.json --write-baseline .mumei-audit/generated-baseline.json --fail-on high-confidence"
