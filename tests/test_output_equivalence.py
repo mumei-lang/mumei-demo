@@ -202,6 +202,8 @@ def test_bounded_interaction_runner_applies_memory_limit(monkeypatch: pytest.Mon
         commands.append(command)
         return FakeProcess()
 
+    monkeypatch.setattr(fidelity.resource, "getrlimit",
+                        lambda _resource: (fidelity.resource.RLIM_INFINITY, fidelity.resource.RLIM_INFINITY))
     monkeypatch.setattr(fidelity.shutil, "which", lambda name: "/usr/bin/prlimit" if name == "prlimit" else None)
     monkeypatch.setattr(fidelity.subprocess, "Popen", fake_popen)
 
