@@ -79,6 +79,9 @@ def test_migration_plan_marks_hints_as_human_review_required() -> None:
     assert plan["summary"] == {"candidate_count": 1, "high_priority_count": 1}
     assert plan["entries"][0]["readiness"] == "human_review_required"
     assert "not proof" in plan["entries"][0]["evidence_boundary"]
+    assert plan["artifact_paths"] == pack.ARTIFACT_PATHS
+    assert plan["evidence_boundary"]["native_bundle"].startswith("No native bundle")
+    assert plan["evidence_boundary"]["adapter_observation"].startswith("No adapter observation")
 
 
 def test_build_evidence_pack_manifest_and_boundaries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -156,14 +159,38 @@ def test_build_evidence_pack_manifest_and_boundaries(tmp_path: Path, monkeypatch
     assert manifest["sarif"]["required"] is False
     assert not (pack_dir / "audit.sarif").exists()
     assert len(manifest["artifacts"]) == 9
+    assert manifest["artifact_paths"] == pack.ARTIFACT_PATHS
+    assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"
+    assert manifest["evidence_roles"]["adapter_observation"]["status"] == "absent"
+    assert any("No native bundle is present or implied" in line for line in manifest["evidence_boundary"])
+    assert any("No adapter observation is present or implied" in line for line in manifest["evidence_boundary"])
     audit_json = json.loads((pack_dir / "audit.json").read_text(encoding="utf-8"))
     assert audit_json["source_file"] == "fixture/ledger.py"
     assert audit_json["deterministic_no_llm"] is True
     assert audit_json["capability_boundary"]["sarif"] == "not emitted by the current audit CLI"
+    assert audit_json["artifact_paths"] == pack.ARTIFACT_PATHS
+    assert audit_json["evidence_boundary"]["audit_report"].endswith("not a proof certificate.")
+    migration_json = json.loads((pack_dir / "migration_plan.json").read_text(encoding="utf-8"))
+    assert migration_json["artifact_paths"] == pack.ARTIFACT_PATHS
+    assert migration_json["evidence_boundary"]["migration_plan"].startswith("Human-review migration scaffold")
     summary = (pack_dir / "summary.md").read_text(encoding="utf-8")
     assert "Neither artifact yet proves semantic equivalence" in summary
     workflow = (pack_dir / "github-actions-mumei-audit.yml").read_text(encoding="utf-8")
     assert workflow == (SCENARIO_DIR / "reference" / "workflows" / "mumei-audit.yml").read_text(encoding="utf-8")
+
+
+def test_artifact_paths_match_present_manifest_artifacts_and_absent_roles() -> None:
+    for role in ("audit_report", "migration_plan", "proof_certificate"):
+        assert pack.ARTIFACT_PATHS[role] is not None
+        assert pack.EVIDENCE_BOUNDARIES[role]
+    for role in ("native_bundle", "adapter_observation"):
+        assert pack.ARTIFACT_PATHS[role] is None
+        assert "not proof" not in pack.EVIDENCE_BOUNDARIES[role].lower()
+
+    # The roles are deliberately closed: adding native-bundle or adapter-observation
+    # artifacts to an audit/migration pack requires an explicit schema/policy change,
+    # not reuse of these passive evidence channels.
+    assert set(pack.ARTIFACT_PATHS) == set(pack.EVIDENCE_BOUNDARIES)
 
 
 def test_main_makes_relative_agent_python_absolute_without_resolving(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -220,6 +247,15 @@ def test_reference_workflow_uploads_sarif_only_conditionally() -> None:
     assert "upload-sarif" in workflow
     assert "--emit-sarif" not in workflow
     assert "--format sarif" not in workflow
+
+
+def test_audit_evidence_workflow_asserts_closed_artifact_roles() -> None:
+    workflow = (REPO_ROOT / ".github" / "workflows" / "audit-evidence-pack.yml").read_text(encoding="utf-8")
+
+    assert 'manifest["artifact_paths"]["native_bundle"] is None' in workflow
+    assert 'manifest["artifact_paths"]["adapter_observation"] is None' in workflow
+    assert 'audit["artifact_paths"] == manifest["artifact_paths"]' in workflow
+    assert 'migration["artifact_paths"] == manifest["artifact_paths"]' in workflow
 
 
 def test_scenario_uses_current_cli_builder_and_declares_pack_artifacts() -> None:

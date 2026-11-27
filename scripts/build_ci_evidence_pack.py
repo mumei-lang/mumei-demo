@@ -32,6 +32,28 @@ FIXED_AUDIT_KEYS = [
 PACK_SCHEMA = "mumei-demo.ci-evidence-pack/v1"
 MIGRATION_PLAN_SCHEMA = "mumei-demo.migration-plan/v1"
 
+ARTIFACT_PATHS = {
+    "audit_report": "audit.json",
+    "migration_plan": "migration_plan.json",
+    "proof_certificate": "reference.proof.json",
+    "native_bundle": None,
+    "adapter_observation": None,
+}
+EVIDENCE_BOUNDARIES = {
+    "audit_report": "Existing-code audit evidence; not a proof certificate.",
+    "migration_plan": "Human-review migration scaffold; not evidence of completed migration.",
+    "proof_certificate": "Proof only for the reviewed reference .mm contract; not host-code equivalence.",
+    "native_bundle": "No native bundle is present or implied by this audit/migration evidence pack.",
+    "adapter_observation": "No adapter observation is present or implied by this audit/migration evidence pack.",
+}
+
+
+def evidence_metadata() -> dict[str, Any]:
+    return {
+        "artifact_paths": dict(ARTIFACT_PATHS),
+        "evidence_boundary": dict(EVIDENCE_BOUNDARIES),
+    }
+
 
 class EvidencePackError(RuntimeError):
     pass
@@ -222,6 +244,7 @@ def migration_plan(audit: dict[str, Any]) -> dict[str, Any]:
         "source": "fixture/ledger.py",
         "audit_verification_status": audit.get("verification_status"),
         "deterministic_mode": True,
+        **evidence_metadata(),
         "entries": entries,
         "summary": {
             "candidate_count": len(entries),
@@ -270,6 +293,8 @@ def write_summary(path: Path, audit: dict[str, Any], plan: dict[str, Any], verif
         "## Evidence boundary",
         "",
         "The audit report identifies review and migration work. The reference certificate proves the standalone `.mm` contract. Neither artifact yet proves semantic equivalence between the Python implementation and the `.mm` contract.",
+        "",
+        "`native_bundle` and `adapter_observation` are explicitly absent in `artifact_paths`; neither audit findings nor migration scaffolds may be relabeled as those evidence classes.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -314,6 +339,7 @@ def build_evidence_pack(
         "baseline": "not implemented by the current audit CLI",
         "exit_policy": "current CLI exit code is recorded, not interpreted as a fail-on policy",
     }
+    audit.update(evidence_metadata())
     _write_json(pack_dir / "audit.json", audit)
     (pack_dir / "audit.stderr.log").write_text(audit_completed.stderr, encoding="utf-8")
 
@@ -359,6 +385,15 @@ def build_evidence_pack(
             "workflow_template": {"path": "reference/workflows/mumei-audit.yml", "sha256": _sha256(workflow_template)},
         },
         "artifacts": _artifact_rows(artifact_paths, pack_dir),
+        "artifact_paths": dict(ARTIFACT_PATHS),
+        "evidence_roles": {
+            role: {
+                "path": path,
+                "status": "absent" if path is None else "present",
+                "boundary": EVIDENCE_BOUNDARIES[role],
+            }
+            for role, path in ARTIFACT_PATHS.items()
+        },
         "sarif": {
             "path": "audit.sarif",
             "status": "not_available_in_current_cli",
@@ -369,6 +404,8 @@ def build_evidence_pack(
             "audit.json is existing-code audit evidence, not a proof certificate.",
             "migration_plan.json is a human-review plan, not evidence of completed migration.",
             "reference.proof.json proves only the reviewed reference .mm contract.",
+            "No native bundle is present or implied by this pack.",
+            "No adapter observation is present or implied by this pack.",
             "No artifact in this pack establishes Python/.mm semantic equivalence.",
         ],
     }

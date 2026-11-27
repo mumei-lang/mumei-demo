@@ -121,6 +121,15 @@ jobs:
           }
           missing = sorted(required - set(audit))
           assert not missing, missing
+          expected_roles = {"audit_report", "migration_plan", "proof_certificate", "native_bundle", "adapter_observation"}
+          assert set(manifest["artifact_paths"]) == expected_roles
+          assert manifest["artifact_paths"]["native_bundle"] is None
+          assert manifest["artifact_paths"]["adapter_observation"] is None
+          assert audit["artifact_paths"] == manifest["artifact_paths"]
+          migration = json.loads((root / "migration_plan.json").read_text())
+          assert migration["artifact_paths"] == manifest["artifact_paths"]
+          assert manifest["evidence_roles"]["native_bundle"]["status"] == "absent"
+          assert manifest["evidence_roles"]["adapter_observation"]["status"] == "absent"
           print(f"evidence pack artifacts: {len(manifest['artifacts'])}")
           print(f"audit status: {audit['verification_status']}")
           PY

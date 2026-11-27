@@ -31,10 +31,10 @@ The copyable workflow is [`scenarios/ci_evidence_pack/reference/workflows/mumei-
 
 | Artifact | Meaning |
 |---|---|
-| `audit.json` | Current audit CLI output for existing code, including `verification_status`, `cross_validation_gaps`, `next_steps`, and `migration_hints` |
-| `migration_plan.json` | Human-review migration plan derived only from `migration_hints` |
-| `reference.proof.json` | Proof certificate for the reviewed reference `.mm` contract |
-| `manifest.json` | Schema, input/artifact hashes, SARIF capability status, and evidence boundary |
+| `audit.json` | Current audit CLI output for existing code, including `verification_status`, `cross_validation_gaps`, `next_steps`, `migration_hints`, `artifact_paths`, and the audit-report evidence boundary |
+| `migration_plan.json` | Human-review migration plan derived only from `migration_hints`, with the same `artifact_paths` map and a migration-scaffold boundary |
+| `reference.proof.json` | Proof certificate for the reviewed reference `.mm` contract only |
+| `manifest.json` | Schema, input/artifact hashes, closed `artifact_paths` roles, SARIF capability status, and evidence boundary |
 | `summary.md` | Human-readable job summary |
 
 ## What it does not prove
@@ -42,7 +42,11 @@ The copyable workflow is [`scenarios/ci_evidence_pack/reference/workflows/mumei-
 - Audit output is not a proof certificate.
 - A migration hint or skeleton is not evidence of completed migration.
 - The reference `.mm` certificate does not prove semantic equivalence with Python or another host-language implementation.
+- No native bundle is present or implied by this audit/migration evidence pack.
+- No adapter observation is present or implied by this audit/migration evidence pack; runtime observations must not be folded into proof evidence.
 - SARIF, baseline suppression, and CI fail-on policies remain upstream audit CLI work. Until then, their absence is recorded explicitly instead of being emulated in this repository.
+
+`artifact_paths` is a closed role map in `audit.json`, `migration_plan.json`, and `manifest.json`: `audit_report`, `migration_plan`, and `proof_certificate` point at their respective files, while `native_bundle` and `adapter_observation` are explicitly `null`. Treating those absent roles as present, or pointing them at audit/migration artifacts, is a schema/policy regression rather than evidence acceptance.
 
 ## Deterministic versus fixture mode
 
