@@ -34,7 +34,7 @@ flowchart LR
     Evidence --> Eval["scenario and benchmark evaluation"]
 ```
 
-The demo evaluates recorded evidence; it does not turn finite replay, LLM output, or a successful scenario into additional proof.
+The diagram shows the upstream verification and opt-in escalation flow. Some scenarios additionally pass an already emitted proof certificate to the mumei-lean bridge as certificate-integration evidence, even when Z3 verification succeeded. The demo evaluates recorded evidence; it does not turn finite replay, LLM output, or a successful scenario into additional proof.
 
 ## Verification demo: dogfooding audit
 
