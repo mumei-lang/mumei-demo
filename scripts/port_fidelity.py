@@ -681,6 +681,8 @@ def expand_simple_helper_calls(text: str, helpers: dict[str, dict],
     """
     if re.search(r"//|/\*|\*/|\"|'", text):
         return None
+    if re.search(r"^\s*(?!let\b)\w+\s*=\s*[^=]", text, re.M):
+        return None
     tokens = re.findall(REWRITE_TOKEN, text)
     braces = _delimiter_pairs(tokens, "{", "}")
     parens = _delimiter_pairs(tokens, "(", ")")
