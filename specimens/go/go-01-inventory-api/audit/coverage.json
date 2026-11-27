@@ -74,7 +74,6 @@
       "in_target_category": true,
       "status": "function_flagged",
       "findings": [
-        "spec stronger than implementation: viewItem",
         "spec precondition assumed, not enforced, by `viewItem`"
       ]
     },
@@ -133,11 +132,6 @@
     {
       "file": "store.go",
       "kind": "cross_validation_gaps",
-      "text": "spec stronger than implementation: Get"
-    },
-    {
-      "file": "store.go",
-      "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `Get`"
     }
   ],
@@ -151,19 +145,7 @@
     {
       "file": "calc.go",
       "kind": "cross_validation_gaps",
-      "text": "spec stronger than implementation: reorderPoint",
-      "status": "unreviewed"
-    },
-    {
-      "file": "calc.go",
-      "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `reorderPoint`",
-      "status": "unreviewed"
-    },
-    {
-      "file": "handlers.go",
-      "kind": "cross_validation_gaps",
-      "text": "spec stronger than implementation: viewItem",
       "status": "unreviewed"
     },
     {
@@ -175,72 +157,40 @@
     {
       "file": "store.go",
       "kind": "cross_validation_gaps",
-      "text": "spec stronger than implementation: Get",
-      "status": "unreviewed"
-    },
-    {
-      "file": "store.go",
-      "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `Get`",
       "status": "unreviewed"
     }
   ],
   "finding_counts": {
-    "total": 7,
+    "total": 4,
     "defect_evidence": 1,
     "real": 0,
     "false_positive": 0,
-    "unreviewed": 6
+    "unreviewed": 3
   },
   "reviews_used": [],
   "source_hash": "5014fb7d871106c11847f9092f9e18758378b37f1e691a333b4b7ab14540faa5",
   "meta": {
-    "mumei_agent_commit": "7a488f43f4a7e30b4e7801a69f51e06cfc0c0894",
+    "mumei_agent_commit": "cf06d5c713e7b1d5da69a7e1027bea3b8e0ae78d",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-27T19:27:55Z"
+    "generated_at": "2026-11-27T22:34:55Z"
   },
   "fixed": {
     "defects": 11,
     "still_reported": [],
     "still_function_flagged": [],
-    "false_alarms": 2,
-    "findings": [
-      {
-        "file": "main.go",
-        "kind": "cross_validation_gaps",
-        "text": "spec stronger than implementation: adminAuthorized",
-        "status": "false_positive",
-        "reason": "The non-nil request precondition is generated for an HTTP middleware helper whose only production caller is net/http; it does not identify a defect in the fixed token comparison."
-      },
-      {
-        "file": "main.go",
-        "kind": "cross_validation_gaps",
-        "text": "spec precondition assumed, not enforced, by `adminAuthorized`",
-        "status": "false_positive",
-        "reason": "The non-nil request precondition is generated for an HTTP middleware helper whose only production caller is net/http; it does not identify a defect in the fixed token comparison."
-      }
-    ],
+    "false_alarms": 0,
+    "findings": [],
     "finding_counts": {
-      "total": 2,
+      "total": 0,
       "defect_evidence": 0,
       "real": 0,
-      "false_positive": 2,
+      "false_positive": 0,
       "unreviewed": 0
     },
-    "reviews_used": [
-      [
-        "go-01-inventory-api",
-        "main.go",
-        "spec precondition assumed, not enforced, by `adminAuthorized`"
-      ],
-      [
-        "go-01-inventory-api",
-        "main.go",
-        "spec stronger than implementation: adminAuthorized"
-      ]
-    ]
+    "reviews_used": []
   }
 }

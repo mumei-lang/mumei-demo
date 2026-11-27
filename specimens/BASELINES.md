@@ -27,16 +27,16 @@ with different denominators are not directly comparable; compare within a langua
 
 | Language | Analyzer | Detected | Precision | Fixed-code false alarms |
 |---|---|---|---|---|
-| go | Mumei (no LLM) | 1/32 (3%) | 14%–100% | 4 / 3 specimens |
+| go | Mumei (no LLM) | 1/32 (3%) | 25%–100% | 1 / 3 specimens |
 | go | gosec | 6/32 (19%) | 62% | 15 / 3 specimens |
 | go | semgrep | 4/32 (12%) | 82% | 4 / 3 specimens |
-| python | Mumei (no LLM) | 1/41 (2%) | 11%–100% | 0 / 4 specimens |
+| python | Mumei (no LLM) | 1/41 (2%) | 20%–100% | 0 / 4 specimens |
 | python | bandit | 5/41 (12%) | 88% | 3 / 4 specimens |
 | python | semgrep | 3/41 (7%) | 100% | 1 / 4 specimens |
 | rust | Mumei (no LLM) | 1/34 (3%) | 100% | 0 / 3 specimens |
 | rust | clippy | 0/34 (0%) | n/a | 0 / 3 specimens |
 | rust | semgrep | 0/34 (0%) | 0% | 2 / 3 specimens |
-| solidity | Mumei (no LLM) | 6/31 (19%) | 67%–83% | 0 / 3 specimens |
+| solidity | Mumei (no LLM) | 6/31 (19%) | 73%–82% | 0 / 3 specimens |
 | solidity | semgrep | 0/31 (0%) | n/a | 0 / 3 specimens |
 | solidity | slither | 11/31 (35%) | 40% | 28 / 3 specimens |
 | typescript | Mumei (no LLM) | 2/33 (6%) | 100% | 0 / 3 specimens |

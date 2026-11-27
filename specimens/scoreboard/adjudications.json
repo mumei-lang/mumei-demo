@@ -228,30 +228,9 @@
     {
       "specimen": "go-03-auth-gateway",
       "file": "auth.go",
-      "finding_contains": "spec stronger than implementation: passwordMatches",
-      "verdict": "false_positive",
-      "reason": "The non-nil request/input precondition is a generated caller assumption for an authentication helper and does not identify a defect in the fixed constant-time comparison."
-    },
-    {
-      "specimen": "go-03-auth-gateway",
-      "file": "auth.go",
       "finding_contains": "spec precondition assumed, not enforced, by `passwordMatches`",
       "verdict": "false_positive",
       "reason": "The non-nil request/input precondition is a generated caller assumption for an authentication helper and does not identify a defect in the fixed constant-time comparison."
-    },
-    {
-      "specimen": "go-01-inventory-api",
-      "file": "main.go",
-      "finding_contains": "spec stronger than implementation: adminAuthorized",
-      "verdict": "false_positive",
-      "reason": "The non-nil request precondition is generated for an HTTP middleware helper whose only production caller is net/http; it does not identify a defect in the fixed token comparison."
-    },
-    {
-      "specimen": "go-01-inventory-api",
-      "file": "main.go",
-      "finding_contains": "spec precondition assumed, not enforced, by `adminAuthorized`",
-      "verdict": "false_positive",
-      "reason": "The non-nil request precondition is generated for an HTTP middleware helper whose only production caller is net/http; it does not identify a defect in the fixed token comparison."
     }
   ]
 }

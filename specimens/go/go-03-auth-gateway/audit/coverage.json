@@ -136,26 +136,19 @@
   "reviews_used": [],
   "source_hash": "a7f22803f92f10a530668fdb2e95355a4ad0869e0f8ea6c9418121ac5cba70a5",
   "meta": {
-    "mumei_agent_commit": "7a488f43f4a7e30b4e7801a69f51e06cfc0c0894",
+    "mumei_agent_commit": "cf06d5c713e7b1d5da69a7e1027bea3b8e0ae78d",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-27T19:27:55Z"
+    "generated_at": "2026-11-27T22:34:55Z"
   },
   "fixed": {
     "defects": 11,
     "still_reported": [],
     "still_function_flagged": [],
-    "false_alarms": 2,
+    "false_alarms": 1,
     "findings": [
-      {
-        "file": "auth.go",
-        "kind": "cross_validation_gaps",
-        "text": "spec stronger than implementation: passwordMatches",
-        "status": "false_positive",
-        "reason": "The non-nil request/input precondition is a generated caller assumption for an authentication helper and does not identify a defect in the fixed constant-time comparison."
-      },
       {
         "file": "auth.go",
         "kind": "cross_validation_gaps",
@@ -165,10 +158,10 @@
       }
     ],
     "finding_counts": {
-      "total": 2,
+      "total": 1,
       "defect_evidence": 0,
       "real": 0,
-      "false_positive": 2,
+      "false_positive": 1,
       "unreviewed": 0
     },
     "reviews_used": [
@@ -176,11 +169,6 @@
         "go-03-auth-gateway",
         "auth.go",
         "spec precondition assumed, not enforced, by `passwordMatches`"
-      ],
-      [
-        "go-03-auth-gateway",
-        "auth.go",
-        "spec stronger than implementation: passwordMatches"
       ]
     ]
   }

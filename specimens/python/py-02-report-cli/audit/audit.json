@@ -93,7 +93,6 @@
         }
       ],
       "cross_validation_gaps": [
-        "spec stronger than implementation: share_of_total",
         "spec precondition assumed, not enforced, by `share_of_total`"
       ],
       "migration_hints": [],
@@ -124,7 +123,7 @@
       "finding_counts": {
         "code": 2,
         "confirmed": 0,
-        "spec": 2,
+        "spec": 1,
         "model_limitations": 0,
         "errors": 0
       },
@@ -152,18 +151,6 @@
           "line": null,
           "triage_bucket": "code_review",
           "fingerprint": "081dba750782ca1f75c57fcf27482f216aa2953bc5b5c00a562cf869f2ff8f11"
-        },
-        {
-          "schema": "mumei.audit-findings/v1",
-          "category": "spec",
-          "severity": "warning",
-          "confidence": "medium",
-          "verification_basis": "cross-validation",
-          "message": "spec stronger than implementation: share_of_total",
-          "source_file": "specimens/python/py-02-report-cli/timesheet.py",
-          "line": null,
-          "triage_bucket": "spec_review",
-          "fingerprint": "799a15ef1f525f8e4011ace6d657722ae6f1f6b6c9f8af1e0fe13f1b58d0205c"
         },
         {
           "schema": "mumei.audit-findings/v1",
@@ -206,12 +193,12 @@
       },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit found issues: specimens/python/py-02-report-cli/timesheet.py\nlanguage: python\nspec_extracted: True\nverification_status: refuted\nspec_health_issues: []\nverification_violations: ['Python function `share_of_total` can divide by `whole` without a non-zero contract (Z3 counterexample: whole=0)', 'Z3 Counter-example: whole=0']\ncounterexample_values: [{'function_name': 'share_of_total', 'counterexample': {'whole': 0}}]\ncross_validation_gaps: ['spec stronger than implementation: share_of_total', 'spec precondition assumed, not enforced, by `share_of_total`']\nfinding_counts: code=2, confirmed=0, spec=2, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_duration.requires, overtime_minutes.requires, is_weekend.requires, format_minutes.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit found issues: specimens/python/py-02-report-cli/timesheet.py\nlanguage: python\nspec_extracted: True\nverification_status: refuted\nspec_health_issues: []\nverification_violations: ['Python function `share_of_total` can divide by `whole` without a non-zero contract (Z3 counterexample: whole=0)', 'Z3 Counter-example: whole=0']\ncounterexample_values: [{'function_name': 'share_of_total', 'counterexample': {'whole': 0}}]\ncross_validation_gaps: ['spec precondition assumed, not enforced, by `share_of_total`']\nfinding_counts: code=2, confirmed=0, spec=1, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_duration.requires, overtime_minutes.requires, is_weekend.requires, format_minutes.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/python/py-02-report-cli\n  report.py: 0 violations, 0 gaps\n  timesheet.py: 2 violations, 2 gaps\nSummary: 2 files, 1 file with issues, 1 file with spec diagnostics\nfinding_counts: code=2, confirmed=0, spec=2, model_limitations=0, errors=0\ntriage: refuted=1, verified=0, unverifiable=1\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_args.requires, parse_row.requires, load_entries.requires, aggregate.requires, render.requires, post_process.requires, post_process.ensures, main.requires\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_duration.requires, overtime_minutes.requires, is_weekend.requires, format_minutes.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/python/py-02-report-cli\n  report.py: 0 violations, 0 gaps\n  timesheet.py: 2 violations, 1 gap\nSummary: 2 files, 1 file with issues, 1 file with spec diagnostics\nfinding_counts: code=2, confirmed=0, spec=1, model_limitations=0, errors=0\ntriage: refuted=1, verified=0, unverifiable=1\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_args.requires, parse_row.requires, load_entries.requires, aggregate.requires, render.requires, post_process.requires, post_process.ensures, main.requires\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_duration.requires, overtime_minutes.requires, is_weekend.requires, format_minutes.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 2,
   "files_with_issues": 1,
   "files_with_spec_diagnostics": 1,
@@ -222,7 +209,6 @@
     "timesheet.py: Z3 Counter-example: whole=0"
   ],
   "cross_validation_gaps": [
-    "timesheet.py: spec stronger than implementation: share_of_total",
     "timesheet.py: spec precondition assumed, not enforced, by `share_of_total`"
   ],
   "migration_hints": [],
@@ -256,7 +242,7 @@
   "finding_counts": {
     "code": 2,
     "confirmed": 0,
-    "spec": 2,
+    "spec": 1,
     "model_limitations": 0,
     "errors": 0
   },
@@ -284,18 +270,6 @@
       "line": null,
       "triage_bucket": "code_review",
       "fingerprint": "081dba750782ca1f75c57fcf27482f216aa2953bc5b5c00a562cf869f2ff8f11"
-    },
-    {
-      "schema": "mumei.audit-findings/v1",
-      "category": "spec",
-      "severity": "warning",
-      "confidence": "medium",
-      "verification_basis": "cross-validation",
-      "message": "spec stronger than implementation: share_of_total",
-      "source_file": "specimens/python/py-02-report-cli/timesheet.py",
-      "line": null,
-      "triage_bucket": "spec_review",
-      "fingerprint": "799a15ef1f525f8e4011ace6d657722ae6f1f6b6c9f8af1e0fe13f1b58d0205c"
     },
     {
       "schema": "mumei.audit-findings/v1",

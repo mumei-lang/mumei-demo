@@ -207,9 +207,9 @@ with `--run-fixed` it is applied to a scratch copy, where `run.sh` must pass and
 
 ![Detection over runs](scoreboard/history.svg)
 
-Latest run — no LLM: mumei-agent `7a488f4` · mumei `b777e8e` (mumei 0.6.23) · 2026-11-27T19:27:55Z
-Findings — no LLM: 31 (defect evidence 11, real 2, false positive 2, unreviewed 16) · precision 42%–94%
-Fixed variants — no LLM: 16 specimens (171 defects fixed) · 4 false alarms in 4 findings on fixed code · 0 defects still reported
+Latest run — no LLM: mumei-agent `cf06d5c` · mumei `b777e8e` (mumei 0.6.23) · 2026-11-27T22:34:55Z
+Findings — no LLM: 23 (defect evidence 11, real 2, false positive 2, unreviewed 8) · precision 57%–91%
+Fixed variants — no LLM: 16 specimens (171 defects fixed) · 1 false alarms in 1 findings on fixed code · 0 defects still reported
 
 Latest run — with LLM (`openai/gpt-6-luna`): mumei-agent `e8be527` · mumei `36eb534` (mumei 0.6.23) · 2026-11-03T05:18:58Z
 Findings — with LLM (`openai/gpt-6-luna`): 200 (defect evidence 17, real 3, false positive 26, unreviewed 154) · precision 10%–87%
@@ -229,6 +229,9 @@ Recent runs:
 
 | Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code | Adjudication |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---|
+| 2026-11-03 (rescored 2026-11-27) | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
+| 2026-11-27 (rescored 2026-11-27) | no | `cf06d5c` | `b777e8e` | 171 | 6% | 14% | 14% | 57%–91% | 1 / 16 specimens | incomplete (8 unreviewed, 0 stale) |
+| 2026-11-27 | no | `cf06d5c` | `b777e8e` | 171 | 6% | 14% | 14% | 57%–91% | 1 / 16 specimens | incomplete (8 unreviewed, 3 stale) |
 | 2026-11-27 | no | `7a488f4` | `b777e8e` | 171 | 6% | 14% | 14% | 42%–94% | 4 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 | 2026-11-27 (rescored 2026-11-27) | no | `beaa286` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 | 2026-11-27 (rescored 2026-11-27) | no | `554f018` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
@@ -236,9 +239,6 @@ Recent runs:
 | 2026-11-27 (rescored 2026-11-27) | no | `b20e984` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 | 2026-11-27 (rescored 2026-11-27) | no | `bc382db` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 | 2026-11-27 (rescored 2026-11-27) | no | `662c3eb` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
-| 2026-11-27 (rescored 2026-11-27) | no | `3a5d6cf` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
-| 2026-11-27 | no | `e261b2f` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
-| 2026-11-27 | no | `86fbff5` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 
 Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md) (no LLM) and
 [AUDIT_SUMMARY_WITH_LLM.md](AUDIT_SUMMARY_WITH_LLM.md) (with LLM).
@@ -305,7 +305,7 @@ with `python3 scripts/run_baselines.py --rescore`.
 
 | Analyzer | Detected | Precision | Fixed-code false alarms |
 |---|---|---|---|
-| Mumei (no LLM) | 11/171 (6%) | 42%–94% | 4 / 16 specimens |
+| Mumei (no LLM) | 11/171 (6%) | 57%–91% | 1 / 16 specimens |
 | bandit | 5/41 (12%) | 88% | 3 / 4 specimens |
 | clippy | 0/34 (0%) | n/a | 0 / 3 specimens |
 | gosec | 6/32 (19%) | 62% | 15 / 3 specimens |
