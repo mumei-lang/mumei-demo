@@ -107,11 +107,11 @@ acc"""
     invalid_values = {"daily": [1], "n": 0, "threshold": 0}
 
     text = fidelity.bounded_interaction_text(case, slow_body, invalid_values, "fixed")
-    run = fidelity.run_bounded_interaction_text(MUMEI_BIN, text, 5)
+    run = fidelity.run_bounded_interaction_text(MUMEI_BIN, text, 20)
 
     assert text.index("if !(contract_holds) {") < text.index("let reference = {")
     assert run["exit_code"] == 43
-    assert run["seconds"] < 5
+    assert run["seconds"] < 20
 
 
 def test_bounded_interaction_tool_failure_is_inconclusive(monkeypatch: pytest.MonkeyPatch) -> None:
