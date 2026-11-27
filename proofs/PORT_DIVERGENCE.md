@@ -62,10 +62,11 @@ divergence on an input satisfying `requires` is blocking diagnostic evidence;
 agreement on the finite input set remains inconclusive and never claims
 universal equality. Bounded interaction wall time is recorded under
 `interaction` in the gate evidence rather than verifier-only measurement,
-because each run also compiles, links and executes the harness. No additional
-memory rlimit is imposed: these runs are limited to committed benchmark/policy
-artifacts, effect/extern preludes are excluded, the wall-clock timeout bounds
-each attempt, and resource/compiler failures are non-evidence. In the recorded
+because each run also compiles, links and executes the harness. Each compile/link/execute
+child is fail-closed behind `prlimit` with a two-GiB address-space limit because
+candidate bodies can be unreviewed model output in a live benchmark. Effect/extern
+preludes are excluded, the wall-clock timeout bounds each attempt, and
+resource/compiler failures are non-evidence. In the recorded
 corpus, all 70 non-loop exact
 fixed-reference copies match, and all three correct recorded PY02-D05 fixed
 ports agree on the bounded inputs. The first-day-only positive control diverges

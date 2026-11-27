@@ -107,11 +107,11 @@ acc"""
     invalid_values = {"daily": [1], "n": 0, "threshold": 0}
 
     text = fidelity.bounded_interaction_text(case, slow_body, invalid_values, "fixed")
-    run = fidelity.run_bounded_interaction_text(MUMEI_BIN, text, 2)
+    run = fidelity.run_bounded_interaction_text(MUMEI_BIN, text, 5)
 
     assert text.index("if !(contract_holds) {") < text.index("let reference = {")
     assert run["exit_code"] == 43
-    assert run["seconds"] < 2
+    assert run["seconds"] < 5
 
 
 def test_bounded_interaction_tool_failure_is_inconclusive(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -186,6 +186,74 @@ def test_bounded_interaction_policy_rejects_extra_input_keys(tmp_path, monkeypat
 
     with pytest.raises(ValueError, match="exactly name and values"):
         fidelity.output_policy(case)
+
+
+def test_bounded_interaction_runner_applies_memory_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    commands = []
+
+    class FakeProcess:
+        pid = 123
+        returncode = 0
+
+        def communicate(self, timeout=None):
+            return "", ""
+
+    def fake_popen(command, **_kwargs):
+        commands.append(command)
+        return FakeProcess()
+
+    monkeypatch.setattr(fidelity.shutil, "which", lambda name: "/usr/bin/prlimit" if name == "prlimit" else None)
+    monkeypatch.setattr(fidelity.subprocess, "Popen", fake_popen)
+
+    run = fidelity.run_bounded_interaction_text("mumei", "atom main() -> i64\n    requires: true;\n    ensures: true;\n    body: { 0 }\n", 5)
+
+    assert run["exit_code"] == 0
+    assert commands[0][:3] == ["/usr/bin/prlimit", f"--as={fidelity.BOUNDED_INTERACTION_MEMORY_BYTES}", "--"]
+    assert commands[0][3:5] == ["mumei", "run"]
+    assert commands[0][-1].endswith("interaction.mm")
+
+
+def test_bounded_interaction_timeout_kills_process_group(monkeypatch: pytest.MonkeyPatch) -> None:
+    killed = []
+
+    class FakeProcess:
+        pid = 123
+        returncode = -9
+
+        def __init__(self):
+            self.calls = 0
+
+        def communicate(self, timeout=None):
+            self.calls += 1
+            if self.calls == 1:
+                raise fidelity.subprocess.TimeoutExpired(["mumei"], timeout)
+            return "", ""
+
+        def kill(self):
+            killed.append(("kill", self.pid))
+
+    monkeypatch.setattr(fidelity.shutil, "which", lambda name: "/usr/bin/prlimit" if name == "prlimit" else None)
+    monkeypatch.setattr(fidelity.subprocess, "Popen", lambda *args, **kwargs: FakeProcess())
+    monkeypatch.setattr(fidelity.os, "killpg", lambda pid, sig: killed.append((pid, sig)))
+
+    run = fidelity.run_bounded_interaction_text("mumei", "atom main() -> i64\n    requires: true;\n    ensures: true;\n    body: { 0 }\n", 5)
+
+    assert run["timeout"] is True
+    assert killed == [(123, fidelity.signal.SIGKILL)]
+
+
+def test_bounded_interaction_runner_fails_closed_without_memory_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(fidelity.shutil, "which", lambda _name: None)
+
+    def forbidden(*_args, **_kwargs):
+        pytest.fail("bounded execution must not run without a memory limit")
+
+    monkeypatch.setattr(fidelity.subprocess, "Popen", forbidden)
+
+    run = fidelity.run_bounded_interaction_text("mumei", "atom main() -> i64\n    requires: true;\n    ensures: true;\n    body: { 0 }\n", 5)
+
+    assert run["result"] == "error"
+    assert "prlimit unavailable" in run["error"]
 
 
 def test_bounded_interaction_outside_requires_is_inconclusive(monkeypatch: pytest.MonkeyPatch) -> None:

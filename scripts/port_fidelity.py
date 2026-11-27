@@ -9,13 +9,18 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
+import shutil
+import signal
 import subprocess
 import tempfile
 import time
 from pathlib import Path
 
 from mumei_verify import verify_text
+
+BOUNDED_INTERACTION_MEMORY_BYTES = 2 * 1024**3
 
 STRING = r""""(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`[^`]*`"""
 INDEX = r"(?:\b\w+|\]|\))\s*\["
@@ -156,7 +161,7 @@ def token_pattern(text: str) -> tuple[str, ...]:
 
 
 VARIANTS = ("buggy", "fixed")
-DETECTOR_VERSION = 13
+DETECTOR_VERSION = 14
 
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
@@ -697,26 +702,39 @@ def bounded_interaction_text(case: dict, candidate_body: str, values: dict,
 def run_bounded_interaction_text(mumei_bin: str, text: str, timeout: int) -> dict:
     """Compile and execute one bounded-interaction harness without trusting stdout.
 
-    No extra memory rlimit is imposed here: this diagnostic runner is for
-    committed benchmark/policy artifacts, rejects effect/extern preludes, and
-    the wall-clock timeout bounds each compile/link/execute attempt. Resource
+    The compile/link/execute child is fail-closed behind ``prlimit`` with a
+    two-GiB address-space limit because candidate bodies can be unreviewed
+    model output in a live benchmark. Effect/extern preludes are rejected
+    before execution, and the wall-clock timeout bounds each attempt. Resource
     or compiler failures are explicit non-evidence rather than semantic
-    divergence. If these harnesses ever execute less-controlled artifacts,
-    add an OS resource sandbox before widening that use.
+    divergence.
     """
+    started = time.monotonic()
+    prlimit = shutil.which("prlimit")
+    if prlimit is None:
+        return {"result": "error", "error": "prlimit unavailable for bounded interaction memory limit",
+                "seconds": time.monotonic() - started, "budget_seconds": timeout}
     with tempfile.TemporaryDirectory(prefix="mumei-bounded-interaction-") as tmp:
         path = Path(tmp) / "interaction.mm"
         path.write_text(text)
-        started = time.monotonic()
+        command = [prlimit, f"--as={BOUNDED_INTERACTION_MEMORY_BYTES}", "--", mumei_bin, "run", str(path)]
         try:
-            completed = subprocess.run(
-                [mumei_bin, "run", str(path)], cwd=tmp, capture_output=True, text=True,
-                timeout=timeout, check=False)
-        except (OSError, subprocess.TimeoutExpired) as error:
+            process = subprocess.Popen(command, cwd=tmp, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                       text=True, start_new_session=True)
+        except OSError as error:
             return {"result": "error", "error": type(error).__name__,
-                    "timeout": isinstance(error, subprocess.TimeoutExpired),
                     "seconds": time.monotonic() - started, "budget_seconds": timeout}
-        return {"exit_code": completed.returncode,
+        try:
+            process.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except (OSError, ProcessLookupError):
+                process.kill()
+            process.communicate()
+            return {"result": "error", "error": "TimeoutExpired", "timeout": True,
+                    "seconds": time.monotonic() - started, "budget_seconds": timeout}
+        return {"exit_code": process.returncode,
                 "seconds": time.monotonic() - started, "budget_seconds": timeout}
 
 
