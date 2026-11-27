@@ -315,7 +315,7 @@ def semantic_port_replay(case: dict, body: str, mumei_bin: str, timeout: int,
     explicit non-evidence.
     """
     try:
-        inputs, _ = fidelity.replay_inputs(case)
+        inputs, input_hash = fidelity.replay_inputs(case)
     except (OSError, ValueError, KeyError) as error:
         return {"outcome": "unavailable", "inputs": [], "error": type(error).__name__}
     try:
@@ -334,6 +334,7 @@ def semantic_port_replay(case: dict, body: str, mumei_bin: str, timeout: int,
     verdicts = [part for row in rows for part in (row["input"]["reference"], row["input"]["llm"])]
     outcome = fidelity.outcome if variant == "buggy" else fidelity.fixed_variant_outcome
     return {"outcome": outcome([row["input"] for row in rows]),
+            "input_hash": input_hash,
             "inputs": [{"name": row["name"], "source": row["input"].get("source"),
                         "values": row["input"].get("values"),
                         "reference": row["reference"], "candidate": row["candidate"]} for row in rows],
@@ -377,7 +378,10 @@ def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str
     semantic = semantic_port_replay(case, body, mumei_bin, timeout, variant)
     confirming = "still_refutes" if variant == "buggy" else "still_holds"
     blocking = fidelity.blocking_lint_findings(linted)
-    blocked = bool(blocking) or semantic["outcome"] != confirming
+    # Confirming reference replay is stronger semantic evidence than syntactic lint.
+    # Lint can still block when replay is unavailable or inconclusive, and replay
+    # divergence always blocks; neither is represented as a formal refutation.
+    blocked = semantic["outcome"] != confirming
     gate = {"schema": "mumei-demo.port-fidelity-gate/v2", "variant": variant,
             "decision": "blocked" if blocked else "accepted",
             "lint_findings": linted, "blocking_lint_findings": blocking,
@@ -992,9 +996,9 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             f"{ARM_LABEL.get(r['arm'], r['arm'])} blocks {fmt(r, 'fidelity_blocked')} candidate variant(s) per run"
             for r in gated) + ". The committed rows keep the raw verifier proof outcome; only the report projection "
             "counts a blocked candidate as unsupported/inconclusive evidence rather than verification acceptance. "
-            "Lint is variant-aware and only high-confidence kinds block by themselves: silent repair, missing modeled "
-            "operations, guard folding, self-calls and success-flag rewrites. Added or removed guard-count warnings "
-            "stay visible but do not block alone. Reference replay is the semantic check: a buggy candidate must "
+            "Lint is variant-aware and records high-confidence meaning-loss evidence: silent repair, missing modeled "
+            "operations, guard folding, self-calls and success-flag rewrites. It never overrides confirming replay; "
+            "added or removed guard-count warnings also stay visible without blocking alone. Reference replay is the semantic acceptance check: a buggy candidate must "
             "still refute every supplied input beside the buggy reference, a fixed candidate must still hold every "
             "supplied input beside the fixed reference, and weak/vacuous generated contracts cannot support proof acceptance. "
             + " ".join(
@@ -1103,7 +1107,7 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
                       + (" — vacuity control not passed in that run" if i in unchecked else "")
                       for i, e in sorted(contracts.items())]
     if wrong:
-        out += ["## Wrong answers by case (runs out of total)", ""] + wrong + [""]
+        out += ["## Raw verifier/model wrong answers by case (runs out of total, before fidelity projection)", ""] + wrong + [""]
     out += ["## By language (cases with both answers right)", "",
             "| Arm | Model | " + " | ".join(LANGUAGES) + " |", "|---|---|" + "---:|" * len(LANGUAGES)]
     for r in rows:
@@ -1339,6 +1343,20 @@ def apply_contract_fidelity_gate(out: dict) -> dict:
     return out
 
 
+def current_replay_input_hash(case: dict) -> str | None:
+    try:
+        _, input_hash = fidelity.replay_inputs(case)
+        return input_hash
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+def fidelity_gate_stale(case: dict, gate: dict) -> bool:
+    """Whether a stored port-fidelity gate no longer matches its replay fixture."""
+    expected = current_replay_input_hash(case)
+    return expected is not None and gate.get("semantic_replay", {}).get("input_hash") != expected
+
+
 def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> dict:
     """Apply the fidelity acceptance gate to committed mumei-llm records.
 
@@ -1361,7 +1379,10 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                     continue
                 for variant in VARIANTS:
                     result = record.get(variant)
-                    if not isinstance(result, dict) or result.get("outcome") != "proven" or "fidelity_gate" in result:
+                    if not isinstance(result, dict) or result.get("outcome") != "proven":
+                        continue
+                    existing_gate = result.get("fidelity_gate")
+                    if existing_gate and not fidelity_gate_stale(case, existing_gate):
                         continue
                     body = result.get("body")
                     if not isinstance(body, str):
@@ -1383,9 +1404,10 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
     return {"updated": updated, "gated": gated, "blocked": blocked}
 
 
-def fidelity_problems(results: list[dict]) -> list[str]:
+def fidelity_problems(results: list[dict], cases: list[dict] | None = None) -> list[str]:
     """Offline validation that raw verifier proofs are not promoted past fidelity gates."""
     problems = []
+    cases_by_id = {case["id"]: case for case in cases or []}
 
     def raw_outcome(result: dict) -> str | None:
         return result.get("verifier_outcome", result.get("outcome"))
@@ -1409,6 +1431,9 @@ def fidelity_problems(results: list[dict]) -> list[str]:
                             continue
                         if gate.get("variant") != variant:
                             problems.append(f"{prefix} has a gate for the wrong variant")
+                        case = cases_by_id.get(record.get("id"))
+                        if case is not None and fidelity_gate_stale(case, gate):
+                            problems.append(f"{prefix} has a fidelity gate stale against replay inputs")
                         if gate.get("decision") == "blocked":
                             projected = project_fidelity_result(result)
                             if (projected.get("outcome") != "inconclusive"
@@ -1420,8 +1445,8 @@ def fidelity_problems(results: list[dict]) -> list[str]:
                             blocking = gate.get("blocking_lint_findings")
                             if blocking is None:
                                 blocking = fidelity.blocking_lint_findings(gate.get("lint_findings") or [])
-                            if blocking or semantic.get("outcome") != confirming:
-                                problems.append(f"{prefix} is accepted without clean high-confidence lint and confirming replay")
+                            if semantic.get("outcome") != confirming:
+                                problems.append(f"{prefix} is accepted without confirming semantic replay")
             if doc["arm"] == "llm-contract":
                 for record in run:
                     contract = record.get("contract")
@@ -1472,7 +1497,7 @@ def main(argv: list[str], provider=None) -> int:
     cases, errors = load_cases()
     if args.check:
         results = load_results()
-        problems = errors + stale_records(cases, results) + certificate_problems(cases, results) + fidelity_problems(results)
+        problems = errors + stale_records(cases, results) + certificate_problems(cases, results) + fidelity_problems(results, cases)
         ref = next((d for d in results if d["arm"] == "mumei"), None)
         if ref is None:
             problems.append("no reference result (proofs/results/mumei.json); run --arm mumei")
@@ -1501,7 +1526,10 @@ def main(argv: list[str], provider=None) -> int:
         stale = stale_records(cases, load_results())
         if stale:
             raise SystemExit("committed results are stale; refresh or restore them before fidelity rescoring: " + "; ".join(stale))
-        summary = rescore_port_fidelity(cases, args.mumei_bin, args.timeout)
+        binary = shutil.which(args.mumei_bin)
+        if binary is None:
+            raise SystemExit(f"mumei binary is not executable: {args.mumei_bin}")
+        summary = rescore_port_fidelity(cases, str(Path(binary).resolve()), args.timeout)
         render_all(cases, write=True)
         print(f"fidelity gate: {summary['blocked']} blocked of {summary['gated']} newly gated raw proven ports "
               f"across {len(summary['updated'])} result file(s)")

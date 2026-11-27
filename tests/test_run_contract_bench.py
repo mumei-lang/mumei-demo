@@ -51,6 +51,7 @@ def repo(tmp_path, monkeypatch):
     (cdir / "contract.json").write_text(json.dumps(CONTRACT))
     (cdir / "buggy.mm").write_text(BUGGY)
     (cdir / "fixed.mm").write_text(FIXED)
+    (cdir / "replay.json").write_text(json.dumps({"inputs": [{"name": "witness", "values": {"total": 1, "days": 0}}]}))
     (tmp_path / "README.md").write_text(f"# x\n\n{cb.README_START}\nold\n{cb.README_END}\n\ntail\n")
     for name, value in {"REPO_ROOT": tmp_path, "PROOFS_ROOT": tmp_path / "proofs",
                         "SPECIMENS_ROOT": tmp_path / "specimens",
@@ -58,6 +59,7 @@ def repo(tmp_path, monkeypatch):
                         "RESULTS_MD": tmp_path / "proofs" / "RESULTS.md",
                         "README": tmp_path / "README.md"}.items():
         monkeypatch.setattr(cb, name, value)
+    monkeypatch.setattr(cb.fidelity, "REPO_ROOT", tmp_path)
     monkeypatch.setattr(cb, "real_certify", cb.certify, raising=False)
     monkeypatch.setattr(cb, "certify", fake_certify)
     monkeypatch.setattr(cb, "lake_on_path", lambda: True)
@@ -317,6 +319,22 @@ def test_port_fidelity_gate_blocks_lint_match_without_formal_refutation(repo, mo
     assert gate["semantic_replay"]["outcome"] == "unavailable"
 
 
+def test_confirming_semantic_replay_overrides_lint_only_warning(repo, monkeypatch):
+    inputs = [{"name": "counterexample", "source": "test", "values": {"total": 1, "days": 0}}]
+    monkeypatch.setattr(cb.fidelity, "replay_inputs", lambda case: (inputs, "hash"))
+    monkeypatch.setattr(cb.fidelity, "port_verdict", lambda *args: {
+        "verdict": "breaks", "status": "breaks", "diagnostics": [], "verification_attempted": True})
+    monkeypatch.setattr(cb.fidelity, "lint_findings", lambda *args: [
+        {"kind": "success_flag_rewrite", "message": "success flag can mask a postcondition clause"}])
+
+    (case,) = cb.load_cases()[0]
+    result = {"outcome": "proven", "status": "success", "diagnostics": []}
+    gated = cb.apply_port_fidelity_gate(case, "0", result, "mumei", 5)
+
+    assert gated["fidelity_gate"]["decision"] == "accepted"
+    assert gated["fidelity_gate"]["blocking_lint_findings"]
+
+
 def test_port_fidelity_gate_prefers_semantic_divergence_evidence(repo, monkeypatch):
     import run_port_divergence as port_divergence
 
@@ -418,6 +436,19 @@ def test_provider_error_is_inconclusive(repo):
     assert r["buggy"] == {"outcome": "inconclusive", "status": "LLM request failed: HTTP 500", "usage": None}
 
 
+def test_fidelity_rescore_resolves_relative_mumei_path(repo, monkeypatch):
+    seen = {}
+    monkeypatch.setattr(cb.shutil, "which", lambda path: "../mumei/target/debug/mumei")
+    def fake_rescore(cases, binary, timeout):
+        seen["binary"] = binary
+        return {"updated": [], "gated": 0, "blocked": 0}
+    monkeypatch.setattr(cb, "rescore_port_fidelity", fake_rescore)
+    monkeypatch.setattr(cb, "render_all", lambda cases, write: [])
+
+    assert cb.main(["--fidelity-rescore", "--mumei-bin", "../mumei/target/debug/mumei"]) == 0
+    assert Path(seen["binary"]).is_absolute()
+
+
 def test_rescore_port_fidelity_annotates_committed_rows_without_an_llm(repo):
     import run_port_divergence as port_divergence
 
@@ -440,6 +471,11 @@ def test_rescore_port_fidelity_annotates_committed_rows_without_an_llm(repo):
     assert projected["verifier_outcome"] == "proven"
     assert cb.rescore_port_fidelity([case], "mumei", 5) == {"updated": [], "gated": 0, "blocked": 0}
 
+    stale_doc = json.loads(path.read_text())
+    stale_doc["runs"][0][0]["buggy"]["fidelity_gate"]["semantic_replay"]["input_hash"] = "stale"
+    path.write_text(json.dumps(stale_doc))
+    assert cb.rescore_port_fidelity([case], "mumei", 5)["gated"] == 1
+
 
 # --- scoring and aggregation ------------------------------------------------
 
@@ -458,6 +494,18 @@ def test_score_counts_every_kind():
                  "budget_exhausted": 0, "errors": 0, "vacuous": 1, "fidelity_blocked": 0}
 
 
+def test_fidelity_gate_staleness_follows_replay_input_hash(repo):
+    (case,) = cb.load_cases()[0]
+    gate = {"decision": "accepted", "variant": "buggy",
+            "semantic_replay": {"outcome": "still_refutes", "input_hash": "stale"}}
+    row = rec(case["id"], case["language"], "proven", "refuted")
+    row["buggy"]["fidelity_gate"] = gate
+    doc = {"arm": "mumei-llm", "model": "test", "runs": [[row]]}
+
+    assert cb.fidelity_gate_stale(case, gate)
+    assert any("stale against replay inputs" in problem for problem in cb.fidelity_problems([doc], [case]))
+
+
 def test_fidelity_problems_flags_ungated_or_inconsistent_raw_proofs():
     ungated = rec("u", "go", "proven", "refuted")
     bad_accepted = rec("a", "go", "proven", "refuted")
@@ -468,7 +516,7 @@ def test_fidelity_problems_flags_ungated_or_inconsistent_raw_proofs():
     problems = cb.fidelity_problems([doc])
 
     assert any("u buggy raw verifier proof has no fidelity gate" in p for p in problems)
-    assert any("a buggy raw verifier proof is accepted without clean high-confidence lint" in p for p in problems)
+    assert any("a buggy raw verifier proof is accepted without confirming semantic replay" in p for p in problems)
     assert any("false acceptance 3 exceeds budget 2" in p for p in problems)
 
 

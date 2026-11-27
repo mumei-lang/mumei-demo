@@ -35,38 +35,6 @@ def replay_verdict(mumei_bin: str, case: dict, port: str, values: dict, timeout:
                 "verification_attempted": False}
 
 
-def replay_verdict(mumei_bin: str, case: dict, port: str, values: dict, timeout: int) -> dict:
-    try:
-        return replay.port_verdict(mumei_bin, port, case["atom"], values, timeout)
-    except ValueError as error:
-        return {"verdict": "inconclusive", "status": "bad input", "diagnostics": [str(error)],
-                "verification_attempted": False}
-
-
-def outcome(inputs: list[dict]) -> str:
-    if any(i["reference"]["verdict"] == "breaks" and i["llm"]["verdict"] == "holds" for i in inputs):
-        return "diverged"
-    if not inputs or any(i["reference"]["verdict"] != "breaks" or i["llm"]["verdict"] != "breaks"
-                         for i in inputs):
-        return "inconclusive"
-    return "still_refutes"
-
-
-def fixed_variant_outcome(inputs: list[dict]) -> str:
-    """Replay outcome for a fixed candidate against the fixed reference port.
-
-    ``diverged`` means the candidate breaks an input that the fixed reference
-    satisfies. ``still_holds`` requires both sides to hold every supplied input;
-    missing or unresolved verification is explicit non-evidence.
-    """
-    if any(i["reference"]["verdict"] == "holds" and i["llm"]["verdict"] == "breaks" for i in inputs):
-        return "diverged"
-    if not inputs or any(i["reference"]["verdict"] != "holds" or i["llm"]["verdict"] != "holds"
-                         for i in inputs):
-        return "inconclusive"
-    return "still_holds"
-
-
 def raw_verifier_outcome(result: dict) -> str | None:
     """The verifier outcome before the benchmark's fidelity acceptance gate."""
     return result.get("verifier_outcome", result.get("outcome"))

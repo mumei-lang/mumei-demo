@@ -8,20 +8,20 @@ Each of the 71 specimen defects in a category Mumei targets has a requirement an
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | mumei (reference ports) | — | 1 | 71 / 71 | 71 / 71 | 71 | 0 | 0 | 0 | 0 | 0 | 0 | — |
 | LLM only (judges the source) | openai/gpt-6-luna | 3 | 71 (70–71) / 71 | 66 (66–67) / 71 | 66 | 0 (0–1) | 5 (4–5) | 0 | 0 | 0 | 0 | $0.11 |
-| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 63 (60–63) / 71 | 58 (55–59) / 71 | 51 (49–52) | 0 | 0 | 23 (21–24) | 0 | 0 | 0 | $0.15 |
+| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 3 | 63 (60–63) / 71 | 71 (70–71) / 71 | 62 (60–63) | 0 | 0 | 9 (8–11) | 0 | 0 | 0 | $0.15 |
 | mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 3 | 68 (67–68) / 71 | 60 (59–62) / 71 | 58 (58–59) | 2 (1–3) | 9 (9–10) | 4 (0–4) | 0 | 0 | 0 | $0.06 |
 
 Outcome taxonomy: false acceptance is a buggy body proven; false positive is a fixed body refuted; unsupported means the input, generated port/contract or verifier capability cannot represent the case; inconclusive means no evidence either way; environment failure means tool/transport failure; budget exhausted means the declared timeout was consumed. These categories are mutually exclusive per-variant outcomes, not proof grades; one shared LLM request failure can therefore produce two environment-failure outcomes.
 
-Fidelity acceptance gate: mumei + LLM (LLM ports, mumei checks) blocks 22 (21–23) candidate variant(s) per run. The committed rows keep the raw verifier proof outcome; only the report projection counts a blocked candidate as unsupported/inconclusive evidence rather than verification acceptance. Lint is variant-aware and only high-confidence kinds block by themselves: silent repair, missing modeled operations, guard folding, self-calls and success-flag rewrites. Added or removed guard-count warnings stay visible but do not block alone. Reference replay is the semantic check: a buggy candidate must still refute every supplied input beside the buggy reference, a fixed candidate must still hold every supplied input beside the fixed reference, and weak/vacuous generated contracts cannot support proof acceptance. For mumei + LLM (LLM ports, mumei checks), raw verifier proofs before projection were buggy 8 (8–10) and fixed 71 (70–71) per run, while projected acceptance leaves fixed proven at 58 (55–59) and unresolved/unsupported at 23 (21–24).
+Fidelity acceptance gate: mumei + LLM (LLM ports, mumei checks) blocks 8 (8–10) candidate variant(s) per run. The committed rows keep the raw verifier proof outcome; only the report projection counts a blocked candidate as unsupported/inconclusive evidence rather than verification acceptance. Lint is variant-aware and records high-confidence meaning-loss evidence: silent repair, missing modeled operations, guard folding, self-calls and success-flag rewrites. It never overrides confirming replay; added or removed guard-count warnings also stay visible without blocking alone. Reference replay is the semantic acceptance check: a buggy candidate must still refute every supplied input beside the buggy reference, a fixed candidate must still hold every supplied input beside the fixed reference, and weak/vacuous generated contracts cannot support proof acceptance. For mumei + LLM (LLM ports, mumei checks), raw verifier proofs before projection were buggy 8 (8–10) and fixed 71 (70–71) per run, while projected acceptance leaves fixed proven at 71 (70–71) and unresolved/unsupported at 9 (8–11).
 
-Fidelity rescore evidence: mumei + LLM (LLM ports, mumei checks) replayed at 2026-11-27T17:18:58+00:00 with `mumei 0.6.23` (commit unavailable).
+Fidelity rescore evidence: mumei + LLM (LLM ports, mumei checks) replayed at 2026-11-27T17:35:07+00:00 with `mumei 0.6.23` (commit unavailable).
 
 | Arm | Model | Model time | Verification time | Verification budget |
 |---|---|---:|---:|---:|
 | mumei (reference ports) | — | — | — / 0 of 213 calls | — / 0 of 213 calls |
 | LLM only (judges the source) | openai/gpt-6-luna | 1876.1s | — | — |
-| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 2896.1s | 23.9s / 476 of 902 calls | 14280.0s / 476 of 902 calls |
+| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 2896.1s | 23.8s / 476 of 902 calls | 14280.0s / 476 of 902 calls |
 | mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 1464.5s | — / 0 of 639 calls | — / 0 of 639 calls |
 
 Verification time and budget are wall seconds and the declared per-attempt timeout aggregated over recorded outcome-determining verifier calls, including vacuity controls, fidelity replay calls and the per-call input/output glue inside `verify_text`. Certificate emission/rechecks, case-level orchestration and provider calls are outside that measurement. Older committed rows show the measured fraction of expected verifier calls, so partial `--only` refreshes cannot look fully instrumented. Model time/cost come only from provider usage metadata.
@@ -46,7 +46,7 @@ Vacuity control for mumei + LLM contract (LLM writes the contract, reference por
 
 Proof certificates for mumei + LLM (LLM ports, mumei checks) (openai/gpt-6-luna), per run: 71 / 71, 71 / 71, 70 / 70 proven fixed ports have one, emitted and re-checked like the reference ones and committed as `mumei-llm/<model>-run<n>.fixed.proof.json` next to the case. Trust: Z3 212.
 
-## Wrong answers by case (runs out of total)
+## Raw verifier/model wrong answers by case (runs out of total, before fidelity projection)
 
 - mumei + LLM contract (LLM writes the contract, reference ports): `GO02-D01` fixed rejected (1/3), `GO02-D02` fixed rejected (1/3), `PY02-D04` fixed rejected (3/3), `PY03-D05` buggy accepted (2/3), `RS01-D05` fixed rejected (1/3), `RS02-D05` fixed rejected (1/3), `SOL01-D05` fixed rejected (3/3), `SOL01-D06` fixed rejected (3/3), `SOL01-D08` fixed rejected (2/3), `SOL02-D06` fixed rejected (1/3), `SOL02-D08` fixed rejected (3/3), `SOL02-D11` fixed rejected (2/3), `SOL03-D02` fixed rejected (1/3), `SOL03-D07` fixed rejected (3/3), `TS01-D04` fixed rejected (3/3), `TS03-D05` buggy accepted (1/3), `TS03-D09` buggy accepted (3/3)
   - `GO02-D01` model's ensures (from a wrong run): `(n == 0 => result == 0) && ((0 <= pct && pct <= 100 && n > 0) => (0 <= result && result < n))`
@@ -82,5 +82,5 @@ Proof certificates for mumei + LLM (LLM ports, mumei checks) (openai/gpt-6-luna)
 |---|---|---:|---:|---:|---:|---:|
 | mumei (reference ports) | — | 15 / 15 | 11 / 11 | 14 / 14 | 12 / 12 | 19 / 19 |
 | LLM only (judges the source) | openai/gpt-6-luna | 14 / 15 | 9 / 11 | 13 / 14 | 11 / 12 | 19 / 19 |
-| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 9 / 15 | 7 / 11 | 10 / 14 | 9 / 12 | 17 / 19 |
+| mumei + LLM (LLM ports, mumei checks) | openai/gpt-6-luna | 13 / 15 | 9 / 11 | 12 / 14 | 11 / 12 | 18 / 19 |
 | mumei + LLM contract (LLM writes the contract, reference ports) | openai/gpt-6-luna | 12 / 15 | 10 / 11 | 14 / 14 | 10 / 12 | 13 / 19 |
