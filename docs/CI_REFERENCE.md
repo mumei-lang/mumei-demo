@@ -45,9 +45,10 @@ Use the upstream composite action for the initial existing-code audit gate. The 
 
    `migration-execution-output` is optional but shown in the golden path because it makes the migration evidence handoff explicit. The path must be fresh on every run, stay inside the caller workspace, and use a `.json` filename; the action automatically adds `--auto-migrate` when needed and copies the JSON plus companion generated files into the evidence artifact. Do not commit or reuse that output path as a cache.
 
-2. Open a pull request. The action writes a step summary, audit JSON, SARIF, logs, timing files, and `generated-baseline.json` in the `mumei-audit-evidence` artifact.
-3. Review `generated-baseline.json`. If the suppressed fingerprints are accepted as repository policy, commit that file as `audit-baseline.json`. Later runs pass it through `--baseline`; do not treat the baseline as evidence.
-4. Optional: protect `audit-baseline.json` with CODEOWNERS or an equivalent review rule. It is CI suppression policy, so changes to it need the same explicit review as other merge-gate policy.
+2. Open a pull request. The action writes a step summary, audit JSON, SARIF, logs, timing files, `generated-baseline.json`, and migration execution evidence in the `mumei-audit-evidence` artifact.
+3. Review `migration-execution/migration_execution.json` with `status.json` and `generated-artifacts/` before acting on any migration candidate. Treat `ready_for_human_review` as a review queue and `blocked` as retained evidence gaps, not as independent CI failure classes.
+4. Review `generated-baseline.json`. If the suppressed fingerprints are accepted as repository policy, commit that file as `audit-baseline.json`. Later runs pass it through `--baseline`; do not treat the baseline as evidence.
+5. Optional: protect `audit-baseline.json` with CODEOWNERS or an equivalent review rule. It is CI suppression policy, so changes to it need the same explicit review as other merge-gate policy.
 
 A maintainer can complete the copy/edit/review loop in about ten minutes. The measured small-repo action runtime is much shorter than that human review loop; the first uncached run can still take longer because Python, uv dependencies, and the mumei installer are being populated.
 
@@ -106,7 +107,7 @@ These are warm-cache small-fixture measurements, not a universal SLA. A cold cac
 
 This repository carries a working migration/proof evidence-pack implementation in [`scenarios/ci_evidence_pack`](../scenarios/ci_evidence_pack/README.md) and validates it with [`.github/workflows/audit-evidence-pack.yml`](../.github/workflows/audit-evidence-pack.yml). Its copyable workflow is [`scenarios/ci_evidence_pack/reference/workflows/mumei-audit.yml`](../scenarios/ci_evidence_pack/reference/workflows/mumei-audit.yml).
 
-Use that advanced reference when the adoption is ready to add `migration_plan.json`, a reviewed reference `.mm` certificate, a hash manifest, and explicit evidence-boundary metadata. The composite action is the shorter initial audit gate.
+Use that advanced reference when the adoption is ready to add `migration_plan.json`, a reviewed reference `.mm` certificate, a hash manifest, and explicit evidence-boundary metadata. It intentionally invokes the audit CLI directly rather than the composite action because it owns a custom pack layout; use the composite action quick start for the shorter initial audit gate.
 
 ## What the evidence pack proves
 
