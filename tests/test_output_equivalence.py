@@ -179,12 +179,13 @@ def test_simple_helper_rewrite_rejects_nested_helper_arguments() -> None:
 
 def test_simple_helper_rewrite_substitutes_parameters_simultaneously() -> None:
     helpers = {"use_first": {"params": [("x", "i64"), ("y", "i64")],
-                             "requires": "true", "body": "x"}}
+                             "requires": "x >= 0", "body": "x"}}
 
     rewritten = fidelity.expand_simple_helper_calls("use_first(y, 1)", helpers, {"y"})
 
     assert rewritten is not None
     assert rewritten["text"] == "( ( y ) )"
+    assert rewritten["calls"][0]["requires"] == "(y) >= 0"
 
 
 def test_simple_helper_atoms_rejects_trusted_and_extern_declarations() -> None:
