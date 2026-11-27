@@ -384,7 +384,7 @@ def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str
     hard_meaning_loss = any(finding.get("kind") == "guard_folding" for finding in blocking)
     blocked = (semantic["outcome"] == "diverged" or hard_meaning_loss
                or (semantic["outcome"] != confirming and bool(blocking)))
-    gate = {"schema": "mumei-demo.port-fidelity-gate/v3", "detector_version": fidelity.DETECTOR_VERSION,
+    gate = {"schema": "mumei-demo.port-fidelity-gate/v4", "detector_version": fidelity.DETECTOR_VERSION,
             "variant": variant,
             "decision": "blocked" if blocked else "accepted",
             "lint_findings": linted, "blocking_lint_findings": blocking,
@@ -1001,7 +1001,7 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             "counts a blocked candidate as unsupported/inconclusive evidence rather than verification acceptance. "
             "Lint is variant-aware and records high-confidence meaning-loss evidence: silent repair, missing modeled "
             "operations, guard folding, self-calls and success-flag rewrites. Confirming replay overrides lint warnings "
-            "except exact guard folding, which is high-confidence meaning loss. Added or removed guard-count warnings "
+            "except exact success/result-state guard folding, which is high-confidence meaning loss. Added or removed guard-count warnings "
             "stay visible without blocking alone. Replay divergence always blocks; other high-confidence lint blocks "
             "when replay does not supply confirming evidence; inconclusive replay alone does not rewrite a raw proof. "
             "Weak/vacuous generated contracts cannot support proof acceptance. "
@@ -1401,7 +1401,7 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                         blocked += new_result.get("fidelity_gate", {}).get("decision") == "blocked"
         if changed:
             doc["fidelity_rescore"] = {
-                "schema": "mumei-demo.port-fidelity-gate/v3",
+                "schema": "mumei-demo.port-fidelity-gate/v4",
                 "rescored_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
                 "replay_verifier": verifier_identity(mumei_bin),
             }

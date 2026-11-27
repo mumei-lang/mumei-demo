@@ -518,9 +518,10 @@ def test_fidelity_gate_staleness_follows_replay_input_hash(repo):
     row["buggy"]["fidelity_gate"] = gate
     doc = {"arm": "mumei-llm", "model": "test", "runs": [[row]]}
 
+    matching_replay = {"outcome": "still_refutes", "input_hash": cb.current_replay_input_hash(case)}
     assert cb.fidelity_gate_stale(case, gate)
-    assert cb.fidelity_gate_stale(case, {**gate, "detector_version": -1})
-    assert not cb.fidelity_gate_stale(case, {**gate, "semantic_replay": {"outcome": "still_refutes", "input_hash": cb.current_replay_input_hash(case)}})
+    assert cb.fidelity_gate_stale(case, {**gate, "detector_version": -1, "semantic_replay": matching_replay})
+    assert not cb.fidelity_gate_stale(case, {**gate, "semantic_replay": matching_replay})
     assert any("stale against replay inputs" in problem for problem in cb.fidelity_problems([doc], [case]))
 
 

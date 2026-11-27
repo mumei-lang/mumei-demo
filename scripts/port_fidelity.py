@@ -144,7 +144,7 @@ def token_pattern(text: str) -> tuple[str, ...]:
 
 
 VARIANTS = ("buggy", "fixed")
-DETECTOR_VERSION = 3
+DETECTOR_VERSION = 4
 
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
@@ -354,12 +354,12 @@ def lint_findings(case: dict, body: str, variant: str = "buggy") -> list[dict]:
                 and port_exprs == {("true",)}):
             findings.append({"kind": "guard_folding",
                              "message": "failure branch is folded into unconditional success"})
-        if _has_folded_state_field(reference, port):
-            findings.append({"kind": "guard_folding",
-                             "message": "conditional result state is folded into one unconditional branch value"})
         if reference_flags and any(expr != ("true",) for _, expr in new_flags):
             findings.append({"kind": "success_flag_rewrite",
                              "message": "success flag can mask a postcondition clause"})
+    if _has_folded_state_field(reference, port):
+        findings.append({"kind": "guard_folding",
+                         "message": "conditional result state is folded into one unconditional branch value"})
     if re.search(rf"\b{re.escape(case['atom'])}\s*\(", port):
         findings.append({"kind": "self_call", "message": "target atom calls itself"})
     return findings

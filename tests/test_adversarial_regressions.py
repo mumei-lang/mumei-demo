@@ -107,6 +107,19 @@ def test_silent_repair_matching_is_exact_after_comments_and_whitespace() -> None
     assert pd.lint_findings(case, buggy) == []
 
 
+def test_result_state_folding_is_not_limited_to_success_contracts() -> None:
+    reference = "if transfer_ok { Payout { ok: true, owed: 0 } } else { Payout { ok: false, owed: amount } }"
+    case = _lint_case(reference)
+    case["header"] = case["header"].replace("result.ok => result.value >= 0", "result.owed >= 0")
+    case["functions"]["fixed"] = case["functions"]["buggy"]
+    case["ports"] = {"buggy": pd.bench.assemble(case, reference), "fixed": pd.bench.assemble(case, reference)}
+    folded = "Payout { ok: transfer_ok, owed: amount }"
+
+    kinds = [finding["kind"] for finding in pd.lint_findings(case, folded, "fixed")]
+
+    assert "guard_folding" in kinds
+
+
 def test_guard_folding_needs_reference_failure_semantics() -> None:
     reference = "if denominator == 0 { Checked { ok: false, value: 0 } } else { Checked { ok: true, value: numerator / denominator } }"
     case = _lint_case(reference)
