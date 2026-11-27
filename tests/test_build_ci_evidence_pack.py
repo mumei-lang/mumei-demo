@@ -485,6 +485,7 @@ def test_ci_reference_quickstart_statically_covers_migration_action_contract() -
         "migration-execution/migration_execution.json",
         "migration-execution/generated-artifacts/",
         "migration-execution/status.json",
+        "not portable links in the downloaded artifact",
         "migration_execution_status",
         "migration_execution_ready_count",
         "`blocked` means",

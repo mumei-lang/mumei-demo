@@ -79,8 +79,10 @@ The default artifact name is `mumei-audit-evidence`; setting `artifact-name` onl
 | `generated-baseline.json` | Refreshed fingerprint policy when `--write-baseline` is used. It is CI policy input for human review, not evidence. |
 | `timing/` | Raw timing files behind the step summary and timing outputs. |
 | `migration-execution/migration_execution.json` | Optional upstream `mumei.migration-execution/v1` artifact copied from the requested fresh workspace path. |
-| `migration-execution/generated-artifacts/` | Companion generated `.mm`, heal, verification, and proof-certificate files referenced by that artifact. They remain generated-contract evidence only. |
+| `migration-execution/generated-artifacts/` | Companion generated `.mm`, heal, verification, and proof-certificate files copied while preserving their paths relative to the original generated-artifact directory. They remain generated-contract evidence only. |
 | `migration-execution/status.json` | Action-side collection status, count summary, and evidence boundary. |
+
+Paths embedded in `migration_execution.json` are runner/workspace provenance and are not portable links in the downloaded artifact. Do not resolve those absolute paths locally; inspect the copied companions under `migration-execution/generated-artifacts/` instead.
 
 Step outputs have distinct roles: `audit_exit_code` is the audit process classification (`0` no failing code evidence, `1` finding-policy failure, `2` operational/extraction failure); `setup_seconds`, `audit_seconds`, and `total_seconds` are timing evidence; `migration_execution_status` says whether migration evidence collection was `not_requested`, `emitted_by_audit_cli`, or `operational_error`; `migration_execution_ready_count` is only the number of candidates in `ready_for_human_review` state.
 
