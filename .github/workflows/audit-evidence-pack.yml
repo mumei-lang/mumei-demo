@@ -244,13 +244,11 @@ jobs:
           from pathlib import Path
 
           root = Path("downloaded-evidence-pack")
-          if (root / "manifest.json").is_file():
-              pack_dir = root
-          else:
-              matches = sorted(path.parent for path in root.glob("*/manifest.json"))
-              if len(matches) != 1:
-                  raise SystemExit(f"expected exactly one downloaded evidence pack, found {len(matches)}")
-              pack_dir = matches[0]
+          candidates = [root, root / "ci-audit-evidence-pack"]
+          matches = [path for path in candidates if (path / "manifest.json").is_file()]
+          if len(matches) != 1:
+              raise SystemExit(f"expected exactly one downloaded evidence pack, found {len(matches)}")
+          pack_dir = matches[0]
           with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
               env.write(f"EVIDENCE_PACK_DIR={pack_dir}\n")
           print(f"downloaded evidence pack directory: {pack_dir}")

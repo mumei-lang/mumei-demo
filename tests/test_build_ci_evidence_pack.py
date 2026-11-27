@@ -1025,7 +1025,7 @@ def test_audit_evidence_workflow_verifies_real_downloaded_artifact() -> None:
     assert "name: ci-audit-evidence-pack" in download_job
     assert "path: downloaded-evidence-pack" in download_job
     assert "Resolve downloaded evidence-pack directory" in download_job
-    assert 'root.glob("*/manifest.json")' in download_job
+    assert 'candidates = [root, root / "ci-audit-evidence-pack"]' in download_job
     assert "Verify downloaded evidence pack as a consumer (structural/hash only)" in download_job
     assert 'python3 mumei-demo/scripts/verify_ci_evidence_pack.py "$EVIDENCE_PACK_DIR"' in download_job
     assert ".mumei-generated-artifacts" in download_job
