@@ -662,10 +662,12 @@ def _tokens_expression(tokens: list[str] | tuple[str, ...]) -> str:
 
 
 def _substitute_params(expression: str, params: list[tuple[str, str]], args: list[str]) -> str:
-    substituted = expression
-    for (param_name, _), arg in zip(params, args):
-        substituted = re.sub(rf"\b{re.escape(param_name)}\b", f"({arg})", substituted)
-    return substituted
+    """Substitute all helper parameters in one pass so inserted arguments cannot capture."""
+    if not params:
+        return expression
+    replacements = {param_name: f"({arg})" for (param_name, _), arg in zip(params, args)}
+    pattern = re.compile(r"\b(?:" + "|".join(re.escape(name) for name, _ in params) + r")\b")
+    return pattern.sub(lambda match: replacements[match.group(0)], expression)
 
 
 def expand_simple_helper_calls(text: str, helpers: dict[str, dict],

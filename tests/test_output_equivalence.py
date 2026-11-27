@@ -199,6 +199,16 @@ def test_simple_helper_rewrite_rejects_nested_helper_arguments() -> None:
     assert rewritten is None
 
 
+def test_simple_helper_rewrite_substitutes_parameters_simultaneously() -> None:
+    helpers = {"use_first": {"params": [("x", "i64"), ("y", "i64")],
+                             "requires": "true", "body": "x"}}
+
+    rewritten = fidelity.expand_simple_helper_calls("use_first(y, 1)", helpers, {"y"})
+
+    assert rewritten is not None
+    assert rewritten["text"] == "( ( y ) )"
+
+
 def test_bounded_interaction_tool_failure_is_inconclusive(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(fidelity, "run_bounded_interaction_text", lambda *_args: {
         "exit_code": 1, "output_tail": "compiler error", "seconds": 0.1, "budget_seconds": 5})
