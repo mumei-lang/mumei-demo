@@ -1110,11 +1110,14 @@ def latest_by_mode(runs: list[dict]) -> dict[bool, dict | None]:
 RUN_STATS = ("audit_seconds", "llm_cost_usd")
 
 
-def prior_run_stats(runs: list[dict], llm: bool) -> dict:
+def prior_run_stats(runs: list[dict], llm: bool, generated_at: str | None = None) -> dict:
     """Latest persisted audit cost/time for a mode, skipping newer rescore entries
-    that did not carry those measurements yet."""
+    that did not carry those measurements yet. When ``generated_at`` is given,
+    only measurements from that exact audit run are provenance-compatible."""
     for run in reversed(runs):
         if entry_llm(run) != llm:
+            continue
+        if generated_at is not None and run.get("generated_at") != generated_at:
             continue
         stats = {key: run[key] for key in RUN_STATS if run.get(key) is not None}
         if stats:
@@ -1795,7 +1798,7 @@ def main(argv: list[str]) -> int:
             run_meta = dict(coverages[0]["meta"], rescored_at=stamp)
             previous_runs = load_history(Path(args.scoreboard_dir) / "history.json").get("runs") or []
             mode = entry_llm(coverages[0]["meta"])
-            for stat, value in prior_run_stats(previous_runs, mode).items():
+            for stat, value in prior_run_stats(previous_runs, mode, run_meta.get("generated_at")).items():
                 if stat not in run_meta:
                     run_meta[stat] = value
             run_meta["command"] = AUDIT_COMMAND

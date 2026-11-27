@@ -1799,6 +1799,13 @@ def test_prior_run_stats_skips_unmeasured_rescored_entries():
     assert rsa.prior_run_stats([{"llm": False, "audit_seconds": 1.0}], True) == {}
 
 
+
+def test_prior_run_stats_requires_matching_audit_provenance_when_scoped():
+    measured = {"llm": True, "generated_at": "audit-a", "audit_seconds": 20.0}
+    assert rsa.prior_run_stats([measured], True, "audit-a") == {"audit_seconds": 20.0}
+    assert rsa.prior_run_stats([measured], True, "audit-b") == {}
+
+
 def test_record_run_rescore_keeps_run_stats(tmp_path):
     hp = tmp_path / "history.json"
     rsa.record_run(hp, {**_run(), "llm": True, "audit_seconds": 9.0, "llm_cost_usd": 0.2})
