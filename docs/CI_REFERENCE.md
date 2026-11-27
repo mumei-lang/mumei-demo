@@ -34,11 +34,12 @@ Use the upstream composite action for the initial existing-code audit gate. The 
            with:
              code-file: src/
              language: python
+             mumei-version: v0.7.1
              audit-args: --baseline audit-baseline.json --write-baseline .mumei-audit/generated-baseline.json --fail-on high-confidence
              upload-sarif: false  # set true only when GitHub code scanning is enabled
    ```
 
-   Adjust `code-file` and, when needed, `language`. Keep `audit-args` on one line: the composite action treats it as a space-separated argument list. The example pins the full commit SHA that the upstream selftest ran successfully; before production use, review the action and pin either that commit SHA or a newer immutable release ref. Do not use a mutable branch ref such as `@develop` as a production dependency. `@develop` is acceptable only for short-lived bootstrap experiments or examples where reproducibility and supply-chain stability are not yet the gate.
+   Adjust `code-file` and, when needed, `language`. Keep `audit-args` on one line: the composite action treats it as a space-separated argument list. The example pins the full action commit SHA and the mumei release version used for reproducible setup; before production use, review the action and pin either that commit SHA or a newer immutable release ref. Do not use a mutable branch ref such as `@develop` as a production dependency. `@develop` is acceptable only for short-lived bootstrap experiments or examples where reproducibility and supply-chain stability are not yet the gate.
 
 2. Open a pull request. The action writes a step summary, audit JSON, SARIF, logs, timing files, and `generated-baseline.json` in the `mumei-audit-evidence` artifact.
 3. Review `generated-baseline.json`. If the suppressed fingerprints are accepted as repository policy, commit that file as `audit-baseline.json`. Later runs pass it through `--baseline`; do not treat the baseline as evidence.
