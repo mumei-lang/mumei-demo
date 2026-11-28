@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -47,13 +48,14 @@ def _run_stubbed_setup(tmp_path: Path, *, with_requirements: bool) -> str:
     bin_dir.mkdir(exist_ok=True)
     _write_executable(bin_dir / "git", "#!/usr/bin/env bash\nexit 0\n")
     _write_executable(bin_dir / "cargo", "#!/usr/bin/env bash\nexit 0\n")
+    _write_executable(bin_dir / "lake", "#!/usr/bin/env bash\nexit 0\n")
     _write_executable(bin_dir / "python", f'''#!/usr/bin/env bash
 if [[ "${{1:-}}" == "-m" && "${{2:-}}" == "venv" ]]; then
   target="$3"
   mkdir -p "$target/bin"
   cat > "$target/bin/python" <<'PYEOF'
 #!/usr/bin/env bash
-echo "agent-python $*" >> {log}
+echo "agent-python $*" >> {shlex.quote(str(log))}
 exit 0
 PYEOF
   chmod +x "$target/bin/python"
