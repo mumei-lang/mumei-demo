@@ -26,7 +26,7 @@ Use the upstream composite action for the initial existing-code audit gate. The 
                printf '%s\n' '{"version":"mumei.audit-baseline/v1","fingerprints":[]}' > audit-baseline.json
              fi
 
-         - uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@757b9296d70f58d6edb85485dae168223509f40b
+         - uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@f18a9102946c7885d3d4fef7a88bfbcb0b4cb16c
           # Keep the default deterministic/no-LLM path even when repository secrets exist.
            env:
              LLM_API_KEY: ""
@@ -64,7 +64,7 @@ No LLM secret is required. Without `LLM_API_KEY` or `OPENAI_API_KEY`, audit uses
 
 ## Baseline and fail-on operation
 
-`audit-baseline.json` is input policy in `mumei.audit-baseline/v1` format. `--write-baseline` refreshes the complete fingerprint set on every run, and `--fail-on high-confidence` fails the gate only for non-suppressed high-confidence code evidence. Audit exit `1` means finding-policy failure after a completed audit; exit `2` means operational or extraction failure. The composite action preserves the raw classification as `audit_exit_code` and fails only after writing artifacts and the summary.
+`audit-baseline.json` is input policy in `mumei.audit-baseline/v1` format. `--write-baseline` refreshes the complete fingerprint set on every run, and `--fail-on high-confidence` fails the gate only for non-suppressed high-confidence code evidence. At the pinned action commit, direct hardcoded-credential findings are projected as high-confidence, so an unsuppressed direct credential literal fails this gate; other deterministic static-analysis findings retain their existing confidence projection. Audit exit `1` means finding-policy failure after a completed audit; exit `2` means operational or extraction failure. The composite action preserves the raw classification as `audit_exit_code` and fails only after writing artifacts and the summary.
 
 The baseline is not evidence, does not remove findings from the underlying audit semantics, and must not participate in proof acceptance. Suppressions enter the repository only by human review of the generated baseline artifact.
 
@@ -96,7 +96,7 @@ Migration execution `blocked` and `ready_for_human_review` candidate states are 
 The composite action repository carries a small stdlib-only verifier for accidental artifact corruption, missing files, count mismatches, path/hash mismatches, and hidden companion loss. It applies to artifacts produced with `migration-execution-output` and `--write-baseline` enabled, as in the golden path above, and currently expects at least one blocked or ready migration candidate. An artifact from an audit run that omits migration execution, baseline generation, or migration candidates is outside this verifier's current contract and is expected to fail its required evidence checks. It is not a malicious-tamper trust anchor by itself and it does not independently re-run proof certificates. Pin it to the same immutable action commit, then run it against the downloaded artifact directory:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/757b9296d70f58d6edb85485dae168223509f40b/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
+curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/f18a9102946c7885d3d4fef7a88bfbcb0b4cb16c/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
   -o verify_audit_evidence_artifact.py
 python3 verify_audit_evidence_artifact.py /path/to/downloaded/mumei-audit-evidence
 ```
