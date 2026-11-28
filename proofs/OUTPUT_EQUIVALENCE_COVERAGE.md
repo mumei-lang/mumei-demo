@@ -45,7 +45,7 @@ Coverage is counted over every recorded benchmark row. `not_applicable_not_prove
 - `other_inconclusive`: `RS03-D03`
 - `helper_valid_domain_agreement`: `PY04-D11`, `TS01-D03`
 - `not_applicable_not_proven`: `GO01-D02`, `GO01-D03`, `GO01-D05`, `GO01-D06`, `GO01-D07`, `GO02-D01`, `GO02-D02`, `GO03-D06`, `GO03-D07`, `PY01-D03`, `PY01-D05`, `PY01-D08`, `PY01-D10`, `PY02-D02`, `PY02-D05`, `PY02-D08`, `PY03-D01`, `PY03-D02`, `PY03-D03`, `PY03-D06`, `PY04-D10`, `RS01-D02`, `RS01-D03`, `RS01-D04`, `RS01-D05`, `RS01-D06`, `RS01-D07`, `RS01-D12`, `RS02-D01`, `RS02-D05`, `RS03-D01`, `RS03-D02`, `RS03-D08`, `SOL01-D01`, `SOL01-D02`, `SOL01-D05`, `SOL01-D06`, `SOL01-D07`, `SOL01-D08`, `SOL02-D02`, `SOL02-D03`, `SOL02-D06`, `SOL02-D07`, `SOL02-D08`, `SOL02-D11`, `SOL03-D01`, `SOL03-D02`, `SOL03-D03`, `SOL03-D05`, `SOL03-D07`, `SOL03-D08`, `TS01-D01`, `TS01-D04`, `TS01-D12`, `TS02-D05`, `TS02-D08`, `TS02-D11`, `TS03-D03`, `TS03-D04`, `TS03-D05`, `TS03-D09`
-- opaque helper atoms present in comparison: `PY04-D11`, `TS01-D03`
+- opaque helper atoms present in comparison: `GO02-D03`, `PY04-D11`, `TS01-D03`
 - evidence methods: `bounded_native_interaction` × 4, `solver_output_compare` × 6
 
 ### buggy run 2
@@ -54,7 +54,7 @@ Coverage is counted over every recorded benchmark row. `not_applicable_not_prove
 - `helper_valid_domain_agreement`: `TS02-D11`
 - `operational`: `SOL03-D07`
 - `not_applicable_not_proven`: `GO01-D02`, `GO01-D03`, `GO01-D05`, `GO01-D06`, `GO01-D07`, `GO02-D01`, `GO02-D02`, `GO03-D06`, `GO03-D07`, `PY01-D03`, `PY01-D05`, `PY01-D08`, `PY01-D10`, `PY02-D02`, `PY02-D05`, `PY02-D08`, `PY03-D01`, `PY03-D02`, `PY03-D03`, `PY03-D06`, `PY04-D10`, `PY04-D11`, `RS01-D02`, `RS01-D03`, `RS01-D04`, `RS01-D05`, `RS01-D06`, `RS01-D07`, `RS01-D12`, `RS02-D01`, `RS02-D05`, `RS03-D01`, `RS03-D02`, `RS03-D08`, `SOL01-D01`, `SOL01-D02`, `SOL01-D03`, `SOL01-D05`, `SOL01-D06`, `SOL01-D07`, `SOL01-D08`, `SOL02-D02`, `SOL02-D03`, `SOL02-D06`, `SOL02-D07`, `SOL02-D08`, `SOL02-D11`, `SOL03-D01`, `SOL03-D02`, `SOL03-D03`, `SOL03-D05`, `SOL03-D08`, `TS01-D01`, `TS01-D03`, `TS01-D04`, `TS01-D07`, `TS01-D12`, `TS02-D05`, `TS02-D08`, `TS03-D03`, `TS03-D04`, `TS03-D05`, `TS03-D09`
-- opaque helper atoms present in comparison: `TS02-D11`
+- opaque helper atoms present in comparison: `GO02-D03`, `TS02-D11`
 - evidence methods: `bounded_native_interaction` × 3, `solver_output_compare` × 5
 
 ### buggy run 3
@@ -62,7 +62,7 @@ Coverage is counted over every recorded benchmark row. `not_applicable_not_prove
 - `other_inconclusive`: `RS03-D03`
 - `helper_valid_domain_agreement`: `TS01-D03`
 - `not_applicable_not_proven`: `GO01-D02`, `GO01-D03`, `GO01-D05`, `GO01-D06`, `GO01-D07`, `GO02-D01`, `GO02-D02`, `GO03-D06`, `GO03-D07`, `PY01-D03`, `PY01-D05`, `PY01-D08`, `PY01-D10`, `PY02-D02`, `PY02-D05`, `PY02-D08`, `PY03-D01`, `PY03-D02`, `PY03-D03`, `PY03-D06`, `PY04-D10`, `PY04-D11`, `RS01-D02`, `RS01-D03`, `RS01-D04`, `RS01-D05`, `RS01-D06`, `RS01-D07`, `RS01-D12`, `RS02-D01`, `RS02-D05`, `RS03-D01`, `RS03-D02`, `RS03-D08`, `SOL01-D01`, `SOL01-D02`, `SOL01-D05`, `SOL01-D06`, `SOL01-D07`, `SOL01-D08`, `SOL02-D02`, `SOL02-D03`, `SOL02-D06`, `SOL02-D07`, `SOL02-D08`, `SOL02-D11`, `SOL03-D01`, `SOL03-D02`, `SOL03-D03`, `SOL03-D05`, `SOL03-D07`, `SOL03-D08`, `TS01-D01`, `TS01-D04`, `TS01-D07`, `TS01-D12`, `TS02-D05`, `TS02-D08`, `TS02-D11`, `TS03-D03`, `TS03-D04`, `TS03-D05`, `TS03-D09`
-- opaque helper atoms present in comparison: `TS01-D03`
+- opaque helper atoms present in comparison: `GO02-D03`, `TS01-D03`
 - evidence methods: `bounded_native_interaction` × 4, `solver_output_compare` × 4
 
 
@@ -92,9 +92,12 @@ Recorded rows using helper calls:
   - `matched`: `GO01-D06`, `GO01-D07`, `GO02-D01`, `GO02-D03`, `GO03-D07`, `PY04-D11`, `RS01-D05`, `RS02-D01`, `RS03-D01`, `TS01-D03`, `TS02-D11`, `TS03-D05`
 - fixed run 3: 12 row(s): matched 12.
   - `matched`: `GO01-D06`, `GO01-D07`, `GO02-D01`, `GO02-D03`, `GO03-D07`, `PY04-D11`, `RS01-D05`, `RS02-D01`, `RS03-D01`, `TS01-D03`, `TS02-D11`, `TS03-D05`
-- buggy run 1: 2 row(s): valid_domain_agreement 2.
+- buggy run 1: 3 row(s): diverged 1, valid_domain_agreement 2.
+  - `diverged`: `GO02-D03`
   - `valid_domain_agreement`: `PY04-D11`, `TS01-D03`
-- buggy run 2: 1 row(s): valid_domain_agreement 1.
+- buggy run 2: 2 row(s): diverged 1, valid_domain_agreement 1.
+  - `diverged`: `GO02-D03`
   - `valid_domain_agreement`: `TS02-D11`
-- buggy run 3: 1 row(s): valid_domain_agreement 1.
+- buggy run 3: 2 row(s): diverged 1, valid_domain_agreement 1.
+  - `diverged`: `GO02-D03`
   - `valid_domain_agreement`: `TS01-D03`

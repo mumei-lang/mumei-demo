@@ -344,6 +344,7 @@ def test_helper_system_boundary_positive_and_negative_controls() -> None:
 
     assert repaired["outcome"] == "diverged"
     assert repaired["reason"] == "error_branch_domain_behavior_diverged"
+    assert repaired["opaque_atom_calls"] == ["slice_to"]
     assert [(item["boundary"], item["result"]) for item in repaired["inputs"]] == [("error", "diverged"), ("success", "matched")]
     assert copied["outcome"] == "inconclusive"
     assert copied["reason"] == "error_branch_candidate_domain_unresolved"

@@ -1335,6 +1335,8 @@ def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout:
                 bounded["verification"] = measurement
             if bounded.get("reason") == "bounded_interactions_matched":
                 bounded["reason"] = "error_branch_bounded_interactions_matched"
+            if opaque_calls:
+                bounded["opaque_atom_calls"] = opaque_calls
             return bounded
     boundary_only = False
     operational_policy = any(key in policy for key in
