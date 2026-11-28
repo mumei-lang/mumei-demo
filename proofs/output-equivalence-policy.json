@@ -93,6 +93,28 @@
       ],
       "rationale": "Zero shares exercises the adjudicated default/error branch and positive shares exercises successful division without overflowing the integer model. For the buggy reference the zero-share input is an adjudicated division-by-zero domain error; a verifiably defined candidate on that input is diagnostic behavioral divergence. Finite agreement is diagnostic evidence only."
     },
+    "GO02-D03": {
+      "error_branch_inputs": [
+        {
+          "name": "error-negative-top",
+          "boundary": "error",
+          "reference_domain_error_variants": ["buggy"],
+          "values": {
+            "n_paths": 2,
+            "top": -1
+          }
+        },
+        {
+          "name": "success-bounded-top",
+          "boundary": "success",
+          "values": {
+            "n_paths": 3,
+            "top": 2
+          }
+        }
+      ],
+      "rationale": "A negative top is the adjudicated rejection/error boundary, while a positive in-range top exercises the success boundary. Both inputs satisfy n_paths >= 0. For the buggy reference the negative input is an adjudicated slice/system-boundary domain error because paths[:end] is invalid; a verifiably defined candidate on that input is diagnostic behavioral divergence. Finite agreement is diagnostic evidence only."
+    },
     "PY02-D05": {
       "bounded_interaction_inputs": [
         {

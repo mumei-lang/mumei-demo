@@ -333,6 +333,22 @@ def test_error_branch_reference_domain_error_positive_and_negative_controls() ->
     assert "failure_kind" not in copied
 
 
+@pytest.mark.skipif(MUMEI_BIN is None, reason="MUMEI_BIN not set")
+def test_helper_system_boundary_positive_and_negative_controls() -> None:
+    case = case_by_id("GO02-D03")
+    fixed_reference = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
+    buggy_reference = fidelity.body_inner(fidelity.split_port(case["ports"]["buggy"], case["atom"])[2]).strip()
+
+    repaired = fidelity.output_equivalence(case, fixed_reference, MUMEI_BIN, 20, "buggy")
+    copied = fidelity.output_equivalence(case, buggy_reference, MUMEI_BIN, 20, "buggy")
+
+    assert repaired["outcome"] == "diverged"
+    assert repaired["reason"] == "error_branch_domain_behavior_diverged"
+    assert [(item["boundary"], item["result"]) for item in repaired["inputs"]] == [("error", "diverged"), ("success", "matched")]
+    assert copied["outcome"] == "inconclusive"
+    assert copied["reason"] == "error_branch_candidate_domain_unresolved"
+
+
 def test_postcondition_refutation_is_divergence_but_safety_failure_is_not(monkeypatch: pytest.MonkeyPatch) -> None:
     case = case_by_id("SOL03-D08")
     candidate = "Payout { ok: transfer_ok, owed: amount }"
