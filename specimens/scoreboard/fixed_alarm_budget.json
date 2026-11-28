@@ -1,8 +1,14 @@
 {
-  "schema": "mumei-demo.fixed-alarm-budget/v1",
+  "schema": "mumei-demo.fixed-alarm-budget/v2",
   "mode": "no_llm",
   "max_false_alarms": 1,
+  "max_code_evidence_false_alarms": 0,
+  "max_non_code_findings_by_kind": {
+    "cross_validation_gaps": 1,
+    "spec_health_issues": 0,
+    "trusted_atoms": 0
+  },
   "max_unreviewed": 2,
   "min_specimens": 16,
-  "notes": "Pinned from the committed no-LLM specimen audit artifacts after the hardcoded-credential recall measurement on 2026-11-28. Lower the budget only after a fresh audited reduction; do not raise it to hide a regression."
+  "notes": "Pinned from the committed no-LLM specimen audit artifacts after the hardcoded-credential recall measurement on 2026-11-28. max_false_alarms is the legacy all-kind count retained for backcompat. Only verification_violations are budgeted as code evidence; other raw finding kinds are budgeted individually without assigning them one shared semantic. Kinds absent from max_non_code_findings_by_kind have a zero budget. Lower the budget only after a fresh audited reduction; do not raise it to hide a regression."
 }

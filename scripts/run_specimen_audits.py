@@ -121,6 +121,12 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
 }
 
 STRONG_KINDS = ("verification_violations", "spec_health_issues", "cross_validation_gaps", "trusted_atoms")
+CODE_EVIDENCE_KINDS = {"verification_violations"}
+NON_CODE_KIND_LABELS = {
+    "cross_validation_gaps": ("cross-validation spec diagnostic", "cross-validation spec diagnostics"),
+    "spec_health_issues": ("spec health issue", "spec health issues"),
+    "trusted_atoms": ("trusted atom advisory", "trusted atom advisories"),
+}
 
 # Verdicts a reviewer can give a finding that is not category evidence for a
 # planted defect: `real` points at a real problem (a planted defect it was not
@@ -261,6 +267,69 @@ def empty_finding_counts() -> dict[str, int]:
     return {"total": 0, **{s: 0 for s in FINDING_STATUSES}}
 
 
+def fixed_kind_counts(findings: list[dict]) -> dict:
+    """Split fixed-variant findings by the runner's raw audit kind.
+
+    `verification_violations` are the only findings counted as code-evidence
+    false alarms, and only when no ruling marks them real. All other kinds stay
+    visible under their raw kind without assigning them one shared semantic;
+    they still contribute to the legacy all-kind false-alarm total when not real.
+    """
+    non_code_kind_counts: dict[str, int] = {}
+    code_evidence_false_alarms = 0
+    for finding in findings:
+        kind = finding.get("kind") or "unknown"
+        if kind in CODE_EVIDENCE_KINDS:
+            if finding.get("status") != "real":
+                code_evidence_false_alarms += 1
+        else:
+            non_code_kind_counts[kind] = non_code_kind_counts.get(kind, 0) + 1
+    return {
+        "code_evidence_false_alarms": code_evidence_false_alarms,
+        "non_code_kind_counts": non_code_kind_counts,
+    }
+
+
+def fixed_decomposition(fixed: dict) -> dict:
+    if "code_evidence_false_alarms" in fixed and "non_code_kind_counts" in fixed:
+        return {
+            "code_evidence_false_alarms": fixed["code_evidence_false_alarms"],
+            "non_code_kind_counts": dict(fixed["non_code_kind_counts"]),
+        }
+    return fixed_kind_counts(fixed.get("findings") or [])
+
+
+def plural(count: int, singular: str, plural_form: str | None = None) -> str:
+    word = singular if count == 1 else (plural_form or singular + "s")
+    return f"{count} {word}"
+
+
+def non_code_kind_label(kind: str) -> tuple[str, str]:
+    if kind in NON_CODE_KIND_LABELS:
+        return NON_CODE_KIND_LABELS[kind]
+    fallback = kind.replace("_", "-")
+    return fallback, fallback + "s"
+
+
+def format_non_code_kind_counts(counts: dict[str, int], empty: str = "0 non-code findings") -> str:
+    parts = []
+    for kind, count in sorted(counts.items()):
+        if count:
+            singular, plural_form = non_code_kind_label(kind)
+            parts.append(plural(count, singular, plural_form))
+    return ", ".join(parts) if parts else empty
+
+
+def fixed_kind_breakdown(fixed: dict) -> str:
+    if "code_evidence_false_alarms" not in fixed or "non_code_kind_counts" not in fixed:
+        return "kind decomposition unavailable"
+    return (
+        plural(fixed["code_evidence_false_alarms"], "code-evidence false alarm")
+        + "; "
+        + format_non_code_kind_counts(fixed["non_code_kind_counts"])
+    )
+
+
 def classify_findings(by_file: dict[str, list[dict]], evidence: set[tuple[str, int]],
                       specimen: str | None, finding_reviews: list[dict]) -> dict:
     """Give every non-supporting finding a precision status.
@@ -389,6 +458,7 @@ def score_fixed(defects_doc: dict, audit: dict, label: str,
         "still_reported": [d["id"] for d in scored["defects"] if d["status"] == "detected"],
         "still_function_flagged": [d["id"] for d in scored["defects"] if d["status"] == "function_flagged"],
         "false_alarms": fc["total"] - fc["real"],
+        **fixed_kind_counts(classified["findings"]),
         **classified,
     }
 
@@ -411,7 +481,8 @@ def aggregate(coverages: list[dict]) -> dict:
     by_cat: dict[str, dict[str, Any]] = {}
     findings = empty_finding_counts()
     fixed = {"specimens": 0, "defects": 0, "still_reported": 0, "findings": 0,
-             "real": 0, "false_alarms": 0, "unreviewed": 0}
+             "real": 0, "false_alarms": 0, "unreviewed": 0,
+             "code_evidence_false_alarms": 0, "non_code_kind_counts": {}}
     for cov in coverages:
         for k, v in (cov.get("finding_counts") or {}).items():
             findings[k] = findings.get(k, 0) + v
@@ -424,6 +495,10 @@ def aggregate(coverages: list[dict]) -> dict:
             fixed["real"] += fx["finding_counts"]["real"]
             fixed["false_alarms"] += fx["false_alarms"]
             fixed["unreviewed"] += fx["finding_counts"].get("unreviewed", 0)
+            decomposed = fixed_decomposition(fx)
+            fixed["code_evidence_false_alarms"] += decomposed["code_evidence_false_alarms"]
+            for kind, count in decomposed["non_code_kind_counts"].items():
+                fixed["non_code_kind_counts"][kind] = fixed["non_code_kind_counts"].get(kind, 0) + count
         c = cov["counts"]
         for k in ("total", "detected", "function_flagged", "missed"):
             totals[k] += c[k]
@@ -917,9 +992,12 @@ def write_summary(coverages: list[dict], meta: dict, path: Path,
         "",
         "A specimen may ship a `fixed.patch` that repairs every planted defect without other changes; its",
         "`repro.sh` then reproduces none of them. The fixed copy is audited the same way (output in",
-        "`audit/fixed/`). Every finding on it is a false alarm unless a `finding_reviews` ruling marks it",
+        "`audit/fixed/`). Every finding on it is a legacy false alarm unless a `finding_reviews` ruling marks it",
         "`real` (a problem the patch leaves in place). \"Still reported\" counts planted defects whose",
-        "category evidence the audit keeps reporting after the fix.",
+        "category evidence the audit keeps reporting after the fix. The decomposition uses the raw audit",
+        "kinds the runner reads: non-real `verification_violations` are code-evidence false alarms. Other",
+        "kinds are displayed by kind without assigning them one shared semantic; they remain in the",
+        "legacy total when no ruling marks them real.",
         "",
         "## Per specimen",
         "",
@@ -983,33 +1061,38 @@ def write_summary(coverages: list[dict], meta: dict, path: Path,
         lines += [
             "## Fixed variants",
             "",
-            "| Specimen | Defects fixed | Findings on fixed code | Reviewed real | False alarms | Still reported |",
-            "|---|---:|---:|---:|---:|---|",
+            "| Specimen | Defects fixed | Findings on fixed code | Reviewed real | Legacy false alarms | Code-evidence false alarms | Non-code findings by kind | Still reported |",
+            "|---|---:|---:|---:|---:|---:|---:|---|",
         ]
         for cov in fixed_covs:
             fx = cov["fixed"]
             lines.append(
                 f"| [{cov['specimen']}]({cov['language']}/{cov['specimen']}/audit/fixed/audit.md) | "
                 f"{fx['defects']} | {fx['finding_counts']['total']} | {fx['finding_counts']['real']} | "
-                f"{fx['false_alarms']} | {', '.join(fx['still_reported']) or '—'} |"
+                f"{fx['false_alarms']} | {fixed_decomposition(fx)['code_evidence_false_alarms']} | "
+                f"{format_non_code_kind_counts(fixed_decomposition(fx)['non_code_kind_counts'], '—')} | "
+                f"{', '.join(fx['still_reported']) or '—'} |"
             )
         lines += [
             f"| **Total** | **{fx_total['defects']}** | **{fx_total['findings']}** | **{fx_total['real']}** | "
-            f"**{fx_total['false_alarms']}** | **{fx_total['still_reported']}** |",
+            f"**{fx_total['false_alarms']}** | **{fx_total['code_evidence_false_alarms']}** | "
+            f"**{format_non_code_kind_counts(fx_total['non_code_kind_counts'], '—')}** | **{fx_total['still_reported']}** |",
             "",
             f"Fixed variants: {fx_total['specimens']} of {len(coverages)} specimens; "
-            f"{fx_total['false_alarms']} false alarms on fixed code.",
+            f"{fx_total['false_alarms']} legacy false alarms on fixed code ({fixed_kind_breakdown(fx_total)}).",
             "",
         ]
         fixed_findings = [(cov["specimen"], rec) for cov in fixed_covs for rec in cov["fixed"]["findings"]]
         if fixed_findings:
             lines += [
-                "| Specimen | File | Status | Finding on fixed code |",
-                "|---|---|---|---|",
+                "| Specimen | File | Raw kind | Status | Finding on fixed code |",
+                "|---|---|---|---|---|",
             ]
             for specimen, rec in fixed_findings:
-                status = "real" if rec["status"] == "real" else "false alarm"
-                lines.append(f"| {specimen} | `{rec['file']}` | {status} | {_md_cell(rec['text'], 200)} |")
+                status = "real" if rec["status"] == "real" else "legacy false alarm"
+                lines.append(
+                    f"| {specimen} | `{rec['file']}` | `{rec['kind']}` | {status} | {_md_cell(rec['text'], 200)} |"
+                )
             lines.append("")
     lines += [
         "## Per language",
@@ -1631,7 +1714,8 @@ def readme_block_specimens(history: dict) -> str:
                 if fx:
                     lines.append(
                         f"Fixed variants — {label}: {fx['specimens']} specimens ({fx['defects']} defects fixed) · "
-                        f"{fx['false_alarms']} false alarms in {fx['findings']} findings on fixed code · "
+                        f"{fx['false_alarms']} legacy false alarms in {fx['findings']} findings on fixed code "
+                        f"({fixed_kind_breakdown(fx)}) · "
                         f"{fx['still_reported']} defects still reported"
                     )
                 lines.append("")
@@ -1758,8 +1842,11 @@ def readme_block_specimens(history: dict) -> str:
         "the currently saved audit output and appends a new history entry; older rows remain historical",
         "and stay `unknown` when they predate readiness recording.",
         "",
-        "False alarms on fixed code count findings on specimens with their `fixed.patch` applied (every",
-        "planted defect repaired) that no ruling marks as real, shown as false alarms / specimens covered.",
+        "Legacy false alarms on fixed code count findings on specimens with their `fixed.patch` applied",
+        "(every planted defect repaired) that no ruling marks as real, shown as false alarms / specimens",
+        "covered. The raw-kind decomposition counts only non-real `verification_violations` as code-evidence",
+        "false alarms. Other kinds are counted and displayed by raw kind without collapsing them into one",
+        "semantic class; they remain in the legacy total when no ruling marks them real.",
     ]
     return "\n".join(lines)
 
@@ -1793,8 +1880,8 @@ def readme_block_top(history: dict) -> str:
                 frag += f", adjudication {fmt_adjudication(run)}"
             fx = run.get("fixed")
             if fx:
-                frag += (f", {fx['false_alarms']} false alarms on fixed code "
-                         f"({fx['specimens']} specimens)")
+                frag += (f", {fx['false_alarms']} legacy false alarms on fixed code "
+                         f"({fixed_kind_breakdown(fx)}; {fx['specimens']} specimens)")
             return frag
 
         modes = latest_by_mode(runs)

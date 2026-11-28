@@ -1400,6 +1400,52 @@ def test_score_fixed_reports_still_reported_and_false_alarms():
     assert fx["false_alarms"] == 3
 
 
+def test_score_fixed_decomposes_verification_violations_as_code_evidence():
+    fx = rsa.score_fixed(_doc(), _audit(), LABEL)
+    assert fx["code_evidence_false_alarms"] == 3
+    assert fx["non_code_kind_counts"] == {}
+
+
+def test_score_fixed_counts_non_code_kinds_without_merging_semantics():
+    audit = {"file_results": [{
+        "source_file": f"{LABEL}/app.py",
+        "cross_validation_gaps": ["spec precondition assumed, not enforced, by `helper`"],
+        "spec_health_issues": ["spec for `helper` is vacuous"],
+        "trusted_atoms": ["trusted atom `helper`"],
+    }]}
+    fx = rsa.score_fixed(_doc(), audit, LABEL)
+
+    assert fx["false_alarms"] == 3
+    assert fx["code_evidence_false_alarms"] == 0
+    assert fx["non_code_kind_counts"] == {
+        "cross_validation_gaps": 1,
+        "spec_health_issues": 1,
+        "trusted_atoms": 1,
+    }
+
+
+def test_fixed_kind_breakdown_uses_requested_headline_shape():
+    assert rsa.fixed_kind_breakdown({
+        "code_evidence_false_alarms": 0,
+        "non_code_kind_counts": {"cross_validation_gaps": 1},
+    }) == "0 code-evidence false alarms; 1 cross-validation spec diagnostic"
+    assert rsa.fixed_kind_breakdown({}) == "kind decomposition unavailable"
+
+
+def test_fixed_kind_counts_real_code_evidence_but_keeps_non_code_kinds_visible():
+    findings = [
+        {"kind": "verification_violations", "status": "real"},
+        {"kind": "verification_violations", "status": "false_positive"},
+        {"kind": "cross_validation_gaps", "status": "real"},
+        {"kind": "cross_validation_gaps", "status": "unreviewed"},
+        {"kind": "trusted_atoms", "status": "unreviewed"},
+    ]
+    assert rsa.fixed_kind_counts(findings) == {
+        "code_evidence_false_alarms": 1,
+        "non_code_kind_counts": {"cross_validation_gaps": 2, "trusted_atoms": 1},
+    }
+
+
 def test_score_fixed_never_counts_category_evidence():
     fx = rsa.score_fixed(_doc(), _audit(), LABEL)
     assert "defect_evidence" not in {f["status"] for f in fx["findings"]}
@@ -1460,12 +1506,27 @@ def test_aggregate_fixed_totals():
     plain = _coverage("go-01-c", "go", [])
     fx = rsa.aggregate([a, b, plain])["fixed"]
     assert fx == {"specimens": 2, "defects": 6, "still_reported": 1, "findings": 4,
-                  "real": 1, "false_alarms": 3, "unreviewed": 3}
+                  "real": 1, "false_alarms": 3, "unreviewed": 3,
+                  "code_evidence_false_alarms": 0, "non_code_kind_counts": {}}
 
 
 def test_aggregate_fixed_empty():
     fx = rsa.aggregate([_coverage("go-01-c", "go", [])])["fixed"]
     assert fx["specimens"] == 0 and fx["false_alarms"] == 0
+
+
+def test_aggregate_fixed_derives_decomposition_from_legacy_coverage_rows():
+    fixed = _fixed()
+    fixed["findings"] = [
+        {"kind": "verification_violations", "status": "false_positive"},
+        {"kind": "cross_validation_gaps", "status": "unreviewed"},
+        {"kind": "trusted_atoms", "status": "false_positive"},
+    ]
+    cov = {**_coverage("go-01-a", "go", []), "fixed": fixed}
+    fx = rsa.aggregate([cov])["fixed"]
+
+    assert fx["code_evidence_false_alarms"] == 1
+    assert fx["non_code_kind_counts"] == {"cross_validation_gaps": 1, "trusted_atoms": 1}
 
 
 def test_write_summary_fixed_section(tmp_path):
@@ -1476,8 +1537,8 @@ def test_write_summary_fixed_section(tmp_path):
     rsa.write_summary([cov, plain], _summary_meta(), out)
     text = out.read_text()
     assert "## Fixed variants" in text
-    assert "(python/py-01-a/audit/fixed/audit.md) | 4 | 3 | 1 | 2 | PY01-D01 |" in text
-    assert "Fixed variants: 1 of 2 specimens; 2 false alarms on fixed code." in text
+    assert "(python/py-01-a/audit/fixed/audit.md) | 4 | 3 | 1 | 2 | 0 | — | PY01-D01 |" in text
+    assert "Fixed variants: 1 of 2 specimens; 2 legacy false alarms on fixed code (0 code-evidence false alarms; 0 non-code findings)." in text
     assert "go-01-c" not in text.split("## Fixed variants")[1].split("## Per language")[0]
 
 
@@ -1531,11 +1592,11 @@ def test_readme_blocks_show_fixed_variants():
     assert "| False alarms on fixed code |" in spec
     assert "| 8 / 7 specimens |" in spec
     assert "Fixed variants — no LLM: 7 specimens (70 defects fixed)" in spec
-    assert "8 false alarms in 9 findings on fixed code" in spec
+    assert "8 legacy false alarms in 9 findings on fixed code" in spec
     old_row = [ln for ln in spec.splitlines() if ln.startswith("| 2025-01-01")][0]
     assert old_row.endswith("| — | unknown — rescore |")
     top = rsa.readme_block_top({"schema": 2, "runs": [old, new]})
-    assert "8 false alarms on fixed code (7 specimens)" in top
+    assert "8 legacy false alarms on fixed code (kind decomposition unavailable; 7 specimens)" in top
 
 
 def test_readme_specimens_explains_rescore_does_not_rewrite_history():
@@ -1608,9 +1669,10 @@ def test_main_rescore_records_fixed_and_review_used_only_on_fixed(tmp_path, monk
     assert "stale finding review" not in capsys.readouterr().err
     run = json.loads((specimens / "scoreboard" / "history.json").read_text())["runs"][-1]
     assert run["fixed"] == {"specimens": 1, "defects": 1, "still_reported": 0, "findings": 1,
-                            "real": 1, "false_alarms": 0, "unreviewed": 0}
+                            "real": 1, "false_alarms": 0, "unreviewed": 0,
+                            "code_evidence_false_alarms": 0, "non_code_kind_counts": {}}
     assert "## Fixed variants" in (tmp_path / "AUDIT_SUMMARY.md").read_text()
-    assert "0 false alarms on fixed code (1 specimens)" in (tmp_path / "README.md").read_text()
+    assert "0 legacy false alarms on fixed code (0 code-evidence false alarms; 0 non-code findings; 1 specimens)" in (tmp_path / "README.md").read_text()
 
 
 # --- fixed variant audit plumbing -------------------------------------------
@@ -1761,9 +1823,9 @@ def test_write_summary_lists_findings_on_fixed_code(tmp_path):
     out = tmp_path / "AUDIT_SUMMARY.md"
     rsa.write_summary([cov], _summary_meta(), out)
     text = out.read_text()
-    assert "| py-01-a | `app.py` | false alarm | g \\| still flagged |" in text
-    assert "| py-01-a | `app.py` | real | h race |" in text
-    assert "| py-01-a | `app.py` | false alarm | k odd |" in text
+    assert "| py-01-a | `app.py` | `verification_violations` | legacy false alarm | g \\| still flagged |" in text
+    assert "| py-01-a | `app.py` | `verification_violations` | real | h race |" in text
+    assert "| py-01-a | `app.py` | `verification_violations` | legacy false alarm | k odd |" in text
 
 
 def test_write_summary_fixed_without_findings_has_no_finding_table(tmp_path):

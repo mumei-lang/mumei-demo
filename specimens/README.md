@@ -170,8 +170,17 @@ git diff --relative=$S -- $S > /tmp/fixed.patch && git checkout -- $S && mv /tmp
 ```
 
 The audit runner audits the patched copy too (output in `audit/fixed/`). Any
-finding on it is a false alarm unless a `finding_reviews` ruling marks it
-`real`.
+finding on it is a legacy false alarm unless a `finding_reviews` ruling marks
+it `real`. The scoreboard also decomposes mumei audit findings by the raw audit
+kind it already reads: non-real `verification_violations` are code-evidence
+false alarms. Other kinds are counted and displayed individually without giving
+them one shared semantic; for example, a `cross_validation_gaps` row may be a
+cross-validation spec diagnostic, while `spec_health_issues` and
+`trusted_atoms` keep their own raw-kind meaning. This split is scoped to the
+mumei audit scoreboard and its no-LLM fixed-variant gate; it does not reinterpret
+baseline-analyzer findings. History rows recorded before this decomposition are
+not rewritten; they render as `kind decomposition unavailable` until a future
+rescore or audit.
 
 ## Audit reports
 
@@ -286,11 +295,17 @@ corpus-side static lint only; they are not yet emitted in contract-benchmark out
 port replay JSON, or audit findings.
 
 `specimens/scoreboard/fixed_alarm_budget.json` pins the accepted no-LLM fixed-variant
-false-alarm count. `scripts/check_fixed_alarm_regression.py` recomputes the count from
-the committed `audit/coverage.json` artifacts, compares it with the latest no-LLM
-history entry, and fails when false alarms or unreviewed fixed findings move above
-budget. Lower the budget only after a fresh audited reduction; do not raise it to
-hide a regression. The gate is offline and does not rerun `mumei-agent audit`.
+false-alarm counts. `scripts/check_fixed_alarm_regression.py` recomputes the counts from
+the raw finding kinds in committed `audit/coverage.json` artifacts, compares them with
+the latest no-LLM history entry when that entry carries the same decomposition, and
+fails when false alarms or unreviewed fixed findings move above budget. The legacy
+`false_alarms` budget remains the all-kind backcompat count; the gate separately budgets
+non-real code-evidence false alarms (`verification_violations`) at zero and each non-code
+raw finding kind through `max_non_code_findings_by_kind`. Kinds absent from that map have
+a zero budget. This is a mumei audit scoreboard gate only; `run_baselines` output and
+baseline-analyzer `kind=baseline` records are outside its scope. Lower the budget only
+after a fresh audited reduction; do not raise it to hide a regression. The gate is
+offline and does not rerun `mumei-agent audit`.
 
 ```bash
 python3 scripts/check_adversarial_port_corpus.py --check
