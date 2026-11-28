@@ -509,6 +509,40 @@ def test_load_adjudications_unknown_id(tmp_path):
     assert len(rsa.load_adjudications(tmp_path)) == 1
 
 
+def test_record_run_target_definition_hash_in_key(tmp_path):
+    hp = tmp_path / "history.json"
+    current = rsa.target_definition_hash()
+    versioned = {**_run(), "target_definition_hash": current,
+                 "target_categories": rsa.target_definition()}
+    rsa.record_run(hp, versioned)
+    changed = {**versioned, "target_definition_hash": f"{current}-changed",
+               "generated_at": "2025-01-03T00:00:00Z"}
+    rsa.record_run(hp, changed)
+    hist = json.loads(hp.read_text())
+    assert len(hist["runs"]) == 2
+
+    same = {**changed, "totals": {**changed["totals"], "detected": 9},
+            "generated_at": "2025-01-04T00:00:00Z"}
+    rsa.record_run(hp, same)
+    hist = json.loads(hp.read_text())
+    assert len(hist["runs"]) == 2
+    assert hist["runs"][-1]["totals"]["detected"] == 9
+
+
+def test_record_run_does_not_replace_legacy_unversioned_target_definition(tmp_path):
+    hp = tmp_path / "history.json"
+    legacy = _run()
+    assert "target_definition_hash" not in legacy
+    rsa.record_run(hp, legacy)
+    versioned = {**_run(date="2025-01-03"), "target_definition_hash": rsa.target_definition_hash(),
+                 "target_categories": rsa.target_definition()}
+    rsa.record_run(hp, versioned)
+    hist = json.loads(hp.read_text())
+    assert len(hist["runs"]) == 2
+    assert "target_definition_hash" not in hist["runs"][0]
+    assert hist["runs"][1]["target_definition_hash"] == rsa.target_definition_hash()
+
+
 def test_record_run_scoring_hash_in_key(tmp_path):
     hp = tmp_path / "history.json"
     rsa.record_run(hp, _run())
@@ -976,6 +1010,8 @@ def test_history_entry_records_findings_and_rescore():
     assert "rescored_at" not in plain
     assert plain["stale_finding_reviews"] == 0
     assert plain["adjudication"]["state"] == "complete"
+    assert plain["target_categories"] == sorted(rsa.TARGET_CATEGORIES)
+    assert plain["target_definition_hash"] == rsa.target_definition_hash()
 
 
 def test_readme_blocks_show_precision_and_dash_for_old_runs():

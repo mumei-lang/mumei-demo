@@ -1197,6 +1197,26 @@ def scoring_hash(root: Path) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+LEGACY_TARGET_DEFINITION = "legacy-unversioned-target-definition"
+
+
+def target_definition() -> list[str]:
+    return sorted(TARGET_CATEGORIES)
+
+
+def target_definition_hash() -> str:
+    """Stable hash of the audit target-category definition.
+
+    Kept separate from scoring_hash because target definition changes alter
+    the denominator even when adjudication content is unchanged."""
+    canonical = json.dumps(
+        {"target_categories": target_definition()},
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
 def entry_llm(entry: dict) -> bool:
     """Whether a history run was audited with an LLM provider configured.
 
@@ -1246,6 +1266,8 @@ def history_entry(coverages: list[dict], meta: dict, corpus: dict,
         "llm": bool(meta["llm_configured"]),
         "corpus": corpus,
         "scoring_hash": score_hash,
+        "target_categories": target_definition(),
+        "target_definition_hash": target_definition_hash(),
         "totals": {k: t[k] for k in ("total", "detected", "function_flagged",
                                     "missed",
                                     "target_total", "target_detected")},
@@ -1282,7 +1304,7 @@ def history_entry(coverages: list[dict], meta: dict, corpus: dict,
 def record_run(history_path: Path, entry: dict) -> dict:
     """Append a run to history.json, replacing the latest entry of the same
     LLM mode in place when the run key (agent commit, mumei commit, corpus
-    hash, scoring hash, llm mode) is unchanged."""
+    hash, scoring hash, target definition hash, llm mode) is unchanged."""
     hist = load_history(history_path)
     runs = hist.setdefault("runs", [])
     hist["schema"] = HISTORY_SCHEMA
@@ -1290,6 +1312,7 @@ def record_run(history_path: Path, entry: dict) -> dict:
     key = (entry.get("mumei_agent_commit"), entry.get("mumei_commit"),
            (entry.get("corpus") or {}).get("hash"),
            entry.get("scoring_hash", empty_hash),
+           entry.get("target_definition_hash", LEGACY_TARGET_DEFINITION),
            entry_llm(entry))
     same_mode = [i for i, run in enumerate(runs) if entry_llm(run) == entry_llm(entry)]
     if same_mode:
@@ -1298,6 +1321,7 @@ def record_run(history_path: Path, entry: dict) -> dict:
         last_key = (last.get("mumei_agent_commit"), last.get("mumei_commit"),
                     (last.get("corpus") or {}).get("hash"),
                     last.get("scoring_hash", empty_hash),
+                    last.get("target_definition_hash", LEGACY_TARGET_DEFINITION),
                     entry_llm(last))
         if last_key == key:
             if entry.get("rescored_at"):
@@ -1698,7 +1722,9 @@ def readme_block_specimens(history: dict) -> str:
                 "",
                 "Target-denominator note: this history mixes target definitions with "
                 + " and ".join(str(v) for v in target_totals)
-                + " planted target defects; compare target percentages only within the same denominator.",
+                + " planted target defects; compare target percentages only within the same denominator. "
+                + "Versioned rows record the sorted `target_categories` and a `target_definition_hash`; "
+                + "rows without them are legacy unversioned entries and are not overwritten when the target definition changes.",
             ]
         lines.append("")
     lines += [
