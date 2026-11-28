@@ -27,6 +27,7 @@ CLI_SCRIPTS = (
     ("scripts/check_machine_tv_stability.py", "check_machine_tv_stability"),
     ("scripts/run_native_replay.py", "run_native_replay"),
     ("scripts/run_port_divergence.py", "run_port_divergence"),
+    ("scripts/run_port_prompt_ablation.py", "run_port_prompt_ablation"),
     ("scripts/run_mutation_control.py", "run_mutation_control"),
     ("scripts/run_regression_gate.py", "run_regression_gate"),
     ("scripts/record_scenario.py", "record_scenario"),

@@ -77,7 +77,7 @@ jobs:
       - name: Check the committed comparison is up to date
         run: python3 scripts/compare_arms.py --model openai/gpt-6-luna --check
       - name: Run contract-benchmark tests
-        run: python3 -m pytest tests/test_run_contract_bench.py tests/test_run_machine_tv_bench.py tests/test_recheck_lean_dual_checks.py tests/test_compare_machine_tv_runs.py -q
+        run: python3 -m pytest tests/test_run_contract_bench.py tests/test_run_port_prompt_ablation.py tests/test_run_machine_tv_bench.py tests/test_recheck_lean_dual_checks.py tests/test_compare_machine_tv_runs.py -q
       - name: Check contract-benchmark cases and results (offline)
         run: python3 scripts/run_contract_bench.py --check
       - name: Run native-replay tests

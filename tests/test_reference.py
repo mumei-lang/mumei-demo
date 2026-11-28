@@ -257,6 +257,7 @@ def test_parser_option_strings_match_golden_lists() -> None:
         "scripts/check_machine_tv_stability.py": ["--mumei-bin", "--output-dir", "--jobs", "--timeout"],
         "scripts/run_native_replay.py": ["--check", "--mumei-bin", "--jobs", "--timeout"],
         "scripts/run_port_divergence.py": ["--model", "--mumei-bin", "--timeout", "--json"],
+        "scripts/run_port_prompt_ablation.py": ["--prompts", "--model", "--output-dir", "--cases", "--runs", "--jobs", "--timeout", "--mumei-bin"],
         "scripts/run_mutation_control.py": ["--only", "--jobs", "--timeout", "--mumei-bin", "--check", "--render-only"],
         "scripts/run_regression_gate.py": ["--check"],
         "scripts/record_scenario.py": ["--variant", "--output"],

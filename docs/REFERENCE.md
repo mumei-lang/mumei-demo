@@ -137,6 +137,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/check_machine_tv_stability.py` | 4 | Run a focused machine-TV benchmark matrix twice and compare repeat stability. |
 | `scripts/run_native_replay.py` | 4 | Replay concrete inputs on the native code and on the .mm ports of the contract benchmark. |
 | `scripts/run_port_divergence.py` | 4 | Replay reference counterexamples on the bench's accepted buggy LLM ports. |
+| `scripts/run_port_prompt_ablation.py` | 8 | Screen candidate port-generation prompts without touching canonical benchmark artifacts. |
 | `scripts/run_mutation_control.py` | 6 | Mutation control for the contract benchmark: does each contract reject small changes to the fixed port? |
 | `scripts/run_regression_gate.py` | 1 | Regression gate: once a contract is pinned, does a later change that breaks it get blocked? |
 | `scripts/record_scenario.py` | 2 | Finite record-operation checks and intentionally broken host variants. |
@@ -323,6 +324,21 @@ Replay reference counterexamples on the bench's accepted buggy LLM ports.
 | `--mumei-bin` | `<MUMEI_BIN>` | no | — | Mumei binary (default: $MUMEI_BIN, then mumei on PATH) |
 | `--timeout` | `<TIMEOUT>` | no | `120` | per-verification timeout in seconds |
 | `--json` | — | no | `false` | include witness inputs and both verifier verdicts |
+
+### `scripts/run_port_prompt_ablation.py`
+
+Screen candidate port-generation prompts without touching canonical benchmark artifacts.
+
+| Option | Value | Required | Default | Description |
+|---|---|---|---|---|
+| `--prompts` | `<PROMPTS>` | yes | — | JSON file: {'prompts': [{'label':..., 'text': null-or-string}, ...]} |
+| `--model` | `<MODEL>` | yes | — | explicit model name; no canonical default is implied |
+| `--output-dir` | `<OUTPUT_DIR>` | yes | — | — |
+| `--cases` | `<CASES>` | no | — | comma-separated case ids (default: focused five-case set) |
+| `--runs` | `<RUNS>` | no | `3` | seeds/runs per prompt |
+| `--jobs` | `<JOBS>` | no | `4` | cases run in parallel |
+| `--timeout` | `<TIMEOUT>` | no | `120` | per-verification timeout in seconds |
+| `--mumei-bin` | `<MUMEI_BIN>` | no | `mumei` | mumei binary (default: $MUMEI_BIN, then mumei on PATH) |
 
 ### `scripts/run_mutation_control.py`
 
