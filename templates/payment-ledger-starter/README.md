@@ -34,7 +34,7 @@ The downloaded-artifact verification job is positive-path fixture smoke. Because
 
 ## Required inputs and permissions
 
-The starter pins both the composite action and the artifact verifier script to commit `82d01d2c9fb0041931e90c6fa31dc7bf17922645`. Keep those two commit references identical when updating them. `uses:` cannot interpolate an environment variable, so the duplication must be reviewed manually or by repository tests.
+The starter pins both the composite action and the artifact verifier script to commit `a81df80072acf2ed5739b7e4c2f09bfb4129e60d`. Keep those two commit references identical when updating them. `uses:` cannot interpolate an environment variable, so the duplication must be reviewed manually or by repository tests.
 
 The audit job uses only `contents: read`. The verification job adds `actions: read` so it can download the artifact. `upload-sarif` is `false` because code scanning is optional. To publish SARIF to code scanning, enable GitHub code scanning, set `upload-sarif: true`, and give the audit job a permissions block that keeps checkout access while adding code-scanning access:
 
