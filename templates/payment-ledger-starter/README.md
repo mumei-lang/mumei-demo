@@ -33,7 +33,7 @@ The fixture smoke is intentionally narrow. After it proves the path in a throwaw
 1. Delete `src/payment_ledger.py` or replace it with the repository's own payment/ledger code.
 2. Point `code-file` at that source tree and adjust `language` if needed.
 3. Delete the `Validate expected payment fixture handoff` step.
-4. Adjust or remove the strict artifact-verifier flags. `--require-hidden-companion`, `--require-blocked-candidate`, and `--require-generated-mm` are fixture-smoke requirements. The current upstream verifier also expects at least one blocked or ready migration candidate; a zero-candidate real-repository artifact is outside that verifier contract and must not be interpreted as a failure of verification or proof.
+4. Adjust or remove the strict artifact-verifier flags. `--require-hidden-companion`, `--require-blocked-candidate`, and `--require-generated-mm` are fixture-smoke requirements. The current upstream verifier also expects at least one blocked or ready migration candidate; a zero-candidate real-repository artifact is outside that verifier contract and must not be interpreted as a failure of verification or proof. If zero candidates are acceptable for the repository, removing only the strict flags is not enough: remove or gate the entire downloaded-artifact verification job and its fixture assertion.
 5. Keep `migration-execution-output` enabled when migration evidence is wanted. Candidate-level `operational_error` fails the composite action as consumer policy; `blocked` and `ready_for_human_review` remain review evidence and do not independently fail CI.
 
 ## Baseline and review handoff

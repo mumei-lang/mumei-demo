@@ -88,6 +88,8 @@ def test_payment_starter_readme_preserves_review_and_evidence_boundaries() -> No
     assert "offline corruption/consistency check" in readme
     assert "CI policy, not evidence" in readme
     assert "zero-candidate real-repository artifact is outside that verifier contract" in readme
+    assert "removing only the strict flags is not enough" in readme
+    assert "remove or gate the entire downloaded-artifact verification job" in readme
     assert "recipient_count > 0" in readme
     assert "integer-split remainder policy" in readme
     assert "account-existence, negative-amount, and non-negative-balance requirements" in readme
