@@ -224,6 +224,21 @@ def test_bounded_interaction_tool_failure_is_inconclusive(monkeypatch: pytest.Mo
     assert evidence["interaction"]["expected_executions"] == 4
 
 
+def test_helper_precondition_diagnostic_is_domain_safety() -> None:
+    result = {"outcome": "refuted", "diagnostics": [
+        {"message": "Verification Error: precondition (requires) not satisfied in atom 'slice_to'"}]}
+
+    assert fidelity.domain_safety_compare_failure(result)
+
+
+def test_mixed_precondition_and_postcondition_is_not_domain_safety() -> None:
+    result = {"outcome": "refuted", "diagnostics": [
+        {"message": "Verification Error: precondition (requires) not satisfied in atom 'slice_to'"},
+        {"message": "Verification Error: Postcondition (ensures) is not satisfied."}]}
+
+    assert not fidelity.domain_safety_compare_failure(result)
+
+
 def test_error_branch_policy_requires_success_and_error_boundaries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     case = {**case_by_id("SOL01-D03"), "id": "SOL01-D03-error-only"}
     proofs = tmp_path / "proofs"
