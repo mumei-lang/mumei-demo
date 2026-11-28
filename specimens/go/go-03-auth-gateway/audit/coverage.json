@@ -8,8 +8,8 @@
   "files_with_issues": 3,
   "counts": {
     "total": 11,
-    "detected": 3,
-    "function_flagged": 2,
+    "detected": 4,
+    "function_flagged": 1,
     "missed": 6
   },
   "defects": [
@@ -84,9 +84,9 @@
       "category": "null-dereference",
       "class": "bug",
       "in_target_category": true,
-      "status": "function_flagged",
+      "status": "detected",
       "findings": [
-        "Go function `loginHandler` generates credential material from a timestamp at line 34"
+        "Go function `loginHandler` can dereference nil from a missing pointer-valued map lookup"
       ]
     },
     {
@@ -130,6 +130,7 @@
       "in_target_category": false,
       "status": "function_flagged",
       "findings": [
+        "Go function `loginHandler` can dereference nil from a missing pointer-valued map lookup",
         "Go function `loginHandler` generates credential material from a timestamp at line 34"
       ]
     }
@@ -140,6 +141,12 @@
       "file": "auth.go",
       "kind": "verification_violations",
       "text": "Go function `tokenMatches` uses non-constant-time credential comparison that may expose a timing side channel",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
+      "kind": "verification_violations",
+      "text": "Go function `loginHandler` can dereference nil from a missing pointer-valued map lookup",
       "status": "defect_evidence"
     },
     {
@@ -156,8 +163,8 @@
     }
   ],
   "finding_counts": {
-    "total": 3,
-    "defect_evidence": 3,
+    "total": 4,
+    "defect_evidence": 4,
     "real": 0,
     "false_positive": 0,
     "unreviewed": 0
@@ -168,18 +175,22 @@
   "input_hash": "8be73dfe4b93dc8f1f6c5445678d8948d4a85983549f29863a49977ca9b362f5",
   "defect_catalog_hash": "f101e28875189233ed40b10c7a958c021846dff8ed8e77bf86f30429869550a2",
   "meta": {
-    "mumei_agent_commit": "b128577526c3540f5f307c0ddf169e1720389d15",
+    "mumei_agent_commit": "41afb4dedfd70fb7b462696dcfcc70ea0d971d10",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T06:23:54Z"
+    "generated_at": "2026-11-28T08:48:44Z"
   },
   "fixed": {
     "defects": 11,
     "still_reported": [],
     "still_function_flagged": [],
     "false_alarms": 1,
+    "code_evidence_false_alarms": 0,
+    "non_code_kind_counts": {
+      "cross_validation_gaps": 1
+    },
     "findings": [
       {
         "file": "auth.go",

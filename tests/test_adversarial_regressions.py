@@ -222,7 +222,7 @@ def test_fixed_alarm_gate_passes_committed_artifacts() -> None:
     assert 0 <= result["total"]["false_alarms"] <= result["budget"]["max_false_alarms"]
     assert 0 <= result["total"]["unreviewed"] <= result["budget"]["max_unreviewed"]
     assert result["history_comparison"] == "match"
-    assert result["decomposition_history_comparison"] == "legacy_unavailable"
+    assert result["decomposition_history_comparison"] == "match"
     assert result["total"]["code_evidence_false_alarms"] == 0
     assert result["total"]["non_code_kind_counts"] == {"cross_validation_gaps": 1}
     assert bool(result["top_offenders"]) == (result["total"]["false_alarms"] > 0)
