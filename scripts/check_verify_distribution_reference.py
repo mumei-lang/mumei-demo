@@ -31,6 +31,8 @@ GENERATED_NAMES = {
     "verify-distribution-runtime-off.json",
     "verify-distribution-runtime-on.json",
     "verify-distribution-wrong-build-id.json",
+    "verify-distribution-extra-file.json",
+    "verify-distribution-extra-symlink.json",
 }
 
 
@@ -135,9 +137,41 @@ def verifier_argv(args: argparse.Namespace, bundle: Path, report: Path, build_id
         "120000",
         "--memory-bound-mb",
         "256",
+        "--require-exact-bundle-layout",
         "--output",
         str(report),
     ]
+
+
+def validate_exact_layout_rejections(
+    args: argparse.Namespace, bundle: Path, work_dir: Path, build_id: str
+) -> None:
+    """Prove the exact-layout opt-in rejects undeclared bundle entries."""
+    extra_file = bundle / "layout-extra.txt"
+    extra_report = work_dir / "verify-distribution-extra-file.json"
+    try:
+        extra_file.write_text("not part of the raw bundle\n", encoding="utf-8")
+        result = run_checked(
+            verifier_argv(args, bundle, extra_report, build_id),
+            cwd=args.mumei_agent_repo.resolve(),
+            expected_exit=1,
+        )
+        require("undeclared file" in result.stderr, "exact layout accepted an undeclared file")
+    finally:
+        extra_file.unlink(missing_ok=True)
+
+    extra_symlink = bundle / "layout-extra-link"
+    symlink_report = work_dir / "verify-distribution-extra-symlink.json"
+    try:
+        extra_symlink.symlink_to("program")
+        result = run_checked(
+            verifier_argv(args, bundle, symlink_report, build_id),
+            cwd=args.mumei_agent_repo.resolve(),
+            expected_exit=1,
+        )
+        require("undeclared symlink" in result.stderr, "exact layout accepted an undeclared symlink")
+    finally:
+        extra_symlink.unlink(missing_ok=True)
 
 
 def validate_fixture(args: argparse.Namespace) -> dict:
@@ -203,6 +237,8 @@ def validate_fixture(args: argparse.Namespace) -> dict:
     )
     wrong = load_report(wrong_report)
     validate_wrong_build_id_report(wrong)
+
+    validate_exact_layout_rejections(args, bundle, work_dir, trusted_build_id)
     return {"runtime_off": off, "runtime_on": on, "wrong_build_id": wrong}
 
 
