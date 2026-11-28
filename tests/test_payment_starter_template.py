@@ -11,7 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 STARTER_DIR = REPO_ROOT / "templates" / "payment-ledger-starter"
 WORKFLOW_PATH = STARTER_DIR / ".github" / "workflows" / "mumei-audit.yml"
 README_PATH = STARTER_DIR / "README.md"
-PIN = "fb6aeefd47c169f150256e870e683b314ab06384"
+PIN = "2384e18d257ef089673dcefd26a3ddfa5e490645"
 
 
 def _audit_uses_match(line: str) -> re.Match[str] | None:
