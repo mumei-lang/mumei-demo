@@ -12,7 +12,8 @@
       "spec_health_issues": [],
       "verification_violations": [
         "Solidity function `setFeeRecipient` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-        "Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+        "Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+        "Solidity function `_payFee` discards the success flag of a low-level value call at line 171"
       ],
       "counterexample_values": [],
       "cross_validation_gaps": [
@@ -44,7 +45,7 @@
       "scheduled_verification": null,
       "scheduled_verification_check": null,
       "finding_counts": {
-        "code": 2,
+        "code": 3,
         "confirmed": 0,
         "spec": 1,
         "model_limitations": 0,
@@ -74,6 +75,18 @@
           "line": null,
           "triage_bucket": "code_review",
           "fingerprint": "fed9ae118ce26d72a748e7c1b18595ea6bb7da615cfe46ccf45c4d08b5c300c3"
+        },
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "code",
+          "severity": "error",
+          "confidence": "high",
+          "verification_basis": "deterministic-static-analysis",
+          "message": "Solidity function `_payFee` discards the success flag of a low-level value call at line 171",
+          "source_file": "specimens/solidity/sol-01-token-vault/src/RewardVault.sol",
+          "line": null,
+          "triage_bucket": "code_review",
+          "fingerprint": "e4bc4a58bed29c38c9b120a8afc4a8cd75a0eadf1b8ea9e208da5ecc95738f98"
         },
         {
           "schema": "mumei.audit-findings/v1",
@@ -116,7 +129,7 @@
       },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-28T03:52:00.318881Z",
+        "timestamp": "2026-11-28T05:11:59.508353Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-01-token-vault/src/RewardVault.sol",
@@ -124,9 +137,9 @@
           {
             "name": "payout_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "81cf88341e3fa7509f487cc92df88d4f399bcba364d40a02e0843e8a27de9918",
+            "content_hash": "6cd3583de6caf2b4a80c4315e460a1963bf52ef72ca53ddad966214983d04c15",
             "status": "unknown",
-            "proof_hash": "3541fa8ae26b86b14bedf01378e271c69a78fcb964f875e739512fbea3daa8d2",
+            "proof_hash": "bd7f6f4943e91d02a999e5f212f111ff2ce647c1018ab70ab53e8852af4eaca7",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -177,9 +190,9 @@
           {
             "name": "payFee_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "52f49d819987856425d9cc66a435512529cd587104a624ea2305b7fb5e0915d8",
+            "content_hash": "efbeb73427ba09bef90d2a2c4853b0812ab2d9c22bcf65d2244a0a8c599f3cca",
             "status": "unknown",
-            "proof_hash": "2ca78c3a13a4941ac4bfde695f5503489f386e04c769bc5d7dc78397eb86a36a",
+            "proof_hash": "fc49fe66a79804a56634e08b2c23ed96bd479b199d0b0ba08b3384a48fa304cc",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -230,9 +243,9 @@
           {
             "name": "deposit_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "ceea10feef6a735c85544d8de16bb827004a4b90b893cc2168ea7a67091205ed",
+            "content_hash": "f03973e0d9d686813e290baf9f4c5b42ab1faa5ca27568fc2f4140de4f36152f",
             "status": "unknown",
-            "proof_hash": "272bbb0c6c6bf2bddebd16de64412435370aab8c0a967f170eb27482b5b3aa61",
+            "proof_hash": "b4c79416cbb7ea7d04b39085afa5d7e83800e9330b520cb34e9d0f1de95c855d",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -283,9 +296,9 @@
           {
             "name": "withdraw_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "a6bb409deee22a38a5a2fabd90ff478a008bd05a1019f6d9aca9621586903757",
+            "content_hash": "515c61a10f049f626d2f8a20d05f41f2b758fac2dec2570c5bc0bbafb678ba43",
             "status": "unknown",
-            "proof_hash": "1de8fd88100eaca0dee7375d0829f66f461c01d48594d47fa2672854fdd3556c",
+            "proof_hash": "40bbc5235a88e885369fe326eecbc13ef9fdc50f624f494c78dde1531c42626d",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -336,9 +349,9 @@
           {
             "name": "distributeRewards_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "a23851aa90a2101315f1a865ed94e254f70d944a01d54096c6b34998743328d9",
+            "content_hash": "bb1390433ded88112dd5bce2648c244cb1dba76bd6645bf0f7a75638345ba602",
             "status": "unknown",
-            "proof_hash": "551fd9f86f72027e6bc7518a01000822fa5bc109311ea66de384495e843127dd",
+            "proof_hash": "ae0626d818eeb765d1581e07994fc7b9266a6cb5d24afb00fe4daf7eb40450cc",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -391,9 +404,9 @@
           {
             "name": "claimRewards_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "9353da2026f7307b19bb4cff4bc84fb1d028bdbc93cdff6e54a5d109debaa191",
+            "content_hash": "4445bc07110d0ba3985fb2a1fd19711fe1b2b178478470f9f45bd51a9f16e512",
             "status": "unknown",
-            "proof_hash": "ea43e3134f499236393994f82eabb822e53c66403234f99ad0e1f932f9b50de4",
+            "proof_hash": "0279515c789e741e19e8358c24214b8c721a0c713dc22d2161edeb539cfc55f0",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -444,9 +457,9 @@
           {
             "name": "setFeeRecipient_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "43423cea10d41a4a497c12a7c12748f67970ca2e485dde0d2c6b372a2ca87700",
+            "content_hash": "3af031f239e4b2cf00f634e033a0c6f5d7ea98caf966a0890afdf393873dc71c",
             "status": "unknown",
-            "proof_hash": "522326bb2489d6026051785eb377dd77bb91e1cb3a4bc88b7de90506de18d5c7",
+            "proof_hash": "ea04f759d974db8afb6f38a32f62d84270f6533f7a31df71d21d3b679297000b",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -497,9 +510,9 @@
           {
             "name": "setWithdrawFeeBps_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "008362dc28303bed10bf6965e3a945c29810ca57e0d19305857ef5a1163c1a28",
+            "content_hash": "947507260607aaf85b0c793412f61571a7dcdb4b6b86e8102d410b54ce27a23b",
             "status": "unknown",
-            "proof_hash": "b68eb863ef355c6b3323f040764a066ca100f0661aec256bcec628606ef59182",
+            "proof_hash": "031cd901f059a3d69cf8d1a361abe692dfbdfc91ada018971510d37cf187771f",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -550,9 +563,9 @@
           {
             "name": "pause_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "498b0b3ae9d0fafc8ee33a199d4eefbcc3b2dfcd0883608f82cf090080500db5",
+            "content_hash": "780671071feb37dd6a13ee49c9c3521d6d64afad5f34eabf2328051d48b3106f",
             "status": "unknown",
-            "proof_hash": "d4b73226f40cb5a4c92479754758ec88c43e2b08285da01fd8f778668e375af1",
+            "proof_hash": "26240a7c7db9a18441274baa450412f58ba134d9f7456a947212c0ba355f2f60",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -605,9 +618,9 @@
           {
             "name": "unpause_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "aecd41823c2f0d124dab57781b30ecab2cab572c2bd90a7de9f9feb16a82935f",
+            "content_hash": "e3e45b24623c1a73b97305b0bec8d2b203efc50b6e409571facbc0bea28b3bcc",
             "status": "unknown",
-            "proof_hash": "40a67f17598c568890febf4f00ee88c6d2c6d49001c15aa42182419489a0033c",
+            "proof_hash": "a9035c28bf5cd03390b225e8f612da512fb2e6aabbc1fa6289627835d84163d5",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -660,11 +673,11 @@
         ],
         "package_name": "RewardVault",
         "package_version": "0",
-        "certificate_hash": "e3367e0a36957f23dc4ee5ffae4c3d59af22c77840677267837095701f56cbbd",
+        "certificate_hash": "3f75128bb95dfc7e2ffcb726c4b264b2444b3f710f4b94687df0823189f2b616",
         "all_verified": false
       },
       "lean_bridge": null,
-      "report": "Audit found issues: specimens/solidity/sol-01-token-vault/src/RewardVault.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: ['Solidity function `setFeeRecipient` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless']\ncounterexample_values: []\ncross_validation_gaps: ['spec precondition assumed, not enforced, by `sharePrice`']\nfinding_counts: code=2, confirmed=0, spec=1, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deposit.requires, deposit.ensures, previewDeposit.requires, previewDeposit.ensures, totalAssets.requires, totalAssets.ensures, sharePrice.ensures, sharesOf.requires, sharesOf.ensures, withdraw.requires, withdraw.ensures, distributeRewards.requires, distributeRewards.ensures, claimRewards.requires, claimRewards.ensures, setFeeRecipient.requires, setFeeRecipient.ensures, setWithdrawFeeBps.requires, setWithdrawFeeBps.ensures, pause.requires, pause.ensures, unpause.requires, unpause.ensures, holderCount.requires, holderCount.ensures, sharesFor.requires, sharesFor.ensures, payout.requires, payout.ensures, payFee.requires, payFee.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit found issues: specimens/solidity/sol-01-token-vault/src/RewardVault.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: ['Solidity function `setFeeRecipient` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `_payFee` discards the success flag of a low-level value call at line 171']\ncounterexample_values: []\ncross_validation_gaps: ['spec precondition assumed, not enforced, by `sharePrice`']\nfinding_counts: code=3, confirmed=0, spec=1, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deposit.requires, deposit.ensures, previewDeposit.requires, previewDeposit.ensures, totalAssets.requires, totalAssets.ensures, sharePrice.ensures, sharesOf.requires, sharesOf.ensures, withdraw.requires, withdraw.ensures, distributeRewards.requires, distributeRewards.ensures, claimRewards.requires, claimRewards.ensures, setFeeRecipient.requires, setFeeRecipient.ensures, setWithdrawFeeBps.requires, setWithdrawFeeBps.ensures, pause.requires, pause.ensures, unpause.requires, unpause.ensures, holderCount.requires, holderCount.ensures, sharesFor.requires, sharesFor.ensures, payout.requires, payout.ensures, payFee.requires, payFee.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -734,7 +747,7 @@
       },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-28T03:52:00.512476Z",
+        "timestamp": "2026-11-28T05:11:59.749761Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-01-token-vault/src/VaultToken.sol",
@@ -742,9 +755,9 @@
           {
             "name": "mint_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "65709ea220f9a15f3a2c645816ec34877059203de07e27cf571a18d34e711500",
+            "content_hash": "2818b8b96b27e2289439f7d2a7ede94048a4b1494122559200cc55db5e873cea",
             "status": "unknown",
-            "proof_hash": "54b821fae93c742d22f06cc23b22726d454e9389a6a79a31ad6da251fef7ca99",
+            "proof_hash": "3c39ce6d440c6c4785b3a71572b13d7c4997e380acb0fd798b5a0c301f6d25d3",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -797,9 +810,9 @@
           {
             "name": "approve_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "f62565aaab18af14f208e50abc0428856e4c92c463c93d3d508eb35f4ca6871b",
+            "content_hash": "04eb4bb695d6b60a461497490afd04e6e68e087fd42303cc4a1b0de9337ef8da",
             "status": "unknown",
-            "proof_hash": "4bcb7ac9f526069f6d4d537a700e60180e2be0a50ab5828babba515ad4302e46",
+            "proof_hash": "c14684e3764248cae585a58c333b5eb44ceba3aa3e8e38b6b560dfa266091b2c",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -850,9 +863,9 @@
           {
             "name": "transferFrom_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "0c450d6186fcdf3d26cb7bd229fc12c5099ca8fdf70eef96d0e2e6b721f2b740",
+            "content_hash": "af383da9c7ac286cacbdca3d788bd5af7115b07d81217c3db31887eb6301399e",
             "status": "unknown",
-            "proof_hash": "3192c37998e46b3938c20ea0fe1c1869a5b2e568affcd2b9fc96de713a7abc4a",
+            "proof_hash": "754de3b2c26b1d767f04b46ee1779ca97ef5bc8c3a3e0d5825436db19f7b6cd9",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -903,7 +916,7 @@
         ],
         "package_name": "VaultToken",
         "package_version": "0",
-        "certificate_hash": "400ec49cc4141bd524e584adfd0c744c198acd9efc6283be840f929db1da4a6c",
+        "certificate_hash": "e76dcb73e37afbcb520fd511d28c57f2307dd5fd7202f0ea4094bd42f3c062a4",
         "all_verified": false
       },
       "lean_bridge": null,
@@ -977,14 +990,14 @@
       },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-28T03:52:00.631006Z",
+        "timestamp": "2026-11-28T05:11:59.901518Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-01-token-vault/test/TestBase.sol",
         "atoms": [],
         "package_name": "TestBase",
         "package_version": "0",
-        "certificate_hash": "0db3a8e69783fa11c5233acbeae8cd53f8a1dc858f6c8627e6d719c920893ea5",
+        "certificate_hash": "0d34cf648a059be17aff4bb2062d7d4169ee210bf1f3db7f63ebd3f3a638692e",
         "all_verified": false
       },
       "lean_bridge": null,
@@ -1058,14 +1071,14 @@
       },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-28T03:52:00.698791Z",
+        "timestamp": "2026-11-28T05:11:59.970172Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-01-token-vault/test/Vm.sol",
         "atoms": [],
         "package_name": "Vm",
         "package_version": "0",
-        "certificate_hash": "da4eff8d59bcb295d3b804284c6e959a31d6c579b1d56ce31fd8505f38707948",
+        "certificate_hash": "9a10bd15a8849d97b7fe65de57042e7db6aee40ddb32f1d129f4c4e490c0e570",
         "all_verified": false
       },
       "lean_bridge": null,
@@ -1074,7 +1087,7 @@
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/solidity/sol-01-token-vault\n  src/RewardVault.sol: 2 violations, 1 gap\n  src/VaultToken.sol: 0 violations, 0 gaps\n  test/TestBase.sol: 0 violations, 0 gaps\n  test/Vm.sol: 0 violations, 0 gaps\nSummary: 4 files, 1 file with issues, 1 file with spec diagnostics\nfinding_counts: code=2, confirmed=0, spec=1, model_limitations=0, errors=0\ntriage: refuted=0, verified=4, unverifiable=0\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deposit.requires, deposit.ensures, previewDeposit.requires, previewDeposit.ensures, totalAssets.requires, totalAssets.ensures, sharePrice.ensures, sharesOf.requires, sharesOf.ensures, withdraw.requires, withdraw.ensures, distributeRewards.requires, distributeRewards.ensures, claimRewards.requires, claimRewards.ensures, setFeeRecipient.requires, setFeeRecipient.ensures, setWithdrawFeeBps.requires, setWithdrawFeeBps.ensures, pause.requires, pause.ensures, unpause.requires, unpause.ensures, holderCount.requires, holderCount.ensures, sharesFor.requires, sharesFor.ensures, payout.requires, payout.ensures, payFee.requires, payFee.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: mint.requires, mint.ensures, transfer.requires, approve.requires, transferFrom.requires, move.requires, move.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: panicCode.requires, panicCode.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deal.requires, deal.ensures, prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, warp.requires, warp.ensures, roll.requires, roll.ensures, load.requires, load.ensures, sign.requires, sign.ensures, addr.requires, addr.ensures, expectRevert.requires, expectRevert.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/solidity/sol-01-token-vault\n  src/RewardVault.sol: 3 violations, 1 gap\n  src/VaultToken.sol: 0 violations, 0 gaps\n  test/TestBase.sol: 0 violations, 0 gaps\n  test/Vm.sol: 0 violations, 0 gaps\nSummary: 4 files, 1 file with issues, 1 file with spec diagnostics\nfinding_counts: code=3, confirmed=0, spec=1, model_limitations=0, errors=0\ntriage: refuted=0, verified=4, unverifiable=0\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deposit.requires, deposit.ensures, previewDeposit.requires, previewDeposit.ensures, totalAssets.requires, totalAssets.ensures, sharePrice.ensures, sharesOf.requires, sharesOf.ensures, withdraw.requires, withdraw.ensures, distributeRewards.requires, distributeRewards.ensures, claimRewards.requires, claimRewards.ensures, setFeeRecipient.requires, setFeeRecipient.ensures, setWithdrawFeeBps.requires, setWithdrawFeeBps.ensures, pause.requires, pause.ensures, unpause.requires, unpause.ensures, holderCount.requires, holderCount.ensures, sharesFor.requires, sharesFor.ensures, payout.requires, payout.ensures, payFee.requires, payFee.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: mint.requires, mint.ensures, transfer.requires, approve.requires, transferFrom.requires, move.requires, move.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: panicCode.requires, panicCode.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deal.requires, deal.ensures, prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, warp.requires, warp.ensures, roll.requires, roll.ensures, load.requires, load.ensures, sign.requires, sign.ensures, addr.requires, addr.ensures, expectRevert.requires, expectRevert.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 4,
   "files_with_issues": 1,
   "files_with_spec_diagnostics": 1,
@@ -1082,7 +1095,8 @@
   "spec_health_issues": [],
   "verification_violations": [
     "src/RewardVault.sol: Solidity function `setFeeRecipient` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
-    "src/RewardVault.sol: Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+    "src/RewardVault.sol: Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
+    "src/RewardVault.sol: Solidity function `_payFee` discards the success flag of a low-level value call at line 171"
   ],
   "cross_validation_gaps": [
     "src/RewardVault.sol: spec precondition assumed, not enforced, by `sharePrice`"
@@ -1126,7 +1140,7 @@
     }
   ],
   "finding_counts": {
-    "code": 2,
+    "code": 3,
     "confirmed": 0,
     "spec": 1,
     "model_limitations": 0,
@@ -1156,6 +1170,18 @@
       "line": null,
       "triage_bucket": "code_review",
       "fingerprint": "fed9ae118ce26d72a748e7c1b18595ea6bb7da615cfe46ccf45c4d08b5c300c3"
+    },
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "code",
+      "severity": "error",
+      "confidence": "high",
+      "verification_basis": "deterministic-static-analysis",
+      "message": "Solidity function `_payFee` discards the success flag of a low-level value call at line 171",
+      "source_file": "specimens/solidity/sol-01-token-vault/src/RewardVault.sol",
+      "line": null,
+      "triage_bucket": "code_review",
+      "fingerprint": "e4bc4a58bed29c38c9b120a8afc4a8cd75a0eadf1b8ea9e208da5ecc95738f98"
     },
     {
       "schema": "mumei.audit-findings/v1",
