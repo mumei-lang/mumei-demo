@@ -10,13 +10,13 @@ Every row is scored against the same 171 defects in `DEFECTS.json`. The evidence
 
 Model for both LLM rows: `openai/gpt-6-luna`.
 
-Evidence snapshot: measured 2026-11-03–2026-11-28; mumei-agent commits: mumei + LLM `e8be527`, mumei only `6024042`; mumei commits: mumei + LLM `36eb534`, mumei only `b777e8e`.
+Evidence snapshot: measured 2026-11-03–2026-11-28; mumei-agent commits: mumei + LLM `e8be527`, mumei only `fb6aeef`; mumei commits: mumei + LLM `36eb534`, mumei only `b777e8e`.
 
 ## Totals
 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
 |---|---:|---:|---:|---:|---:|---:|
-| mumei only | 36 (21%) | 50 (29%) | 90% | 1 | $0.00 | 104 s wall |
+| mumei only | 36 (21%) | 50 (29%) | 92% | 1 | $0.00 | 103 s wall |
 | mumei + LLM | 12 (7%) | 65 (38%) | 10%–87% | 211 | $0.22 | 54 min wall |
 | LLM only (3 runs, median) | 105 (61%), range 105–106 | 137 (80%), range 136–139 | 63%–100% | 76, range 68–79 | $0.06 | 22 min model time |
 
@@ -38,7 +38,7 @@ Findings of the two audit rows by the audit section they come from, on the buggy
 
 | Kind | mumei only: buggy | mumei only: fixed | mumei + LLM: buggy | mumei + LLM: fixed |
 |---|---:|---:|---:|---:|
-| Verifier violations | 40 | 0 | 39 | 29 |
+| Verifier violations | 39 | 0 | 39 | 29 |
 | Spec vs code cross-check gaps | 8 | 1 | 105 | 151 |
 | Spec health issues | 1 | 0 | 56 | 32 |
 

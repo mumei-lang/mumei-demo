@@ -30,7 +30,7 @@ with different denominators are not directly comparable; compare within a langua
 | go | Mumei (no LLM) | 9/32 (28%) | 92% | 1 / 3 specimens |
 | go | gosec | 6/32 (19%) | 62% | 15 / 3 specimens |
 | go | semgrep | 4/32 (12%) | 82% | 4 / 3 specimens |
-| python | Mumei (no LLM) | 5/41 (12%) | 80% | 0 / 4 specimens |
+| python | Mumei (no LLM) | 5/41 (12%) | 89% | 0 / 4 specimens |
 | python | bandit | 5/41 (12%) | 88% | 3 / 4 specimens |
 | python | semgrep | 3/41 (7%) | 100% | 1 / 4 specimens |
 | rust | Mumei (no LLM) | 5/34 (15%) | 100% | 0 / 3 specimens |

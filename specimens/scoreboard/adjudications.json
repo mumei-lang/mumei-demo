@@ -275,13 +275,6 @@
       "reason": "`sharePrice` divides by `totalShares` with no non-zero guard, reverting whenever no shares exist; the unenforced precondition is exactly the planted division-by-zero defect SOL01-D03."
     },
     {
-      "specimen": "py-01-expense-tracker",
-      "file": "config.py",
-      "finding_contains": "No function signatures were extracted.",
-      "verdict": "false_positive",
-      "reason": "Extractor artifact: config.py holds only module-level constants and has no functions to extract, and the planted hardcoded secret PY01-D09 is separately surfaced as a credential witness; this message is not actionable code evidence."
-    },
-    {
       "specimen": "go-01-inventory-api",
       "file": "store.go",
       "finding_contains": "spec precondition assumed, not enforced, by `Get`",
