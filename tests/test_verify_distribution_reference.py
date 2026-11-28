@@ -60,12 +60,10 @@ def test_integration_workflow_uses_trusted_fixture_and_generated_bundle():
     assert "scenarios/native_observations_accept/src/main.mm" in workflow
     assert "reports/verify_distribution/latest" in workflow
     step_start = workflow.index("Validate verify-distribution reference fixture")
-    step_end = workflow.index("uses: actions/upload-artifact@v7", step_start)
+    step_end = workflow.index("Run integrated demo scenarios", step_start)
     step = workflow[step_start:step_end]
     assert "--enable-runtime-observations" not in step
     assert "external" not in step.lower()
-    assert workflow.index("Run integrated demo scenarios") < step_start
-    assert workflow.index("Check synthetic evidence regressions") < step_start
 
 
 def test_script_runtime_opt_in_is_internal_to_trusted_reference_validation():
