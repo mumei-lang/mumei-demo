@@ -1,17 +1,27 @@
 {
-  "success": true,
+  "success": false,
   "source_dir": "specimens/go/go-02-logscan-cli",
   "language": "mixed",
   "file_results": [
     {
-      "success": true,
+      "success": false,
       "source_file": "specimens/go/go-02-logscan-cli/main.go",
       "language": "go",
       "spec_extracted": true,
-      "verification_status": "verified",
+      "verification_status": "refuted",
       "spec_health_issues": [],
-      "verification_violations": [],
-      "counterexample_values": [],
+      "verification_violations": [
+        "Go function `formatSummary` can divide by `int64(len(records))` without a non-zero contract (Z3 counterexample: int64(len(records))=0)",
+        "Z3 Counter-example: int64(len(records))=0"
+      ],
+      "counterexample_values": [
+        {
+          "function_name": "formatSummary",
+          "counterexample": {
+            "int64(len(records))": 0
+          }
+        }
+      ],
       "cross_validation_gaps": [],
       "migration_hints": [],
       "healed_files": [],
@@ -19,9 +29,9 @@
       "trusted_atoms": [],
       "next_steps": [
         {
-          "priority": "info",
-          "action": "監査完了。追加の .mm 移行は不要",
-          "command": ""
+          "priority": "high",
+          "action": "migrate-suggest で .mm スケルトンを生成",
+          "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
         },
         {
           "priority": "medium",
@@ -34,19 +44,44 @@
       "scheduled_verification": null,
       "scheduled_verification_check": null,
       "finding_counts": {
-        "code": 0,
+        "code": 2,
         "confirmed": 0,
         "spec": 0,
         "model_limitations": 0,
         "errors": 0
       },
-      "findings": [],
+      "findings": [
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "code",
+          "severity": "error",
+          "confidence": "high",
+          "verification_basis": "z3",
+          "message": "Go function `formatSummary` can divide by `int64(len(records))` without a non-zero contract (Z3 counterexample: int64(len(records))=0)",
+          "source_file": "specimens/go/go-02-logscan-cli/main.go",
+          "line": null,
+          "triage_bucket": "code_review",
+          "fingerprint": "836ec1bc0d570a15be0f0e133cfe69b544c13b13df0aa84e877f21523817db52"
+        },
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "code",
+          "severity": "error",
+          "confidence": "high",
+          "verification_basis": "z3",
+          "message": "Z3 Counter-example: int64(len(records))=0",
+          "source_file": "specimens/go/go-02-logscan-cli/main.go",
+          "line": null,
+          "triage_bucket": "code_review",
+          "fingerprint": "a6641b3e3ea00d49b94aaa903a6b336109d3e9955638e6445318c23e55419f99"
+        }
+      ],
       "triage": {
         "schema": "mumei.audit-triage/v1",
-        "refuted": [],
-        "verified": [
+        "refuted": [
           "specimens/go/go-02-logscan-cli/main.go"
         ],
+        "verified": [],
         "unverifiable": {
           "skipped_rate_limited": [],
           "timeout": [],
@@ -55,8 +90,8 @@
           "other": []
         },
         "counts": {
-          "refuted": 0,
-          "verified": 1,
+          "refuted": 1,
+          "verified": 0,
           "unverifiable": 0,
           "unverifiable_by_cause": {
             "skipped_rate_limited": 0,
@@ -69,18 +104,21 @@
       },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/go/go-02-logscan-cli/main.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures, run.requires, run.ensures, parsePercentiles.requires, parsePercentiles.ensures, readFiles.requires, readFiles.ensures, parseFile.requires, parseFile.ensures, formatSummary.requires, formatSummary.ensures, percentileAt.requires, percentileAt.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit found issues: specimens/go/go-02-logscan-cli/main.go\nlanguage: go\nspec_extracted: True\nverification_status: refuted\nspec_health_issues: []\nverification_violations: ['Go function `formatSummary` can divide by `int64(len(records))` without a non-zero contract (Z3 counterexample: int64(len(records))=0)', 'Z3 Counter-example: int64(len(records))=0']\ncounterexample_values: [{'function_name': 'formatSummary', 'counterexample': {'int64(len(records))': 0}}]\ncross_validation_gaps: []\nfinding_counts: code=2, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures, run.requires, run.ensures, parsePercentiles.requires, parsePercentiles.ensures, readFiles.requires, readFiles.ensures, parseFile.requires, parseFile.ensures, formatSummary.requires, formatSummary.ensures, percentileAt.requires, percentileAt.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/go/go-02-logscan-cli\n  main.go: 0 violations, 0 gaps\nSummary: 1 file, 0 files with issues, 0 files with spec diagnostics\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=0, verified=1, unverifiable=0\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures, run.requires, run.ensures, parsePercentiles.requires, parsePercentiles.ensures, readFiles.requires, readFiles.ensures, parseFile.requires, parseFile.ensures, formatSummary.requires, formatSummary.ensures, percentileAt.requires, percentileAt.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/go/go-02-logscan-cli\n  main.go: 2 violations, 0 gaps\nSummary: 1 file, 1 file with issues, 0 files with spec diagnostics\nfinding_counts: code=2, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=1, verified=0, unverifiable=0\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures, run.requires, run.ensures, parsePercentiles.requires, parsePercentiles.ensures, readFiles.requires, readFiles.ensures, parseFile.requires, parseFile.ensures, formatSummary.requires, formatSummary.ensures, percentileAt.requires, percentileAt.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 1,
-  "files_with_issues": 0,
+  "files_with_issues": 1,
   "files_with_spec_diagnostics": 0,
-  "verification_status": "verified",
+  "verification_status": "refuted",
   "spec_health_issues": [],
-  "verification_violations": [],
+  "verification_violations": [
+    "main.go: Go function `formatSummary` can divide by `int64(len(records))` without a non-zero contract (Z3 counterexample: int64(len(records))=0)",
+    "main.go: Z3 Counter-example: int64(len(records))=0"
+  ],
   "cross_validation_gaps": [],
   "migration_hints": [],
   "healed_files": [],
@@ -90,25 +128,55 @@
   "summary_plans": [],
   "next_steps": [
     {
+      "priority": "high",
+      "action": "migrate-suggest で .mm スケルトンを生成",
+      "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
+    },
+    {
       "priority": "medium",
       "action": "underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures, run.requires, run.ensures, parsePercentiles.requires, parsePercentiles.ensures, readFiles.requires, readFiles.ensures, parseFile.requires, parseFile.ensures, formatSummary.requires, formatSummary.ensures, percentileAt.requires, percentileAt.ensures",
       "command": "mumei-agent validate-spec --input <spec> --format human"
     }
   ],
   "finding_counts": {
-    "code": 0,
+    "code": 2,
     "confirmed": 0,
     "spec": 0,
     "model_limitations": 0,
     "errors": 0
   },
-  "findings": [],
+  "findings": [
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "code",
+      "severity": "error",
+      "confidence": "high",
+      "verification_basis": "z3",
+      "message": "Go function `formatSummary` can divide by `int64(len(records))` without a non-zero contract (Z3 counterexample: int64(len(records))=0)",
+      "source_file": "specimens/go/go-02-logscan-cli/main.go",
+      "line": null,
+      "triage_bucket": "code_review",
+      "fingerprint": "836ec1bc0d570a15be0f0e133cfe69b544c13b13df0aa84e877f21523817db52"
+    },
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "code",
+      "severity": "error",
+      "confidence": "high",
+      "verification_basis": "z3",
+      "message": "Z3 Counter-example: int64(len(records))=0",
+      "source_file": "specimens/go/go-02-logscan-cli/main.go",
+      "line": null,
+      "triage_bucket": "code_review",
+      "fingerprint": "a6641b3e3ea00d49b94aaa903a6b336109d3e9955638e6445318c23e55419f99"
+    }
+  ],
   "triage": {
     "schema": "mumei.audit-triage/v1",
-    "refuted": [],
-    "verified": [
+    "refuted": [
       "specimens/go/go-02-logscan-cli/main.go"
     ],
+    "verified": [],
     "unverifiable": {
       "skipped_rate_limited": [],
       "timeout": [],
@@ -117,8 +185,8 @@
       "other": []
     },
     "counts": {
-      "refuted": 0,
-      "verified": 1,
+      "refuted": 1,
+      "verified": 0,
       "unverifiable": 0,
       "unverifiable_by_cause": {
         "skipped_rate_limited": 0,

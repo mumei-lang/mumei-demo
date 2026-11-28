@@ -8,9 +8,9 @@
   "files_with_issues": 1,
   "counts": {
     "total": 12,
-    "detected": 1,
+    "detected": 2,
     "function_flagged": 0,
-    "missed": 11
+    "missed": 10
   },
   "defects": [
     {
@@ -50,8 +50,10 @@
       "category": "division-by-zero",
       "class": "bug",
       "in_target_category": true,
-      "status": "missed",
-      "findings": []
+      "status": "detected",
+      "findings": [
+        "Rust function `split_payment` can divide by `recipients.len()` without a non-zero contract (Z3 counterexample: recipients.len()=0)"
+      ]
     },
     {
       "id": "RS01-D05",
@@ -141,13 +143,19 @@
     {
       "file": "src/bank.rs",
       "kind": "verification_violations",
+      "text": "Rust function `split_payment` can divide by `recipients.len()` without a non-zero contract (Z3 counterexample: recipients.len()=0)",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/bank.rs",
+      "kind": "verification_violations",
       "text": "Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)",
       "status": "defect_evidence"
     }
   ],
   "finding_counts": {
-    "total": 1,
-    "defect_evidence": 1,
+    "total": 2,
+    "defect_evidence": 2,
     "real": 0,
     "false_positive": 0,
     "unreviewed": 0
@@ -155,12 +163,12 @@
   "reviews_used": [],
   "source_hash": "bdf0e46563e4a6ecd2f5328f78c91f9a5f5e2280c83965bb4c4934e45ac6484c",
   "meta": {
-    "mumei_agent_commit": "cf06d5c713e7b1d5da69a7e1027bea3b8e0ae78d",
+    "mumei_agent_commit": "45f534532110d367a72adb0aad2d00bb86f04ee4",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-27T22:34:55Z"
+    "generated_at": "2026-11-28T00:52:02Z"
   },
   "fixed": {
     "defects": 12,
