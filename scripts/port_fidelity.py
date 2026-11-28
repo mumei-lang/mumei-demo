@@ -163,7 +163,7 @@ def token_pattern(text: str) -> tuple[str, ...]:
 
 
 VARIANTS = ("buggy", "fixed")
-DETECTOR_VERSION = 16
+DETECTOR_VERSION = 17
 
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
@@ -529,7 +529,7 @@ def output_policy(case: dict) -> dict:
         raise ValueError("output-equivalence policy case entry must be an object")
     allowed = {"rationale", "field_relevance", "failure_state_fields",
                "rounding_tolerance_fields", "canonical_integer_arithmetic",
-               "bounded_interaction_inputs"}
+               "bounded_interaction_inputs", "error_branch_inputs"}
     unknown_keys = set(entry) - allowed
     if unknown_keys:
         raise ValueError(f"unsupported output-equivalence policy keys: {sorted(unknown_keys)}")
@@ -551,6 +551,32 @@ def output_policy(case: dict) -> dict:
                     or not interaction_input["name"]
                     or not isinstance(interaction_input.get("values"), dict)):
                 raise ValueError(f"bounded_interaction_inputs[{input_index}] must have exactly name and values")
+    if "error_branch_inputs" in entry:
+        inputs = entry["error_branch_inputs"]
+        if not isinstance(inputs, list) or not inputs:
+            raise ValueError("error_branch_inputs must be a non-empty list")
+        boundaries = set()
+        for input_index, interaction_input in enumerate(inputs):
+            keys = set(interaction_input) if isinstance(interaction_input, dict) else set()
+            if (not isinstance(interaction_input, dict)
+                    or not {"name", "values", "boundary"} <= keys
+                    or not keys <= {"name", "values", "boundary", "reference_domain_error_variants"}
+                    or not isinstance(interaction_input.get("name"), str)
+                    or not interaction_input["name"]
+                    or not isinstance(interaction_input.get("values"), dict)
+                    or interaction_input.get("boundary") not in {"success", "error"}):
+                raise ValueError(f"error_branch_inputs[{input_index}] must have name, values, and a success/error boundary")
+            if "reference_domain_error_variants" in interaction_input:
+                variants = interaction_input["reference_domain_error_variants"]
+                if (not isinstance(variants, list)
+                        or not variants
+                        or any(variant not in {"fixed", "buggy"} for variant in variants)
+                        or len(set(variants)) != len(variants)
+                        or interaction_input["boundary"] != "error"):
+                    raise ValueError("reference_domain_error_variants must be unique fixed/buggy variants on an error input")
+            boundaries.add(interaction_input["boundary"])
+        if boundaries != {"success", "error"}:
+            raise ValueError("error_branch_inputs must adjudicate at least one success boundary and one error boundary")
     return entry
 
 
@@ -906,15 +932,29 @@ def textwrap_indent(text: str, prefix: str) -> str:
     return "\n".join(prefix + line if line.strip() else line for line in text.splitlines())
 
 
-def bounded_interaction_inputs(case: dict, policy: dict) -> list[dict]:
-    """Validated committed concrete inputs for native loop/state interaction evidence."""
-    inputs = policy.get("bounded_interaction_inputs") or []
+def interaction_inputs(case: dict, policy: dict, key: str) -> list[dict]:
+    """Validated committed concrete inputs for bounded native interaction evidence."""
+    inputs = policy.get(key) or []
     validated = []
     for interaction_input in inputs:
         values = interaction_input["values"]
         pin_requires(case["header"], values)
-        validated.append({"name": interaction_input["name"], "values": values})
+        item = {"name": interaction_input["name"], "values": values}
+        for optional_key in ("boundary", "reference_domain_error_variants"):
+            if optional_key in interaction_input:
+                item[optional_key] = interaction_input[optional_key]
+        validated.append(item)
     return validated
+
+
+def bounded_interaction_inputs(case: dict, policy: dict) -> list[dict]:
+    """Validated committed concrete inputs for native loop/state interaction evidence."""
+    return interaction_inputs(case, policy, "bounded_interaction_inputs")
+
+
+def error_branch_inputs(case: dict, policy: dict) -> list[dict]:
+    """Validated adjudicated success/error inputs for domain-safety fallback evidence."""
+    return interaction_inputs(case, policy, "error_branch_inputs")
 
 
 def bounded_interaction_text(case: dict, candidate_body: str, values: dict,
@@ -1014,7 +1054,7 @@ def run_bounded_interaction_text(mumei_bin: str, text: str, timeout: int) -> dic
             return {"result": "error", "error": type(error).__name__,
                     "seconds": time.monotonic() - started, "budget_seconds": timeout}
         try:
-            process.communicate(timeout=timeout)
+            _stdout, stderr = process.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
             kill_process_group(process)
             process.communicate()
@@ -1029,19 +1069,65 @@ def run_bounded_interaction_text(mumei_bin: str, text: str, timeout: int) -> dic
                 process.wait()
             raise
         return {"exit_code": process.returncode,
+                "verification_failed": "Verification failed" in stderr,
                 "seconds": time.monotonic() - started, "budget_seconds": timeout}
 
 
+def candidate_definedness_text(case: dict, candidate_body: str, values: dict,
+                               variant: str = "buggy") -> str:
+    """A native executable checking only candidate definedness on one concrete input.
+
+    The reference error behavior is not executed here: error-boundary inputs can
+    be adjudicated as reference-domain errors for one source variant. Exit 0
+    means the candidate is verifiably defined on that input, which is a concrete
+    behavioral difference from that adjudicated reference error. Other exits are
+    unresolved evidence rather than agreement.
+    """
+    parts = split_port(case["ports"][variant], case["atom"])
+    if parts is None:
+        raise ValueError("reference port not found")
+    reference = body_inner(parts[2]).strip()
+    candidate = candidate_body.strip()
+    if not reference or not candidate:
+        raise ValueError("empty reference or candidate body")
+    params = atom_params(case["header"])
+    if any(name == "candidate" for name, _ in params):
+        raise ValueError("parameter names collide with comparison bindings")
+    assignments = [f"let {name} = {mm_literal(values[name])};" for name, _ in params]
+    requires = atom_requires(case["header"])
+    return (case["prelude"]
+            + "atom main() -> i64\n"
+            + "    requires: true;\n"
+            + "    ensures: result == 0 || result == 43;\n"
+            + "    body: {\n"
+            + "".join("        " + assignment + "\n" for assignment in assignments)
+            + f"        let contract_holds = {requires};\n"
+            + "        if !(contract_holds) {\n"
+            + "            43\n"
+            + "        } else {\n"
+            + "            let candidate = {\n"
+            + "".join("                " + assignment + "\n" for assignment in assignments)
+            + textwrap_indent(candidate, "                ") + "\n"
+            + "            };\n"
+            + "            0\n"
+            + "        }\n"
+            + "    }\n")
+
 def bounded_interaction_equivalence(case: dict, candidate_body: str, mumei_bin: str,
-                                    timeout: int, variant: str = "buggy") -> dict | None:
-    """Concrete native input/state interaction evidence for loop-containing ports.
+                                    timeout: int, variant: str = "buggy",
+                                    input_key: str = "bounded_interaction_inputs") -> dict | None:
+    """Concrete native input/state interaction evidence for committed inputs.
 
     A 42 exit is an observed output divergence on an input that satisfies the
     target contract. Agreement is finite evidence only, so it remains
     ``inconclusive`` rather than ``matched``; it never claims universal equality.
+    Error inputs can additionally carry an explicit per-variant adjudication
+    that the reference has a domain error there; candidate definedness on such
+    an input is diagnostic behavioral divergence, while an unresolved candidate
+    remains inconclusive.
     """
     policy = output_policy(case)
-    inputs = bounded_interaction_inputs(case, policy)
+    inputs = interaction_inputs(case, policy, input_key)
     if not inputs:
         return None
     if re.search(r"\b(?:extern|effect)\b", case["prelude"]):
@@ -1053,7 +1139,42 @@ def bounded_interaction_equivalence(case: dict, candidate_body: str, mumei_bin: 
     diverged = []
     for interaction_input in inputs:
         attempt = {"name": interaction_input["name"], "values": interaction_input["values"]}
+        for optional_key in ("boundary", "reference_domain_error_variants"):
+            if optional_key in interaction_input:
+                attempt[optional_key] = interaction_input[optional_key]
         try:
+            domain_error_reference = (interaction_input.get("boundary") == "error"
+                                      and variant in interaction_input.get("reference_domain_error_variants", []))
+            if domain_error_reference:
+                text = candidate_definedness_text(case, candidate_body, interaction_input["values"], variant)
+                run = run_bounded_interaction_text(mumei_bin, text, timeout)
+                if run.get("exit_code") == 0:
+                    attempt["result"] = "diverged"
+                    attempt["divergence"] = "candidate_defined_on_reference_domain_error"
+                    diverged.append(attempt)
+                    for key in ("seconds", "budget_seconds"):
+                        if key in run:
+                            attempt[key] = run[key]
+                    attempts.append(attempt)
+                    continue
+                if run.get("exit_code") == 43:
+                    attempt["result"] = "outside_requires"
+                    invalid.append(attempt)
+                elif run.get("timeout") or run.get("error") or not run.get("verification_failed"):
+                    attempt["result"] = "error"
+                    errors.append({**attempt, "error": run.get("error"),
+                                   "exit_code": run.get("exit_code"),
+                                   "timeout": bool(run.get("timeout"))})
+                else:
+                    attempt["result"] = "unresolved"
+                    errors.append({**attempt, "error": "candidate definedness unresolved",
+                                   "exit_code": run.get("exit_code"),
+                                   "timeout": False})
+                for key in ("seconds", "budget_seconds"):
+                    if key in run:
+                        attempt[key] = run[key]
+                attempts.append(attempt)
+                continue
             text = bounded_interaction_text(case, candidate_body, interaction_input["values"], variant)
             run = run_bounded_interaction_text(mumei_bin, text, timeout)
         except (KeyError, ValueError, IndexError) as error:
@@ -1088,12 +1209,19 @@ def bounded_interaction_equivalence(case: dict, candidate_body: str, mumei_bin: 
                          "divergence_input": {"name": first["name"], "values": first["values"]},
                          "diagnostics": [{"atom": "main", "code": "bounded-divergence",
                                           "message": f"bounded native interaction diverged on {first['name']}"}]})
+        if first.get("divergence") == "candidate_defined_on_reference_domain_error":
+            evidence["reason"] = "error_branch_domain_behavior_diverged"
     elif invalid:
         evidence.update({"outcome": "inconclusive", "status": "error",
                          "reason": "bounded_interaction_input_outside_requires",
                          "failure_kind": "unsupported",
                          "diagnostics": [{"atom": "main", "code": "outside-requires",
                                           "message": "a committed bounded input violates the target requires clause"}]})
+    elif errors and all(error.get("result") == "unresolved" for error in errors):
+        evidence.update({"outcome": "inconclusive", "status": "success",
+                         "reason": "error_branch_candidate_domain_unresolved",
+                         "diagnostics": [{"atom": "main", "code": "domain-unresolved",
+                                          "message": "candidate definedness is unresolved on an adjudicated reference-domain-error input"}]})
     elif errors:
         timed_out = any(error.get("timeout") for error in errors)
         evidence.update({"outcome": "inconclusive",
@@ -1110,6 +1238,37 @@ def bounded_interaction_equivalence(case: dict, candidate_body: str, mumei_bin: 
     return evidence
 
 
+def verification_measurement(results: list[dict]) -> dict | None:
+    measured = [result for result in results
+                if any(isinstance(result.get(key), (int, float)) and not isinstance(result.get(key), bool)
+                       for key in ("seconds", "budget_seconds"))]
+    if not measured:
+        return None
+    return {
+        "expected_calls": len(results),
+        "timed_calls": sum(isinstance(result.get("seconds"), (int, float))
+                           and not isinstance(result.get("seconds"), bool) for result in results),
+        "seconds": sum(result.get("seconds", 0.0) for result in results
+                       if isinstance(result.get("seconds"), (int, float))
+                       and not isinstance(result.get("seconds"), bool)),
+        "budgeted_calls": sum(isinstance(result.get("budget_seconds"), (int, float))
+                              and not isinstance(result.get("budget_seconds"), bool) for result in results),
+        "budget_seconds": sum(result.get("budget_seconds", 0.0) for result in results
+                              if isinstance(result.get("budget_seconds"), (int, float))
+                              and not isinstance(result.get("budget_seconds"), bool)),
+    }
+
+
+def domain_safety_compare_failure(result: dict) -> bool:
+    """Whether every refutation diagnostic is a runtime-domain safety impossibility."""
+    diagnostics = result.get("diagnostics") or []
+    if result.get("outcome") != "refuted" or not diagnostics:
+        return False
+    fragments = ("potential out-of-bounds", "potential division by zero")
+    return all(any(fragment in diagnostic.get("message", "").lower() for fragment in fragments)
+               for diagnostic in diagnostics)
+
+
 def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout: int,
                        variant: str = "buggy") -> dict:
     """Diagnostic reference-vs-candidate output equality evidence.
@@ -1122,6 +1281,9 @@ def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout:
     differences even between two copies of the same reference body. Cases with
     committed concrete inputs instead use bounded native interaction: observed
     divergence is evidence, while finite agreement remains inconclusive.
+    Runtime-domain-safety refutations can fall back to committed success/error
+    inputs only when every solver diagnostic is a potential bounds/division
+    failure; this bounded evidence never rewrites a formal verdict.
     """
     try:
         parts = split_port(case["ports"][variant], case["atom"])
@@ -1160,6 +1322,19 @@ def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout:
     exact_outcome = classify(exact_verification)
     outcome = exact_outcome
     verification = exact_verification
+    if exact_outcome == "inconclusive" and domain_safety_compare_failure(exact_verification):
+        bounded = bounded_interaction_equivalence(case, candidate_body, mumei_bin, timeout, variant,
+                                                  input_key="error_branch_inputs")
+        if bounded is not None and bounded.get("reason") != "bounded_interaction_effectful_prelude":
+            bounded["error_branch_domain_safety_fallback"] = True
+            bounded["solver_output"] = {"outcome": exact_outcome, "status": exact_verification["status"],
+                                        "diagnostics": exact_verification["diagnostics"][:2]}
+            measurement = verification_measurement([exact_verification])
+            if measurement:
+                bounded["verification"] = measurement
+            if bounded.get("reason") == "bounded_interactions_matched":
+                bounded["reason"] = "error_branch_bounded_interactions_matched"
+            return bounded
     boundary_only = False
     operational_policy = any(key in policy for key in
                              ("field_relevance", "failure_state_fields", "rounding_tolerance_fields"))
@@ -1220,23 +1395,9 @@ def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout:
             evidence["reason"] = "helper_body_domain_diverged"
         elif helper_comparison.get("outcome") == "valid_domain_matched" and not boundary_only:
             evidence["reason"] = "helper_body_valid_domain_matched"
-    measured = [result for result in verifications
-                if any(isinstance(result.get(key), (int, float)) and not isinstance(result.get(key), bool)
-                       for key in ("seconds", "budget_seconds"))]
-    if measured:
-        evidence["verification"] = {
-            "expected_calls": len(verifications),
-            "timed_calls": sum(isinstance(result.get("seconds"), (int, float))
-                               and not isinstance(result.get("seconds"), bool) for result in verifications),
-            "seconds": sum(result.get("seconds", 0.0) for result in verifications
-                           if isinstance(result.get("seconds"), (int, float))
-                           and not isinstance(result.get("seconds"), bool)),
-            "budgeted_calls": sum(isinstance(result.get("budget_seconds"), (int, float))
-                                  and not isinstance(result.get("budget_seconds"), bool) for result in verifications),
-            "budget_seconds": sum(result.get("budget_seconds", 0.0) for result in verifications
-                                  if isinstance(result.get("budget_seconds"), (int, float))
-                                  and not isinstance(result.get("budget_seconds"), bool)),
-        }
+    measurement = verification_measurement(verifications)
+    if measurement:
+        evidence["verification"] = measurement
     for key in ("failure_kind", "seconds", "budget_seconds"):
         if key in verification:
             evidence[key] = verification[key]

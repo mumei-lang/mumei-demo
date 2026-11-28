@@ -23,6 +23,76 @@
       "canonical_integer_arithmetic": true,
       "rationale": "The canonical model intentionally fixes multiplication-before-division integer arithmetic. Reordering division before multiplication loses precision in the chosen integer model and is meaningful divergence, not a rounding abstraction boundary."
     },
+    "GO01-D04": {
+      "error_branch_inputs": [
+        {
+          "name": "error-no-sku",
+          "boundary": "error",
+          "reference_domain_error_variants": ["buggy"],
+          "values": {
+            "parts": [1, 2, 3],
+            "n": 3,
+            "sku": 7,
+            "has_sku": false
+          }
+        },
+        {
+          "name": "success-sku",
+          "boundary": "success",
+          "values": {
+            "parts": [1, 2, 3, 7],
+            "n": 4,
+            "sku": 7,
+            "has_sku": true
+          }
+        }
+      ],
+      "rationale": "The no-SKU branch is the adjudicated error/default boundary and the SKU-present branch is the success boundary. Both inputs satisfy len(parts) == n && n >= 3, and the success input has four columns so the buggy indexed reference is defined there. For the buggy reference this error input is an adjudicated out-of-bounds domain error; a verifiably defined candidate on that input is diagnostic behavioral divergence. Finite agreement is diagnostic evidence only."
+    },
+    "PY02-D04": {
+      "error_branch_inputs": [
+        {
+          "name": "error-short-row",
+          "boundary": "error",
+          "reference_domain_error_variants": ["buggy"],
+          "values": {
+            "row": [1],
+            "n": 1
+          }
+        },
+        {
+          "name": "success-four-columns",
+          "boundary": "success",
+          "values": {
+            "row": [1, 2, 3, 4],
+            "n": 4
+          }
+        }
+      ],
+      "rationale": "A row shorter than four columns is the adjudicated error boundary, while a four-column row exercises successful indexed access. Both inputs satisfy len(row) == n. For the buggy reference this error input is an adjudicated out-of-bounds domain error; a verifiably defined candidate on that input is diagnostic behavioral divergence. Finite agreement is diagnostic evidence only."
+    },
+    "SOL01-D03": {
+      "error_branch_inputs": [
+        {
+          "name": "error-zero-shares",
+          "boundary": "error",
+          "reference_domain_error_variants": ["buggy"],
+          "values": {
+            "total_assets": 5,
+            "total_shares": 0
+          }
+        },
+        {
+          "name": "success-positive-shares",
+          "boundary": "success",
+          "values": {
+            "total_assets": 3,
+            "total_shares": 2
+          }
+        }
+      ],
+      "rationale": "Zero shares exercises the adjudicated default/error branch and positive shares exercises successful division without overflowing the integer model. For the buggy reference the zero-share input is an adjudicated division-by-zero domain error; a verifiably defined candidate on that input is diagnostic behavioral divergence. Finite agreement is diagnostic evidence only."
+    },
     "PY02-D05": {
       "bounded_interaction_inputs": [
         {
