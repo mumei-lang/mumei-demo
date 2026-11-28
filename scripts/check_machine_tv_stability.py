@@ -66,6 +66,8 @@ def stability_failures(diff: dict, base: dict, repeat: dict) -> list[str]:
         failures.append(f"outcome transitions: {outcome_transitions}")
     if group_transitions:
         failures.append(f"unresolved-group transitions: {group_transitions}")
+    if summary.get("diagnostic_changes"):
+        failures.append(f"diagnostic changes: {summary['diagnostic_changes']}")
     if summary.get("stage_result_changes"):
         failures.append(f"stage result changes: {summary['stage_result_changes']}")
     for label, report in (("base", base), ("repeat", repeat)):
@@ -98,6 +100,7 @@ def write_summary(path: Path, diff: dict, failures: list[str]) -> None:
         f"- Cases compared: {summary['cases_compared']}",
         f"- Outcome transitions: {summary['outcome_transitions'] or '{}'}",
         f"- Unresolved-group transitions: {summary['unresolved_group_transitions'] or '{}'}",
+        f"- Diagnostic changes: {summary.get('diagnostic_changes', 0)}",
         f"- Stage-result changes: {summary['stage_result_changes']}",
         f"- Timing-only stage differences: {timing_only_stage_changes(diff)}",
         f"- Stability failures: {len(failures)}",
@@ -144,6 +147,7 @@ def main(argv: list[str]) -> int:
         "repeat": variant_counts(repeat),
         "outcome_transitions": diff["summary"]["outcome_transitions"],
         "unresolved_group_transitions": diff["summary"]["unresolved_group_transitions"],
+        "diagnostic_changes": diff["summary"].get("diagnostic_changes", 0),
         "stage_result_changes": diff["summary"]["stage_result_changes"],
         "timing_only_stage_differences": timing_only_stage_changes(diff),
         "false_acceptances": {"base": false_acceptances(base), "repeat": false_acceptances(repeat)},

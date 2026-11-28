@@ -165,6 +165,7 @@ def compare_reports(base: dict, repeat: dict) -> dict:
             "missing_in_repeat": sorted(set(base_cases) - set(repeat_cases)),
             "verdict_changes": len(changes),
             "verdict_changes_by_variant": dict(sorted(by_variant.items())),
+            "diagnostic_changes": sum(change["classification"] == "diagnostic_changed" for change in changes),
             "outcome_transitions": dict(sorted(outcome_transitions.items())),
             "outcome_transitions_by_variant": {
                 variant: dict(sorted(counts.items()))

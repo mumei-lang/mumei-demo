@@ -42,6 +42,11 @@ def test_outcome_and_unresolved_group_transitions_fail():
     assert any("assurance->inconclusive" in failure for failure in failures)
 
 
+def test_same_outcome_diagnostic_drift_fails():
+    failures = stability.stability_failures(diff(diagnostic_changes=1), report(), report())
+    assert failures == ["diagnostic changes: 1"]
+
+
 def test_input_missing_and_stage_result_changes_fail():
     failures = stability.stability_failures(
         diff(input_changes=[{"id": "A"}], missing_in_repeat=["A"], stage_result_changes=1),
@@ -76,6 +81,7 @@ def test_summary_is_bounded_and_not_a_verdict(tmp_path):
     stability.write_summary(path, doc, [])
     text = path.read_text()
     assert "not a proof grade" in text
+    assert "Diagnostic changes: 0" in text
     assert "Timing-only stage differences: 1" in text
     assert "loadavg" not in text and "environment" not in text
     json.dumps(diff())
@@ -120,6 +126,20 @@ def test_main_returns_failure_when_repeat_outcome_changes(monkeypatch, tmp_path)
     monkeypatch.setattr(stability, "run_benchmark", fake_run)
     assert stability.main(["--mumei-bin", "/fake/mumei", "--output-dir", str(tmp_path)]) == 1
     assert "accepted->inconclusive" in (tmp_path / "machine_tv_diff.json").read_text()
+
+
+def test_main_returns_failure_when_repeat_diagnostic_reason_changes(monkeypatch, tmp_path):
+    def fake_run(binary, output, jobs, timeout):
+        doc = valid_report()
+        if output.name == "machine_tv_repeat.json":
+            doc["cases"][0]["fixed"]["native"]["reason"] = "different diagnostic"
+        output.write_text(json.dumps(doc))
+
+    monkeypatch.setattr(stability, "run_benchmark", fake_run)
+    assert stability.main(["--mumei-bin", "/fake/mumei", "--output-dir", str(tmp_path)]) == 1
+    diff_doc = json.loads((tmp_path / "machine_tv_diff.json").read_text())
+    assert diff_doc["summary"]["diagnostic_changes"] == 1
+    assert "Diagnostic changes: 1" in (tmp_path / "summary.md").read_text()
 
 
 def test_run_benchmark_repeats_only_flags_and_raises_on_failure(monkeypatch):

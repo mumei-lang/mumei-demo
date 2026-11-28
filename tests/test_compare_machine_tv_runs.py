@@ -30,8 +30,23 @@ def test_unchanged_reports_have_no_case_or_stage_diffs():
     diff = compare.compare_reports(report([case()]), report([case()]))
     assert diff["summary"]["cases_compared"] == 1
     assert diff["summary"]["verdict_changes"] == 0
+    assert diff["summary"]["diagnostic_changes"] == 0
     assert diff["summary"]["stage_result_changes"] == 0
     assert diff["changes"] == []
+
+
+def test_same_outcome_reason_and_failure_kind_drift_count_as_diagnostic_changes():
+    before = native("machine_outside_profile", "unsupported_signature", failure_kind="unsupported")
+    after_reason = native("machine_outside_profile", "unsupported_instruction", failure_kind="unsupported")
+    after_kind = native("machine_outside_profile", "unsupported_signature", failure_kind="inconclusive")
+
+    reason_diff = compare.compare_reports(report([case(fixed=before)]), report([case(fixed=after_reason)]))
+    kind_diff = compare.compare_reports(report([case(fixed=before)]), report([case(fixed=after_kind)]))
+
+    for diff in (reason_diff, kind_diff):
+        assert diff["summary"]["diagnostic_changes"] == 1
+        assert diff["summary"]["outcome_transitions"] == {"machine_outside_profile->machine_outside_profile": 1}
+        assert diff["changes"][0]["classification"] == "diagnostic_changed"
 
 
 def test_acceptance_change_is_split_by_variant_reason_and_stage():
