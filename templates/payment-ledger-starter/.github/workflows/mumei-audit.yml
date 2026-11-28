@@ -14,7 +14,7 @@ jobs:
 
       - name: Run deterministic Mumei audit
         id: audit
-        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@a81df80072acf2ed5739b7e4c2f09bfb4129e60d
+        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@602404277af9ba6c0a6031efe800c517f1ddc93c
         env:
           # Keep the deterministic/no-LLM adoption path even when repository
           # or organization secrets exist. Do not pass secret values here.
@@ -53,7 +53,7 @@ jobs:
         shell: bash
         run: |
           # Keep this commit identical to the action pin above.
-          curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/a81df80072acf2ed5739b7e4c2f09bfb4129e60d/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
+          curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/602404277af9ba6c0a6031efe800c517f1ddc93c/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
             -o verify_audit_evidence_artifact.py
 
       - name: Verify downloaded fixture-smoke artifact

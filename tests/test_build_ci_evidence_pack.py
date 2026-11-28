@@ -475,7 +475,7 @@ def test_ci_reference_quickstart_statically_covers_migration_action_contract() -
 
     uses = re.search(r"mumei-audit@(?<![0-9a-f])([0-9a-f]{40})(?![0-9a-f])", workflow)
     assert uses is not None, "quick start must pin an immutable full action commit"
-    assert uses.group(1) == "a81df80072acf2ed5739b7e4c2f09bfb4129e60d"
+    assert uses.group(1) == "602404277af9ba6c0a6031efe800c517f1ddc93c"
 
     lines = workflow.splitlines()
     uses_index = next(index for index, line in enumerate(lines) if "mumei-audit@" in line)
@@ -1091,7 +1091,7 @@ def test_payment_golden_path_fixture_arithmetic_is_deterministic() -> None:
 def test_golden_path_consumer_workflow_matches_documented_action_contract() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
     doc = (REPO_ROOT / "docs" / "CI_REFERENCE.md").read_text(encoding="utf-8")
-    pin = "a81df80072acf2ed5739b7e4c2f09bfb4129e60d"
+    pin = "602404277af9ba6c0a6031efe800c517f1ddc93c"
 
     assert f"mumei-audit@{pin}" in workflow
     assert f"mumei-audit@{pin}" in doc
@@ -1134,7 +1134,7 @@ def test_golden_path_consumer_workflow_matches_documented_action_contract() -> N
 
 def test_golden_path_consumer_download_verification_is_strict_and_pinned() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
-    pin = "a81df80072acf2ed5739b7e4c2f09bfb4129e60d"
+    pin = "602404277af9ba6c0a6031efe800c517f1ddc93c"
     download_job = workflow.split("  verify-downloaded-evidence:", 1)[1]
 
     assert "needs: documented-consumer-path" in download_job
@@ -1184,7 +1184,7 @@ def test_golden_path_consumer_download_verification_is_strict_and_pinned() -> No
 
 def test_ci_reference_documents_minimal_offline_action_verifier_path() -> None:
     doc = (REPO_ROOT / "docs" / "CI_REFERENCE.md").read_text(encoding="utf-8")
-    pin = "a81df80072acf2ed5739b7e4c2f09bfb4129e60d"
+    pin = "602404277af9ba6c0a6031efe800c517f1ddc93c"
 
     assert "## Verifying a downloaded action artifact offline" in doc
     assert f"raw.githubusercontent.com/mumei-lang/mumei-agent/{pin}/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py" in doc
