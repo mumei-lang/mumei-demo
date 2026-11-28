@@ -17,7 +17,7 @@ Evidence snapshot: measured 2026-11-03–2026-11-28; mumei-agent commits: mumei 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
 |---|---:|---:|---:|---:|---:|---:|
 | mumei only | 18 (11%) | 34 (20%) | 62%–94% | 1 | $0.00 | 119 s wall |
-| mumei + LLM | 12 (7%) | 68 (40%) | 10%–87% | 211 | $0.22 | 54 min wall |
+| mumei + LLM | 12 (7%) | 65 (38%) | 10%–87% | 211 | $0.22 | 54 min wall |
 | LLM only (3 runs, median) | 104 (61%), range 104–105 | 136 (80%), range 135–138 | 62%–100% | 76, range 68–79 | $0.06 | 22 min model time |
 
 Precision is (defect evidence + findings reviewed as real) / findings, a range while findings are unreviewed. False alarms on fixed code count findings on the specimens with their `fixed.patch` applied. Cost per pass is the OpenRouter spend for one pass over the corpus (buggy and fixed code). Time per pass is the audit wall time for the mumei rows and the summed model response time for LLM only, so the two are not directly comparable.

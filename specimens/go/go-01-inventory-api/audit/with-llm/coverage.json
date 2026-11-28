@@ -9,8 +9,8 @@
   "counts": {
     "total": 11,
     "detected": 2,
-    "function_flagged": 5,
-    "missed": 4
+    "function_flagged": 4,
+    "missed": 5
   },
   "defects": [
     {
@@ -145,11 +145,8 @@
       "category": "hardcoded-secret",
       "class": "vulnerability",
       "in_target_category": true,
-      "status": "function_flagged",
-      "findings": [
-        "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
-        "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
-      ]
+      "status": "missed",
+      "findings": []
     }
   ],
   "unmatched_findings": [
@@ -162,6 +159,16 @@
       "file": "handlers.go",
       "kind": "spec_health_issues",
       "text": "malformed-extraction: resetHandler ensures: garbled comparison operators '==>'"
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated."
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
     }
   ],
   "findings": [
@@ -331,8 +338,7 @@
     "still_function_flagged": [
       "GO01-D02",
       "GO01-D07",
-      "GO01-D10",
-      "GO01-D11"
+      "GO01-D10"
     ],
     "false_alarms": 18,
     "findings": [

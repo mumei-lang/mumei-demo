@@ -9,8 +9,8 @@
   "counts": {
     "total": 11,
     "detected": 0,
-    "function_flagged": 10,
-    "missed": 1
+    "function_flagged": 9,
+    "missed": 2
   },
   "defects": [
     {
@@ -114,11 +114,8 @@
       "category": "hardcoded-secret",
       "class": "vulnerability",
       "in_target_category": true,
-      "status": "function_flagged",
-      "findings": [
-        "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated.",
-        "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
-      ]
+      "status": "missed",
+      "findings": []
     },
     {
       "id": "GO03-D10",
@@ -155,6 +152,16 @@
       "file": "handlers.go",
       "kind": "spec_health_issues",
       "text": "encoding-gap: writeJSON: spec_lowering_failed: failed to lower ensures clause 'result.content_type == \"application/json\"': Verification Error: Expected int (constraints: [\"result.content_type == \\\"application/json\\\"\"])"
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.requires — no requirement text mentions this atom and the extracted requires clause is trivial. Add a requirement covering main; none was stated."
+    },
+    {
+      "file": "main.go",
+      "kind": "cross_validation_gaps",
+      "text": "spec ambiguity (missing_requirement): main.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering main; none was stated."
     }
   ],
   "findings": [
@@ -243,8 +250,7 @@
     "still_reported": [],
     "still_function_flagged": [
       "GO03-D02",
-      "GO03-D06",
-      "GO03-D09"
+      "GO03-D06"
     ],
     "false_alarms": 13,
     "findings": [

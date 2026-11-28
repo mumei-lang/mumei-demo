@@ -218,18 +218,18 @@ Fixed variants — with LLM (`openai/gpt-6-luna`): 16 specimens (171 defects fix
 
 | Language | Defects | No LLM detected | No LLM detected or flagged | With LLM detected | With LLM detected or flagged |
 |---|---:|---:|---:|---:|---:|
-| go | 32 | 4/32 (12%) | 6/32 (19%) | 2/32 (6%) | 20/32 (62%) |
+| go | 32 | 4/32 (12%) | 6/32 (19%) | 2/32 (6%) | 18/32 (56%) |
 | python | 41 | 2/41 (5%) | 5/41 (12%) | 1/41 (2%) | 4/41 (10%) |
 | rust | 34 | 3/34 (9%) | 5/34 (15%) | 1/34 (3%) | 4/34 (12%) |
 | solidity | 31 | 6/31 (19%) | 15/31 (48%) | 6/31 (19%) | 27/31 (87%) |
-| typescript | 33 | 3/33 (9%) | 3/33 (9%) | 2/33 (6%) | 13/33 (39%) |
-| **Total** | **171** | **18/171 (11%)** | **34/171 (20%)** | **12/171 (7%)** | **68/171 (40%)** |
+| typescript | 33 | 3/33 (9%) | 3/33 (9%) | 2/33 (6%) | 12/33 (36%) |
+| **Total** | **171** | **18/171 (11%)** | **34/171 (20%)** | **12/171 (7%)** | **65/171 (38%)** |
 
 Recent runs:
 
 | Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code | Adjudication |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---|
-| 2026-11-03 (rescored 2026-11-28) | yes | `e8be527` | `36eb534` | 171 | 7% | 14% | 40% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
+| 2026-11-03 (rescored 2026-11-28) | yes | `e8be527` | `36eb534` | 171 | 7% | 14% | 38% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
 | 2026-11-28 (rescored 2026-11-28) | no | `15541eb` | `b777e8e` | 171 | 11% | 22% | 20% | 62%–94% | 1 / 16 specimens | incomplete (10 unreviewed, 0 stale) |
 | 2026-11-28 | no | `45f5345` | `b777e8e` | 171 | 8% | 17% | 16% | 60%–92% | 1 / 16 specimens | incomplete (8 unreviewed, 0 stale) |
 | 2026-11-03 (rescored 2026-11-27) | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
@@ -239,6 +239,8 @@ Recent runs:
 | 2026-11-27 (rescored 2026-11-27) | no | `beaa286` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 | 2026-11-27 (rescored 2026-11-27) | no | `554f018` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 | 2026-11-27 (rescored 2026-11-27) | no | `220fd51` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
+
+Target-denominator note: this history mixes target definitions with 71 and 77 planted target defects; compare target percentages only within the same denominator.
 
 Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md) (no LLM) and
 [AUDIT_SUMMARY_WITH_LLM.md](AUDIT_SUMMARY_WITH_LLM.md) (with LLM).

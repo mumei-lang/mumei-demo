@@ -137,6 +137,30 @@ def names_function(text: str, function: str) -> bool:
     return re.search(rf"(?<![A-Za-z0-9_]){name}(?![A-Za-z0-9_])", text) is not None
 
 
+def hardcoded_secret_bindings(anchor: str) -> list[str]:
+    bindings = []
+    assignment = re.match(
+        r"^\s*(?:pub\s+)?(?:const\s+|let\s+|var\s+)?(?:mut\s+)?([A-Za-z_$][A-Za-z0-9_$]*)\s*=",
+        anchor,
+    )
+    if assignment:
+        bindings.append(assignment.group(1))
+    for name in re.findall(r"(?<![A-Za-z0-9_$])[A-Za-z_$][A-Za-z0-9_$]*(?![A-Za-z0-9_$])", anchor):
+        lowered = name.lower()
+        credential_like = any(word in lowered for word in ("token", "secret", "password", "passwd", "credential", "apikey"))
+        compound = "_" in name or any(a.islower() and b.isupper() for a, b in zip(name, name[1:]))
+        if credential_like and compound and name not in bindings:
+            bindings.append(name)
+    return bindings
+
+
+def names_defect(text: str, defect: dict) -> bool:
+    if defect.get("category") == "hardcoded-secret":
+        bindings = hardcoded_secret_bindings(defect.get("anchor") or "")
+        return any(names_function(text, binding) for binding in bindings)
+    return names_function(text, defect["function"])
+
+
 def category_hit(text: str, category: str) -> bool:
     lowered = text.lower()
     return any(k in lowered for k in CATEGORY_KEYWORDS.get(category, []))
@@ -287,7 +311,7 @@ def score(defects_doc: dict, audit: dict, label: str,
     results = []
     for d in defects_doc["defects"]:
         findings = by_file.get(d["file"], [])
-        hits = [(i, f) for i, f in enumerate(findings) if names_function(f["text"], d["function"])]
+        hits = [(i, f) for i, f in enumerate(findings) if names_defect(f["text"], d)]
         cat_hits = [(i, f) for i, f in hits if category_hit(f["text"], d["category"])]
         applied = []
         for a in adjudications:
@@ -1589,6 +1613,14 @@ def readme_block_specimens(history: dict) -> str:
                 f"{fmt_precision(r.get('findings'))} | {fmt_fixed(r.get('fixed'))} | "
                 f"{fmt_adjudication(r)} |"
             )
+        target_totals = sorted({r["totals"].get("target_total") for r in runs if r.get("totals")})
+        if len(target_totals) > 1:
+            lines += [
+                "",
+                "Target-denominator note: this history mixes target definitions with "
+                + " and ".join(str(v) for v in target_totals)
+                + " planted target defects; compare target percentages only within the same denominator.",
+            ]
         lines.append("")
     lines += [
         "Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md) (no LLM) and",
