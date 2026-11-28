@@ -11,7 +11,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 STARTER_DIR = REPO_ROOT / "templates" / "payment-ledger-starter"
 WORKFLOW_PATH = STARTER_DIR / ".github" / "workflows" / "mumei-audit.yml"
 README_PATH = STARTER_DIR / "README.md"
-PIN = "4da122661693e1f496665acad023c9f2cc83211e"
+PIN = "82d01d2c9fb0041931e90c6fa31dc7bf17922645"
 
 
 def _audit_uses_match(line: str) -> re.Match[str] | None:
@@ -160,7 +160,8 @@ def validate_starter_copy(root: Path) -> None:
         "--require-generated-mm",
         "Fixture smoke only",
         "zero candidates",
-        "outside the current verifier contract",
+        "--allow-zero-candidates",
+        "instead of dropping artifact verification",
     ):
         assert fragment in workflow
 
@@ -306,7 +307,8 @@ def test_payment_starter_workflow_pins_and_fixture_smoke_are_explicit() -> None:
         assert flag in workflow
     assert "Fixture smoke only" in workflow
     assert "zero candidates" in workflow
-    assert "outside the current verifier contract" in workflow
+    assert "--allow-zero-candidates" in workflow
+    assert "instead of dropping artifact verification" in workflow
     assert 'candidates[0].get("function_name") == "split_cents"' in workflow
     assert 'candidates[0].get("execution_state") == "blocked"' in workflow
     assert 'execution.get("summary", {}).get("review_required") is True' in workflow
@@ -342,9 +344,11 @@ def test_payment_starter_readme_preserves_review_and_evidence_boundaries() -> No
     assert "permissions:\n  contents: read\n  security-events: write" in readme
     assert "keeps checkout access while adding code-scanning access" in readme
     assert "CI policy, not evidence" in readme
-    assert "zero-candidate real-repository artifact is outside that verifier contract" in readme
-    assert "removing only the strict flags is not enough" in readme
-    assert "remove or gate the entire downloaded-artifact verification job" in readme
+    assert "add `--allow-zero-candidates`" in readme
+    assert "preserves artifact envelope, zero-count, schema, boundary, provenance, companion, hidden-file, and forbidden-literal validation" in readme
+    assert "an empty candidate list has no generated `.mm` candidate claims" in readme
+    assert "nonzero candidate claims remain path/hash validated" in readme
+    assert "Do not interpret zero candidates as proof failure or proof success" in readme
     assert "recipient_count > 0" in readme
     assert "integer-split remainder policy" in readme
     assert "account-existence, negative-amount, and non-negative-balance requirements" in readme
@@ -395,8 +399,9 @@ def test_payment_fixture_is_canonical_in_starter_and_docs_reference_it() -> None
         "not skipped and succeeds",
         "candidate `operational_error` count is zero",
         "does not mean there were no findings",
-        "zero-candidate artifact is outside that verifier contract",
-        "remove or gate the entire downloaded-artifact verification job",
+        "passing `--allow-zero-candidates` together with `--require-hidden-companion`",
+        "zero count consistency, companion copy count, hidden companion round trip",
+        "omit `--allow-zero-candidates`",
         "delete or archive the throwaway repository",
         "host-language semantic equivalence",
         "artifact producer authenticity",

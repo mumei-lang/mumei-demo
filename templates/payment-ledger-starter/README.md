@@ -34,7 +34,7 @@ The downloaded-artifact verification job is positive-path fixture smoke. Because
 
 ## Required inputs and permissions
 
-The starter pins both the composite action and the artifact verifier script to commit `4da122661693e1f496665acad023c9f2cc83211e`. Keep those two commit references identical when updating them. `uses:` cannot interpolate an environment variable, so the duplication must be reviewed manually or by repository tests.
+The starter pins both the composite action and the artifact verifier script to commit `82d01d2c9fb0041931e90c6fa31dc7bf17922645`. Keep those two commit references identical when updating them. `uses:` cannot interpolate an environment variable, so the duplication must be reviewed manually or by repository tests.
 
 The audit job uses only `contents: read`. The verification job adds `actions: read` so it can download the artifact. `upload-sarif` is `false` because code scanning is optional. To publish SARIF to code scanning, enable GitHub code scanning, set `upload-sarif: true`, and give the audit job a permissions block that keeps checkout access while adding code-scanning access:
 
@@ -57,7 +57,7 @@ The fixture smoke is intentionally narrow. After it proves the path in a throwaw
 1. Delete `src/payment_ledger.py` or replace it with the repository's own payment/ledger code.
 2. Point `code-file` at that source tree and adjust `language` if needed.
 3. Delete the `Validate expected payment fixture handoff` step.
-4. Adjust or remove the strict artifact-verifier flags. `--require-hidden-companion`, `--require-blocked-candidate`, and `--require-generated-mm` are fixture-smoke requirements. The current upstream verifier also expects at least one blocked or ready migration candidate; a zero-candidate real-repository artifact is outside that verifier contract and must not be interpreted as a failure of verification or proof. If zero candidates are acceptable for the repository, removing only the strict flags is not enough: remove or gate the entire downloaded-artifact verification job and its fixture assertion.
+4. Adjust the strict artifact-verifier flags for the repository policy. `--require-blocked-candidate` and `--require-generated-mm` are positive fixture-smoke requirements. If zero candidates are acceptable for real source, remove those two positive-only flags, keep `--require-hidden-companion`, and add `--allow-zero-candidates`; this preserves artifact envelope, zero-count, schema, boundary, provenance, companion, hidden-file, and forbidden-literal validation; an empty candidate list has no generated `.mm` candidate claims, while nonzero candidate claims remain path/hash validated. Do not interpret zero candidates as proof failure or proof success. If migration candidates are required, omit `--allow-zero-candidates` and keep an appropriate positive-candidate assertion instead.
 5. Keep `migration-execution-output` enabled when migration evidence is wanted. Candidate-level `operational_error` fails the composite action as consumer policy; `blocked` and `ready_for_human_review` remain review evidence and do not independently fail CI.
 
 ## Baseline and review handoff

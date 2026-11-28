@@ -14,7 +14,7 @@ jobs:
 
       - name: Run deterministic Mumei audit
         id: audit
-        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@4da122661693e1f496665acad023c9f2cc83211e
+        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@82d01d2c9fb0041931e90c6fa31dc7bf17922645
         env:
           # Keep the deterministic/no-LLM adoption path even when repository
           # or organization secrets exist. Do not pass secret values here.
@@ -53,17 +53,17 @@ jobs:
         shell: bash
         run: |
           # Keep this commit identical to the action pin above.
-          curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/4da122661693e1f496665acad023c9f2cc83211e/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
+          curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/82d01d2c9fb0041931e90c6fa31dc7bf17922645/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
             -o verify_audit_evidence_artifact.py
 
       - name: Verify downloaded fixture-smoke artifact
         shell: bash
         run: |
           # Fixture smoke only: these strict flags require the included payment
-          # fixture to produce at least one blocked migration candidate. A
-          # real repository can produce zero candidates, and that artifact is
-          # outside the current verifier contract; adjust or remove this step
-          # when replacing the fixture with real source.
+          # fixture to produce at least one blocked migration candidate. When
+          # adapting to real source where zero candidates are acceptable,
+          # remove the positive-only candidate flags and use
+          # --allow-zero-candidates instead of dropping artifact verification.
           python3 verify_audit_evidence_artifact.py evidence \
             --require-hidden-companion \
             --require-blocked-candidate \
