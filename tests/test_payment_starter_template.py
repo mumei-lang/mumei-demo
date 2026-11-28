@@ -14,9 +14,38 @@ README_PATH = STARTER_DIR / "README.md"
 PIN = "640d597ec60bf574d0102cae6b89054d47fd9f0f"
 
 
+def _audit_action_inputs(text: str) -> dict[str, str]:
+    """Return inputs scoped to the audit action step's `with` block."""
+    lines = text.splitlines()
+    for index, line in enumerate(lines):
+        if not re.match(r"^\s*uses:\s*mumei-lang/mumei-agent/\.github/actions/mumei-audit@", line):
+            continue
+        uses_indent = len(line) - len(line.lstrip())
+        inputs: dict[str, str] = {}
+        in_with = False
+        for following in lines[index + 1 :]:
+            stripped = following.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            indent = len(following) - len(following.lstrip())
+            if indent <= uses_indent:
+                if stripped == "with:":
+                    in_with = True
+                    continue
+                if in_with:
+                    break
+                continue
+            if not in_with:
+                continue
+            match = re.match(r"([A-Za-z0-9_-]+):\s*(.*)$", stripped)
+            if match:
+                inputs[match.group(1)] = match.group(2).strip()
+        return inputs
+    return {}
+
+
 def _workflow_input(text: str, key: str) -> str | None:
-    match = re.search(rf"^\s*{re.escape(key)}: ([^\n]+)$", text, re.M)
-    return match.group(1).strip() if match else None
+    return _audit_action_inputs(text).get(key)
 
 
 def _copied_files(root: Path) -> list[str]:
@@ -45,7 +74,11 @@ def validate_starter_copy(root: Path) -> None:
 
     workflow_path = root / ".github" / "workflows" / "mumei-audit.yml"
     workflow = workflow_path.read_text(encoding="utf-8")
-    action_ref = re.search(r"mumei-audit@([^\s]+)", workflow)
+    action_ref = re.search(
+        r"^\s*uses:\s*mumei-lang/mumei-agent/\.github/actions/mumei-audit@([^\s]+)\s*$",
+        workflow,
+        re.M,
+    )
     verifier_pin = re.search(
         r"raw\.githubusercontent\.com/mumei-lang/mumei-agent/([0-9a-f]{40})/"
         r"\.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact\.py",
@@ -67,7 +100,11 @@ def validate_starter_copy(root: Path) -> None:
         "artifact-name",
         "upload-sarif",
     ):
-        assert _workflow_input(workflow, key) == _workflow_input(consumer, key), f"consumer input drift: {key}"
+        starter_value = _workflow_input(workflow, key)
+        consumer_value = _workflow_input(consumer, key)
+        assert starter_value is not None, f"starter audit input missing: {key}"
+        assert consumer_value is not None, f"canonical consumer input missing: {key}"
+        assert starter_value == consumer_value, f"consumer input drift: {key}"
 
     assert 'LLM_API_KEY: ""' in workflow
     assert 'OPENAI_API_KEY: ""' in workflow
@@ -266,9 +303,30 @@ def test_payment_starter_copy_harness_rejects_mutable_action_ref(tmp_path: Path)
     _copy_starter(consumer)
     workflow_path = consumer / ".github" / "workflows" / "mumei-audit.yml"
     workflow = workflow_path.read_text(encoding="utf-8")
-    workflow_path.write_text(workflow.replace(f"mumei-audit@{PIN}", "mumei-audit@develop"), encoding="utf-8")
+    workflow_path.write_text(
+        workflow.replace(
+            f"uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@{PIN}",
+            f"# stale comment mumei-audit@{PIN}\n"
+            "        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@develop",
+        ),
+        encoding="utf-8",
+    )
 
     with pytest.raises(AssertionError, match="immutable"):
+        validate_starter_copy(consumer)
+
+
+def test_payment_starter_copy_harness_rejects_input_moved_outside_audit_step(tmp_path: Path) -> None:
+    consumer = tmp_path / "consumer"
+    consumer.mkdir()
+    _copy_starter(consumer)
+    workflow_path = consumer / ".github" / "workflows" / "mumei-audit.yml"
+    workflow = workflow_path.read_text(encoding="utf-8")
+    mutated = workflow.replace("          language: python\n", "")
+    mutated = mutated.replace("  verify-downloaded-evidence:", "    language: python\n\n  verify-downloaded-evidence:")
+    workflow_path.write_text(mutated, encoding="utf-8")
+
+    with pytest.raises(AssertionError, match="starter audit input missing: language"):
         validate_starter_copy(consumer)
 
 
