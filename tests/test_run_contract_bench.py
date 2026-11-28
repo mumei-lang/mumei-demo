@@ -991,45 +991,30 @@ def test_prompt_template_change_marks_llm_results_stale(repo, monkeypatch):
     assert cb.prompt_hash() != before
 
 
-def test_port_prompt_teaches_source_faithfulness_without_variant_labels():
-    example = cb.PORT_SYSTEM.split("For example,", 1)[1]
-
-    assert "including failure behavior" in cb.PORT_SYSTEM
-    assert "do not guard it away" in cb.PORT_SYSTEM
-    assert "if b == 0" in cb.PORT_SYSTEM
-    assert "partial updates" in cb.PORT_SYSTEM
-    assert "buggy" not in example.lower()
-    assert "fixed" not in example.lower()
-    assert "correct answer" not in example.lower()
+def test_port_prompt_is_reverted_to_pre_v3_baseline():
+    assert cb.PROMPT_VERSION == 2
+    assert cb.prompt_hash() == "25086e50e3857bea"
+    assert cb.prompt_hash("llm-contract") == "109d8cebd20439df"
+    assert "do not guard it away" not in cb.PORT_SYSTEM
+    assert "For example," not in cb.PORT_SYSTEM
 
 
-def test_committed_baseline_prompt_hashes_are_exact_historical_metadata():
-    assert cb.PROMPT_VERSION == 3
-    assert cb.COMMITTED_BASELINE_PROMPT_HASHES == {
-        "llm": {"25086e50e3857bea"},
-        "mumei-llm": {"25086e50e3857bea"},
-        "llm-contract": {"109d8cebd20439df"},
-    }
-    current_hashes = {cb.prompt_hash(), cb.prompt_hash("llm-contract")}
-    assert not any(hashes & current_hashes for hashes in cb.COMMITTED_BASELINE_PROMPT_HASHES.values())
-
-
-def test_committed_baseline_prompt_hash_is_historical_but_unknown_hash_is_stale():
-    baseline_doc = {"arm": "mumei-llm", "model": "m", "prompt_hash": "25086e50e3857bea", "runs": [[]]}
+def test_current_prompt_hash_is_valid_but_unknown_hash_is_stale():
+    current_doc = {"arm": "mumei-llm", "model": "m", "prompt_hash": "25086e50e3857bea", "runs": [[]]}
     unknown_doc = {"arm": "mumei-llm", "model": "m", "prompt_hash": "0" * 16, "runs": [[]]}
 
-    assert cb.stale_records([], [baseline_doc]) == []
+    assert cb.stale_records([], [current_doc]) == []
     assert cb.stale_records([], [unknown_doc]) == ["mumei-llm (m): prompt changed"]
 
 
-def test_only_merge_still_rejects_historical_baseline_prompt_hash(repo, monkeypatch):
+def test_only_merge_rejects_noncurrent_prompt_hash(repo, monkeypatch):
     run_reference(repo, monkeypatch)
     (case,) = cb.load_cases()[0]
     provider = StubProvider(lambda m, s: '{"verdict": "holds"}')
     result = cb.run_llm_case(case, provider, "llm", 0, None, 5)
     path = cb.write_result("llm", provider.model, [[result]])
     doc = json.loads(path.read_text())
-    doc["prompt_hash"] = "25086e50e3857bea"
+    doc["prompt_hash"] = "0" * 16
     path.write_text(json.dumps(doc))
 
     with pytest.raises(SystemExit, match="another prompt"):

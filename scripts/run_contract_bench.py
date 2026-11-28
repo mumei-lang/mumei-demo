@@ -77,15 +77,7 @@ README_START, README_END = "<!-- contract-bench:start -->", "<!-- contract-bench
 LANGUAGES = ("python", "go", "rust", "typescript", "solidity")
 VARIANTS = ("buggy", "fixed")
 EXPECTED = {"buggy": "refuted", "fixed": "proven"}
-PROMPT_VERSION = 3
-# Exact hashes of the committed baseline artifacts recorded before the v3
-# source-faithfulness prompt. They are compatibility metadata for reading those
-# artifacts as historical evidence only; new runs always use prompt_hash().
-COMMITTED_BASELINE_PROMPT_HASHES = {
-    "llm": {"25086e50e3857bea"},
-    "mumei-llm": {"25086e50e3857bea"},
-    "llm-contract": {"109d8cebd20439df"},
-}
+PROMPT_VERSION = 2
 ARMS = ("mumei", "llm", "mumei-llm", "llm-contract")
 RATE_LIMIT_RETRIES = 8
 TRANSPORT_ERROR = "LLM request failed"
@@ -108,13 +100,6 @@ LLM_SYSTEM = (
 PORT_SYSTEM = (
     "You translate one function into the Mumei language so that it can be checked against a fixed contract. "
     "Translate the function as it is written, including any mistakes; do not repair it and do not change the contract. "
-    "Preserve the source's observable behavior, including failure behavior, partial updates, return paths, and success or error flags. "
-    "Do not introduce validation, clamping, fallback or error returns, early returns, or success/failure flag changes that are absent "
-    "from the source merely to satisfy the contract. If the source can divide by zero, index outside a collection, overflow or underflow, "
-    "dereference absent data, or otherwise fail observably, keep the same operation on the same control-flow path; do not guard it away. "
-    "For example, independent of any particular input function, if source code computes `a / b` and returns that value, write the same "
-    "division on the same path; do not write `if b == 0 { ... } else { a / b }`. If the source returns success with a computed value on "
-    "a path, preserve that success and value path even when it violates the contract. "
     "Follow the modelling notes. Mumei bodies are expressions: `let x = e;`, `if c { a } else { b }`, "
     "`while c invariant: I decreases: D { ... };`, struct literals `Name { field: e }`, calls to the prelude atoms. "
     "Reply with JSON only: {\"body\": \"<the statements that go inside body: { ... }>\"}."
@@ -935,9 +920,7 @@ def stale_records(cases: list[dict], results: list[dict]) -> list[str]:
     by_id = {c["id"]: c for c in cases}
     out = []
     for doc in results:
-        recorded_hash = doc.get("prompt_hash")
-        historical_baseline = recorded_hash in COMMITTED_BASELINE_PROMPT_HASHES.get(doc["arm"], set())
-        if doc["arm"] != "mumei" and recorded_hash != prompt_hash(doc["arm"]) and not historical_baseline:
+        if doc["arm"] != "mumei" and doc.get("prompt_hash") != prompt_hash(doc["arm"]):
             out.append(f"{doc['arm']} ({doc.get('model')}): prompt changed")
         label = f"{doc['arm']} ({doc.get('model') or 'reference'})"
         for n, run in enumerate(doc["runs"], 1):
