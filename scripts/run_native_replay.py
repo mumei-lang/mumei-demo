@@ -209,7 +209,7 @@ def drivers_hash() -> str:
 
 
 # Results of other arms that live next to a specimen's code but are not part of it.
-NOT_NATIVE_CODE = {"audit", "baselines", "llm_only", "__pycache__", "node_modules", "target", "out"}
+NOT_NATIVE_CODE = {"audit", "baselines", "llm_only", "__pycache__", "node_modules", "target", "out", "DEFECTS.json"}
 
 
 def specimen_hash(language: str, specimen: str) -> str:
