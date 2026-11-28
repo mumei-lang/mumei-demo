@@ -25,6 +25,10 @@ def test_output_equivalence_coverage_buckets_are_mutually_exclusive() -> None:
     assert coverage_report.bucket(gate, {"outcome": "proven"}) == "bounded_finite_agreement"
 
     gate = {"output_equivalence": {"outcome": "inconclusive", "status": "success",
+                                   "reason": "error_branch_bounded_interactions_matched"}}
+    assert coverage_report.bucket(gate, {"outcome": "proven"}) == "bounded_finite_agreement"
+
+    gate = {"output_equivalence": {"outcome": "inconclusive", "status": "success",
                                    "reason": "helper_body_valid_domain_matched"}}
     assert coverage_report.bucket(gate, {"outcome": "proven"}) == "helper_valid_domain_agreement"
 

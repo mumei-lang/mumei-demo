@@ -400,7 +400,7 @@ def apply_port_fidelity_gate(case: dict, body: str, result: dict, mumei_bin: str
     # guard-shape lint. Neither replay nor output equality is represented as a
     # formal refutation of the candidate.
     blocked = fidelity_gate_blocked(blocking, semantic, equivalence, variant)
-    gate = {"schema": "mumei-demo.port-fidelity-gate/v16", "detector_version": fidelity.DETECTOR_VERSION,
+    gate = {"schema": "mumei-demo.port-fidelity-gate/v17", "detector_version": fidelity.DETECTOR_VERSION,
             "variant": variant,
             "decision": "blocked" if blocked else "accepted",
             "lint_findings": linted, "blocking_lint_findings": blocking,
@@ -1043,7 +1043,8 @@ def render_markdown(rows: list[dict], results: list[dict], stale: list[str]) -> 
             "while observed divergence blocks. Loop-containing bodies do not use solver "
             "equality because invariant abstraction can manufacture false differences. Committed bounded inputs instead execute reference and "
             "candidate natively with isolated input bindings; observed divergence blocks, while finite agreement remains inconclusive rather than "
-            "universal equality evidence. Native bounded interaction is fail-closed behind a two-GiB `prlimit` "
+            "universal equality evidence. Committed success/error inputs can also adjudicate a reference-domain error branch; a verifiably defined "
+            "candidate there is diagnostic behavioral divergence, while unresolved candidate definedness remains inconclusive. Native bounded interaction is fail-closed behind a two-GiB `prlimit` "
             "address-space limit, and its wall time is recorded as interaction evidence cost, not verifier-only "
             "measurement. Confirming replay, matched exact output or boundary-only output overrides guard-shape "
             "and success-flag lint-only warnings; exact result-state guard folding remains blocking unless output comparison shows no meaningful divergence. Added or removed "
@@ -1475,7 +1476,7 @@ def rescore_port_fidelity(cases: list[dict], mumei_bin: str, timeout: int) -> di
                         blocked += new_result.get("fidelity_gate", {}).get("decision") == "blocked"
         if changed:
             doc["fidelity_rescore"] = {
-                "schema": "mumei-demo.port-fidelity-gate/v16",
+                "schema": "mumei-demo.port-fidelity-gate/v17",
                 "rescored_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
                 "replay_verifier": verifier_identity(mumei_bin),
                 "rescored_rows": doc_gated,
