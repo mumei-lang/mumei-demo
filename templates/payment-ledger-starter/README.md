@@ -1,10 +1,20 @@
 # Payment/ledger audit starter
 
-This directory is a repo-root-shaped starter for the first existing-code audit gate. Copy its contents into a throwaway consumer repository root, preserving the `.github` directory, then open a pull request. The included workflow audits a small stdlib-only Python payment/ledger fixture, uploads the evidence artifact, downloads that artifact in a separate job, and verifies the downloaded artifact without re-running proof certificates.
+This directory is a repo-root-shaped starter for the first existing-code audit gate. Copy its contents into a throwaway consumer repository root, preserving the `.github` directory, then open a pull request. From a `mumei-demo` checkout, one copy command is:
+
+```bash
+cp -a templates/payment-ledger-starter/. /path/to/consumer-repo/
+```
+
+The `.github` directory is hidden by default in many file browsers and shell listings; confirm that `.github/workflows/mumei-audit.yml` exists in the consumer repository before opening the pull request. The included workflow audits a small stdlib-only Python payment/ledger fixture, uploads the evidence artifact, downloads that artifact in a separate job, and verifies the downloaded artifact without re-running proof certificates.
+
+This README is the minimal starter runbook. The [GitHub Actions CI reference](https://github.com/mumei-lang/mumei-demo/blob/main/docs/CI_REFERENCE.md) is the canonical detailed reference for artifact entries, step outputs, baseline operation, migration states, and evidence boundaries.
 
 ## Ten-minute path
 
 A maintainer can reach **evidence generation and review-handoff confirmation** in about ten minutes on a small repository. That does not mean the human migration review is complete in ten minutes; reviewing the candidate contract and deciding whether to migrate remains human work. The first uncached run can also take longer while Python, uv dependencies, and the mumei installer are populated.
+
+This is a GitHub Actions CI-first path. The composite action provisions Python, uv, and the mumei toolchain on the runner; the consumer workstation does not need Rust, Z3, LLVM, or sibling `mumei` repositories. `make setup` in `mumei-demo` is maintainer setup for developing that repository, not a consumer prerequisite, and full local reproduction of composite-action artifact semantics is outside this ten-minute path.
 
 Expected fixture-smoke result:
 
@@ -15,6 +25,10 @@ Expected fixture-smoke result:
 - the strict downloaded-artifact verification job passes.
 
 `blocked` is retained review evidence, not an operational failure of the action.
+
+The starter passes `--fail-on high-confidence`. A passing audit means only that no non-suppressed high-confidence code evidence failed the gate; it does not mean that there are no findings, no model limitations, or proof success. Audit exit `1` is finding-policy failure after a completed audit, while exit `2` is operational or extraction failure. See the [baseline and fail-on reference](https://github.com/mumei-lang/mumei-demo/blob/main/docs/CI_REFERENCE.md#baseline-and-fail-on-operation) before tuning the gate.
+
+The downloaded-artifact verification job is positive-path fixture smoke. Because it depends on the audit job, GitHub Actions can skip it when the audit job fails; in that case inspect any uploaded `mumei-audit-evidence` artifact manually rather than treating the skipped smoke as artifact validation.
 
 ## Required inputs and permissions
 
@@ -46,9 +60,9 @@ The fixture smoke is intentionally narrow. After it proves the path in a throwaw
 
 ## Baseline and review handoff
 
-`audit-baseline.json` is input policy in `mumei.audit-baseline/v1` format. The starter begins with an empty fingerprint list. `--write-baseline` refreshes `.mumei-audit/generated-baseline.json` in every run. Review that artifact, and only commit it as `audit-baseline.json` when the suppressed fingerprints are accepted as repository policy. Baseline suppression is CI policy, not evidence, and should receive explicit human review; protecting it with CODEOWNERS is recommended for production adoption.
+`audit-baseline.json` is input policy in `mumei.audit-baseline/v1` format. The starter begins with an empty fingerprint list. `--write-baseline` refreshes `.mumei-audit/generated-baseline.json` in the runner workspace on every run; it does not update the committed input baseline automatically. In the downloaded evidence artifact, review the root `generated-baseline.json` entry. Only after a human accepts those suppressions as repository policy, copy that reviewed content into `audit-baseline.json` and commit it. Baseline suppression is CI policy, not evidence, and should receive explicit human review; protecting it with CODEOWNERS is recommended for production adoption.
 
-Review `migration-execution/migration_execution.json`, `migration-execution/status.json`, and copied files under `migration-execution/generated-artifacts/` before acting on a migration candidate. Treat `ready_for_human_review` as a review queue, not permission to merge generated code. Treat `blocked` as retained evidence gaps for a human.
+Review `migration-execution/migration_execution.json`, `migration-execution/status.json`, and copied files under `migration-execution/generated-artifacts/` before acting on a migration candidate. Paths embedded inside `migration_execution.json` are runner/workspace provenance, not portable links in the downloaded artifact; use the copied companion files instead. Treat `ready_for_human_review` as a review queue, not permission to merge generated code. Treat `blocked` as retained evidence gaps for a human.
 
 For the payment fixture, review at least:
 
@@ -60,6 +74,6 @@ For the payment fixture, review at least:
 
 Migration execution evidence is generated `.mm` acceptance evidence only. It is not proof that the host-language Python implements the same behavior. `contract_erosion`, when present in the pinned artifact, is additive tool-execution provenance rather than proof acceptance; `skipped_no_change` is explicit not-checked evidence, not success evidence.
 
-The artifact verifier applies to artifacts produced with migration execution output and baseline generation enabled. It checks accidental corruption, missing files, count mismatches, path/hash mismatches, hidden companion loss, and role boundaries in the downloaded action artifact. After the pinned script is fetched, verification reads only local artifact files. It is an offline corruption/consistency check, not a malicious-tamper trust anchor, and it does not independently re-run proof certificates.
+The artifact verifier applies to artifacts produced with migration execution output and baseline generation enabled. It checks accidental corruption, missing files, count mismatches, path/hash mismatches, hidden companion loss, and role boundaries in the downloaded action artifact. After the pinned script is fetched, verification reads only local artifact files. It is an offline corruption/consistency check, not a malicious-tamper trust anchor. It does not establish artifact producer authenticity, does not prove host-language semantic equivalence, and does not independently re-run proof certificates or otherwise guarantee proof correctness.
 
 Native distribution verification is a later stage for trusted `.mm` native bundles. Exact bundle layout and trusted build-ID validation intentionally are not part of this starter; see the [native distribution verification reference](https://github.com/mumei-lang/mumei-demo/blob/main/docs/CI_REFERENCE.md#native-distribution-verification-reference) only after the audit/migration adoption path is working.
