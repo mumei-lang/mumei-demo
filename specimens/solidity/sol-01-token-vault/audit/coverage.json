@@ -5,12 +5,12 @@
   "audit_markdown_exit_code": 0,
   "verification_status": "verified",
   "files_audited": 4,
-  "files_with_issues": 1,
+  "files_with_issues": 2,
   "counts": {
     "total": 10,
-    "detected": 2,
+    "detected": 3,
     "function_flagged": 2,
-    "missed": 6
+    "missed": 5
   },
   "defects": [
     {
@@ -30,8 +30,10 @@
       "category": "integer-underflow",
       "class": "vulnerability",
       "in_target_category": true,
-      "status": "missed",
-      "findings": []
+      "status": "detected",
+      "findings": [
+        "Solidity function `transferFrom` performs arithmetic inside an `unchecked` block that relies on an unchecked arithmetic bounds invariant"
+      ]
     },
     {
       "id": "SOL01-D03",
@@ -148,11 +150,17 @@
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `sharePrice`",
       "status": "unreviewed"
+    },
+    {
+      "file": "src/VaultToken.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `transferFrom` performs arithmetic inside an `unchecked` block that relies on an unchecked arithmetic bounds invariant",
+      "status": "defect_evidence"
     }
   ],
   "finding_counts": {
-    "total": 4,
-    "defect_evidence": 2,
+    "total": 5,
+    "defect_evidence": 3,
     "real": 1,
     "false_positive": 0,
     "unreviewed": 1
@@ -169,12 +177,12 @@
   "input_hash": "3928c3e8e82cf9bac5aceb4fefa666ea8b203cd7b9fa9e760df7d4f72a2f84ce",
   "defect_catalog_hash": "9414f96ecc6ebf1543e8cb7eb84654da3b386ad0092f34bfa4b3ee9c03b4480e",
   "meta": {
-    "mumei_agent_commit": "4da122661693e1f496665acad023c9f2cc83211e",
+    "mumei_agent_commit": "602404277af9ba6c0a6031efe800c517f1ddc93c",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
-    "mumei_version": "mumei 0.6.23",
+    "mumei_version": "mumei 0.7.1",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T09:22:45Z"
+    "generated_at": "2026-11-28T11:12:20Z"
   },
   "fixed": {
     "defects": 10,

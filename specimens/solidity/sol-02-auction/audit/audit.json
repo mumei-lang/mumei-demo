@@ -11,6 +11,7 @@
       "verification_status": "refuted",
       "spec_health_issues": [],
       "verification_violations": [
+        "Solidity function `init` performs arithmetic inside an `unchecked` block that relies on an unchecked arithmetic bounds invariant",
         "Solidity function `init` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
         "Solidity function `bid` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)",
         "Solidity function `withdraw` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)",
@@ -52,13 +53,25 @@
       "scheduled_verification": null,
       "scheduled_verification_check": null,
       "finding_counts": {
-        "code": 6,
+        "code": 7,
         "confirmed": 0,
         "spec": 0,
         "model_limitations": 0,
         "errors": 0
       },
       "findings": [
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "code",
+          "severity": "error",
+          "confidence": "medium",
+          "verification_basis": "deterministic-static-analysis",
+          "message": "Solidity function `init` performs arithmetic inside an `unchecked` block that relies on an unchecked arithmetic bounds invariant",
+          "source_file": "specimens/solidity/sol-02-auction/src/EnglishAuction.sol",
+          "line": null,
+          "triage_bucket": "code_review",
+          "fingerprint": "7b94cc982a13398ccc63b69d381f085a34b07e9544a12c1d078fcc5d47d2e53e"
+        },
         {
           "schema": "mumei.audit-findings/v1",
           "category": "code",
@@ -160,7 +173,7 @@
       },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-28T09:23:40.323979Z",
+        "timestamp": "2026-11-28T11:13:33.835673Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-02-auction/src/EnglishAuction.sol",
@@ -168,9 +181,9 @@
           {
             "name": "bid_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "adf16f5897af85855dcc993fdb429b9d19e48cdb30c93b1efa57cc16bc8e1659",
+            "content_hash": "9dc067bd7e7c226bc23db29fbd408c0ab38e830ed640045dc5f128eb6a96b7b5",
             "status": "unknown",
-            "proof_hash": "20d7a8d08c3446fe27d5e39b25a2c2c3bdda45f0ae1fac2ab52fe24373a3bf01",
+            "proof_hash": "d88f54e87e725cfee4b9eea788dd14a683847057f621ef7436476060e7fb6962",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -221,9 +234,9 @@
           {
             "name": "withdraw_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "30c6d311104884da334d0179537f678802427741abce30172b18cffad967d020",
+            "content_hash": "1b4b48d7bf1aa669623ab0ce9d3053f4d33d0d5225a20b92cd7cc3d3ffac9b7c",
             "status": "unknown",
-            "proof_hash": "034246f29d9130182d0979c58fbe26f0eb3bd35c0578f8bcc2a1b49f7006b1cf",
+            "proof_hash": "03a5f231b96059f3442e4e4b0e5df0d84c1d5df25c9d118786a0881b64762499",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -274,9 +287,9 @@
           {
             "name": "finalize_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "9fddb28324034acba88e8ef3e503bc600dfe27c63ac77a21680f3dad266320e9",
+            "content_hash": "21ea19dc8587edd11f03806cc6b1689f8758da8c1ca8ffcc954022adf8619335",
             "status": "unknown",
-            "proof_hash": "9fa1b8c9a8580581a4003c9cdbe82c553722970d687e8f44c390c69329c033e3",
+            "proof_hash": "6e9f702640fd6f8ef627621894263658bb6e499b468540d848580231fe518027",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -327,9 +340,9 @@
           {
             "name": "drawEarlyBirdBonus_guard_trace",
             "z3_check_result": "unknown",
-            "content_hash": "c4a2bf0e35eeae5eadfd2bdef0979bc1a03b8cbce8ce86c48b01d2cfda3da9b8",
+            "content_hash": "1cc99f78d3950aafc48033c52cf9a65482d4dc33afbe2e71aee5d9c398c881ce",
             "status": "unknown",
-            "proof_hash": "da6b20c5524d51b7ec3a7e2ffa85efe41e7b0e693f15fb4d4988e48ffa07cb7d",
+            "proof_hash": "5d97360e4b2a445a9ffe81198b4109bce62484f6ed1b9fe09179f278c4050def",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -380,9 +393,9 @@
           {
             "name": "init_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "d570370b5a80060798d61e7088bba2f744d95f04424cac5f86472b4f36f73b5f",
+            "content_hash": "4cf0167fecb928b2f9eccd41c53f023f464e316171a25343f95e08898d080789",
             "status": "unknown",
-            "proof_hash": "b5b388767599e8b95eb5548ffb2f61e7d3192d68c4bbf5fc28e2c667e2192e9d",
+            "proof_hash": "34e08ec66618c98547edcc57103afebd520ed52bded145831edb505f568f3173",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -433,9 +446,9 @@
           {
             "name": "bid_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "5fe20d38090839e7299d7da67fafee365590b6b3932f9b11fb09ec4615e42662",
+            "content_hash": "48fd0edba5515b9cd4532938e9b0f244f8cf1bf437c5ada6b0a0d7c6deeb4c2b",
             "status": "unknown",
-            "proof_hash": "91aa7e42391ba4ba6746eba6cc4dee9df70b74883dd96c739ac5192912c0db1b",
+            "proof_hash": "4abb6bbc2734e6725e26d58f7e3dd3fdf0c6144ce25e0b63ef0539e664e4b3fe",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -486,9 +499,9 @@
           {
             "name": "cancelBid_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "630c4b8bc81af4118e7cdaed5e2ed49e4bf3718fe2ea3f29016773de633f7543",
+            "content_hash": "2fe57fc78497be462a8b7365c85b5da2c690012238229a2ca4c7cc5400b4194a",
             "status": "unknown",
-            "proof_hash": "5fb6a36febe0c4cc8dad612e5b5dbf11f0ec5efc6c9808a849d16b9fad8925ce",
+            "proof_hash": "a891bbde87041e36a92371c1c2bffb5a5fb96b26be894a2545b79c8304c0ff5a",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -539,9 +552,9 @@
           {
             "name": "withdraw_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "d889e6cfd305c6761ea478a98ff3d4163caf5eb3c2c4103e83462c4d405aecba",
+            "content_hash": "ba98ceb5e7d8e5582526bf10b04e8f579790c8d96ce111651cf7b7d7408d4112",
             "status": "unknown",
-            "proof_hash": "d00d803f5283978efc2f984c4b52231c07ec5566e2d9ed9593fb663ccf99fd8f",
+            "proof_hash": "cf1273acb44588fc3aff6a46e9179d64fb4024b4f632b694422c209a34e473a0",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -592,9 +605,9 @@
           {
             "name": "fundBonus_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "93d00f328984607474b70d615d16dde084daa75264812671194eeeec313ba841",
+            "content_hash": "c89888a35bd791163c8ec647e13d58f4c81e0b4acaa0aaae4a14616acac1e513",
             "status": "unknown",
-            "proof_hash": "292ff4cb68accd84620ec0b25b06eeadd9a359aa556a7b362cee28104f878973",
+            "proof_hash": "33d026032049095077f6a2dff837d9b006df3363d4ae719bbc52f134d1afb65c",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -645,9 +658,9 @@
           {
             "name": "drawEarlyBirdBonus_access_control",
             "z3_check_result": "unknown",
-            "content_hash": "dc00b63b8ee8348da92701f72e85ba97762d91acb2498c711b89e0e723cdbb34",
+            "content_hash": "d31558a2f65a8d5222c7319f37ec1e88f6688e362ca43bbdf47e474e7f05c529",
             "status": "unknown",
-            "proof_hash": "fe64c1d430169369b691def52a8731584bc2290c91d14ab7f955a55482797c36",
+            "proof_hash": "3479f0dd181448febf7987a35a5f5ce0a81d345867d5cbb45601b666532d3901",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -698,9 +711,9 @@
           {
             "name": "bid_cei",
             "z3_check_result": "unknown",
-            "content_hash": "ea2089809c8840b9481161d921069ff37ecdf5b6f68f853ff0a7febb35117434",
+            "content_hash": "0c84908c18163041280f4b7bd2fd3ff06cdff153102b8b4403e9dcb10841d14d",
             "status": "unknown",
-            "proof_hash": "2ef2c23e5ec64bb4621d90e2ee5bb93281ac90ff7e09e18539c10bc4767c9242",
+            "proof_hash": "a4ae7440dfbf2d96ad0ef2b210cd2ebdd5078bfb0402ce711927daccae2a7568",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -757,9 +770,9 @@
           {
             "name": "withdraw_cei",
             "z3_check_result": "unknown",
-            "content_hash": "3b2298ab288af4ba4cd3c1b5e12643ced6364cfcf3532783cace3e5454271bc3",
+            "content_hash": "2353b96ffd7c6557725c8b41607119714ce22c172c46e5d565a103fa1de3d543",
             "status": "unknown",
-            "proof_hash": "1fed63639d4c829cf1a4c22d023341eed8fa30e95c367d4e81b6a4e37e0d1e5c",
+            "proof_hash": "c220918ad5c8ebc78b846a17ccae5e1069c1ea87e721fb9908e4d1f49996cbbf",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -812,9 +825,9 @@
           {
             "name": "drawEarlyBirdBonus_cei",
             "z3_check_result": "unknown",
-            "content_hash": "f6831fbe7d42409c3d799ef14c239c5a3fd650634acebc1cc3248d856376994f",
+            "content_hash": "32a437ea087deed0e660dd8cecf96648aff1be3655455cff8619d3dabb565421",
             "status": "unknown",
-            "proof_hash": "f87c5e5cc96220937dabc588cc4a73f2f949e65844b577b37aa2603805438354",
+            "proof_hash": "8bce1cbdffc2fabca081f77fe8c7c628d561f4e00beaac4ed5509a6eb037a8e3",
             "requires": "true",
             "ensures": "true",
             "body_expr": "",
@@ -869,11 +882,11 @@
         ],
         "package_name": "EnglishAuction",
         "package_version": "0",
-        "certificate_hash": "cf17a7d5448dfc37cc6b1b6995bf8c9f8ae1495de873804eca3a5f0dfbf484d3",
+        "certificate_hash": "b47b3de883578256295b22a78ffa4509a3a98eb468a2a27ae0f15cf49d079f28",
         "all_verified": false
       },
       "lean_bridge": null,
-      "report": "Audit found issues: specimens/solidity/sol-02-auction/src/EnglishAuction.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: refuted\nspec_health_issues: []\nverification_violations: ['Solidity function `init` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `bid` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)', 'Solidity function `withdraw` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)', 'Solidity function `drawEarlyBirdBonus` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)', 'Solidity function `drawEarlyBirdBonus` derives random winner selection from predictable block entropy at line 137', 'Z3 Counter-example: reentrancy_trace=[\\'externalCall: (bool refunded, ) = highestBidder.call{value: highestBid}(\"\");\\', \\'stateWrite: highestBidder\\'], guard=absent']\ncounterexample_values: [{'function_name': 'bid', 'counterexample': {'reentrancy_trace': ['externalCall: (bool refunded, ) = highestBidder.call{value: highestBid}(\"\");', 'stateWrite: highestBidder'], 'guard': 'absent'}}]\ncross_validation_gaps: []\nfinding_counts: code=6, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, minNextBid.requires, minNextBid.ensures, bid.requires, bid.ensures, cancelBid.requires, cancelBid.ensures, withdraw.requires, withdraw.ensures, hasEnded.requires, hasEnded.ensures, finalize.requires, finalize.ensures, earlyBirdCount.requires, earlyBirdCount.ensures, fundBonus.requires, fundBonus.ensures, drawEarlyBirdBonus.requires, drawEarlyBirdBonus.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit found issues: specimens/solidity/sol-02-auction/src/EnglishAuction.sol\nlanguage: solidity\nspec_extracted: True\nverification_status: refuted\nspec_health_issues: []\nverification_violations: ['Solidity function `init` performs arithmetic inside an `unchecked` block that relies on an unchecked arithmetic bounds invariant', 'Solidity function `init` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless', 'Solidity function `bid` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)', 'Solidity function `withdraw` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)', 'Solidity function `drawEarlyBirdBonus` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)', 'Solidity function `drawEarlyBirdBonus` derives random winner selection from predictable block entropy at line 137', 'Z3 Counter-example: reentrancy_trace=[\\'externalCall: (bool refunded, ) = highestBidder.call{value: highestBid}(\"\");\\', \\'stateWrite: highestBidder\\'], guard=absent']\ncounterexample_values: [{'function_name': 'bid', 'counterexample': {'reentrancy_trace': ['externalCall: (bool refunded, ) = highestBidder.call{value: highestBid}(\"\");', 'stateWrite: highestBidder'], 'guard': 'absent'}}]\ncross_validation_gaps: []\nfinding_counts: code=7, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, minNextBid.requires, minNextBid.ensures, bid.requires, bid.ensures, cancelBid.requires, cancelBid.ensures, withdraw.requires, withdraw.ensures, hasEnded.requires, hasEnded.ensures, finalize.requires, finalize.ensures, earlyBirdCount.requires, earlyBirdCount.ensures, fundBonus.requires, fundBonus.ensures, drawEarlyBirdBonus.requires, drawEarlyBirdBonus.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -943,14 +956,14 @@
       },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-28T09:23:40.467457Z",
+        "timestamp": "2026-11-28T11:13:34.025667Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-02-auction/test/TestBase.sol",
         "atoms": [],
         "package_name": "TestBase",
         "package_version": "0",
-        "certificate_hash": "1679a032b4ea7bf96f8c5b7c6eb53ed451cc622ae341b02c3ac7d4b6a23b0d4e",
+        "certificate_hash": "0db6a0f4a406c6760fc09a01f26edfbd2b871b695a8578ceec4b777acc051dd3",
         "all_verified": false
       },
       "lean_bridge": null,
@@ -1024,14 +1037,14 @@
       },
       "proof_certificate": {
         "version": "1.0",
-        "timestamp": "2026-11-28T09:23:40.512239Z",
+        "timestamp": "2026-11-28T11:13:34.094020Z",
         "mumei_version": "agent",
         "z3_version": "Z3 version 4.16.0",
         "file": "specimens/solidity/sol-02-auction/test/Vm.sol",
         "atoms": [],
         "package_name": "Vm",
         "package_version": "0",
-        "certificate_hash": "0e3b0dacc1caed147c62f296d882557f817c7cc23b4dc7a43e28256e7bea249d",
+        "certificate_hash": "759558285507159dd12ad46aeac74ba692b7d5b8aa3a7e23b514df1d86372cd9",
         "all_verified": false
       },
       "lean_bridge": null,
@@ -1040,13 +1053,14 @@
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/solidity/sol-02-auction\n  src/EnglishAuction.sol: 6 violations, 0 gaps\n  test/TestBase.sol: 0 violations, 0 gaps\n  test/Vm.sol: 0 violations, 0 gaps\nSummary: 3 files, 1 file with issues, 0 files with spec diagnostics\nfinding_counts: code=6, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=1, verified=2, unverifiable=0\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, minNextBid.requires, minNextBid.ensures, bid.requires, bid.ensures, cancelBid.requires, cancelBid.ensures, withdraw.requires, withdraw.ensures, hasEnded.requires, hasEnded.ensures, finalize.requires, finalize.ensures, earlyBirdCount.requires, earlyBirdCount.ensures, fundBonus.requires, fundBonus.ensures, drawEarlyBirdBonus.requires, drawEarlyBirdBonus.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: panicCode.requires, panicCode.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deal.requires, deal.ensures, prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, warp.requires, warp.ensures, roll.requires, roll.ensures, load.requires, load.ensures, sign.requires, sign.ensures, addr.requires, addr.ensures, expectRevert.requires, expectRevert.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/solidity/sol-02-auction\n  src/EnglishAuction.sol: 7 violations, 0 gaps\n  test/TestBase.sol: 0 violations, 0 gaps\n  test/Vm.sol: 0 violations, 0 gaps\nSummary: 3 files, 1 file with issues, 0 files with spec diagnostics\nfinding_counts: code=7, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=1, verified=2, unverifiable=0\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: init.requires, init.ensures, minNextBid.requires, minNextBid.ensures, bid.requires, bid.ensures, cancelBid.requires, cancelBid.ensures, withdraw.requires, withdraw.ensures, hasEnded.requires, hasEnded.ensures, finalize.requires, finalize.ensures, earlyBirdCount.requires, earlyBirdCount.ensures, fundBonus.requires, fundBonus.ensures, drawEarlyBirdBonus.requires, drawEarlyBirdBonus.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: panicCode.requires, panicCode.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: deal.requires, deal.ensures, prank.requires, prank.ensures, startPrank.requires, startPrank.ensures, stopPrank.requires, stopPrank.ensures, warp.requires, warp.ensures, roll.requires, roll.ensures, load.requires, load.ensures, sign.requires, sign.ensures, addr.requires, addr.ensures, expectRevert.requires, expectRevert.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 3,
   "files_with_issues": 1,
   "files_with_spec_diagnostics": 0,
   "verification_status": "refuted",
   "spec_health_issues": [],
   "verification_violations": [
+    "src/EnglishAuction.sol: Solidity function `init` performs arithmetic inside an `unchecked` block that relies on an unchecked arithmetic bounds invariant",
     "src/EnglishAuction.sol: Solidity function `init` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
     "src/EnglishAuction.sol: Solidity function `bid` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)",
     "src/EnglishAuction.sol: Solidity function `withdraw` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)",
@@ -1084,13 +1098,25 @@
     }
   ],
   "finding_counts": {
-    "code": 6,
+    "code": 7,
     "confirmed": 0,
     "spec": 0,
     "model_limitations": 0,
     "errors": 0
   },
   "findings": [
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "code",
+      "severity": "error",
+      "confidence": "medium",
+      "verification_basis": "deterministic-static-analysis",
+      "message": "Solidity function `init` performs arithmetic inside an `unchecked` block that relies on an unchecked arithmetic bounds invariant",
+      "source_file": "specimens/solidity/sol-02-auction/src/EnglishAuction.sol",
+      "line": null,
+      "triage_bucket": "code_review",
+      "fingerprint": "7b94cc982a13398ccc63b69d381f085a34b07e9544a12c1d078fcc5d47d2e53e"
+    },
     {
       "schema": "mumei.audit-findings/v1",
       "category": "code",
