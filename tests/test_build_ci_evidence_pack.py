@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import runpy
 import subprocess
 import sys
 from pathlib import Path
@@ -1069,6 +1070,23 @@ def test_payment_golden_path_fixture_is_stdlib_only_and_focused() -> None:
     assert expected <= functions
     assert "amount_cents // recipient_count" in source
     assert "not a production-safe ledger" in source
+
+
+def test_payment_golden_path_fixture_arithmetic_is_deterministic() -> None:
+    namespace = runpy.run_path(str(SCENARIO_DIR / "reference" / "payment_ledger.py"))
+
+    opening = namespace["opening_accounts"]()
+    transferred = namespace["transfer_cents"](opening, "operating", "merchant", 2_500)
+    assert sum(transferred.values()) == sum(opening.values())
+    assert transferred["operating"] == 7_500
+    assert transferred["merchant"] == 2_500
+    assert namespace["fee_cents"](10_000, 25) == 25
+    assert namespace["split_cents"](9_975, 4) == 2_493
+    assert namespace["payout_summary"](10_000, 4, 25) == {
+        "fee_cents": 25,
+        "share_cents": 2_493,
+        "remainder_cents": 3,
+    }
 
 
 def test_golden_path_consumer_workflow_matches_documented_action_contract() -> None:
