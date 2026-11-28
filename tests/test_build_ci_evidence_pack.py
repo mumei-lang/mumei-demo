@@ -1068,7 +1068,7 @@ def test_golden_path_consumer_workflow_matches_documented_action_contract() -> N
     assert "cp scenarios/ci_evidence_pack/src/ledger.py src/ledger.py" in workflow
 
     for fragment in (
-        "Validate action outputs and rendered step summary",
+        "Validate action outputs and pre-publication summary markdown",
         "## Mumei audit",
         "### migration execution",
         "`--auto-migrate` was added automatically",
