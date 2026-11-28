@@ -60,7 +60,16 @@ fi
 
 echo "Installing mumei-agent dependencies"
 MUMEI_AGENT_PYTHON="$MUMEI_AGENT_REPO/.venv/bin/python"
-(cd "$MUMEI_AGENT_REPO" && python -m venv .venv && "$MUMEI_AGENT_PYTHON" -m pip install --upgrade pip && "$MUMEI_AGENT_PYTHON" -m pip install -r requirements.txt)
+(
+  cd "$MUMEI_AGENT_REPO"
+  python -m venv .venv
+  "$MUMEI_AGENT_PYTHON" -m pip install --upgrade pip
+  if [[ -f requirements.txt ]]; then
+    "$MUMEI_AGENT_PYTHON" -m pip install -r requirements.txt
+  else
+    "$MUMEI_AGENT_PYTHON" -m pip install -e ".[test]"
+  fi
+)
 
 cat > "$ROOT_DIR/repos.env" <<EOF
 MUMEI_REPO=$MUMEI_REPO

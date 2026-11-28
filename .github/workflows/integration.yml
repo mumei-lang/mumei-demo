@@ -52,7 +52,7 @@ jobs:
         run: pipx run ruff==0.17.6 check
       - name: Check Make is available for reference tests
         run: make --version
-      - run: python -m pytest tests/test_scenario_evidence.py tests/test_run_scenario.py tests/test_generate_report.py tests/test_evidence_regressions.py tests/test_review_charter_baseline.py tests/test_record_scenario.py tests/test_record_model_evidence.py tests/test_reference.py tests/test_build_ci_evidence_pack.py tests/test_payment_starter_template.py tests/test_verify_ci_evidence_pack.py tests/test_verify_distribution_reference.py -q --junitxml=reports/evidence-tests.xml
+      - run: python -m pytest tests/test_scenario_evidence.py tests/test_run_scenario.py tests/test_generate_report.py tests/test_evidence_regressions.py tests/test_review_charter_baseline.py tests/test_record_scenario.py tests/test_record_model_evidence.py tests/test_reference.py tests/test_build_ci_evidence_pack.py tests/test_payment_starter_template.py tests/test_verify_ci_evidence_pack.py tests/test_verify_distribution_reference.py tests/test_check_machine_tv_stability.py tests/test_setup_repos.py -q --junitxml=reports/evidence-tests.xml
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -118,6 +118,7 @@ jobs:
           shared-key: release
 
       - name: Build mumei
+        id: build-mumei
         run: cargo build --release --locked
         working-directory: mumei
       - name: Run output-equivalence oracle tests
@@ -194,6 +195,25 @@ jobs:
           MUMEI_LEAN_REPO: ${{ github.workspace }}/mumei-lean
           MUMEI_AGENT_REPO: ${{ github.workspace }}/mumei-agent
           MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
+      - name: Check focused machine-TV repeat stability
+        if: always() && steps.build-mumei.outcome == 'success'
+        working-directory: mumei-demo
+        env:
+          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
+        run: |
+          if [ ! -x "$MUMEI_BIN" ]; then
+            echo "machine-TV stability environment failure: built mumei binary is missing or not executable" >&2
+            exit 1
+          fi
+          python3 scripts/check_machine_tv_stability.py \
+            --mumei-bin "$MUMEI_BIN" \
+            --output-dir reports/machine-tv-stability
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: machine-tv-stability
+          path: mumei-demo/reports/machine-tv-stability/
+          if-no-files-found: ignore
       - name: Check synthetic evidence regressions against the real Charter run
         if: always()
         run: python scripts/check_evidence_regressions.py reports/charter_gate_demo/latest/result.json --out-dir reports/charter_regressions
