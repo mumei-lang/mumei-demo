@@ -52,7 +52,7 @@ jobs:
         run: pipx run ruff==0.17.6 check
       - name: Check Make is available for reference tests
         run: make --version
-      - run: python -m pytest tests/test_scenario_evidence.py tests/test_run_scenario.py tests/test_generate_report.py tests/test_evidence_regressions.py tests/test_review_charter_baseline.py tests/test_record_scenario.py tests/test_record_model_evidence.py tests/test_reference.py tests/test_build_ci_evidence_pack.py tests/test_payment_starter_template.py tests/test_verify_ci_evidence_pack.py tests/test_verify_distribution_reference.py -q --junitxml=reports/evidence-tests.xml
+      - run: python -m pytest tests/test_scenario_evidence.py tests/test_run_scenario.py tests/test_generate_report.py tests/test_evidence_regressions.py tests/test_review_charter_baseline.py tests/test_record_scenario.py tests/test_record_model_evidence.py tests/test_reference.py tests/test_build_ci_evidence_pack.py tests/test_payment_starter_template.py tests/test_verify_ci_evidence_pack.py tests/test_verify_distribution_reference.py tests/test_setup_repos.py -q --junitxml=reports/evidence-tests.xml
       - uses: actions/upload-artifact@v7
         if: always()
         with:
