@@ -42,7 +42,7 @@ Decision guide: use this composite-action path for the first ten-minute audit ga
                printf '%s\n' '{"version":"mumei.audit-baseline/v1","fingerprints":[]}' > audit-baseline.json
              fi
 
-         - uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@f18a9102946c7885d3d4fef7a88bfbcb0b4cb16c
+         - uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@eb6859642ecfcbe8d67f0426e19d71242df3bc5c
           # Keep the default deterministic/no-LLM path even when repository secrets exist.
            env:
              LLM_API_KEY: ""
@@ -112,7 +112,7 @@ Migration execution `blocked` and `ready_for_human_review` candidate states are 
 The composite action repository carries a small stdlib-only verifier for accidental artifact corruption, missing files, count mismatches, path/hash mismatches, and hidden companion loss. It applies to artifacts produced with `migration-execution-output` and `--write-baseline` enabled, as in the golden path above, and currently expects at least one blocked or ready migration candidate. An artifact from an audit run that omits migration execution, baseline generation, or migration candidates is outside this verifier's current contract and is expected to fail its required evidence checks. It is not a malicious-tamper trust anchor by itself and it does not independently re-run proof certificates. Pin it to the same immutable action commit, then run it against the downloaded artifact directory:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/f18a9102946c7885d3d4fef7a88bfbcb0b4cb16c/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
+curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/eb6859642ecfcbe8d67f0426e19d71242df3bc5c/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
   -o verify_audit_evidence_artifact.py
 python3 verify_audit_evidence_artifact.py /path/to/downloaded/mumei-audit-evidence
 ```

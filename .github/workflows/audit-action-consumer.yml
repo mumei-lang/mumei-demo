@@ -44,7 +44,7 @@ jobs:
 
       - name: Run documented deterministic audit action
         id: audit
-        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@f18a9102946c7885d3d4fef7a88bfbcb0b4cb16c
+        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@eb6859642ecfcbe8d67f0426e19d71242df3bc5c
         env:
           LLM_API_KEY: ""
           OPENAI_API_KEY: ""
@@ -110,7 +110,7 @@ jobs:
       - name: Fetch pinned consumer artifact verifier
         shell: bash
         run: |
-          curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/f18a9102946c7885d3d4fef7a88bfbcb0b4cb16c/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
+          curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/eb6859642ecfcbe8d67f0426e19d71242df3bc5c/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
             -o verify_audit_evidence_artifact.py
 
       - name: Verify downloaded golden-path artifact
