@@ -153,3 +153,32 @@ def test_stage_status_difference_is_not_reported_as_timing_only():
     assert stability.timing_only_stage_changes(doc) == 0
     doc["stage_changes"][0]["stage_differences"]["build"]["repeat_status"] = "ok"
     assert stability.timing_only_stage_changes(doc) == 1
+
+
+def test_same_outcome_diagnostic_change_is_not_an_outcome_transition():
+    doc = diff(outcome_transitions={"inconclusive->inconclusive": 1},
+               unresolved_group_transitions={"inconclusive->inconclusive": 1})
+    assert stability.stability_failures(doc, report(), report()) == []
+    assert stability.changed_transitions({"accepted->inconclusive": 1, "inconclusive->inconclusive": 2}) == {
+        "accepted->inconclusive": 1,
+    }
+
+
+def test_main_resolves_relative_output_dir_before_child_runs(monkeypatch, tmp_path):
+    seen = []
+
+    def fake_run(binary, output, jobs, timeout):
+        seen.append(output)
+        output.write_text(json.dumps(valid_report()))
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(stability, "run_benchmark", fake_run)
+    assert stability.main(["--mumei-bin", "/fake/mumei", "--output-dir", "relative-out"]) == 0
+    assert all(path.is_absolute() for path in seen)
+    assert (tmp_path / "relative-out/machine_tv_diff.json").is_file()
+
+
+def test_stability_step_runs_after_existing_integration_validation():
+    workflow = (stability.REPO_ROOT / ".github/workflows/integration.yml").read_text()
+    assert workflow.index("Run integrated demo scenarios") < workflow.index("Check focused machine-TV repeat stability")
+    assert workflow.index("Check separate record model and execution evidence") < workflow.index("Check focused machine-TV repeat stability")

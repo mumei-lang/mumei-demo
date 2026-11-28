@@ -45,6 +45,14 @@ def false_acceptances(report: dict) -> int:
     return total
 
 
+def changed_transitions(counts: dict) -> dict:
+    return {
+        transition: count
+        for transition, count in counts.items()
+        if transition.split("->", 1)[0] != transition.split("->", 1)[1]
+    }
+
+
 def stability_failures(diff: dict, base: dict, repeat: dict) -> list[str]:
     summary = diff["summary"]
     failures = []
@@ -52,10 +60,12 @@ def stability_failures(diff: dict, base: dict, repeat: dict) -> list[str]:
         failures.append("input identity changed between repeats")
     if summary.get("missing_in_base") or summary.get("missing_in_repeat"):
         failures.append("case presence changed between repeats")
-    if summary.get("outcome_transitions"):
-        failures.append(f"outcome transitions: {summary['outcome_transitions']}")
-    if summary.get("unresolved_group_transitions"):
-        failures.append(f"unresolved-group transitions: {summary['unresolved_group_transitions']}")
+    outcome_transitions = changed_transitions(summary.get("outcome_transitions", {}))
+    group_transitions = changed_transitions(summary.get("unresolved_group_transitions", {}))
+    if outcome_transitions:
+        failures.append(f"outcome transitions: {outcome_transitions}")
+    if group_transitions:
+        failures.append(f"unresolved-group transitions: {group_transitions}")
     if summary.get("stage_result_changes"):
         failures.append(f"stage result changes: {summary['stage_result_changes']}")
     for label, report in (("base", base), ("repeat", repeat)):
@@ -110,11 +120,12 @@ def main(argv: list[str]) -> int:
     if args.jobs < 1 or args.timeout < 1:
         print("--jobs and --timeout must be positive", file=sys.stderr)
         return 2
-    args.output_dir.mkdir(parents=True, exist_ok=True)
-    base_path = args.output_dir / "machine_tv_base.json"
-    repeat_path = args.output_dir / "machine_tv_repeat.json"
-    diff_path = args.output_dir / "machine_tv_diff.json"
-    summary_path = args.output_dir / "summary.md"
+    output_dir = args.output_dir.resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    base_path = output_dir / "machine_tv_base.json"
+    repeat_path = output_dir / "machine_tv_repeat.json"
+    diff_path = output_dir / "machine_tv_diff.json"
+    summary_path = output_dir / "summary.md"
     try:
         run_benchmark(args.mumei_bin, base_path, args.jobs, args.timeout)
         run_benchmark(args.mumei_bin, repeat_path, args.jobs, args.timeout)
@@ -138,7 +149,7 @@ def main(argv: list[str]) -> int:
         "false_acceptances": {"base": false_acceptances(base), "repeat": false_acceptances(repeat)},
         "failures": failures,
     }, indent=2, ensure_ascii=False))
-    print(f"Wrote {args.output_dir}")
+    print(f"Wrote {output_dir}")
     return 1 if failures else 0
 
 
