@@ -261,10 +261,13 @@ def meta(model: str) -> dict:
 
 
 def build_record(defects_doc: dict, model: str, runs: list[dict], reviews: list[dict],
-                 source_hash: str, generated_at: str) -> dict:
-    return {"specimen": defects_doc["specimen"], "language": defects_doc["language"],
-            **meta(model), "generated_at": generated_at, "source_hash": source_hash,
-            "runs": [score_run(defects_doc, r, reviews) for r in sorted(runs, key=lambda r: r["run"])]}
+                 source_hash: str, generated_at: str, provenance_data: dict | None = None) -> dict:
+    record = {"specimen": defects_doc["specimen"], "language": defects_doc["language"],
+              **meta(model), "generated_at": generated_at, "source_hash": source_hash,
+              "runs": [score_run(defects_doc, r, reviews) for r in sorted(runs, key=lambda r: r["run"])]}
+    if provenance_data is not None:
+        record.update(provenance_data)
+    return record
 
 
 def record_path(specimen_dir: Path, model: str) -> Path:
@@ -293,7 +296,7 @@ def run_specimen(specimen_dir: Path, provider: Provider, runs: int, reviews: lis
                      fixed_tool_errors=f["tool_errors"], fixed_usage=f["usage"])
         out.append(r)
     return build_record(defects_doc, provider.model, out, reviews, rb.baseline_hash(specimen_dir),
-                        generated_at)
+                        generated_at, rsa.provenance(specimen_dir))
 
 
 def rescore_record(specimen_dir: Path, model: str, reviews: list[dict]) -> dict:
@@ -308,7 +311,7 @@ def rescore_record(specimen_dir: Path, model: str, reviews: list[dict]) -> dict:
         raise SystemExit(f"{specimen_dir.name}: {path.name} was produced with {recorded}, "
                          f"but the current settings are {pinned}; run the LLM-only review again")
     current = rb.baseline_hash(specimen_dir)
-    if previous.get("source_hash") != current:
+    if rsa.raw_input_matches(previous, specimen_dir, rb.baseline_hash) is not True:
         raise SystemExit(f"{specimen_dir.name}: specimen changed since the LLM-only review; "
                          "run it again")
     if (specimen_dir / rsa.FIXED_PATCH).is_file() and any(
@@ -318,7 +321,8 @@ def rescore_record(specimen_dir: Path, model: str, reviews: list[dict]) -> dict:
     if not previous.get("runs"):
         raise SystemExit(f"{specimen_dir.name}: {path.name} has no runs; run the LLM-only review again")
     defects_doc = json.loads((specimen_dir / "DEFECTS.json").read_text(encoding="utf-8"))
-    return build_record(defects_doc, model, previous["runs"], reviews, current, previous["generated_at"])
+    return build_record(defects_doc, model, previous["runs"], reviews, current, previous["generated_at"],
+                        rsa.provenance(specimen_dir))
 
 
 def run_views(records: list[dict]) -> list[list[dict]]:

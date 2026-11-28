@@ -91,9 +91,16 @@ def tree(tmp_path, monkeypatch):
 def _patch_root(monkeypatch, root):
     monkeypatch.setattr(rl, "SPECIMENS_ROOT", root)
     monkeypatch.setattr(rsa, "audit_files", lambda d: sorted(
-        p for p in d.rglob("*") if p.is_file() and p.name != "fixed.patch"
+        p for p in d.rglob("*") if p.is_file() and p.name not in {"fixed.patch", rsa.DEFECT_CATALOG}
         and rl.OUT_DIR not in p.relative_to(d).parts))
     monkeypatch.setattr(rb, "baseline_hash", lambda d: "hash-" + d.name)
+    monkeypatch.setattr(rsa, "specimen_input_hash", lambda d: "input-" + d.name)
+    monkeypatch.setattr(rsa, "defect_catalog_hash", lambda d: "catalog-" + d.name)
+    monkeypatch.setattr(rsa, "provenance", lambda d: {
+        "provenance_version": rsa.PROVENANCE_VERSION,
+        "input_hash": "input-" + d.name,
+        "defect_catalog_hash": "catalog-" + d.name,
+    })
 
 
 def _main(root, *args, provider=None):
@@ -425,7 +432,7 @@ def test_rescore_round_trip_and_new_review(tree):
     ({"prompt_hash": "0" * 16}, "current settings"),
     ({"prompt_version": 0}, "current settings"),
     ({"temperature": 1}, "current settings"),
-    ({"source_hash": "old"}, "specimen changed"),
+    ({"input_hash": "old"}, "specimen changed"),
     ({"runs": []}, "no runs"),
 ])
 def test_rescore_refuses_stale_records(tree, change, match):
