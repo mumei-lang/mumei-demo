@@ -475,7 +475,7 @@ def test_ci_reference_quickstart_statically_covers_migration_action_contract() -
 
     uses = re.search(r"mumei-audit@(?<![0-9a-f])([0-9a-f]{40})(?![0-9a-f])", workflow)
     assert uses is not None, "quick start must pin an immutable full action commit"
-    assert uses.group(1) == "fb6aeefd47c169f150256e870e683b314ab06384"
+    assert uses.group(1) == "c9926778a94dcbde2c96bc6da6e67a928f82cf45"
 
     lines = workflow.splitlines()
     uses_index = next(index for index, line in enumerate(lines) if "mumei-audit@" in line)
@@ -1091,7 +1091,7 @@ def test_payment_golden_path_fixture_arithmetic_is_deterministic() -> None:
 def test_golden_path_consumer_workflow_matches_documented_action_contract() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
     doc = (REPO_ROOT / "docs" / "CI_REFERENCE.md").read_text(encoding="utf-8")
-    pin = "fb6aeefd47c169f150256e870e683b314ab06384"
+    pin = "c9926778a94dcbde2c96bc6da6e67a928f82cf45"
 
     assert f"mumei-audit@{pin}" in workflow
     assert f"mumei-audit@{pin}" in doc
@@ -1134,6 +1134,15 @@ def test_golden_path_consumer_workflow_matches_documented_action_contract() -> N
         "artifact-name: mumei-audit-evidence-baselined",
         "Validate baselined action outputs",
         "steps.audit-baselined.outputs.audit_exit_code",
+        "Active findings: `2`; suppressed by baseline: `0`",
+        "Active findings: `0`; suppressed by baseline: `2`",
+        "Suppressed by baseline (still reported, not deleted)",
+        "do not reflect baseline suppression policy",
+        "encoding-gap: fee_cents",
+        "spec precondition assumed",
+        "first-run-summary-files.txt",
+        'assert "/home/runner/work/" not in first_text',
+        'assert "/home/runner/work/" not in second_text',
     ):
         assert fragment in workflow
 
@@ -1145,7 +1154,7 @@ def test_golden_path_consumer_workflow_matches_documented_action_contract() -> N
 
 def test_golden_path_consumer_download_verification_is_strict_and_pinned() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
-    pin = "fb6aeefd47c169f150256e870e683b314ab06384"
+    pin = "c9926778a94dcbde2c96bc6da6e67a928f82cf45"
     download_job = workflow.split("  verify-downloaded-evidence:", 1)[1]
 
     assert "needs: documented-consumer-path" in download_job
@@ -1207,7 +1216,7 @@ def test_golden_path_consumer_download_verification_is_strict_and_pinned() -> No
 
 def test_ci_reference_documents_minimal_offline_action_verifier_path() -> None:
     doc = (REPO_ROOT / "docs" / "CI_REFERENCE.md").read_text(encoding="utf-8")
-    pin = "fb6aeefd47c169f150256e870e683b314ab06384"
+    pin = "c9926778a94dcbde2c96bc6da6e67a928f82cf45"
 
     assert "## Verifying a downloaded action artifact offline" in doc
     assert f"raw.githubusercontent.com/mumei-lang/mumei-agent/{pin}/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py" in doc

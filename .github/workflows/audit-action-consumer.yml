@@ -45,7 +45,7 @@ jobs:
 
       - name: Run documented deterministic audit action
         id: audit
-        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@fb6aeefd47c169f150256e870e683b314ab06384
+        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@c9926778a94dcbde2c96bc6da6e67a928f82cf45
         env:
           LLM_API_KEY: ""
           OPENAI_API_KEY: ""
@@ -92,6 +92,28 @@ jobs:
               "Consumer policy: candidate `operational_error` fails the action",
           ):
               assert fragment in summary_text, f"rendered step summary is missing {fragment!r}"
+
+          # Only the first (empty-baseline) audit has run at this point, so every
+          # Mumei audit summary file belongs to it. Record the filenames so the
+          # baselined validation can tell the two runs apart.
+          mumei_summaries = [
+              path for path in summaries
+              if "## Mumei audit" in path.read_text(encoding="utf-8", errors="replace")
+          ]
+          assert mumei_summaries, "no Mumei audit step summary found"
+          first_text = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in mumei_summaries)
+          for fragment in (
+              "### findings",
+              "Active findings: `2`; suppressed by baseline: `0`",
+              "encoding-gap: fee_cents",
+              "spec precondition assumed",
+              "do not reflect baseline suppression policy",
+              "src/payment_ledger.py",
+          ):
+              assert fragment in first_text, f"first-run summary is missing {fragment!r}"
+          assert "/home/runner/work/" not in first_text, "runner absolute path leaked into the summary"
+          state = Path(os.environ["RUNNER_TEMP"]) / "first-run-summary-files.txt"
+          state.write_text("\n".join(path.name for path in mumei_summaries) + "\n", encoding="utf-8")
           PY
 
       - name: Adopt generated baseline as input policy
@@ -104,7 +126,7 @@ jobs:
 
       - name: Run audit again with adopted baseline
         id: audit-baselined
-        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@fb6aeefd47c169f150256e870e683b314ab06384
+        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@c9926778a94dcbde2c96bc6da6e67a928f82cf45
         env:
           LLM_API_KEY: ""
           OPENAI_API_KEY: ""
@@ -127,12 +149,36 @@ jobs:
         run: |
           python3 - <<'PY'
           import os
+          from pathlib import Path
 
           # Exit 0 is expected in both runs and is not round-trip improvement
           # evidence; the verify job asserts suppression state instead.
           assert os.environ["AUDIT_EXIT_CODE"] == "0"
           assert os.environ["MIGRATION_STATUS"] == "emitted_by_audit_cli"
           assert os.environ["OPERATIONAL_ERROR_COUNT"] == "0"
+
+          # Identify the baselined run's Mumei audit summary files by excluding
+          # the filenames recorded after the first run.
+          state = Path(os.environ["RUNNER_TEMP"]) / "first-run-summary-files.txt"
+          first_names = set(state.read_text(encoding="utf-8").split())
+          summary_dir = Path(os.environ["RUNNER_TEMP"]) / "_runner_file_commands"
+          baselined_summaries = [
+              path for path in sorted(summary_dir.glob("step_summary_*"))
+              if path.name not in first_names
+              and "## Mumei audit" in path.read_text(encoding="utf-8", errors="replace")
+          ]
+          assert baselined_summaries, "no baselined Mumei audit step summary found"
+          second_text = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in baselined_summaries)
+          for fragment in (
+              "### findings",
+              "Active findings: `0`; suppressed by baseline: `2`",
+              "Suppressed by baseline (still reported, not deleted)",
+              "encoding-gap: fee_cents",
+              "do not reflect baseline suppression policy",
+              "src/payment_ledger.py",
+          ):
+              assert fragment in second_text, f"baselined summary is missing {fragment!r}"
+          assert "/home/runner/work/" not in second_text, "runner absolute path leaked into the baselined summary"
           PY
 
   verify-downloaded-evidence:
@@ -152,7 +198,7 @@ jobs:
       - name: Fetch pinned consumer artifact verifier
         shell: bash
         run: |
-          curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/fb6aeefd47c169f150256e870e683b314ab06384/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
+          curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/c9926778a94dcbde2c96bc6da6e67a928f82cf45/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
             -o verify_audit_evidence_artifact.py
 
       - name: Verify downloaded golden-path artifact
