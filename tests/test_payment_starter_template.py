@@ -345,7 +345,7 @@ def test_payment_starter_readme_preserves_review_and_evidence_boundaries() -> No
     assert "keeps checkout access while adding code-scanning access" in readme
     assert "CI policy, not evidence" in readme
     assert "add `--allow-zero-candidates`" in readme
-    assert "preserves artifact envelope, zero-count, schema, boundary, provenance, companion, hidden-file, and forbidden-literal validation" in readme
+    assert "preserves artifact envelope, zero-count, schema, boundary, provenance, companion, hidden-file, and configured forbidden-literal validation" in readme
     assert "an empty candidate list has no generated `.mm` candidate claims" in readme
     assert "nonzero candidate claims remain path/hash validated" in readme
     assert "Do not interpret zero candidates as proof failure or proof success" in readme
