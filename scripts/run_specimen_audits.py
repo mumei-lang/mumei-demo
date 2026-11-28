@@ -621,6 +621,16 @@ def provenance(specimen_dir: Path) -> dict:
     }
 
 
+def defect_catalog_matches(record: dict, specimen_dir: Path) -> bool | None:
+    """Whether scored rows match the current defect catalog.
+
+    Legacy artifacts have no catalog hash and rely on the full-specimen hash
+    check instead; None means no catalog provenance is available."""
+    if record.get("defect_catalog_hash") is None:
+        return None
+    return record["defect_catalog_hash"] == defect_catalog_hash(specimen_dir)
+
+
 def raw_input_matches(record: dict, specimen_dir: Path, legacy_hash=None) -> bool | None:
     """Whether a raw artifact matches the current raw input closure.
 

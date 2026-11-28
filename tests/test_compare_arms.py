@@ -539,6 +539,15 @@ def test_audit_arm_rejects_changed_specimen(tree, monkeypatch, llm):
         ca.load_audit_arm(rsa.discover(root), llm)
 
 
+def test_audit_arm_rejects_stale_defect_catalog(tree, monkeypatch):
+    root = _full(tree)
+    _, a, _ = tree
+    monkeypatch.setattr(rsa, "defect_catalog_hash", lambda d: "now")
+    _set(rsa.audit_dir(a, False) / "coverage.json", defect_catalog_hash="then")
+    with pytest.raises(SystemExit, match="defect catalog changed"):
+        ca.load_audit_arm(rsa.discover(root), False)
+
+
 def test_audit_arm_accepts_matching_hash(tree, monkeypatch):
     root = _full(tree)
     _, a, b = tree
@@ -554,6 +563,15 @@ def test_llm_arm_rejects_changed_specimen(tree, monkeypatch):
     monkeypatch.setattr(rlo.rb, "baseline_hash", lambda d: "now")
     _set(rlo.record_path(b, MODEL), source_hash="then")
     with pytest.raises(SystemExit, match="go-01-b: specimen changed since the LLM-only review"):
+        ca.load_llm_arm(rsa.discover(root), MODEL)
+
+
+def test_llm_arm_rejects_stale_defect_catalog(tree, monkeypatch):
+    root = _full(tree)
+    _, _, b = tree
+    monkeypatch.setattr(rsa, "defect_catalog_hash", lambda d: "now")
+    _set(rlo.record_path(b, MODEL), defect_catalog_hash="then")
+    with pytest.raises(SystemExit, match="defect catalog changed"):
         ca.load_llm_arm(rsa.discover(root), MODEL)
 
 
