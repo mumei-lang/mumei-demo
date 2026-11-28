@@ -138,18 +138,6 @@ jobs:
           fi
           "$GITHUB_WORKSPACE/.venv/bin/python" -m pip show openai
         working-directory: mumei-agent
-      - name: Validate verify-distribution reference fixture
-        working-directory: mumei-demo
-        env:
-          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
-          MUMEI_AGENT_PYTHON: ${{ github.workspace }}/.venv/bin/python
-        run: |
-          python3 scripts/check_verify_distribution_reference.py \
-            --mumei-bin "$MUMEI_BIN" \
-            --mumei-agent-python "$MUMEI_AGENT_PYTHON" \
-            --mumei-agent-repo "$GITHUB_WORKSPACE/mumei-agent" \
-            --source scenarios/native_observations_accept/src/main.mm \
-            --work-dir reports/verify_distribution/latest
       - name: Run integrated demo scenarios
         run: make demo-ci
         working-directory: mumei-demo
@@ -198,6 +186,18 @@ jobs:
         if: always()
         run: python scripts/check_evidence_regressions.py reports/charter_gate_demo/latest/result.json --out-dir reports/charter_regressions
         working-directory: mumei-demo
+      - name: Validate verify-distribution reference fixture
+        working-directory: mumei-demo
+        env:
+          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
+          MUMEI_AGENT_PYTHON: ${{ github.workspace }}/.venv/bin/python
+        run: |
+          python3 scripts/check_verify_distribution_reference.py \
+            --mumei-bin "$MUMEI_BIN" \
+            --mumei-agent-python "$MUMEI_AGENT_PYTHON" \
+            --mumei-agent-repo "$GITHUB_WORKSPACE/mumei-agent" \
+            --source scenarios/native_observations_accept/src/main.mm \
+            --work-dir reports/verify_distribution/latest
       - uses: actions/upload-artifact@v7
         if: always()
         with:
