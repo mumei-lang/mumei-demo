@@ -216,8 +216,8 @@ with `--run-fixed` it is applied to a scratch copy, where `run.sh` must pass and
 
 ![Detection over runs](scoreboard/history.svg)
 
-Latest run — no LLM: mumei-agent `6024042` · mumei `b777e8e` (mumei 0.7.1) · 2026-11-28T11:12:20Z
-Findings — no LLM: 49 (defect evidence 36, real 8, false positive 5, unreviewed 0) · precision 90%
+Latest run — no LLM: mumei-agent `fb6aeef` · mumei `b777e8e` (mumei 0.7.1) · 2026-11-28T11:51:20Z
+Findings — no LLM: 48 (defect evidence 36, real 8, false positive 4, unreviewed 0) · precision 92%
 Fixed variants — no LLM: 16 specimens (171 defects fixed) · 1 legacy false alarms in 1 findings on fixed code (0 code-evidence false alarms; 1 cross-validation spec diagnostic) · 0 defects still reported
 
 Latest run — with LLM (`openai/gpt-6-luna`): mumei-agent `e8be527` · mumei `36eb534` (mumei 0.6.23) · 2026-11-03T05:18:58Z
@@ -239,15 +239,15 @@ Recent runs:
 | Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected | Flagged % | Precision | False alarms on fixed code | Adjudication |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---|
 | 2026-11-03 (rescored 2026-11-28) | yes | `e8be527` | `36eb534` | 171 | 7% | 11/83 (13%) | 38% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
+| 2026-11-28 (rescored 2026-11-28) | no | `fb6aeef` | `b777e8e` | 171 | 21% | 35/83 (42%) | 29% | 92% | 1 / 16 specimens | complete |
+| 2026-11-28 | no | `fb6aeef` | `b777e8e` | 171 | 21% | 35/83 (42%) | 29% | 92% | 1 / 16 specimens | incomplete (0 unreviewed, 1 stale) |
+| 2026-11-03 (rescored 2026-11-28) | yes | `e8be527` | `36eb534` | 171 | 7% | 11/83 (13%) | 38% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
 | 2026-11-28 (rescored 2026-11-28) | no | `6024042` | `b777e8e` | 171 | 21% | 35/83 (42%) | 29% | 90% | 1 / 16 specimens | complete |
 | 2026-11-28 | no | `6024042` | `b777e8e` | 171 | 21% | 35/83 (42%) | 29% | 78%–96% | 1 / 16 specimens | incomplete (9 unreviewed, 0 stale) |
 | 2026-11-28 | no | `4da1226` | `b777e8e` | 171 | 19% | 32/83 (39%) | 29% | 76%–96% | 1 / 16 specimens | incomplete (9 unreviewed, 0 stale) |
 | 2026-11-28 | no | `41afb4d` | `b777e8e` | 171 | 18% | 29/83 (35%) | 26% | 74%–95% | 1 / 16 specimens | incomplete (9 unreviewed, 0 stale) |
 | 2026-11-28 | no | `b128577` | `b777e8e` | 171 | 16% | 26/83 (31%) | 25% | 72%–95% | 1 / 16 specimens | incomplete (9 unreviewed, 0 stale) |
 | 2026-11-28 | no | `6b87f34` | `b777e8e` | 171 | 13% | 22/79 (28%) | 23% | 69%–94% | 1 / 16 specimens | incomplete (9 unreviewed, 0 stale) |
-| 2026-11-28 (rescored 2026-11-28) | no | `eb68596` | `b777e8e` | 171 | 12% | 20/79 (25%) | 22% | 68%–94% | 1 / 16 specimens | incomplete (9 unreviewed, 0 stale) |
-| 2026-11-03 (rescored 2026-11-28) | yes | `e8be527` | `36eb534` | 171 | 7% | 11/79 (14%) | 38% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
-| 2026-11-03 (rescored 2026-11-28) | yes | `e8be527` | `36eb534` | 171 | 7% | 11/77 (14%) | 38% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
 
 Target-denominator note: this history mixes target definitions with 71 and 77 and 79 and 83 planted target defects; compare target percentages only within the same denominator. Versioned rows record the sorted `target_categories` and a `target_definition_hash`; rows without them are legacy unversioned entries and are not overwritten when the target definition changes.
 
@@ -325,7 +325,7 @@ with `python3 scripts/run_baselines.py --rescore`.
 
 | Analyzer | Detected | Precision | Fixed-code false alarms |
 |---|---|---|---|
-| Mumei (no LLM) | 36/171 (21%) | 90% | 1 / 16 specimens |
+| Mumei (no LLM) | 36/171 (21%) | 92% | 1 / 16 specimens |
 | bandit | 5/41 (12%) | 88% | 3 / 4 specimens |
 | clippy | 0/34 (0%) | n/a | 0 / 3 specimens |
 | gosec | 6/32 (19%) | 62% | 15 / 3 specimens |
