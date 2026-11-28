@@ -2,13 +2,136 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 from pathlib import Path
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 STARTER_DIR = REPO_ROOT / "templates" / "payment-ledger-starter"
 WORKFLOW_PATH = STARTER_DIR / ".github" / "workflows" / "mumei-audit.yml"
 README_PATH = STARTER_DIR / "README.md"
 PIN = "640d597ec60bf574d0102cae6b89054d47fd9f0f"
+
+
+def _workflow_input(text: str, key: str) -> str | None:
+    match = re.search(rf"^\s*{re.escape(key)}: ([^\n]+)$", text, re.M)
+    return match.group(1).strip() if match else None
+
+
+def _copied_files(root: Path) -> list[str]:
+    return sorted(str(path.relative_to(root)) for path in root.rglob("*") if path.is_file())
+
+
+def _copy_starter(destination: Path) -> None:
+    shutil.copytree(STARTER_DIR, destination, dirs_exist_ok=True)
+
+
+def validate_starter_copy(root: Path) -> None:
+    """Validate the copied starter shape and targeted consumer-input contract.
+
+    This is intentionally targeted text/shape validation, not YAML semantic
+    equivalence or GitHub Actions emulation.
+    """
+    assert _copied_files(root) == [
+        ".github/workflows/mumei-audit.yml",
+        "README.md",
+        "audit-baseline.json",
+        "src/payment_ledger.py",
+    ]
+
+    baseline = json.loads((root / "audit-baseline.json").read_text(encoding="utf-8"))
+    assert baseline == {"version": "mumei.audit-baseline/v1", "fingerprints": []}
+
+    workflow_path = root / ".github" / "workflows" / "mumei-audit.yml"
+    workflow = workflow_path.read_text(encoding="utf-8")
+    action_ref = re.search(r"mumei-audit@([^\s]+)", workflow)
+    verifier_pin = re.search(
+        r"raw\.githubusercontent\.com/mumei-lang/mumei-agent/([0-9a-f]{40})/"
+        r"\.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact\.py",
+        workflow,
+    )
+    assert action_ref is not None
+    assert verifier_pin is not None
+    assert re.fullmatch(r"[0-9a-f]{40}", action_ref.group(1)), "action pin must be immutable"
+    assert action_ref.group(1) == verifier_pin.group(1), "action and verifier pins diverged"
+    assert action_ref.group(1) == PIN
+
+    consumer = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
+    for key in (
+        "code-file",
+        "language",
+        "mumei-version",
+        "audit-args",
+        "migration-execution-output",
+        "artifact-name",
+        "upload-sarif",
+    ):
+        assert _workflow_input(workflow, key) == _workflow_input(consumer, key), f"consumer input drift: {key}"
+
+    assert 'LLM_API_KEY: ""' in workflow
+    assert 'OPENAI_API_KEY: ""' in workflow
+    assert "contents: read" in workflow
+    assert "actions: read" in workflow
+    assert re.search(r"^\s*security-events:", workflow, re.M) is None
+    for fragment in (
+        "--require-hidden-companion",
+        "--require-blocked-candidate",
+        "--require-generated-mm",
+        "Fixture smoke only",
+        "zero candidates",
+        "outside the current verifier contract",
+    ):
+        assert fragment in workflow
+
+    combined = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in root.rglob("*")
+        if path.is_file()
+    )
+    assert "fake-unused-llm-key" not in combined
+    assert re.search(r"(?i)(?:password|secret|token|api[_-]?key)[\w-]*\s*[:=]\s*[\"'][^\"'\s]{8,}", combined) is None
+
+
+def test_payment_starter_copy_shape_and_targeted_inputs_survive_repo_root_copy(tmp_path: Path) -> None:
+    consumer = tmp_path / "consumer"
+    consumer.mkdir()
+    _copy_starter(consumer)
+    validate_starter_copy(consumer)
+
+
+def test_payment_starter_copy_harness_rejects_pin_mismatch(tmp_path: Path) -> None:
+    consumer = tmp_path / "consumer"
+    consumer.mkdir()
+    _copy_starter(consumer)
+    workflow_path = consumer / ".github" / "workflows" / "mumei-audit.yml"
+    workflow = workflow_path.read_text(encoding="utf-8")
+    workflow_path.write_text(workflow.replace(f"mumei-audit@{PIN}", "mumei-audit@0123456789abcdef0123456789abcdef01234567"), encoding="utf-8")
+
+    with pytest.raises(AssertionError, match="pins diverged"):
+        validate_starter_copy(consumer)
+
+
+def test_payment_starter_copy_harness_rejects_hidden_github_loss(tmp_path: Path) -> None:
+    consumer = tmp_path / "consumer"
+    consumer.mkdir()
+    _copy_starter(consumer)
+    shutil.rmtree(consumer / ".github")
+
+    with pytest.raises(AssertionError):
+        validate_starter_copy(consumer)
+
+
+def test_payment_starter_copy_harness_rejects_audit_args_drift(tmp_path: Path) -> None:
+    consumer = tmp_path / "consumer"
+    consumer.mkdir()
+    _copy_starter(consumer)
+    workflow_path = consumer / ".github" / "workflows" / "mumei-audit.yml"
+    workflow = workflow_path.read_text(encoding="utf-8")
+    workflow_path.write_text(workflow.replace("--fail-on high-confidence", "--fail-on medium"), encoding="utf-8")
+
+    with pytest.raises(AssertionError, match="consumer input drift: audit-args"):
+        validate_starter_copy(consumer)
 
 
 def test_payment_starter_has_repo_root_layout() -> None:
@@ -135,3 +258,26 @@ def test_payment_fixture_is_canonical_in_starter_and_docs_reference_it() -> None
     consumer = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
     assert "templates/payment-ledger-starter/src/payment_ledger.py" in consumer
     assert "- templates/payment-ledger-starter/**" in consumer
+
+
+def test_payment_starter_copy_harness_rejects_mutable_action_ref(tmp_path: Path) -> None:
+    consumer = tmp_path / "consumer"
+    consumer.mkdir()
+    _copy_starter(consumer)
+    workflow_path = consumer / ".github" / "workflows" / "mumei-audit.yml"
+    workflow = workflow_path.read_text(encoding="utf-8")
+    workflow_path.write_text(workflow.replace(f"mumei-audit@{PIN}", "mumei-audit@develop"), encoding="utf-8")
+
+    with pytest.raises(AssertionError, match="immutable"):
+        validate_starter_copy(consumer)
+
+
+def test_payment_starter_copy_harness_rejects_secret_looking_literal(tmp_path: Path) -> None:
+    consumer = tmp_path / "consumer"
+    consumer.mkdir()
+    _copy_starter(consumer)
+    readme = consumer / "README.md"
+    readme.write_text(readme.read_text(encoding="utf-8") + '\nexample_token = "not-a-real-token"\n', encoding="utf-8")
+
+    with pytest.raises(AssertionError):
+        validate_starter_copy(consumer)
