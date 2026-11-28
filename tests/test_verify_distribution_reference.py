@@ -108,6 +108,7 @@ def test_consumer_invocations_use_trusted_channel_readback(tmp_path, monkeypatch
         bundle = Path(argv[argv.index("-o") + 1])
         bundle.mkdir(parents=True)
         (bundle / "native-bundle.json").write_text("{}", encoding="utf-8")
+        (bundle / "program").write_text("program", encoding="utf-8")
         return module.subprocess.CompletedProcess(argv, 0)
 
     monkeypatch.setattr(module.subprocess, "run", fake_build)
@@ -126,9 +127,10 @@ def test_consumer_invocations_use_trusted_channel_readback(tmp_path, monkeypatch
         )
         report_path.write_text(json.dumps(data), encoding="utf-8")
         stderr = ""
-        if report_path.name == "verify-distribution-extra-file.json":
+        bundle = Path(argv[argv.index("--bundle") + 1])
+        if report_path.name == "verify-distribution-extra-file.json" and (bundle / "layout-extra.txt").is_file():
             stderr = "verify-distribution: bundle layout contains an undeclared file"
-        elif report_path.name == "verify-distribution-extra-symlink.json":
+        elif report_path.name == "verify-distribution-extra-symlink.json" and (bundle / "layout-extra-link").is_symlink():
             stderr = "verify-distribution: bundle layout contains an undeclared symlink"
         return module.subprocess.CompletedProcess(argv, expected_exit, stdout="", stderr=stderr)
 
@@ -153,7 +155,7 @@ def test_consumer_invocations_use_trusted_channel_readback(tmp_path, monkeypatch
     assert all("--require-exact-bundle-layout" in argv for argv in invocations)
     bundle = tmp_path / "out" / "bundle"
     assert not (bundle / "layout-extra.txt").exists()
-    assert not (bundle / "layout-extra-link").exists()
+    assert not (bundle / "layout-extra-link").is_symlink()
 
 
 def test_reference_wiring_reads_back_channel_before_consumer_invocations():
