@@ -74,7 +74,7 @@ def timing_only_stage_changes(diff: dict) -> int:
     for item in diff.get("stage_changes", []):
         differences = item.get("stage_differences", {})
         if all(slot.get("base_status") == slot.get("repeat_status") for slot in differences.values()):
-            total += 1
+            total += len(differences)
     return total
 
 
