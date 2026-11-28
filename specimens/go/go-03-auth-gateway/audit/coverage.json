@@ -5,12 +5,12 @@
   "audit_markdown_exit_code": 0,
   "verification_status": "verified",
   "files_audited": 3,
-  "files_with_issues": 1,
+  "files_with_issues": 2,
   "counts": {
     "total": 11,
-    "detected": 1,
+    "detected": 2,
     "function_flagged": 0,
-    "missed": 10
+    "missed": 9
   },
   "defects": [
     {
@@ -29,9 +29,11 @@
       "function": "tokenMatches",
       "category": "timing-side-channel",
       "class": "vulnerability",
-      "in_target_category": false,
-      "status": "missed",
-      "findings": []
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Go function `tokenMatches` uses non-constant-time credential comparison that may expose a timing side channel"
+      ]
     },
     {
       "id": "GO03-D03",
@@ -129,6 +131,12 @@
   "unmatched_findings": [],
   "findings": [
     {
+      "file": "auth.go",
+      "kind": "verification_violations",
+      "text": "Go function `tokenMatches` uses non-constant-time credential comparison that may expose a timing side channel",
+      "status": "defect_evidence"
+    },
+    {
       "file": "main.go",
       "kind": "verification_violations",
       "text": "Go hardcoded credential constant `adminPassword` in package main is stored directly in source",
@@ -136,21 +144,24 @@
     }
   ],
   "finding_counts": {
-    "total": 1,
-    "defect_evidence": 1,
+    "total": 2,
+    "defect_evidence": 2,
     "real": 0,
     "false_positive": 0,
     "unreviewed": 0
   },
   "reviews_used": [],
   "source_hash": "a7f22803f92f10a530668fdb2e95355a4ad0869e0f8ea6c9418121ac5cba70a5",
+  "provenance_version": 2,
+  "input_hash": "8be73dfe4b93dc8f1f6c5445678d8948d4a85983549f29863a49977ca9b362f5",
+  "defect_catalog_hash": "f101e28875189233ed40b10c7a958c021846dff8ed8e77bf86f30429869550a2",
   "meta": {
-    "mumei_agent_commit": "15541ebe5e6feb947f54f4633a34bcaa9377a434",
+    "mumei_agent_commit": "eb6859642ecfcbe8d67f0426e19d71242df3bc5c",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T01:49:34Z"
+    "generated_at": "2026-11-28T03:50:46Z"
   },
   "fixed": {
     "defects": 11,
@@ -180,8 +191,5 @@
         "spec precondition assumed, not enforced, by `passwordMatches`"
       ]
     ]
-  },
-  "provenance_version": 2,
-  "input_hash": "8be73dfe4b93dc8f1f6c5445678d8948d4a85983549f29863a49977ca9b362f5",
-  "defect_catalog_hash": "f101e28875189233ed40b10c7a958c021846dff8ed8e77bf86f30429869550a2"
+  }
 }

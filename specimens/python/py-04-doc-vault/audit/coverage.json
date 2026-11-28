@@ -5,12 +5,12 @@
   "audit_markdown_exit_code": 0,
   "verification_status": "unverifiable",
   "files_audited": 2,
-  "files_with_issues": 0,
+  "files_with_issues": 1,
   "counts": {
     "total": 11,
-    "detected": 0,
+    "detected": 1,
     "function_flagged": 1,
-    "missed": 10
+    "missed": 9
   },
   "defects": [
     {
@@ -31,9 +31,11 @@
       "function": "token_matches",
       "category": "timing-side-channel",
       "class": "vulnerability",
-      "in_target_category": false,
-      "status": "missed",
-      "findings": []
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Python function `token_matches` uses early-exit credential comparison that may expose a timing side channel"
+      ]
     },
     {
       "id": "PY04-D03",
@@ -130,27 +132,36 @@
   "findings": [
     {
       "file": "vault.py",
+      "kind": "verification_violations",
+      "text": "Python function `token_matches` uses early-exit credential comparison that may expose a timing side channel",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "vault.py",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `make_share_token`",
       "status": "unreviewed"
     }
   ],
   "finding_counts": {
-    "total": 1,
-    "defect_evidence": 0,
+    "total": 2,
+    "defect_evidence": 1,
     "real": 0,
     "false_positive": 0,
     "unreviewed": 1
   },
   "reviews_used": [],
   "source_hash": "72e439da48aa288e49aec62eec0bd658c64d3b6eeb98a6cebfc9acaf41568107",
+  "provenance_version": 2,
+  "input_hash": "ba907c51ab9799149df009df6dd1864d833a29f82085772a2e3c6c9c1cd7a69f",
+  "defect_catalog_hash": "aee0ede7043f21a2429f626ab0ef2239d3c4c44440bd8662fa92fd10b6e34f38",
   "meta": {
-    "mumei_agent_commit": "15541ebe5e6feb947f54f4633a34bcaa9377a434",
+    "mumei_agent_commit": "eb6859642ecfcbe8d67f0426e19d71242df3bc5c",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T01:49:34Z"
+    "generated_at": "2026-11-28T03:50:46Z"
   },
   "fixed": {
     "defects": 11,
@@ -166,8 +177,5 @@
       "unreviewed": 0
     },
     "reviews_used": []
-  },
-  "provenance_version": 2,
-  "input_hash": "ba907c51ab9799149df009df6dd1864d833a29f82085772a2e3c6c9c1cd7a69f",
-  "defect_catalog_hash": "aee0ede7043f21a2429f626ab0ef2239d3c4c44440bd8662fa92fd10b6e34f38"
+  }
 }
