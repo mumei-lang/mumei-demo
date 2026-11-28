@@ -77,3 +77,64 @@ def test_summary_is_bounded_and_not_a_verdict(tmp_path):
     assert "Timing-only stage differences: 2" in text
     assert "loadavg" not in text and "environment" not in text
     json.dumps(diff())
+
+
+def valid_report(case_id="A"):
+    return {
+        "schema_version": "mumei-demo.machine-tv-bench/v1",
+        "recorded_at": "2026-01-01T00:00:00+00:00",
+        "cases": [{
+            "id": case_id,
+            "case_hash": "same",
+            "source_hash": "same",
+            "buggy": {"z3": {"outcome": "refuted"}, "native": {"outcome": "source_refuted", "reason": "refuted", "stages": {}}},
+            "fixed": {"z3": {"outcome": "proven"}, "native": {"outcome": "accepted", "reason": "checked", "stages": {}}},
+        }],
+        "summary": {"native": {"buggy": {"outcomes": {"accepted": 0}}, "fixed": {"outcomes": {"accepted": 1}}}},
+    }
+
+
+def test_main_writes_repeat_artifacts_for_stable_reports(monkeypatch, tmp_path, capsys):
+    def fake_run(binary, output, jobs, timeout):
+        output.write_text(json.dumps(valid_report()))
+
+    monkeypatch.setattr(stability, "run_benchmark", fake_run)
+    assert stability.main(["--mumei-bin", "/fake/mumei", "--output-dir", str(tmp_path)]) == 0
+    assert (tmp_path / "machine_tv_base.json").is_file()
+    assert (tmp_path / "machine_tv_repeat.json").is_file()
+    diff_doc = json.loads((tmp_path / "machine_tv_diff.json").read_text())
+    assert diff_doc["summary"]["verdict_changes"] == 0
+    assert "not a proof grade" in (tmp_path / "summary.md").read_text()
+    assert '"failures": []' in capsys.readouterr().out
+
+
+def test_main_returns_failure_when_repeat_outcome_changes(monkeypatch, tmp_path):
+    def fake_run(binary, output, jobs, timeout):
+        doc = valid_report()
+        if output.name == "machine_tv_repeat.json":
+            doc["cases"][0]["fixed"]["native"]["outcome"] = "inconclusive"
+        output.write_text(json.dumps(doc))
+
+    monkeypatch.setattr(stability, "run_benchmark", fake_run)
+    assert stability.main(["--mumei-bin", "/fake/mumei", "--output-dir", str(tmp_path)]) == 1
+    assert "accepted->inconclusive" in (tmp_path / "machine_tv_diff.json").read_text()
+
+
+def test_run_benchmark_repeats_only_flags_and_raises_on_failure(monkeypatch):
+    calls = []
+
+    def fake_run(cmd, cwd, capture_output, text):
+        calls.append(cmd)
+        return type("Proc", (), {"returncode": 1, "stdout": "", "stderr": "failed"})()
+
+    monkeypatch.setattr(stability.subprocess, "run", fake_run)
+    try:
+        stability.run_benchmark("/fake/mumei", stability.REPO_ROOT / "out.json", 2, 30)
+    except RuntimeError as exc:
+        assert "failed" in str(exc)
+    else:
+        raise AssertionError("expected failure")
+    cmd = calls[0]
+    assert cmd.count("--only") == len(stability.MATRIX)
+    assert all(case_id in cmd for case_id in stability.MATRIX)
+    assert "--jobs" in cmd and "2" in cmd and "--timeout" in cmd and "30" in cmd
