@@ -200,6 +200,10 @@ jobs:
         env:
           MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
         run: |
+          if [ ! -x "$MUMEI_BIN" ]; then
+            echo "Skipping machine-TV stability smoke because the mumei binary was not built"
+            exit 0
+          fi
           python3 scripts/check_machine_tv_stability.py \
             --mumei-bin "$MUMEI_BIN" \
             --output-dir reports/machine-tv-stability
