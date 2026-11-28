@@ -183,5 +183,6 @@ def test_stability_step_runs_after_existing_integration_validation_with_always_c
     assert workflow.index("Run integrated demo scenarios") < workflow.index("Check focused machine-TV repeat stability")
     assert workflow.index("Check planner selection-policy regression") < workflow.index("Check focused machine-TV repeat stability")
     assert workflow.index("Check separate record model and execution evidence") < workflow.index("Check focused machine-TV repeat stability")
-    assert "- name: Check focused machine-TV repeat stability\n        if: always()" in workflow
+    assert "- name: Build mumei\n        id: build-mumei" in workflow
+    assert "- name: Check focused machine-TV repeat stability\n        if: always() && steps.build-mumei.outcome == 'success'" in workflow
     assert 'if [ ! -x "$MUMEI_BIN" ]; then' in workflow
