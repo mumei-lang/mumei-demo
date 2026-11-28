@@ -86,6 +86,12 @@ def changed_transitions(counts: dict) -> dict:
 def stability_failures(diff: dict, base: dict, repeat: dict) -> list[str]:
     summary = diff["summary"]
     failures = []
+    toolchain = summary.get("toolchain_identity", {})
+    if toolchain and not toolchain.get("matches"):
+        if toolchain.get("unavailable"):
+            failures.append("toolchain identity unavailable: " + ",".join(toolchain["unavailable"]))
+        else:
+            failures.append("toolchain identity changed: " + ",".join(toolchain.get("changed_fields") or ["unknown"]))
     if summary.get("input_changes"):
         failures.append("input identity changed between repeats")
     if summary.get("missing_in_base") or summary.get("missing_in_repeat"):
@@ -134,6 +140,7 @@ def write_summary(path: Path, diff: dict, failures: list[str]) -> None:
         f"- Diagnostic changes: {summary.get('diagnostic_changes', 0)}",
         f"- Stage-result changes: {summary['stage_result_changes']}",
         f"- Timing-only stage differences: {timing_only_stage_changes(diff)}",
+        f"- Toolchain identity matches: {summary.get('toolchain_identity', {}).get('matches')}",
         f"- Stability failures: {len(failures)}",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -181,6 +188,7 @@ def main(argv: list[str]) -> int:
         "diagnostic_changes": diff["summary"].get("diagnostic_changes", 0),
         "stage_result_changes": diff["summary"]["stage_result_changes"],
         "timing_only_stage_differences": timing_only_stage_changes(diff),
+        "toolchain_identity": diff["summary"].get("toolchain_identity"),
         "false_acceptances": {"base": false_acceptances(base), "repeat": false_acceptances(repeat)},
         "failures": failures,
     }, indent=2, ensure_ascii=False))

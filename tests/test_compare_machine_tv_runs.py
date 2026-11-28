@@ -161,3 +161,96 @@ def test_mixed_legacy_and_port_hash_reports_fall_back_to_legacy_identity():
     diff = compare.compare_reports(report([before]), report([after]))
     assert diff["summary"]["cases_compared"] == 1
     assert diff["summary"]["input_changes"] == []
+
+
+def with_toolchain(doc, z3_version="4.14.1.0", status="observed"):
+    if status == "observed":
+        doc["toolchain"] = {
+            "status": "observed",
+            "observation": {
+                "schema_version": "mumei.native-toolchain-observation/v1",
+                "host": {"os": "linux", "arch": "x86_64"},
+                "solvers": {"z3": {"binding": "linked", "version": z3_version}},
+                "llvm": {"binding": "linked", "version": "17.0.6"},
+                "target_triple": "x86_64-pc-linux-gnu",
+                "link": {"driver": "cc", "driver_version": "11.4.0", "driver_target": "x86_64-linux-gnu",
+                         "linker": "gnu-ld", "linker_version": "2.38"},
+            },
+        }
+    else:
+        doc["toolchain"] = {"status": "unavailable", "reason": "observe-toolchain exit 2"}
+    return doc
+
+
+def test_matching_toolchain_identity_is_a_repeat_premise():
+    base = with_toolchain(report([case()]))
+    repeat = with_toolchain(report([case()]))
+    diff = compare.compare_reports(base, repeat)
+    assert diff["summary"]["toolchain_identity"] == {"matches": True, "unavailable": [], "changed_fields": []}
+    assert diff["base"]["toolchain"]["status"] == "observed"
+    assert diff["repeat"]["toolchain"]["observation"]["solvers"]["z3"]["version"] == "4.14.1.0"
+
+
+def test_solver_version_drift_is_toolchain_diagnostic_not_case_or_timing_drift():
+    base = with_toolchain(report([case()]), "4.14.1.0")
+    repeat = with_toolchain(report([case()]), "4.8.12.0")
+    diff = compare.compare_reports(base, repeat)
+    assert diff["summary"]["toolchain_identity"] == {
+        "matches": False,
+        "unavailable": [],
+        "changed_fields": ["solvers.z3.version"],
+    }
+    assert diff["summary"]["verdict_changes"] == 0
+    assert diff["summary"]["diagnostic_changes"] == 0
+    assert diff["summary"]["stage_result_changes"] == 0
+    assert diff["summary"]["stage_changes"] == 0
+
+
+def test_unavailable_toolchain_identity_cannot_be_treated_as_matching():
+    base = with_toolchain(report([case()]))
+    repeat = with_toolchain(report([case()]), status="unavailable")
+    diff = compare.compare_reports(base, repeat)
+    assert diff["summary"]["toolchain_identity"] == {"matches": False, "unavailable": ["repeat"], "changed_fields": []}
+
+    missing = compare.compare_reports(report([case()]), report([case()]))
+    assert missing["summary"]["toolchain_identity"]["unavailable"] == ["base", "repeat"]
+    assert missing["summary"]["toolchain_identity"]["matches"] is False
+
+
+def test_flattened_metadata_reports_precise_leaf_paths():
+    before = {
+        "solvers": {"z3": {"binding": "linked", "version": "4.14.1.0"}},
+        "llvm": {"binding": "linked", "version": "17.0.6"},
+        "link": {"driver": "cc", "driver_version": "11.4.0", "driver_target": "x86_64-linux-gnu",
+                 "linker": "gnu-ld", "linker_version": "2.38"},
+    }
+    after = {
+        "solvers": {"z3": {"binding": "linked", "version": "4.8.12.0"}},
+        "llvm": {"binding": "linked", "version": "18.1.0"},
+        "link": {"driver": "cc", "driver_version": "11.4.0", "driver_target": "x86_64-linux-gnu",
+                 "linker": "gnu-ld", "linker_version": "2.42"},
+    }
+    assert compare.flattened_metadata(before) == {
+        "solvers.z3.binding": "linked", "solvers.z3.version": "4.14.1.0",
+        "llvm.binding": "linked", "llvm.version": "17.0.6",
+        "link.driver": "cc", "link.driver_version": "11.4.0", "link.driver_target": "x86_64-linux-gnu",
+        "link.linker": "gnu-ld", "link.linker_version": "2.38",
+    }
+    base = with_toolchain(report([case()]))
+    repeat = with_toolchain(report([case()]))
+    base["toolchain"]["observation"].update(before)
+    repeat["toolchain"]["observation"].update(after)
+    diff = compare.compare_reports(base, repeat)
+    assert diff["summary"]["toolchain_identity"]["changed_fields"] == [
+        "link.linker_version", "llvm.version", "solvers.z3.version",
+    ]
+
+
+def test_observation_scope_metadata_does_not_count_as_toolchain_identity_drift():
+    base = with_toolchain(report([case()]))
+    repeat = with_toolchain(report([case()]))
+    base["toolchain"]["observation"]["scope"] = "old observation wording"
+    repeat["toolchain"]["observation"]["scope"] = "new observation wording"
+    diff = compare.compare_reports(base, repeat)
+    assert diff["summary"]["toolchain_identity"]["matches"] is True
+    assert diff["summary"]["toolchain_identity"]["changed_fields"] == []
