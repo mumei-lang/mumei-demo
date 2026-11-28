@@ -5,12 +5,12 @@
   "audit_markdown_exit_code": 0,
   "verification_status": "verified",
   "files_audited": 3,
-  "files_with_issues": 2,
+  "files_with_issues": 3,
   "counts": {
     "total": 11,
-    "detected": 2,
-    "function_flagged": 0,
-    "missed": 9
+    "detected": 3,
+    "function_flagged": 2,
+    "missed": 6
   },
   "defects": [
     {
@@ -19,9 +19,11 @@
       "function": "loginHandler",
       "category": "insecure-randomness",
       "class": "vulnerability",
-      "in_target_category": false,
-      "status": "missed",
-      "findings": []
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Go function `loginHandler` generates credential material from a timestamp at line 34"
+      ]
     },
     {
       "id": "GO03-D02",
@@ -82,8 +84,10 @@
       "category": "null-dereference",
       "class": "bug",
       "in_target_category": true,
-      "status": "missed",
-      "findings": []
+      "status": "function_flagged",
+      "findings": [
+        "Go function `loginHandler` generates credential material from a timestamp at line 34"
+      ]
     },
     {
       "id": "GO03-D08",
@@ -124,8 +128,10 @@
       "category": "open-redirect",
       "class": "vulnerability",
       "in_target_category": false,
-      "status": "missed",
-      "findings": []
+      "status": "function_flagged",
+      "findings": [
+        "Go function `loginHandler` generates credential material from a timestamp at line 34"
+      ]
     }
   ],
   "unmatched_findings": [],
@@ -137,6 +143,12 @@
       "status": "defect_evidence"
     },
     {
+      "file": "handlers.go",
+      "kind": "verification_violations",
+      "text": "Go function `loginHandler` generates credential material from a timestamp at line 34",
+      "status": "defect_evidence"
+    },
+    {
       "file": "main.go",
       "kind": "verification_violations",
       "text": "Go hardcoded credential constant `adminPassword` in package main is stored directly in source",
@@ -144,8 +156,8 @@
     }
   ],
   "finding_counts": {
-    "total": 2,
-    "defect_evidence": 2,
+    "total": 3,
+    "defect_evidence": 3,
     "real": 0,
     "false_positive": 0,
     "unreviewed": 0
@@ -156,12 +168,12 @@
   "input_hash": "8be73dfe4b93dc8f1f6c5445678d8948d4a85983549f29863a49977ca9b362f5",
   "defect_catalog_hash": "f101e28875189233ed40b10c7a958c021846dff8ed8e77bf86f30429869550a2",
   "meta": {
-    "mumei_agent_commit": "6b87f348515fd519d290ba5987cf6d1c166d7951",
+    "mumei_agent_commit": "b128577526c3540f5f307c0ddf169e1720389d15",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T05:10:21Z"
+    "generated_at": "2026-11-28T06:23:54Z"
   },
   "fixed": {
     "defects": 11,

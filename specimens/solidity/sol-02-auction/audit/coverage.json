@@ -8,8 +8,8 @@
   "files_with_issues": 1,
   "counts": {
     "total": 11,
-    "detected": 2,
-    "function_flagged": 6,
+    "detected": 3,
+    "function_flagged": 5,
     "missed": 3
   },
   "defects": [
@@ -123,10 +123,10 @@
       "function": "drawEarlyBirdBonus",
       "category": "insecure-randomness",
       "class": "vulnerability",
-      "in_target_category": false,
-      "status": "function_flagged",
+      "in_target_category": true,
+      "status": "detected",
       "findings": [
-        "Solidity function `drawEarlyBirdBonus` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)"
+        "Solidity function `drawEarlyBirdBonus` derives random winner selection from predictable block entropy at line 137"
       ]
     },
     {
@@ -170,11 +170,17 @@
       "text": "Solidity function `drawEarlyBirdBonus` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)",
       "status": "false_positive",
       "reason": "bonusPaid is set before the external call, and re-entering drawEarlyBirdBonus reverts on it. The later bonusPool write cannot be exploited."
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `drawEarlyBirdBonus` derives random winner selection from predictable block entropy at line 137",
+      "status": "defect_evidence"
     }
   ],
   "finding_counts": {
-    "total": 4,
-    "defect_evidence": 2,
+    "total": 5,
+    "defect_evidence": 3,
     "real": 1,
     "false_positive": 1,
     "unreviewed": 0
@@ -196,12 +202,12 @@
   "input_hash": "227859df2564f048de62c9dc646ee561147cf1ec57d052c6318072547bc31326",
   "defect_catalog_hash": "d7ebe089d294ba991de47d48c50c7354f89039299d33f9855bea120554310cdf",
   "meta": {
-    "mumei_agent_commit": "6b87f348515fd519d290ba5987cf6d1c166d7951",
+    "mumei_agent_commit": "b128577526c3540f5f307c0ddf169e1720389d15",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T05:10:21Z"
+    "generated_at": "2026-11-28T06:23:54Z"
   },
   "fixed": {
     "defects": 11,

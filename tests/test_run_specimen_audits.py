@@ -236,6 +236,8 @@ def test_write_summary(tmp_path):
     assert "| python | 3 | 2 (67%) | 2 (67%) | 1/1 (100%) |" in text
     assert "| rust | 2 | 0 (0%) | 1 (50%) | 0/1 (0%) |" in text
     assert "| [py-01-a](python/py-01-a/audit/audit.md) | 3 | 2 | 0 | 1 | 1/1 | 0 |" in text
+    assert "`insecure-randomness`" in text
+    assert "`timing-side-channel`" in text
 
 
 # --- aggregate / history / scoreboard ---------------------------------------
@@ -243,6 +245,26 @@ def test_write_summary(tmp_path):
 def test_timing_side_channel_is_an_audit_target_not_a_contract_bench_target():
     assert "timing-side-channel" in rsa.TARGET_CATEGORIES
     assert "timing-side-channel" not in rsa.CONTRACT_BENCH_TARGET_CATEGORIES
+
+
+def test_insecure_randomness_is_an_audit_target_not_a_contract_bench_target():
+    assert "insecure-randomness" in rsa.TARGET_CATEGORIES
+    assert "insecure-randomness" not in rsa.CONTRACT_BENCH_TARGET_CATEGORIES
+
+
+def test_insecure_randomness_scoring_keyword_covers_timestamp_credential_message():
+    assert rsa.category_hit(
+        "Go function `loginHandler` generates credential material from a timestamp at line 34",
+        "insecure-randomness",
+    )
+    assert rsa.category_hit(
+        "Python function `make_share_token` generates credential material with direct weak randomness at line 25",
+        "insecure-randomness",
+    )
+    assert rsa.category_hit(
+        "Solidity function `drawWinner` derives random winner selection from predictable block entropy at line 6",
+        "insecure-randomness",
+    )
 
 
 def test_aggregate_numbers():

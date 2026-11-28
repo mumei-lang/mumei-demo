@@ -71,6 +71,7 @@ CONTRACT_BENCH_TARGET_CATEGORIES = {
 # Categories the audit pipeline targets today (see specimens/README.md).
 TARGET_CATEGORIES = CONTRACT_BENCH_TARGET_CATEGORIES | {
     "hardcoded-secret",
+    "insecure-randomness",
     "timing-side-channel",
 }
 
@@ -102,7 +103,7 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "idor": ["authoriz", "idor", "owner"],
     "hardcoded-secret": ["secret", "hardcoded", "credential"],
     "weak-crypto": ["md5", "sha1", "crypto", "hash"],
-    "insecure-randomness": ["random", "predictable"],
+    "insecure-randomness": ["random", "predictable", "credential material from a timestamp"],
     "timing-side-channel": ["timing", "constant-time", "constant time"],
     "redos": ["regex", "redos", "backtrack"],
     "race-condition": ["data race", "race condition", "mutex", "concurren", "atomic", "lost update"],
@@ -898,9 +899,9 @@ def write_summary(coverages: list[dict], meta: dict, path: Path,
         "A finding matches a planted defect when it is reported for the defect's file and names the defect's",
         "function. `detected` means the finding text also carries a keyword for the defect's category;",
         "`function_flagged` means the audit flagged that function for something else; `missed` means nothing.",
-        "\"Target\" categories are the ones the audit is designed to check today (arithmetic, bounds, null,",
-        "preconditions, invariants, state transitions, hardcoded credentials, and the Solidity",
-        "reentrancy/access-control/unchecked-call heuristics). Findings that match no planted defect are listed per specimen in `audit/coverage.json`",
+        "\"Target\" categories are the audit scoring categories in `TARGET_CATEGORIES`:",
+        ", ".join(f"`{category}`" for category in sorted(TARGET_CATEGORIES)) + ".",
+        "Findings that match no planted defect are listed per specimen in `audit/coverage.json`",
         "under `unmatched_findings`; they are either extra real issues or false positives and need human review.",
         "",
         "## How findings are scored",
