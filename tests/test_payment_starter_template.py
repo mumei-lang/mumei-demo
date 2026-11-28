@@ -14,32 +14,79 @@ README_PATH = STARTER_DIR / "README.md"
 PIN = "640d597ec60bf574d0102cae6b89054d47fd9f0f"
 
 
+def _audit_uses_match(line: str) -> re.Match[str] | None:
+    return re.match(
+        r"^(\s*)(?:-\s+)?uses:\s*mumei-lang/mumei-agent/\.github/actions/mumei-audit@([^\s#]+)(?:\s+#.*)?\s*$",
+        line,
+    )
+
+
+def _audit_action_ref(text: str) -> re.Match[str] | None:
+    for line in text.splitlines():
+        match = _audit_uses_match(line)
+        if match:
+            return match
+    return None
+
+
 def _audit_action_inputs(text: str) -> dict[str, str]:
     """Return inputs scoped to the audit action step's `with` block."""
     lines = text.splitlines()
-    for index, line in enumerate(lines):
-        if not re.match(r"^\s*uses:\s*mumei-lang/mumei-agent/\.github/actions/mumei-audit@", line):
+    for uses_index, line in enumerate(lines):
+        uses_match = _audit_uses_match(line)
+        if not uses_match:
             continue
-        uses_indent = len(line) - len(line.lstrip())
-        inputs: dict[str, str] = {}
-        in_with = False
-        for following in lines[index + 1 :]:
-            stripped = following.strip()
+
+        key_indent = len(uses_match.group(1))
+        inline_step = line[key_indent:].startswith("- ")
+        if inline_step:
+            key_indent += 2
+            step_start = uses_index
+            step_indent = len(uses_match.group(1))
+        else:
+            step_start = uses_index
+            step_indent = key_indent
+            for position in range(uses_index - 1, -1, -1):
+                stripped = lines[position].strip()
+                if not stripped or stripped.startswith("#"):
+                    continue
+                indent = len(lines[position]) - len(lines[position].lstrip())
+                if indent < key_indent and stripped.startswith("-"):
+                    step_start = position
+                    step_indent = indent
+                    break
+                if indent < key_indent:
+                    break
+
+        step_end = len(lines)
+        for position in range(uses_index + 1, len(lines)):
+            stripped = lines[position].strip()
             if not stripped or stripped.startswith("#"):
                 continue
-            indent = len(following) - len(following.lstrip())
-            if indent <= uses_indent:
-                if stripped == "with:":
-                    in_with = True
+            indent = len(lines[position]) - len(lines[position].lstrip())
+            if indent <= step_indent:
+                step_end = position
+                break
+
+        inputs: dict[str, str] = {}
+        for position in range(step_start, step_end):
+            stripped = lines[position].strip()
+            if stripped != "with:":
+                continue
+            indent = len(lines[position]) - len(lines[position].lstrip())
+            if indent != key_indent:
+                continue
+            for input_line in lines[position + 1 : step_end]:
+                stripped_input = input_line.strip()
+                if not stripped_input or stripped_input.startswith("#"):
                     continue
-                if in_with:
+                input_indent = len(input_line) - len(input_line.lstrip())
+                if input_indent <= key_indent:
                     break
-                continue
-            if not in_with:
-                continue
-            match = re.match(r"([A-Za-z0-9_-]+):\s*(.*)$", stripped)
-            if match:
-                inputs[match.group(1)] = match.group(2).strip()
+                match = re.match(r"([A-Za-z0-9_-]+):\s*(.*)$", stripped_input)
+                if match:
+                    inputs[match.group(1)] = match.group(2).strip()
+            break
         return inputs
     return {}
 
@@ -74,11 +121,7 @@ def validate_starter_copy(root: Path) -> None:
 
     workflow_path = root / ".github" / "workflows" / "mumei-audit.yml"
     workflow = workflow_path.read_text(encoding="utf-8")
-    action_ref = re.search(
-        r"^\s*uses:\s*mumei-lang/mumei-agent/\.github/actions/mumei-audit@([^\s]+)\s*$",
-        workflow,
-        re.M,
-    )
+    action_ref = _audit_action_ref(workflow)
     verifier_pin = re.search(
         r"raw\.githubusercontent\.com/mumei-lang/mumei-agent/([0-9a-f]{40})/"
         r"\.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact\.py",
@@ -86,9 +129,9 @@ def validate_starter_copy(root: Path) -> None:
     )
     assert action_ref is not None
     assert verifier_pin is not None
-    assert re.fullmatch(r"[0-9a-f]{40}", action_ref.group(1)), "action pin must be immutable"
-    assert action_ref.group(1) == verifier_pin.group(1), "action and verifier pins diverged"
-    assert action_ref.group(1) == PIN
+    assert re.fullmatch(r"[0-9a-f]{40}", action_ref.group(2)), "action pin must be immutable"
+    assert action_ref.group(2) == verifier_pin.group(1), "action and verifier pins diverged"
+    assert action_ref.group(2) == PIN
 
     consumer = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
     for key in (
@@ -134,6 +177,41 @@ def test_payment_starter_copy_shape_and_targeted_inputs_survive_repo_root_copy(t
     consumer = tmp_path / "consumer"
     consumer.mkdir()
     _copy_starter(consumer)
+    validate_starter_copy(consumer)
+
+
+def test_payment_starter_copy_harness_tolerates_step_key_order_and_pin_comment(tmp_path: Path) -> None:
+    consumer = tmp_path / "consumer"
+    consumer.mkdir()
+    _copy_starter(consumer)
+    workflow_path = consumer / ".github" / "workflows" / "mumei-audit.yml"
+    workflow = workflow_path.read_text(encoding="utf-8")
+    lines = workflow.splitlines()
+    uses_index = next(index for index, line in enumerate(lines) if f"uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@{PIN}" in line)
+    key_indent = len(lines[uses_index]) - len(lines[uses_index].lstrip())
+    id_index = next(index for index in range(uses_index - 1, -1, -1) if lines[index].strip() == "id: audit")
+    with_index = next(index for index in range(uses_index + 1, len(lines)) if lines[index].strip() == "with:")
+    with_end = len(lines)
+    for position in range(with_index + 1, len(lines)):
+        stripped = lines[position].strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        indent = len(lines[position]) - len(lines[position].lstrip())
+        if indent <= key_indent:
+            with_end = position
+            break
+
+    uses_line = lines[uses_index] + "  # immutable reference"
+    mutated_lines = (
+        lines[:id_index]
+        + lines[with_index:with_end]
+        + [uses_line]
+        + lines[id_index:uses_index]
+        + lines[uses_index + 1 : with_index]
+        + lines[with_end:]
+    )
+    workflow_path.write_text("\n".join(mutated_lines) + "\n", encoding="utf-8")
+
     validate_starter_copy(consumer)
 
 
