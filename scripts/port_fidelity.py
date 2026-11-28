@@ -1283,7 +1283,8 @@ def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout:
     divergence is evidence, while finite agreement remains inconclusive.
     Runtime-domain-safety refutations can fall back to committed success/error
     inputs only when every solver diagnostic is a potential bounds/division
-    failure; this bounded evidence never rewrites a formal verdict.
+    failure or an opaque helper/system-boundary precondition failure; this
+    bounded evidence never rewrites a formal verdict.
     """
     try:
         parts = split_port(case["ports"][variant], case["atom"])
