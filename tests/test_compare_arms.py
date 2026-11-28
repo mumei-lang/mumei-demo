@@ -573,8 +573,9 @@ def test_llm_arm_rejects_stale_defect_catalog(tree, monkeypatch):
     monkeypatch.setattr(rsa, "specimen_input_hash", lambda d: "input-now")
     monkeypatch.setattr(rsa, "defect_catalog_hash", lambda d: "now")
     _set(rlo.record_path(b, MODEL), input_hash="input-now", defect_catalog_hash="then")
-    with pytest.raises(SystemExit, match="defect catalog changed"):
+    with pytest.raises(SystemExit, match="defect catalog changed") as excinfo:
         ca.load_llm_arm(rsa.discover(root), MODEL)
+    assert f"--rescore --model {MODEL}" in str(excinfo.value)
 
 
 def test_llm_arm_accepts_matching_hash(tree, monkeypatch):
