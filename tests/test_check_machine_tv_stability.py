@@ -178,8 +178,9 @@ def test_main_resolves_relative_output_dir_before_child_runs(monkeypatch, tmp_pa
     assert (tmp_path / "relative-out/machine_tv_diff.json").is_file()
 
 
-def test_stability_step_runs_after_existing_integration_validation():
+def test_stability_step_runs_after_existing_integration_validation_with_always_condition():
     workflow = (stability.REPO_ROOT / ".github/workflows/integration.yml").read_text()
     assert workflow.index("Run integrated demo scenarios") < workflow.index("Check focused machine-TV repeat stability")
     assert workflow.index("Check planner selection-policy regression") < workflow.index("Check focused machine-TV repeat stability")
-    assert workflow.index("Check focused machine-TV repeat stability") < workflow.index("Check separate record model and execution evidence")
+    assert workflow.index("Check separate record model and execution evidence") < workflow.index("Check focused machine-TV repeat stability")
+    assert "- name: Check focused machine-TV repeat stability\n        if: always()" in workflow

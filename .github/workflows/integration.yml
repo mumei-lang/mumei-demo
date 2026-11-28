@@ -176,20 +176,6 @@ jobs:
           MUMEI_AGENT_REPO: ${{ github.workspace }}/mumei-agent
           MUMEI_AGENT_PYTHON: ${{ github.workspace }}/.venv/bin/python
           MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
-      - name: Check focused machine-TV repeat stability
-        working-directory: mumei-demo
-        env:
-          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
-        run: |
-          python3 scripts/check_machine_tv_stability.py \
-            --mumei-bin "$MUMEI_BIN" \
-            --output-dir reports/machine-tv-stability
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: machine-tv-stability
-          path: mumei-demo/reports/machine-tv-stability/
-          if-no-files-found: ignore
       - name: Generate report
         if: always()
         run: python scripts/generate_report.py --summary --highlights --require-all
@@ -208,6 +194,21 @@ jobs:
           MUMEI_LEAN_REPO: ${{ github.workspace }}/mumei-lean
           MUMEI_AGENT_REPO: ${{ github.workspace }}/mumei-agent
           MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
+      - name: Check focused machine-TV repeat stability
+        if: always()
+        working-directory: mumei-demo
+        env:
+          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
+        run: |
+          python3 scripts/check_machine_tv_stability.py \
+            --mumei-bin "$MUMEI_BIN" \
+            --output-dir reports/machine-tv-stability
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: machine-tv-stability
+          path: mumei-demo/reports/machine-tv-stability/
+          if-no-files-found: ignore
       - name: Check synthetic evidence regressions against the real Charter run
         if: always()
         run: python scripts/check_evidence_regressions.py reports/charter_gate_demo/latest/result.json --out-dir reports/charter_regressions
