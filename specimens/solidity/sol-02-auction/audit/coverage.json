@@ -8,8 +8,8 @@
   "files_with_issues": 1,
   "counts": {
     "total": 11,
-    "detected": 3,
-    "function_flagged": 5,
+    "detected": 4,
+    "function_flagged": 4,
     "missed": 3
   },
   "defects": [
@@ -100,9 +100,9 @@
       "category": "integer-overflow",
       "class": "bug",
       "in_target_category": true,
-      "status": "function_flagged",
+      "status": "detected",
       "findings": [
-        "Solidity function `init` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
+        "Solidity function `init` performs arithmetic inside an `unchecked` block that relies on an unchecked arithmetic bounds invariant"
       ]
     },
     {
@@ -114,6 +114,7 @@
       "in_target_category": false,
       "status": "function_flagged",
       "findings": [
+        "Solidity function `init` performs arithmetic inside an `unchecked` block that relies on an unchecked arithmetic bounds invariant",
         "Solidity function `init` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless"
       ]
     },
@@ -148,6 +149,12 @@
     {
       "file": "src/EnglishAuction.sol",
       "kind": "verification_violations",
+      "text": "Solidity function `init` performs arithmetic inside an `unchecked` block that relies on an unchecked arithmetic bounds invariant",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/EnglishAuction.sol",
+      "kind": "verification_violations",
       "text": "Solidity function `init` is an externally callable state-mutating function with no access-control guard (no `onlyOwner`-style modifier or `require(msg.sender == ...)`); confirm this is intentionally permissionless",
       "status": "defect_evidence"
     },
@@ -179,8 +186,8 @@
     }
   ],
   "finding_counts": {
-    "total": 5,
-    "defect_evidence": 3,
+    "total": 6,
+    "defect_evidence": 4,
     "real": 1,
     "false_positive": 1,
     "unreviewed": 0
@@ -202,12 +209,12 @@
   "input_hash": "227859df2564f048de62c9dc646ee561147cf1ec57d052c6318072547bc31326",
   "defect_catalog_hash": "d7ebe089d294ba991de47d48c50c7354f89039299d33f9855bea120554310cdf",
   "meta": {
-    "mumei_agent_commit": "4da122661693e1f496665acad023c9f2cc83211e",
+    "mumei_agent_commit": "602404277af9ba6c0a6031efe800c517f1ddc93c",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
-    "mumei_version": "mumei 0.6.23",
+    "mumei_version": "mumei 0.7.1",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T09:22:45Z"
+    "generated_at": "2026-11-28T11:12:20Z"
   },
   "fixed": {
     "defects": 11,
