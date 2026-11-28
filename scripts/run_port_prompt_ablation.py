@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import copy
 import datetime as dt
 import hashlib
 import json
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -52,6 +54,22 @@ def load_prompts(path: str) -> list[dict]:
     return out
 
 
+def sandbox_cases(cases: list[dict], outdir: Path) -> list[dict]:
+    """Deep-copy cases whose replay fixture is available but whose writes cannot reach the repo."""
+    root = outdir / "case-sandbox"
+    safe = []
+    for case in cases:
+        copied = copy.deepcopy(case)
+        target = (root / case["dir"]).resolve()
+        target.mkdir(parents=True, exist_ok=True)
+        replay = REPO_ROOT / case["dir"] / "replay.json"
+        if replay.is_file():
+            (target / "replay.json").write_bytes(replay.read_bytes())
+        copied["dir"] = str(target)
+        safe.append(copied)
+    return safe
+
+
 def validate_output_dir(raw: str) -> Path:
     path = Path(raw).resolve()
     canonical = (REPO_ROOT / "proofs" / "results").resolve()
@@ -77,6 +95,7 @@ def slim_variant(result: dict) -> dict:
         "semantic_replay": {k: semantic.get(k) for k in ("outcome", "status", "failure_kind")},
         "output_equivalence": {k: equivalence.get(k) for k in ("outcome", "status", "failure_kind")},
         "usage": {k: usage.get(k) for k in ("prompt_tokens", "completion_tokens", "cost_usd", "seconds", "attempts")},
+        "certificate_status": (result.get("certificate") or {}).get("status"),
         "diagnostics": result.get("diagnostics") or [],
     }
 
@@ -84,28 +103,26 @@ def slim_variant(result: dict) -> dict:
 def run_prompt(label_meta: dict, cases: list[dict], provider, runs: int, jobs: int, timeout: int,
                mumei_bin: str) -> dict:
     old_system = cb.PORT_SYSTEM
-    old_certify, old_cert_file = cb.certify, cb.llm_cert_file
     cb.PORT_SYSTEM = label_meta["text"]
-    cb.certify = lambda *a, **k: ({"status": "skipped-analysis-only"}, None)
-    cb.llm_cert_file = lambda model, seed: f"prompt-ablation-{label_meta['label']}-run{seed}.never-written"
     try:
         run_rows = []
         for seed in range(runs):
             with concurrent.futures.ThreadPoolExecutor(jobs) as pool:
                 records = list(pool.map(
-                    lambda c: cb.run_llm_case(c, provider, "mumei-llm", seed, mumei_bin, timeout), cases))
+                    lambda c: cb.run_llm_case(c, provider, "mumei-llm", seed, mumei_bin, timeout,
+                                                write_certificates=False), cases))
             records = sorted(records, key=lambda r: r["id"])
             run_rows.append({"seed": seed, "score": cb.score(records), "records": [
                 {"id": r["id"], **{v: slim_variant(r[v]) for v in cb.VARIANTS}} for r in records]})
         return {**label_meta, "runs": run_rows}
     finally:
         cb.PORT_SYSTEM = old_system
-        cb.certify, cb.llm_cert_file = old_certify, old_cert_file
 
 
 def render_report(doc: dict) -> str:
     lines = ["# Port prompt ablation", "",
-             f"Model `{doc['model']}`. Screening only; results are noncanonical unless the model exactly matches the canonical benchmark model.", ""]
+             f"Model `{doc['model']}`. Screening only; results are noncanonical unless the model exactly matches the canonical benchmark model.",
+             "Certificates: not collected / screening only; do not compare with canonical proof coverage.", ""]
     for p in doc["prompts"]:
         lines.append(f"## {p['label']} (`{p['hash']}`)")
         for run in p["runs"]:
@@ -137,9 +154,15 @@ def run(args, provider) -> dict:
     missing = sorted(set(ids) - {c["id"] for c in cases})
     if missing or len(cases) != len(ids):
         raise SystemExit("unknown case ids: " + ",".join(missing))
-    rows = [run_prompt(p, cases, provider, args.runs, args.jobs, args.timeout, args.mumei_bin) for p in prompts]
+    sandbox_root = outdir / "case-sandbox"
+    try:
+        safe_cases = sandbox_cases(cases, outdir)
+        rows = [run_prompt(p, safe_cases, provider, args.runs, args.jobs, args.timeout, args.mumei_bin) for p in prompts]
+    finally:
+        shutil.rmtree(sandbox_root, ignore_errors=True)
     doc = {"schema": SCHEMA, "recorded_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
            "screening_only": True, "canonical_note": "noncanonical unless model matches canonical benchmark model",
+           "certificate_collection": "not collected / screening only",
            "model": args.model, "case_ids": ids, "runs_per_prompt": args.runs,
            "timeout_seconds": args.timeout, "jobs": args.jobs,
            "mumei_verifier": cb.verifier_identity(args.mumei_bin), "prompts": rows}

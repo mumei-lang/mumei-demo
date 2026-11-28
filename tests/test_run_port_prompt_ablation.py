@@ -1,3 +1,4 @@
+import copy
 import json
 import subprocess
 import sys
@@ -46,8 +47,8 @@ def test_harness_writes_only_output_dir_and_records_gate_projection(tmp_path, mo
     candidate_text = "candidate prompt text"
     seen = []
 
-    def fake_case(case, provider, arm, seed, mumei_bin, timeout):
-        seen.append((case["id"], seed, cb.PORT_SYSTEM))
+    def fake_case(case, provider, arm, seed, mumei_bin, timeout, write_certificates=True):
+        seen.append((case["id"], seed, cb.PORT_SYSTEM, case["dir"]))
         raw = "proven" if cb.PORT_SYSTEM == candidate_text else "refuted"
         buggy = {"outcome": raw, "status": "success", "usage": {"prompt_tokens": 3, "completion_tokens": 2,
                "cost_usd": None, "seconds": 0.1, "attempts": 1}}
@@ -80,6 +81,7 @@ def test_harness_writes_only_output_dir_and_records_gate_projection(tmp_path, mo
     assert doc["schema"] == ablation.SCHEMA
     assert doc["model"] == "gpt-4o"
     assert len(seen) == 4
+    assert all(Path(entry[3]).is_absolute() and Path(entry[3]).is_relative_to(outdir) for entry in seen)
     baseline = next(p for p in doc["prompts"] if p["label"] == "baseline")
     assert baseline["benchmark_hash"] == cb.prompt_hash("mumei-llm")
     candidate = next(p for p in doc["prompts"] if p["label"] == "candidate")
@@ -95,8 +97,74 @@ def test_harness_writes_only_output_dir_and_records_gate_projection(tmp_path, mo
     assert candidate["runs"][0]["score"]["fidelity_blocked"] == 1
     report = (outdir / "report.md").read_text()
     assert "Screening only" in report
+    assert "Certificates: not collected / screening only" in report
     assert "| PY02-D04 | buggy | proven | inconclusive | blocked | success_flag_rewrite |" in report
     assert json.loads((outdir / "results.json").read_text())["schema"] == ablation.SCHEMA
+
+
+def test_real_case_runner_certificate_write_stays_in_redirected_sandbox(tmp_path, monkeypatch):
+    case = copy.deepcopy(next(c for c in cb.load_cases()[0] if c["id"] == "PY02-D04"))
+    target = tmp_path / "sandbox"
+    target.mkdir()
+    (target / "replay.json").write_bytes((ablation.REPO_ROOT / case["dir"] / "replay.json").read_bytes())
+    original_dir = case["dir"]
+    case["dir"] = str(target)
+
+    monkeypatch.setattr(cb, "verify_text", lambda *a: {"outcome": "proven", "status": "success"})
+    monkeypatch.setattr(cb, "apply_port_fidelity_gate", lambda case, body, result, mumei_bin, timeout, variant: result)
+    monkeypatch.setattr(cb, "certify", lambda *a, **k: ({"status": "recorded"}, "certificate text"))
+
+    class Provider:
+        model = "openai/gpt-6-luna"
+
+        def complete(self, prompt, seed):
+            return '{"body": "0"}', {"prompt_tokens": 1, "completion_tokens": 1, "cost_usd": None, "seconds": 0, "attempts": 1}
+
+    cert_rel = cb.llm_cert_file(Provider.model, 0)
+    canonical_path = ablation.REPO_ROOT / original_dir / cert_rel
+    canonical_before = canonical_path.read_bytes()
+
+    result = cb.run_llm_case(case, Provider(), "mumei-llm", 0, "mumei", 5)
+
+    assert result["fixed"]["outcome"] == "proven"
+    assert (target / cert_rel).read_text() == "certificate text"
+    assert canonical_path.read_bytes() == canonical_before
+
+
+def test_harness_real_runner_does_not_unlink_or_write_repo_certificate(tmp_path, monkeypatch):
+    monkeypatch.setattr(cb, "verify_text", lambda *a: {"outcome": "proven", "status": "success"})
+    monkeypatch.setattr(cb, "apply_port_fidelity_gate", lambda case, body, result, mumei_bin, timeout, variant: result)
+
+    def certify_must_not_run(*args, **kwargs):
+        pytest.fail("certificate generation must be disabled for screening")
+
+    monkeypatch.setattr(cb, "certify", certify_must_not_run)
+
+    class Provider:
+        model = "openai/gpt-6-luna"
+
+        def complete(self, prompt, seed):
+            return '{"body": "0"}', {"prompt_tokens": 1, "completion_tokens": 1, "cost_usd": None, "seconds": 0, "attempts": 1}
+
+    original_case = next(c for c in cb.load_cases()[0] if c["id"] == "PY02-D04")
+    cert_rel = cb.llm_cert_file(Provider.model, 0)
+    canonical_path = ablation.REPO_ROOT / original_case["dir"] / cert_rel
+    canonical_before = canonical_path.read_bytes()
+    status_before = subprocess.run(["git", "status", "--porcelain"], cwd=ablation.REPO_ROOT,
+                                   capture_output=True, text=True, check=True).stdout
+    prompts = prompt_file(tmp_path, [{"label": "baseline", "text": None}, {"label": "candidate", "text": "x"}])
+    args = Namespace(prompts=prompts, output_dir=str(tmp_path / "out"), cases="PY02-D04", runs=1, jobs=1,
+                     timeout=5, mumei_bin="mumei", model=Provider.model)
+
+    doc = ablation.run(args, Provider())
+
+    assert canonical_path.read_bytes() == canonical_before
+    assert subprocess.run(["git", "status", "--porcelain"], cwd=ablation.REPO_ROOT,
+                          capture_output=True, text=True, check=True).stdout == status_before
+    assert doc["certificate_collection"] == "not collected / screening only"
+    fixed = doc["prompts"][0]["runs"][0]["records"][0]["fixed"]
+    assert fixed["raw_outcome"] == "proven"
+    assert fixed["certificate_status"] == "not collected / screening only"
 
 
 def test_unknown_case_fails_closed(tmp_path, monkeypatch):
