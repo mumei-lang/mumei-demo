@@ -8,7 +8,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 STARTER_DIR = REPO_ROOT / "templates" / "payment-ledger-starter"
 WORKFLOW_PATH = STARTER_DIR / ".github" / "workflows" / "mumei-audit.yml"
 README_PATH = STARTER_DIR / "README.md"
-PIN = "640d597ec60bf574d0102cae6b89054d47fd9f0f"
+PIN = "b128577526c3540f5f307c0ddf169e1720389d15"
 
 
 def test_payment_starter_has_repo_root_layout() -> None:
