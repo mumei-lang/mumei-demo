@@ -41,9 +41,13 @@ def sha256_file(path: Path) -> str:
 def read_trusted_build_id_channel(path: Path) -> str:
     """Read the simulated producer channel without deriving trust from the artifact."""
     try:
-        text = path.read_text(encoding="utf-8")
+        raw = path.read_bytes()
     except FileNotFoundError as exc:
         raise ValueError("trusted build ID channel is missing") from exc
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError("trusted build ID channel must contain one lowercase sha256 hex line") from exc
     if not text.strip():
         raise ValueError("trusted build ID channel is empty")
     match = re.fullmatch(r"([0-9a-f]{64})(?:\r?\n)?", text)

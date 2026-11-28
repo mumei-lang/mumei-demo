@@ -84,10 +84,11 @@ def test_trusted_build_id_channel_rejects_missing_file(tmp_path):
         (" " + "a" * 64 + "\n", "lowercase sha256"),
         ("a" * 64 + " \n", "lowercase sha256"),
         ("a" * 64 + "\v", "lowercase sha256"),
+        ("a" * 64 + "\r", "lowercase sha256"),
         ("a" * 64 + "\n\n", "exactly one line"),
         ("a" * 64 + "\n" + "b" * 64 + "\n", "exactly one line"),
     ),
-    ids=("empty-file", "blank-line", "short", "uppercase", "non-hex", "leading-space", "trailing-space", "vertical-tab", "extra-blank", "two-lines"),
+    ids=("empty-file", "blank-line", "short", "uppercase", "non-hex", "leading-space", "trailing-space", "vertical-tab", "carriage-return-only", "extra-blank", "two-lines"),
 )
 def test_trusted_build_id_channel_rejects_empty_or_malformed_content(tmp_path, content, reason):
     channel = tmp_path / "trusted-build-id.txt"
