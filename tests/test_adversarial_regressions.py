@@ -172,12 +172,21 @@ def test_contract_lint_matrix(requires: str, ensures: str, expected: list[str]) 
 # --- fixed-alarm regression gate ---------------------------------------------
 
 
-def _write_budget(path: Path, false_alarms: int = 1, unreviewed: int = 0, specimens: int = 1) -> None:
+def _write_budget(
+    path: Path,
+    false_alarms: int = 1,
+    unreviewed: int = 0,
+    specimens: int = 1,
+    code_evidence: int = 0,
+    non_code_kind_budgets: dict[str, int] | None = None,
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps({
         "schema": fixed_alarm.BUDGET_SCHEMA,
         "mode": "no_llm",
         "max_false_alarms": false_alarms,
+        "max_code_evidence_false_alarms": code_evidence,
+        "max_non_code_findings_by_kind": non_code_kind_budgets or {},
         "max_unreviewed": unreviewed,
         "min_specimens": specimens,
         "notes": "test",
@@ -213,6 +222,9 @@ def test_fixed_alarm_gate_passes_committed_artifacts() -> None:
     assert 0 <= result["total"]["false_alarms"] <= result["budget"]["max_false_alarms"]
     assert 0 <= result["total"]["unreviewed"] <= result["budget"]["max_unreviewed"]
     assert result["history_comparison"] == "match"
+    assert result["decomposition_history_comparison"] == "legacy_unavailable"
+    assert result["total"]["code_evidence_false_alarms"] == 0
+    assert result["total"]["non_code_kind_counts"] == {"cross_validation_gaps": 1}
     assert bool(result["top_offenders"]) == (result["total"]["false_alarms"] > 0)
     assert all(row["false_alarms"] > 0 for row in result["top_offenders"])
 
@@ -229,6 +241,8 @@ def test_fixed_alarm_gate_counts_multiple_specimens(tmp_path: Path) -> None:
     assert result["total"] == {
         "specimens": 2,
         "false_alarms": 4,
+        "code_evidence_false_alarms": 0,
+        "non_code_kind_counts": {},
         "findings": 4,
         "real": 0,
         "unreviewed": 2,
@@ -246,6 +260,88 @@ def test_fixed_alarm_gate_allows_zero_false_alarms(tmp_path: Path) -> None:
 
     assert result["status"] == "pass"
     assert result["top_offenders"] == []
+
+
+def test_fixed_alarm_gate_derives_raw_kind_decomposition(tmp_path: Path) -> None:
+    coverage = tmp_path / "specimens" / "go" / "go-01-x" / "audit" / "coverage.json"
+    coverage.parent.mkdir(parents=True)
+    coverage.write_text(json.dumps({
+        "specimen": "go-01-x",
+        "fixed": {
+            "false_alarms": 4,
+            "code_evidence_false_alarms": 99,
+            "non_code_kind_counts": {"verification_violations": 99},
+            "still_reported": [],
+            "finding_counts": {"total": 6, "real": 2, "unreviewed": 1},
+            "findings": [
+                {"kind": "verification_violations", "status": "real", "text": "kept real"},
+                {"kind": "verification_violations", "status": "false_positive", "text": "code"},
+                {"kind": "cross_validation_gaps", "status": "unreviewed", "text": "cross"},
+                {"kind": "cross_validation_gaps", "status": "real", "text": "real spec"},
+                {"kind": "spec_health_issues", "status": "false_positive", "text": "spec"},
+                {"kind": "trusted_atoms", "status": "false_positive", "text": "advisory"},
+            ],
+        },
+    }), encoding="utf-8")
+    history = tmp_path / "history.json"
+    history.write_text(json.dumps({"runs": [{"llm": False, "fixed": {
+        "specimens": 1,
+        "findings": 6,
+        "real": 2,
+        "false_alarms": 4,
+        "still_reported": 0,
+    }}]}), encoding="utf-8")
+    _write_budget(
+        tmp_path / "budget.json",
+        false_alarms=4,
+        unreviewed=1,
+        code_evidence=1,
+        non_code_kind_budgets={"cross_validation_gaps": 2, "spec_health_issues": 1, "trusted_atoms": 1},
+    )
+
+    result = fixed_alarm.evaluate(tmp_path / "specimens", history, tmp_path / "budget.json")
+
+    assert result["status"] == "pass"
+    assert result["total"]["false_alarms"] == 4
+    assert result["total"]["code_evidence_false_alarms"] == 1
+    assert result["total"]["non_code_kind_counts"] == {
+        "cross_validation_gaps": 2,
+        "spec_health_issues": 1,
+        "trusted_atoms": 1,
+    }
+    assert result["decomposition_history_comparison"] == "legacy_unavailable"
+
+
+def test_fixed_alarm_gate_enforces_decomposed_budgets(tmp_path: Path) -> None:
+    root = tmp_path / "specimens"
+    _write_fixed_tree(root, false_alarms=0, specimens=1)
+    coverage = root / "python" / "py-00-x" / "audit" / "coverage.json"
+    data = json.loads(coverage.read_text(encoding="utf-8"))
+    data["fixed"]["false_alarms"] = 2
+    data["fixed"]["finding_counts"] = {"total": 2, "real": 0, "unreviewed": 0}
+    data["fixed"]["findings"] = [
+        {"kind": "verification_violations", "status": "false_positive", "text": "code"},
+        {"kind": "cross_validation_gaps", "status": "false_positive", "text": "spec"},
+    ]
+    coverage.write_text(json.dumps(data), encoding="utf-8")
+    history = tmp_path / "history.json"
+    history.write_text(json.dumps({"runs": [{"llm": False, "fixed": {
+        "specimens": 1,
+        "findings": 2,
+        "real": 0,
+        "false_alarms": 2,
+        "still_reported": 0,
+        "code_evidence_false_alarms": 1,
+        "non_code_kind_counts": {"cross_validation_gaps": 1},
+    }}]}), encoding="utf-8")
+    _write_budget(tmp_path / "budget.json", false_alarms=2, code_evidence=0)
+
+    result = fixed_alarm.evaluate(root, history, tmp_path / "budget.json")
+
+    assert result["status"] == "fail"
+    assert result["decomposition_history_comparison"] == "match"
+    assert any("code-evidence false alarms regressed: 1 > budget 0" in error for error in result["errors"])
+    assert any("cross_validation_gaps findings regressed: 1 > budget 0" in error for error in result["errors"])
 
 
 @pytest.mark.parametrize(
@@ -266,6 +362,8 @@ def test_fixed_alarm_gate_budget_failures(tmp_path: Path, budget: dict, fragment
             "schema": fixed_alarm.BUDGET_SCHEMA,
             "mode": "no_llm",
             "max_false_alarms": budget["false_alarms"],
+            "max_code_evidence_false_alarms": 0,
+            "max_non_code_findings_by_kind": {},
             "max_unreviewed": budget["unreviewed"],
             "min_specimens": budget["specimens"],
             "notes": "test",
@@ -279,6 +377,62 @@ def test_fixed_alarm_gate_budget_failures(tmp_path: Path, budget: dict, fragment
 
     assert result["status"] == "fail"
     assert any(fragment in error for error in result["errors"])
+
+
+def test_fixed_alarm_gate_rejects_partial_history_decomposition(tmp_path: Path) -> None:
+    root = tmp_path / "specimens"
+    _write_fixed_tree(root, false_alarms=1, specimens=1)
+    history = tmp_path / "history.json"
+    history.write_text(json.dumps({"runs": [{"llm": False, "fixed": {
+        "specimens": 1,
+        "findings": 1,
+        "real": 0,
+        "false_alarms": 1,
+        "still_reported": 0,
+        "code_evidence_false_alarms": 0,
+    }}]}), encoding="utf-8")
+    _write_budget(tmp_path / "budget.json", false_alarms=1, specimens=1)
+
+    result = fixed_alarm.evaluate(root, history, tmp_path / "budget.json")
+
+    assert result["status"] == "fail"
+    assert result["decomposition_history_comparison"] == "incomplete"
+    assert any("only part of the fixed-alarm decomposition" in error for error in result["errors"])
+
+
+def test_fixed_alarm_gate_detects_decomposition_history_mismatch(tmp_path: Path) -> None:
+    root = tmp_path / "specimens"
+    _write_fixed_tree(root, false_alarms=1, specimens=1)
+    coverage = root / "python" / "py-00-x" / "audit" / "coverage.json"
+    data = json.loads(coverage.read_text(encoding="utf-8"))
+    data["fixed"]["finding_counts"] = {"total": 1, "real": 0, "unreviewed": 0}
+    data["fixed"]["findings"] = [
+        {"kind": "cross_validation_gaps", "status": "false_positive", "text": "spec"}
+    ]
+    coverage.write_text(json.dumps(data), encoding="utf-8")
+    history = tmp_path / "history.json"
+    history.write_text(json.dumps({"runs": [{"llm": False, "fixed": {
+        "specimens": 1,
+        "findings": 1,
+        "real": 0,
+        "false_alarms": 1,
+        "still_reported": 0,
+        "code_evidence_false_alarms": 0,
+        "non_code_kind_counts": {"cross_validation_gaps": 0},
+    }}]}), encoding="utf-8")
+    _write_budget(
+        tmp_path / "budget.json",
+        false_alarms=1,
+        specimens=1,
+        non_code_kind_budgets={"cross_validation_gaps": 1},
+    )
+
+    result = fixed_alarm.evaluate(root, history, tmp_path / "budget.json")
+
+    assert result["status"] == "fail"
+    assert result["history_comparison"] == "match"
+    assert result["decomposition_history_comparison"] == "mismatch"
+    assert any("non_code_kind_counts" in error for error in result["errors"])
 
 
 def test_fixed_alarm_gate_detects_history_mismatch(tmp_path: Path) -> None:
@@ -320,6 +474,8 @@ def test_fixed_alarm_gate_rejects_wrong_budget_mode(tmp_path: Path) -> None:
         "schema": fixed_alarm.BUDGET_SCHEMA,
         "mode": "with_llm",
         "max_false_alarms": 0,
+        "max_code_evidence_false_alarms": 0,
+        "max_non_code_findings_by_kind": {},
         "max_unreviewed": 0,
         "min_specimens": 0,
         "notes": "test",
