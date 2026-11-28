@@ -7,7 +7,7 @@
   "prompt_hash": "2fd1a1213dca8cce",
   "temperature": 0,
   "generated_at": "2026-11-03T06:16:58Z",
-  "source_hash": "bdf0e46563e4a6ecd2f5328f78c91f9a5f5e2280c83965bb4c4934e45ac6484c",
+  "source_hash": "fe7137004e570167dbad85442a6d6deb6c8a7fdb794407c883a6cd6806dd519a",
   "runs": [
     {
       "run": 1,
@@ -279,13 +279,15 @@
         },
         {
           "id": "RS01-D10",
-          "file": "src/main.rs",
-          "function": "operator_token",
+          "file": "src/bank.rs",
+          "function": "OPERATOR_TOKEN",
           "category": "hardcoded-secret",
           "class": "vulnerability",
-          "in_target_category": false,
-          "status": "missed",
-          "findings": []
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "hardcoded-credential (line 5, CWE-798): The operator token is embedded in the source and used as the default credential, so anyone who knows the published value can authorize close and adjust commands when the environment variable is unset."
+          ]
         },
         {
           "id": "RS01-D11",
@@ -314,16 +316,16 @@
       ],
       "counts": {
         "total": 12,
-        "detected": 6,
+        "detected": 7,
         "function_flagged": 2,
-        "missed": 4
+        "missed": 3
       },
       "findings": [
         {
           "file": "src/bank.rs",
           "kind": "baseline",
           "text": "hardcoded-credential (line 5, CWE-798): The operator token is embedded in the source and used as the default credential, so anyone who knows the published value can authorize close and adjust commands when the environment variable is unset.",
-          "status": "unreviewed"
+          "status": "defect_evidence"
         },
         {
           "file": "src/bank.rs",
@@ -412,10 +414,10 @@
       ],
       "finding_counts": {
         "total": 15,
-        "defect_evidence": 6,
+        "defect_evidence": 7,
         "real": 0,
         "false_positive": 0,
-        "unreviewed": 9
+        "unreviewed": 8
       },
       "reviews_used": [],
       "fixed_raw_findings": [
@@ -815,13 +817,15 @@
         },
         {
           "id": "RS01-D10",
-          "file": "src/main.rs",
-          "function": "operator_token",
+          "file": "src/bank.rs",
+          "function": "OPERATOR_TOKEN",
           "category": "hardcoded-secret",
           "class": "vulnerability",
-          "in_target_category": false,
-          "status": "missed",
-          "findings": []
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "hardcoded-credential (line 5, CWE-798): The operator token is embedded in the source, so anyone who can inspect the binary or source can supply it to authorize `close` and `adjust`."
+          ]
         },
         {
           "id": "RS01-D11",
@@ -850,16 +854,16 @@
       ],
       "counts": {
         "total": 12,
-        "detected": 6,
+        "detected": 7,
         "function_flagged": 1,
-        "missed": 5
+        "missed": 4
       },
       "findings": [
         {
           "file": "src/bank.rs",
           "kind": "baseline",
           "text": "hardcoded-credential (line 5, CWE-798): The operator token is embedded in the source, so anyone who can inspect the binary or source can supply it to authorize `close` and `adjust`.",
-          "status": "unreviewed"
+          "status": "defect_evidence"
         },
         {
           "file": "src/bank.rs",
@@ -942,10 +946,10 @@
       ],
       "finding_counts": {
         "total": 14,
-        "defect_evidence": 6,
+        "defect_evidence": 7,
         "real": 0,
         "false_positive": 0,
-        "unreviewed": 8
+        "unreviewed": 7
       },
       "reviews_used": [],
       "fixed_raw_findings": [
@@ -1386,13 +1390,15 @@
         },
         {
           "id": "RS01-D10",
-          "file": "src/main.rs",
-          "function": "operator_token",
+          "file": "src/bank.rs",
+          "function": "OPERATOR_TOKEN",
           "category": "hardcoded-secret",
           "class": "vulnerability",
-          "in_target_category": false,
-          "status": "missed",
-          "findings": []
+          "in_target_category": true,
+          "status": "detected",
+          "findings": [
+            "hardcoded-operator-credential (line 5, CWE-798): The operator token is embedded in the source and is used as the default when no environment override is set, so anyone who can run the program can authorize `close` and `adjust` using this known value."
+          ]
         },
         {
           "id": "RS01-D11",
@@ -1421,16 +1427,16 @@
       ],
       "counts": {
         "total": 12,
-        "detected": 7,
+        "detected": 8,
         "function_flagged": 1,
-        "missed": 4
+        "missed": 3
       },
       "findings": [
         {
           "file": "src/bank.rs",
           "kind": "baseline",
           "text": "hardcoded-operator-credential (line 5, CWE-798): The operator token is embedded in the source and is used as the default when no environment override is set, so anyone who can run the program can authorize `close` and `adjust` using this known value.",
-          "status": "unreviewed"
+          "status": "defect_evidence"
         },
         {
           "file": "src/bank.rs",
@@ -1549,10 +1555,10 @@
       ],
       "finding_counts": {
         "total": 20,
-        "defect_evidence": 8,
+        "defect_evidence": 9,
         "real": 0,
         "false_positive": 0,
-        "unreviewed": 12
+        "unreviewed": 11
       },
       "reviews_used": [],
       "fixed_raw_findings": [
@@ -1667,5 +1673,5 @@
   ],
   "provenance_version": 2,
   "input_hash": "dd9520db0a56cb88cae1c05ff6516215a1a56aa08818a4c9829bc04e2c47f21a",
-  "defect_catalog_hash": "3d847b65e7aa7100b5a5a5666bf52a22368101604a0ecb5a1a5d27e81385b9d9"
+  "defect_catalog_hash": "34e750cc71fcd6f46e4b7f20c4ec95197597c5972d6138c9ec12a575ee507af8"
 }

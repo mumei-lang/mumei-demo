@@ -55,7 +55,7 @@ An executable corpus of deliberately broken Python/TypeScript/Go/Rust/Solidity a
 
 Latest committed baseline:
 
-- No LLM — 2026-11-28, mumei-agent `15541eb`, mumei `b777e8e`: 18/171 detected (11%), 34/171 detected or function-flagged, precision 62%–94% of 32 findings, adjudication incomplete (10 unreviewed, 0 stale), 1 false alarms on fixed code (16 specimens)
+- No LLM — 2026-11-28, mumei-agent `15541eb`, mumei `b777e8e`: 19/171 detected (11%), 35/171 detected or function-flagged, precision 66%–94% of 32 findings, adjudication incomplete (9 unreviewed, 0 stale), 1 false alarms on fixed code (16 specimens)
 - With LLM (`openai/gpt-6-luna`) — 2026-11-03, mumei-agent `e8be527`, mumei `36eb534`: 12/171 detected (7%), 65/171 detected or function-flagged, precision 10%–87% of 200 findings, adjudication incomplete (339 unreviewed, 0 stale), 211 false alarms on fixed code (16 specimens)
 
 Exploratory reruns are not folded into this baseline until finding adjudication is current.
@@ -95,12 +95,12 @@ Evidence snapshot: measured 2026-11-03–2026-11-28; mumei-agent commits: mumei 
 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
 |---|---:|---:|---:|---:|---:|---:|
-| mumei only | 18 (11%) | 34 (20%) | 62%–94% | 1 | $0.00 | 119 s wall |
+| mumei only | 19 (11%) | 35 (20%) | 66%–94% | 1 | $0.00 | 119 s wall |
 | mumei + LLM | 12 (7%) | 65 (38%) | 10%–87% | 211 | $0.22 | 54 min wall |
-| LLM only (3 runs, median) | 104 (61%), range 104–105 | 136 (80%), range 135–138 | 62%–100% | 76, range 68–79 | $0.06 | 22 min model time |
+| LLM only (3 runs, median) | 105 (61%), range 105–106 | 137 (80%), range 136–139 | 63%–100% | 76, range 68–79 | $0.06 | 22 min model time |
 
 Same 171 planted defects and the same scoring for every row; LLM rows use `openai/gpt-6-luna`.
-Precision is a range while findings are unreviewed (median unreviewed per run: mumei only 10, mumei + LLM 154, LLM only 65).
+Precision is a range while findings are unreviewed (median unreviewed per run: mumei only 9, mumei + LLM 154, LLM only 64).
 Of the 212 mumei + LLM findings on fixed code (211 false alarms, 1 reviewed as real), 183 are spec diagnostics (cross-check gaps and spec health issues) rather than verifier violations.
 Details, complementarity, findings by kind and per-language numbers: [specimens/COMPARISON.md](specimens/COMPARISON.md).
 <!-- comparison:end -->

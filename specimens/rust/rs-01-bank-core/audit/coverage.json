@@ -8,9 +8,9 @@
   "files_with_issues": 1,
   "counts": {
     "total": 12,
-    "detected": 2,
+    "detected": 3,
     "function_flagged": 0,
-    "missed": 10
+    "missed": 9
   },
   "defects": [
     {
@@ -107,13 +107,15 @@
     },
     {
       "id": "RS01-D10",
-      "file": "src/main.rs",
-      "function": "operator_token",
+      "file": "src/bank.rs",
+      "function": "OPERATOR_TOKEN",
       "category": "hardcoded-secret",
       "class": "vulnerability",
       "in_target_category": true,
-      "status": "missed",
-      "findings": []
+      "status": "detected",
+      "findings": [
+        "Rust hardcoded credential constant `OPERATOR_TOKEN` is stored directly in source"
+      ]
     },
     {
       "id": "RS01-D11",
@@ -138,13 +140,7 @@
       ]
     }
   ],
-  "unmatched_findings": [
-    {
-      "file": "src/bank.rs",
-      "kind": "verification_violations",
-      "text": "Rust hardcoded credential constant `OPERATOR_TOKEN` is stored directly in source"
-    }
-  ],
+  "unmatched_findings": [],
   "findings": [
     {
       "file": "src/bank.rs",
@@ -162,18 +158,21 @@
       "file": "src/bank.rs",
       "kind": "verification_violations",
       "text": "Rust hardcoded credential constant `OPERATOR_TOKEN` is stored directly in source",
-      "status": "unreviewed"
+      "status": "defect_evidence"
     }
   ],
   "finding_counts": {
     "total": 3,
-    "defect_evidence": 2,
+    "defect_evidence": 3,
     "real": 0,
     "false_positive": 0,
-    "unreviewed": 1
+    "unreviewed": 0
   },
   "reviews_used": [],
-  "source_hash": "bdf0e46563e4a6ecd2f5328f78c91f9a5f5e2280c83965bb4c4934e45ac6484c",
+  "source_hash": "fe7137004e570167dbad85442a6d6deb6c8a7fdb794407c883a6cd6806dd519a",
+  "provenance_version": 2,
+  "input_hash": "dd9520db0a56cb88cae1c05ff6516215a1a56aa08818a4c9829bc04e2c47f21a",
+  "defect_catalog_hash": "34e750cc71fcd6f46e4b7f20c4ec95197597c5972d6138c9ec12a575ee507af8",
   "meta": {
     "mumei_agent_commit": "15541ebe5e6feb947f54f4633a34bcaa9377a434",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
@@ -196,8 +195,5 @@
       "unreviewed": 0
     },
     "reviews_used": []
-  },
-  "provenance_version": 2,
-  "input_hash": "dd9520db0a56cb88cae1c05ff6516215a1a56aa08818a4c9829bc04e2c47f21a",
-  "defect_catalog_hash": "3d847b65e7aa7100b5a5a5666bf52a22368101604a0ecb5a1a5d27e81385b9d9"
+  }
 }
