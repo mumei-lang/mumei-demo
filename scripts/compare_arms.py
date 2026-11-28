@@ -421,9 +421,12 @@ def report(summary: dict) -> str:
         "- **LLM only**: the model reviews each specimen's source on its own, with no mumei "
         "(`llm_only/`, see [LLM_ONLY.md](LLM_ONLY.md)).",
         "",
-        f"Every row is scored against the same {summary['defects']} defects in `DEFECTS.json` with the "
-        "same matcher. LLM-only rows run the model several times at temperature 0 and report the median "
-        "with the min–max range, because the output still varies between runs.",
+        f"Every row is scored against the same {summary['defects']} defects in `DEFECTS.json`. "
+        "The evidence matcher is arm-specific because the raw outputs differ: mumei audit findings are "
+        "matched by their textual function/credential-binding evidence, while baseline and LLM-only "
+        "findings use their reported file, line, function, CWE, and category evidence. LLM-only rows run "
+        "the model several times at temperature 0 and report the median with the min–max range, because "
+        "the output still varies between runs.",
         "",
     ]
     if model:

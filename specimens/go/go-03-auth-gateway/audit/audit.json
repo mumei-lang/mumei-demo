@@ -1,5 +1,5 @@
 {
-  "success": true,
+  "success": false,
   "source_dir": "specimens/go/go-03-auth-gateway",
   "language": "mixed",
   "file_results": [
@@ -144,13 +144,15 @@
       "skipped_rate_limited": false
     },
     {
-      "success": true,
+      "success": false,
       "source_file": "specimens/go/go-03-auth-gateway/main.go",
       "language": "go",
       "spec_extracted": true,
       "verification_status": "verified",
       "spec_health_issues": [],
-      "verification_violations": [],
+      "verification_violations": [
+        "Go hardcoded credential constant `adminPassword` in package main is stored directly in source"
+      ],
       "counterexample_values": [],
       "cross_validation_gaps": [],
       "migration_hints": [],
@@ -159,9 +161,9 @@
       "trusted_atoms": [],
       "next_steps": [
         {
-          "priority": "info",
-          "action": "監査完了。追加の .mm 移行は不要",
-          "command": ""
+          "priority": "high",
+          "action": "migrate-suggest で .mm スケルトンを生成",
+          "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
         },
         {
           "priority": "medium",
@@ -174,13 +176,26 @@
       "scheduled_verification": null,
       "scheduled_verification_check": null,
       "finding_counts": {
-        "code": 0,
+        "code": 1,
         "confirmed": 0,
         "spec": 0,
         "model_limitations": 0,
         "errors": 0
       },
-      "findings": [],
+      "findings": [
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "code",
+          "severity": "error",
+          "confidence": "medium",
+          "verification_basis": "deterministic-static-analysis",
+          "message": "Go hardcoded credential constant `adminPassword` in package main is stored directly in source",
+          "source_file": "specimens/go/go-03-auth-gateway/main.go",
+          "line": null,
+          "triage_bucket": "code_review",
+          "fingerprint": "74b4999711e5bb521ecea4a832358f5afd10d1cd7b19f3674dd12ec21ed574c2"
+        }
+      ],
       "triage": {
         "schema": "mumei.audit-triage/v1",
         "refuted": [],
@@ -209,18 +224,20 @@
       },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/go/go-03-auth-gateway/main.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit found issues: specimens/go/go-03-auth-gateway/main.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: ['Go hardcoded credential constant `adminPassword` in package main is stored directly in source']\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=1, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/go/go-03-auth-gateway\n  auth.go: 0 violations, 0 gaps\n  handlers.go: 0 violations, 0 gaps\n  main.go: 0 violations, 0 gaps\nSummary: 3 files, 0 files with issues, 0 files with spec diagnostics\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=0, verified=3, unverifiable=0\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: tokenMatches.requires, tokenMatches.ensures, sessionUser.requires, sessionUser.ensures, bearerUser.requires, bearerUser.ensures, allowAttempt.requires, allowAttempt.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: loginHandler.requires, loginHandler.ensures, profileHandler.requires, profileHandler.ensures, proxyHandler.requires, proxyHandler.ensures, rotateHandler.requires, rotateHandler.ensures, healthHandler.requires, healthHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/go/go-03-auth-gateway\n  auth.go: 0 violations, 0 gaps\n  handlers.go: 0 violations, 0 gaps\n  main.go: 1 violation, 0 gaps\nSummary: 3 files, 1 file with issues, 0 files with spec diagnostics\nfinding_counts: code=1, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=0, verified=3, unverifiable=0\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: tokenMatches.requires, tokenMatches.ensures, sessionUser.requires, sessionUser.ensures, bearerUser.requires, bearerUser.ensures, allowAttempt.requires, allowAttempt.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: loginHandler.requires, loginHandler.ensures, profileHandler.requires, profileHandler.ensures, proxyHandler.requires, proxyHandler.ensures, rotateHandler.requires, rotateHandler.ensures, healthHandler.requires, healthHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 3,
-  "files_with_issues": 0,
+  "files_with_issues": 1,
   "files_with_spec_diagnostics": 0,
   "verification_status": "verified",
   "spec_health_issues": [],
-  "verification_violations": [],
+  "verification_violations": [
+    "main.go: Go hardcoded credential constant `adminPassword` in package main is stored directly in source"
+  ],
   "cross_validation_gaps": [],
   "migration_hints": [],
   "healed_files": [],
@@ -240,19 +257,37 @@
       "command": "mumei-agent validate-spec --input <spec> --format human"
     },
     {
+      "priority": "high",
+      "action": "migrate-suggest で .mm スケルトンを生成",
+      "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
+    },
+    {
       "priority": "medium",
       "action": "underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures",
       "command": "mumei-agent validate-spec --input <spec> --format human"
     }
   ],
   "finding_counts": {
-    "code": 0,
+    "code": 1,
     "confirmed": 0,
     "spec": 0,
     "model_limitations": 0,
     "errors": 0
   },
-  "findings": [],
+  "findings": [
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "code",
+      "severity": "error",
+      "confidence": "medium",
+      "verification_basis": "deterministic-static-analysis",
+      "message": "Go hardcoded credential constant `adminPassword` in package main is stored directly in source",
+      "source_file": "specimens/go/go-03-auth-gateway/main.go",
+      "line": null,
+      "triage_bucket": "code_review",
+      "fingerprint": "74b4999711e5bb521ecea4a832358f5afd10d1cd7b19f3674dd12ec21ed574c2"
+    }
+  ],
   "triage": {
     "schema": "mumei.audit-triage/v1",
     "refuted": [],

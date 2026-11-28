@@ -27,19 +27,19 @@ with different denominators are not directly comparable; compare within a langua
 
 | Language | Analyzer | Detected | Precision | Fixed-code false alarms |
 |---|---|---|---|---|
-| go | Mumei (no LLM) | 2/32 (6%) | 40%–100% | 1 / 3 specimens |
+| go | Mumei (no LLM) | 4/32 (12%) | 57%–100% | 1 / 3 specimens |
 | go | gosec | 6/32 (19%) | 62% | 15 / 3 specimens |
 | go | semgrep | 4/32 (12%) | 82% | 4 / 3 specimens |
-| python | Mumei (no LLM) | 1/41 (2%) | 20%–100% | 0 / 4 specimens |
+| python | Mumei (no LLM) | 2/41 (5%) | 29%–100% | 0 / 4 specimens |
 | python | bandit | 5/41 (12%) | 88% | 3 / 4 specimens |
 | python | semgrep | 3/41 (7%) | 100% | 1 / 4 specimens |
-| rust | Mumei (no LLM) | 2/34 (6%) | 100% | 0 / 3 specimens |
+| rust | Mumei (no LLM) | 3/34 (9%) | 75%–100% | 0 / 3 specimens |
 | rust | clippy | 0/34 (0%) | n/a | 0 / 3 specimens |
 | rust | semgrep | 0/34 (0%) | 0% | 2 / 3 specimens |
 | solidity | Mumei (no LLM) | 6/31 (19%) | 73%–82% | 0 / 3 specimens |
 | solidity | semgrep | 0/31 (0%) | n/a | 0 / 3 specimens |
 | solidity | slither | 11/31 (35%) | 40% | 28 / 3 specimens |
-| typescript | Mumei (no LLM) | 2/33 (6%) | 100% | 0 / 3 specimens |
+| typescript | Mumei (no LLM) | 3/33 (9%) | 100% | 0 / 3 specimens |
 | typescript | semgrep | 2/33 (6%) | 100% | 2 / 3 specimens |
 
 ### Complementarity
@@ -49,9 +49,9 @@ both, or neither (function-flagged defects count as not detected).
 
 | Language | Defects | Mumei only | Baselines only | Both | Neither |
 |---|---|---|---|---|---|
-| go | 32 | 2 | 6 | 0 | 24 |
-| python | 41 | 1 | 5 | 0 | 35 |
-| rust | 34 | 2 | 0 | 0 | 32 |
+| go | 32 | 4 | 6 | 0 | 22 |
+| python | 41 | 1 | 4 | 1 | 35 |
+| rust | 34 | 3 | 0 | 0 | 31 |
 | solidity | 31 | 4 | 9 | 2 | 16 |
-| typescript | 33 | 2 | 2 | 0 | 29 |
-| **Total** | 171 | 11 | 22 | 2 | 136 |
+| typescript | 33 | 3 | 2 | 0 | 28 |
+| **Total** | 171 | 15 | 21 | 3 | 132 |

@@ -47,6 +47,23 @@ def test_names_function_qualified_names():
     assert rsa.names_function("apply_fee ignores zero", "bank::apply_fee")
 
 
+
+def test_hardcoded_secret_binding_ignores_non_assignment_anchor():
+    assert rsa.hardcoded_secret_bindings('const adminToken = "sentinel"') == ["adminToken"]
+    assert rsa.hardcoded_secret_bindings('ADMIN_TOKEN = "sentinel"') == ["ADMIN_TOKEN"]
+    assert rsa.hardcoded_secret_bindings('if token != ADMIN_TOKEN {') == ["ADMIN_TOKEN"]
+
+
+def test_names_defect_hardcoded_secret_matches_binding_not_package():
+    defect = {
+        "function": "main",
+        "category": "hardcoded-secret",
+        "anchor": 'const adminToken = "sentinel"',
+    }
+    assert rsa.names_defect("Go hardcoded credential constant `adminToken` is stored directly in source", defect)
+    assert not rsa.names_defect("Go hardcoded credential constant in package main is stored directly in source", defect)
+
+
 # --- category_hit ----------------------------------------------------------
 
 def test_category_hit_overflow():

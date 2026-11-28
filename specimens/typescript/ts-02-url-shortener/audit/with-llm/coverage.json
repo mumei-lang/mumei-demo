@@ -9,8 +9,8 @@
   "counts": {
     "total": 11,
     "detected": 1,
-    "function_flagged": 3,
-    "missed": 7
+    "function_flagged": 2,
+    "missed": 8
   },
   "defects": [
     {
@@ -72,15 +72,9 @@
       "function": "handleAdminDelete",
       "category": "hardcoded-secret",
       "class": "vulnerability",
-      "in_target_category": false,
-      "status": "function_flagged",
-      "findings": [
-        "malformed-extraction: handleAdminDelete requires: garbled comparison operators '==>'",
-        "malformed-extraction: handleAdminDelete requires: garbled comparison operators '==>'",
-        "malformed-extraction: handleAdminDelete ensures: garbled comparison operators '==>'",
-        "malformed-extraction: handleAdminDelete ensures: garbled comparison operators '==>'",
-        "malformed-extraction: handleAdminDelete ensures: garbled comparison operators '==>'"
-      ]
+      "in_target_category": true,
+      "status": "missed",
+      "findings": []
     },
     {
       "id": "TS02-D07",
@@ -160,6 +154,31 @@
       "file": "links.ts",
       "kind": "cross_validation_gaps",
       "text": "spec ambiguity (missing_requirement): nowSeconds.ensures — no requirement text mentions this atom and the extracted ensures clause is trivial. Add a requirement covering nowSeconds; none was stated."
+    },
+    {
+      "file": "server.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: handleAdminDelete requires: garbled comparison operators '==>'"
+    },
+    {
+      "file": "server.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: handleAdminDelete requires: garbled comparison operators '==>'"
+    },
+    {
+      "file": "server.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: handleAdminDelete ensures: garbled comparison operators '==>'"
+    },
+    {
+      "file": "server.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: handleAdminDelete ensures: garbled comparison operators '==>'"
+    },
+    {
+      "file": "server.ts",
+      "kind": "spec_health_issues",
+      "text": "malformed-extraction: handleAdminDelete ensures: garbled comparison operators '==>'"
     },
     {
       "file": "server.ts",

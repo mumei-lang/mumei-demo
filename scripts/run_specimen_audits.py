@@ -49,8 +49,10 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SPECIMENS_ROOT = REPO_ROOT / "specimens"
 
-# Categories the audit pipeline targets today (see specimens/README.md).
-TARGET_CATEGORIES = {
+# Categories the executable contract benchmark ports today. This stays narrower
+# than the audit target set: direct static findings such as hardcoded secrets do
+# not require a function port.
+CONTRACT_BENCH_TARGET_CATEGORIES = {
     "integer-overflow",
     "integer-underflow",
     "division-by-zero",
@@ -65,6 +67,9 @@ TARGET_CATEGORIES = {
     "tx-origin-auth",
     "unchecked-call",
 }
+
+# Categories the audit pipeline targets today (see specimens/README.md).
+TARGET_CATEGORIES = CONTRACT_BENCH_TARGET_CATEGORIES | {"hardcoded-secret"}
 
 CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "integer-overflow": ["overflow", "wrap", "arithmetic bounds"],
@@ -130,6 +135,30 @@ def short_name(function: str) -> str:
 def names_function(text: str, function: str) -> bool:
     name = re.escape(short_name(function))
     return re.search(rf"(?<![A-Za-z0-9_]){name}(?![A-Za-z0-9_])", text) is not None
+
+
+def hardcoded_secret_bindings(anchor: str) -> list[str]:
+    bindings = []
+    assignment = re.match(
+        r"^\s*(?:pub\s+)?(?:const\s+|let\s+|var\s+)?(?:mut\s+)?([A-Za-z_$][A-Za-z0-9_$]*)\s*=",
+        anchor,
+    )
+    if assignment:
+        bindings.append(assignment.group(1))
+    for name in re.findall(r"(?<![A-Za-z0-9_$])[A-Za-z_$][A-Za-z0-9_$]*(?![A-Za-z0-9_$])", anchor):
+        lowered = name.lower()
+        credential_like = any(word in lowered for word in ("token", "secret", "password", "passwd", "credential", "apikey"))
+        compound = "_" in name or any(a.islower() and b.isupper() for a, b in zip(name, name[1:]))
+        if credential_like and compound and name not in bindings:
+            bindings.append(name)
+    return bindings
+
+
+def names_defect(text: str, defect: dict) -> bool:
+    if defect.get("category") == "hardcoded-secret":
+        bindings = hardcoded_secret_bindings(defect.get("anchor") or "")
+        return any(names_function(text, binding) for binding in bindings)
+    return names_function(text, defect["function"])
 
 
 def category_hit(text: str, category: str) -> bool:
@@ -282,7 +311,7 @@ def score(defects_doc: dict, audit: dict, label: str,
     results = []
     for d in defects_doc["defects"]:
         findings = by_file.get(d["file"], [])
-        hits = [(i, f) for i, f in enumerate(findings) if names_function(f["text"], d["function"])]
+        hits = [(i, f) for i, f in enumerate(findings) if names_defect(f["text"], d)]
         cat_hits = [(i, f) for i, f in hits if category_hit(f["text"], d["category"])]
         applied = []
         for a in adjudications:
@@ -791,8 +820,8 @@ def write_summary(coverages: list[dict], meta: dict, path: Path,
         "function. `detected` means the finding text also carries a keyword for the defect's category;",
         "`function_flagged` means the audit flagged that function for something else; `missed` means nothing.",
         "\"Target\" categories are the ones the audit is designed to check today (arithmetic, bounds, null,",
-        "preconditions, invariants, state transitions, and the Solidity reentrancy/access-control/unchecked-call",
-        "heuristics). Findings that match no planted defect are listed per specimen in `audit/coverage.json`",
+        "preconditions, invariants, state transitions, hardcoded credentials, and the Solidity",
+        "reentrancy/access-control/unchecked-call heuristics). Findings that match no planted defect are listed per specimen in `audit/coverage.json`",
         "under `unmatched_findings`; they are either extra real issues or false positives and need human review.",
         "",
         "## How findings are scored",
@@ -1584,6 +1613,14 @@ def readme_block_specimens(history: dict) -> str:
                 f"{fmt_precision(r.get('findings'))} | {fmt_fixed(r.get('fixed'))} | "
                 f"{fmt_adjudication(r)} |"
             )
+        target_totals = sorted({r["totals"].get("target_total") for r in runs if r.get("totals")})
+        if len(target_totals) > 1:
+            lines += [
+                "",
+                "Target-denominator note: this history mixes target definitions with "
+                + " and ".join(str(v) for v in target_totals)
+                + " planted target defects; compare target percentages only within the same denominator.",
+            ]
         lines.append("")
     lines += [
         "Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md) (no LLM) and",

@@ -65,7 +65,7 @@ import port_fidelity as fidelity  # noqa: E402
 from port_fidelity import assemble, header_ensures, split_port  # noqa: E402
 from mumei_verify import REFUTATION, classify, verify_text  # noqa: E402
 import run_llm_only as llm_only  # noqa: E402
-from run_specimen_audits import TARGET_CATEGORIES  # noqa: E402
+from run_specimen_audits import CONTRACT_BENCH_TARGET_CATEGORIES  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PROOFS_ROOT = REPO_ROOT / "proofs"
@@ -142,7 +142,7 @@ def target_defects() -> list[tuple[str, str, dict]]:
     for lang in LANGUAGES:
         for p in sorted((SPECIMENS_ROOT / lang).glob("*/DEFECTS.json")):
             for d in defects_by_id(lang, p.parent.name).values():
-                if d["category"] in TARGET_CATEGORIES:
+                if d["category"] in CONTRACT_BENCH_TARGET_CATEGORIES:
                     out.append((lang, p.parent.name, d))
     return out
 
