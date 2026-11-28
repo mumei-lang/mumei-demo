@@ -224,6 +224,21 @@ def test_bounded_interaction_tool_failure_is_inconclusive(monkeypatch: pytest.Mo
     assert evidence["interaction"]["expected_executions"] == 4
 
 
+def test_helper_precondition_diagnostic_is_domain_safety() -> None:
+    result = {"outcome": "refuted", "diagnostics": [
+        {"message": "Verification Error: precondition (requires) not satisfied in atom 'slice_to'"}]}
+
+    assert fidelity.domain_safety_compare_failure(result)
+
+
+def test_mixed_precondition_and_postcondition_is_not_domain_safety() -> None:
+    result = {"outcome": "refuted", "diagnostics": [
+        {"message": "Verification Error: precondition (requires) not satisfied in atom 'slice_to'"},
+        {"message": "Verification Error: Postcondition (ensures) is not satisfied."}]}
+
+    assert not fidelity.domain_safety_compare_failure(result)
+
+
 def test_error_branch_policy_requires_success_and_error_boundaries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     case = {**case_by_id("SOL01-D03"), "id": "SOL01-D03-error-only"}
     proofs = tmp_path / "proofs"
@@ -331,6 +346,23 @@ def test_error_branch_reference_domain_error_positive_and_negative_controls() ->
     assert copied["outcome"] == "inconclusive"
     assert copied["reason"] == "error_branch_candidate_domain_unresolved"
     assert "failure_kind" not in copied
+
+
+@pytest.mark.skipif(MUMEI_BIN is None, reason="MUMEI_BIN not set")
+def test_helper_system_boundary_positive_and_negative_controls() -> None:
+    case = case_by_id("GO02-D03")
+    fixed_reference = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
+    buggy_reference = fidelity.body_inner(fidelity.split_port(case["ports"]["buggy"], case["atom"])[2]).strip()
+
+    repaired = fidelity.output_equivalence(case, fixed_reference, MUMEI_BIN, 20, "buggy")
+    copied = fidelity.output_equivalence(case, buggy_reference, MUMEI_BIN, 20, "buggy")
+
+    assert repaired["outcome"] == "diverged"
+    assert repaired["reason"] == "error_branch_domain_behavior_diverged"
+    assert repaired["opaque_atom_calls"] == ["slice_to"]
+    assert [(item["boundary"], item["result"]) for item in repaired["inputs"]] == [("error", "diverged"), ("success", "matched")]
+    assert copied["outcome"] == "inconclusive"
+    assert copied["reason"] == "error_branch_candidate_domain_unresolved"
 
 
 def test_postcondition_refutation_is_divergence_but_safety_failure_is_not(monkeypatch: pytest.MonkeyPatch) -> None:

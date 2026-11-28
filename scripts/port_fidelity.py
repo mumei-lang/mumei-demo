@@ -163,7 +163,7 @@ def token_pattern(text: str) -> tuple[str, ...]:
 
 
 VARIANTS = ("buggy", "fixed")
-DETECTOR_VERSION = 17
+DETECTOR_VERSION = 18
 
 
 def split_port(text: str, atom: str) -> tuple[str, str, str] | None:
@@ -1264,7 +1264,7 @@ def domain_safety_compare_failure(result: dict) -> bool:
     diagnostics = result.get("diagnostics") or []
     if result.get("outcome") != "refuted" or not diagnostics:
         return False
-    fragments = ("potential out-of-bounds", "potential division by zero")
+    fragments = ("potential out-of-bounds", "potential division by zero", "precondition (requires) not satisfied")
     return all(any(fragment in diagnostic.get("message", "").lower() for fragment in fragments)
                for diagnostic in diagnostics)
 
@@ -1283,7 +1283,8 @@ def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout:
     divergence is evidence, while finite agreement remains inconclusive.
     Runtime-domain-safety refutations can fall back to committed success/error
     inputs only when every solver diagnostic is a potential bounds/division
-    failure; this bounded evidence never rewrites a formal verdict.
+    failure or an opaque helper/system-boundary precondition failure; this
+    bounded evidence never rewrites a formal verdict.
     """
     try:
         parts = split_port(case["ports"][variant], case["atom"])
@@ -1334,6 +1335,8 @@ def output_equivalence(case: dict, candidate_body: str, mumei_bin: str, timeout:
                 bounded["verification"] = measurement
             if bounded.get("reason") == "bounded_interactions_matched":
                 bounded["reason"] = "error_branch_bounded_interactions_matched"
+            if opaque_calls:
+                bounded["opaque_atom_calls"] = opaque_calls
             return bounded
     boundary_only = False
     operational_policy = any(key in policy for key in
