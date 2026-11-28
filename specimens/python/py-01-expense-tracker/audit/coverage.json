@@ -144,7 +144,8 @@
       "file": "config.py",
       "kind": "verification_violations",
       "text": "No function signatures were extracted.",
-      "status": "unreviewed"
+      "status": "false_positive",
+      "reason": "Extractor artifact: config.py holds only module-level constants and has no functions to extract, and the planted hardcoded secret PY01-D09 is separately surfaced as a credential witness; this message is not actionable code evidence."
     },
     {
       "file": "config.py",
@@ -162,23 +163,41 @@
       "file": "ledger.py",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `daily_average`",
-      "status": "unreviewed"
+      "status": "real",
+      "reason": "`daily_average` returns `total_cents // days` with no non-zero guard on `days`; the unenforced precondition is exactly the planted division-by-zero defect PY01-D03, so the gap is actionable code evidence."
     },
     {
       "file": "ledger.py",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `average_expense`",
-      "status": "unreviewed"
+      "status": "real",
+      "reason": "`average_expense` divides by `len(amounts)` with no empty-input guard, so an empty list raises ZeroDivisionError; the unenforced precondition identifies a genuine crash hazard regardless of the catalog's rounding-error label."
     }
   ],
   "finding_counts": {
     "total": 5,
     "defect_evidence": 2,
-    "real": 0,
-    "false_positive": 0,
-    "unreviewed": 3
+    "real": 2,
+    "false_positive": 1,
+    "unreviewed": 0
   },
-  "reviews_used": [],
+  "reviews_used": [
+    [
+      "py-01-expense-tracker",
+      "config.py",
+      "No function signatures were extracted."
+    ],
+    [
+      "py-01-expense-tracker",
+      "ledger.py",
+      "spec precondition assumed, not enforced, by `average_expense`"
+    ],
+    [
+      "py-01-expense-tracker",
+      "ledger.py",
+      "spec precondition assumed, not enforced, by `daily_average`"
+    ]
+  ],
   "source_hash": "0468722f07853392606cdfb4cd0014613e56edf40f4506d4dcfe2007d466c3d2",
   "provenance_version": 2,
   "input_hash": "318a8ca1a5b2623f36a5576f325431241dc4191ff5954b889242551df33d0970",

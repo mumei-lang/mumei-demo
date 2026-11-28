@@ -16,7 +16,7 @@ Evidence snapshot: measured 2026-11-03–2026-11-28; mumei-agent commits: mumei 
 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
 |---|---:|---:|---:|---:|---:|---:|
-| mumei only | 36 (21%) | 50 (29%) | 78%–96% | 1 | $0.00 | 104 s wall |
+| mumei only | 36 (21%) | 50 (29%) | 90% | 1 | $0.00 | 104 s wall |
 | mumei + LLM | 12 (7%) | 65 (38%) | 10%–87% | 211 | $0.22 | 54 min wall |
 | LLM only (3 runs, median) | 105 (61%), range 105–106 | 137 (80%), range 136–139 | 63%–100% | 76, range 68–79 | $0.06 | 22 min model time |
 

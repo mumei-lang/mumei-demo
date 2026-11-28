@@ -149,7 +149,8 @@
       "file": "src/RewardVault.sol",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `sharePrice`",
-      "status": "unreviewed"
+      "status": "real",
+      "reason": "`sharePrice` divides by `totalShares` with no non-zero guard, reverting whenever no shares exist; the unenforced precondition is exactly the planted division-by-zero defect SOL01-D03."
     },
     {
       "file": "src/VaultToken.sol",
@@ -161,15 +162,20 @@
   "finding_counts": {
     "total": 5,
     "defect_evidence": 3,
-    "real": 1,
+    "real": 2,
     "false_positive": 0,
-    "unreviewed": 1
+    "unreviewed": 0
   },
   "reviews_used": [
     [
       "sol-01-token-vault",
       "src/RewardVault.sol",
       "Solidity function `setWithdrawFeeBps` is an externally callable state-mutating function with no access-control guard"
+    ],
+    [
+      "sol-01-token-vault",
+      "src/RewardVault.sol",
+      "spec precondition assumed, not enforced, by `sharePrice`"
     ]
   ],
   "source_hash": "06ece590119e0b2330e82017f2ba92081b5a0dc4ccb6ab4d984a80c39283ec89",
