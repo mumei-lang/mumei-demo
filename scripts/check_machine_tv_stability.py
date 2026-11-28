@@ -69,6 +69,15 @@ def variant_counts(report: dict) -> dict:
     return {variant: report["summary"]["native"][variant]["outcomes"] for variant in ("buggy", "fixed")}
 
 
+def timing_only_stage_changes(diff: dict) -> int:
+    total = 0
+    for item in diff.get("stage_changes", []):
+        differences = item.get("stage_differences", {})
+        if all(slot.get("base_status") == slot.get("repeat_status") for slot in differences.values()):
+            total += 1
+    return total
+
+
 def write_summary(path: Path, diff: dict, failures: list[str]) -> None:
     summary = diff["summary"]
     lines = [
@@ -80,7 +89,7 @@ def write_summary(path: Path, diff: dict, failures: list[str]) -> None:
         f"- Outcome transitions: {summary['outcome_transitions'] or '{}'}",
         f"- Unresolved-group transitions: {summary['unresolved_group_transitions'] or '{}'}",
         f"- Stage-result changes: {summary['stage_result_changes']}",
-        f"- Timing-only stage differences: {summary['stage_changes']}",
+        f"- Timing-only stage differences: {timing_only_stage_changes(diff)}",
         f"- Stability failures: {len(failures)}",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -124,7 +133,7 @@ def main(argv: list[str]) -> int:
         "outcome_transitions": diff["summary"]["outcome_transitions"],
         "unresolved_group_transitions": diff["summary"]["unresolved_group_transitions"],
         "stage_result_changes": diff["summary"]["stage_result_changes"],
-        "timing_only_stage_differences": diff["summary"]["stage_changes"],
+        "timing_only_stage_differences": timing_only_stage_changes(diff),
         "false_acceptances": {"base": false_acceptances(base), "repeat": false_acceptances(repeat)},
         "failures": failures,
     }, indent=2, ensure_ascii=False))

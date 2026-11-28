@@ -71,10 +71,12 @@ def test_matrix_covers_representative_stability_and_gap_cases_without_expected_o
 
 def test_summary_is_bounded_and_not_a_verdict(tmp_path):
     path = tmp_path / "summary.md"
-    stability.write_summary(path, diff(stage_changes=2), [])
+    doc = diff(stage_changes=1)
+    doc["stage_changes"] = [{"stage_differences": {"build": {"base_status": "ok", "repeat_status": "ok"}}}]
+    stability.write_summary(path, doc, [])
     text = path.read_text()
     assert "not a proof grade" in text
-    assert "Timing-only stage differences: 2" in text
+    assert "Timing-only stage differences: 1" in text
     assert "loadavg" not in text and "environment" not in text
     json.dumps(diff())
 
@@ -138,3 +140,16 @@ def test_run_benchmark_repeats_only_flags_and_raises_on_failure(monkeypatch):
     assert cmd.count("--only") == len(stability.MATRIX)
     assert all(case_id in cmd for case_id in stability.MATRIX)
     assert "--jobs" in cmd and "2" in cmd and "--timeout" in cmd and "30" in cmd
+
+
+def test_stage_status_difference_is_not_reported_as_timing_only():
+    doc = diff(stage_changes=1)
+    doc["stage_changes"] = [{
+        "id": "A",
+        "variant": "fixed",
+        "stage_differences": {"build": {"base_status": "ok", "repeat_status": "failed"}},
+    }]
+    assert stability.stability_failures(doc, report(), report()) == []
+    assert stability.timing_only_stage_changes(doc) == 0
+    doc["stage_changes"][0]["stage_differences"]["build"]["repeat_status"] = "ok"
+    assert stability.timing_only_stage_changes(doc) == 1
