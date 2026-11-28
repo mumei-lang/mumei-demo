@@ -268,6 +268,7 @@ def test_parser_option_strings_match_golden_lists() -> None:
         "scripts/review_charter_baseline.py": ["--base", "--out-dir"],
         "scripts/build_ci_evidence_pack.py": ["--scenario-dir", "--output-dir", "--mumei-agent-repo", "--mumei-agent-python", "--mumei-bin"],
         "scripts/verify_ci_evidence_pack.py": ["--mumei-bin", "--reference-contract"],
+        "scripts/check_verify_distribution_reference.py": ["--mumei-bin", "--mumei-agent-python", "--mumei-agent-repo", "--source", "--work-dir"],
         "dashboard/cli_report.py": ["--all"],
     }
     for script_path, parser in capture_parsers():

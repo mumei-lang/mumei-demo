@@ -148,6 +148,7 @@ Scenario names and counts reflect the Makefile lists; optional and large-scale s
 | `scripts/review_charter_baseline.py` | 2 | Publish the reviewed Charter inputs and their Git diff, not an approval verdict. |
 | `scripts/build_ci_evidence_pack.py` | 5 | Build the deterministic CI audit evidence-pack reference artifact. The pack uses the upstream audit CLI contract for SARIF, baselines, and fail-on policy. SARIF is emitted only by `mumei-agent audit`; the demo never fabricates it, and baseline artifacts are CI policy rather than evidence. |
 | `scripts/verify_ci_evidence_pack.py` | 2 | Verify a copied or downloaded CI audit evidence pack. The default mode is structural and hash verification only. It does not claim that proof certificates were independently rechecked unless `--mumei-bin` and `--reference-contract` are supplied and `mumei verify-cert --strict` exits successfully. |
+| `scripts/check_verify_distribution_reference.py` | 5 | Validate the native-first verify-distribution reference fixture. The fixture source is trusted and checked into this repository. The runtime-on lane is explicit validation of that fixture only; this script is not a generic runner for untrusted distribution artifacts. |
 | `dashboard/cli_report.py` | 1 | Render a Mumei verification report. |
 
 ### `scripts/generate_report.py`
@@ -430,6 +431,18 @@ Verify a copied or downloaded CI audit evidence pack. The default mode is struct
 | `pack_dir` | `<PACK_DIR>` | yes | — | — |
 | `--mumei-bin` | `<MUMEI_BIN>` | no | — | — |
 | `--reference-contract` | `<REFERENCE_CONTRACT>` | no | — | — |
+
+### `scripts/check_verify_distribution_reference.py`
+
+Validate the native-first verify-distribution reference fixture. The fixture source is trusted and checked into this repository. The runtime-on lane is explicit validation of that fixture only; this script is not a generic runner for untrusted distribution artifacts.
+
+| Option | Value | Required | Default | Description |
+|---|---|---|---|---|
+| `--mumei-bin` | `<MUMEI_BIN>` | yes | — | — |
+| `--mumei-agent-python` | `<MUMEI_AGENT_PYTHON>` | yes | — | — |
+| `--mumei-agent-repo` | `<MUMEI_AGENT_REPO>` | yes | — | — |
+| `--source` | `<SOURCE>` | yes | — | — |
+| `--work-dir` | `<WORK_DIR>` | yes | — | — |
 
 ### `dashboard/cli_report.py`
 
