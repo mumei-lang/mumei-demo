@@ -186,5 +186,4 @@ def test_stability_step_runs_after_existing_integration_validation_with_always_c
     assert "- name: Build mumei\n        id: build-mumei" in workflow
     assert "- name: Check focused machine-TV repeat stability\n        if: always() && steps.build-mumei.outcome == 'success'" in workflow
     assert 'if [ ! -x "$MUMEI_BIN" ]; then' in workflow
-    assert "environment failure: built mumei binary is missing or not executable" in workflow
-    assert "exit 1" in workflow
+    assert 'echo "machine-TV stability environment failure: built mumei binary is missing or not executable" >&2\n            exit 1' in workflow
