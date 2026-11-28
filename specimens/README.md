@@ -233,12 +233,12 @@ Recent runs:
 | 2026-11-03 (rescored 2026-11-28) | yes | `e8be527` | `36eb534` | 171 | 7% | 11/79 (14%) | 38% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
 | 2026-11-03 (rescored 2026-11-28) | yes | `e8be527` | `36eb534` | 171 | 7% | 11/77 (14%) | 38% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
 | 2026-11-28 (rescored 2026-11-28) | no | `15541eb` | `b777e8e` | 171 | 11% | 18/77 (23%) | 20% | 66%–94% | 1 / 16 specimens | incomplete (9 unreviewed, 0 stale) |
+| 2026-11-03 (rescored 2026-11-28) | yes | `e8be527` | `36eb534` | 171 | 7% | 11/77 (14%) | 38% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
 | 2026-11-28 (rescored 2026-11-28) | no | `15541eb` | `b777e8e` | 171 | 11% | 17/77 (22%) | 20% | 62%–94% | 1 / 16 specimens | incomplete (10 unreviewed, 0 stale) |
 | 2026-11-28 | no | `45f5345` | `b777e8e` | 171 | 8% | 12/71 (17%) | 16% | 60%–92% | 1 / 16 specimens | incomplete (8 unreviewed, 0 stale) |
 | 2026-11-03 (rescored 2026-11-27) | yes | `e8be527` | `36eb534` | 171 | 7% | 11/71 (15%) | 40% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
 | 2026-11-27 (rescored 2026-11-27) | no | `cf06d5c` | `b777e8e` | 171 | 6% | 10/71 (14%) | 14% | 57%–91% | 1 / 16 specimens | incomplete (8 unreviewed, 0 stale) |
 | 2026-11-27 | no | `cf06d5c` | `b777e8e` | 171 | 6% | 10/71 (14%) | 14% | 57%–91% | 1 / 16 specimens | incomplete (8 unreviewed, 3 stale) |
-| 2026-11-27 | no | `7a488f4` | `b777e8e` | 171 | 6% | 10/71 (14%) | 14% | 42%–94% | 4 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 
 Target-denominator note: this history mixes target definitions with 71 and 77 and 79 planted target defects; compare target percentages only within the same denominator. Versioned rows record the sorted `target_categories` and a `target_definition_hash`; rows without them are legacy unversioned entries and are not overwritten when the target definition changes.
 
