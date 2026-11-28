@@ -91,11 +91,11 @@ The reference row uses hand-written ports, so it is a contract-expression check 
 
 ![mumei only vs mumei + LLM vs LLM only](specimens/scoreboard/arms.svg)
 
-Evidence snapshot: measured 2026-11-03–2026-11-28; mumei-agent commits: mumei + LLM `e8be527`, mumei only `41afb4d`; mumei commits: mumei + LLM `36eb534`, mumei only `b777e8e`.
+Evidence snapshot: measured 2026-11-03–2026-11-28; mumei-agent commits: mumei + LLM `e8be527`, mumei only `4da1226`; mumei commits: mumei + LLM `36eb534`, mumei only `b777e8e`.
 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
 |---|---:|---:|---:|---:|---:|---:|
-| mumei only | 30 (18%) | 44 (26%) | 74%–95% | 1 | $0.00 | 80 s wall |
+| mumei only | 33 (19%) | 49 (29%) | 76%–96% | 1 | $0.00 | 79 s wall |
 | mumei + LLM | 12 (7%) | 65 (38%) | 10%–87% | 211 | $0.22 | 54 min wall |
 | LLM only (3 runs, median) | 105 (61%), range 105–106 | 137 (80%), range 136–139 | 63%–100% | 76, range 68–79 | $0.06 | 22 min model time |
 
