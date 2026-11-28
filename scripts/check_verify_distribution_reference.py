@@ -1,0 +1,204 @@
+#!/usr/bin/env python3
+"""Validate the native-first verify-distribution reference fixture.
+
+The fixture source is trusted and checked into this repository. The runtime-on
+lane is explicit validation of that fixture only; this script is not a generic
+runner for untrusted distribution artifacts.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+TRUSTED_FIXTURE = (REPO_ROOT / "scenarios/native_observations_accept/src/main.mm").resolve()
+ROLES = ("proof_certificate", "native_source_llvm", "artifact_reproduction")
+GENERATED_NAMES = {
+    "bundle",
+    "build_id.txt",
+    "native-bundle-build.log",
+    "verify-distribution-runtime-off.json",
+    "verify-distribution-runtime-on.json",
+    "verify-distribution-wrong-build-id.json",
+}
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def load_report(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError(message)
+
+
+def validate_positive_report(report: dict, *, runtime: bool) -> None:
+    require(report["schema_version"] == "mumei.verify-distribution-report/v1", "unexpected report schema")
+    require(report["scope"] == "native_first_distribution_role_orchestration", "unexpected report scope")
+    require("inputs_changed" not in report, "orchestration inputs changed")
+    for check in ("unified_verdict", "deep_acceptance_fold", "adapter_evidence"):
+        require(check in report["checks_not_performed"], f"missing non-performed check: {check}")
+    roles = report["roles"]
+    for role in ROLES:
+        require(roles[role]["status"] == "accepted", f"{role} was not accepted")
+    runtime_role = roles["runtime_observation"]
+    if runtime:
+        require(runtime_role["status"] == "accepted", "runtime observation was not accepted")
+    else:
+        require(runtime_role["status"] == "skipped", "runtime observation was not skipped")
+        require(
+            runtime_role["reason"] == "runtime_observations_not_enabled",
+            "runtime observation skip reason changed",
+        )
+
+
+def validate_wrong_build_id_report(report: dict) -> None:
+    roles = report["roles"]
+    require(roles["proof_certificate"]["status"] == "accepted", "proof certificate was not accepted")
+    require(roles["runtime_observation"]["status"] == "skipped", "negative validation executed runtime observations")
+    require(
+        roles["runtime_observation"]["reason"] == "runtime_observations_not_enabled",
+        "negative validation runtime skip reason changed",
+    )
+    for role in ROLES[1:]:
+        require(roles[role]["status"] == "inconclusive", f"{role} was falsely accepted")
+        require(roles[role]["reason"] == "unclaimed_exit_outcome", f"{role} reason changed")
+        require(roles[role]["exit_code"] == 1, f"{role} exit code changed")
+
+
+def run_checked(argv: list[str], *, cwd: Path, expected_exit: int = 0) -> subprocess.CompletedProcess:
+    result = subprocess.run(
+        argv,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=300,
+    )
+    if result.returncode != expected_exit:
+        raise RuntimeError(
+            f"command exited {result.returncode}, expected {expected_exit}: {argv[0]}"
+        )
+    return result
+
+
+def verifier_argv(args: argparse.Namespace, bundle: Path, report: Path, build_id: str) -> list[str]:
+    return [
+        args.mumei_agent_python,
+        "-m",
+        "agent",
+        "verify-distribution",
+        "--core",
+        args.mumei_bin,
+        "--bundle",
+        str(bundle),
+        "--source",
+        str(args.source),
+        "--expected-build-id",
+        build_id,
+        "--attempt-timeout",
+        "120000",
+        "--memory-bound-mb",
+        "256",
+        "--output",
+        str(report),
+    ]
+
+
+def validate_fixture(args: argparse.Namespace) -> dict:
+    source = args.source.resolve()
+    if not source.is_file():
+        raise ValueError("fixture source does not exist")
+    if source != TRUSTED_FIXTURE:
+        raise ValueError("runtime validation is limited to the checked-in trusted fixture")
+    args.source = source
+    mumei_bin = args.mumei_bin.resolve()
+    if not mumei_bin.is_file():
+        raise ValueError("mumei binary does not exist")
+    args.mumei_bin = str(mumei_bin)
+    work_dir = args.work_dir.resolve()
+    if work_dir.exists() and not work_dir.is_dir():
+        raise ValueError("work dir exists and is not a directory")
+    work_dir.mkdir(parents=True, exist_ok=True)
+    children = list(work_dir.iterdir())
+    if any(child.name not in GENERATED_NAMES for child in children):
+        raise ValueError("work dir contains a file not generated by this validator")
+    for child in children:
+        if child.is_dir():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
+    bundle = work_dir / "bundle"
+    build_log = work_dir / "native-bundle-build.log"
+    with build_log.open("w", encoding="utf-8") as log:
+        built = subprocess.run(
+            [args.mumei_bin, "native-bundle", "build", str(source), "-o", str(bundle)],
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=300,
+        )
+    if built.returncode != 0:
+        raise RuntimeError("trusted fixture native-bundle build failed")
+    record = bundle / "native-bundle.json"
+    build_id = sha256_file(record)
+    (work_dir / "build_id.txt").write_text(build_id + "\n", encoding="utf-8")
+
+    agent_repo = args.mumei_agent_repo.resolve()
+    off_report = work_dir / "verify-distribution-runtime-off.json"
+    run_checked(
+        verifier_argv(args, bundle, off_report, build_id), cwd=agent_repo
+    )
+    off = load_report(off_report)
+    validate_positive_report(off, runtime=False)
+
+    on_report = work_dir / "verify-distribution-runtime-on.json"
+    on_argv = verifier_argv(args, bundle, on_report, build_id)
+    on_argv.insert(on_argv.index("--core"), "--enable-runtime-observations")
+    run_checked(on_argv, cwd=agent_repo)
+    on = load_report(on_report)
+    validate_positive_report(on, runtime=True)
+
+    wrong_id = hashlib.sha256(b"not-the-trusted-build-id").hexdigest()
+    wrong_report = work_dir / "verify-distribution-wrong-build-id.json"
+    run_checked(
+        verifier_argv(args, bundle, wrong_report, wrong_id), cwd=agent_repo, expected_exit=1
+    )
+    wrong = load_report(wrong_report)
+    validate_wrong_build_id_report(wrong)
+    return {"runtime_off": off, "runtime_on": on, "wrong_build_id": wrong}
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--mumei-bin", required=True, type=Path)
+    parser.add_argument("--mumei-agent-python", required=True)
+    parser.add_argument("--mumei-agent-repo", required=True, type=Path)
+    parser.add_argument("--source", required=True, type=Path)
+    parser.add_argument("--work-dir", required=True, type=Path)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        validate_fixture(args)
+    except (OSError, ValueError, AssertionError, RuntimeError, subprocess.TimeoutExpired) as exc:
+        print(f"verify-distribution reference validation failed: {type(exc).__name__}", file=sys.stderr)
+        return 1
+    print("verify-distribution reference fixture: role-separated validation passed")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

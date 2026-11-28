@@ -105,6 +105,16 @@ The verifier checks the action artifact layout, migration execution counts and b
 
 This repository's [audit action golden-path consumer workflow](../.github/workflows/audit-action-consumer.yml) runs the documented no-LLM path with `upload-sarif: false`, downloads the resulting artifact in a separate job, and verifies it with the same pinned script.
 
+## Native distribution verification reference
+
+The integration workflow validates `mumei-agent verify-distribution` against the trusted fixture source [`scenarios/native_observations_accept/src/main.mm`](../scenarios/native_observations_accept/src/main.mm). CI builds the native bundle during the job, computes `sha256(native-bundle.json)` as the externally supplied expected build ID, and validates the role-separated JSON with [`scripts/check_verify_distribution_reference.py`](../scripts/check_verify_distribution_reference.py). No binary bundle is committed.
+
+This validation is role-separated orchestration, not a deep acceptance fold. It is not a unified verdict, not a proof grade, and not reusable evidence. `proof_certificate`, `native_source_llvm`, `artifact_reproduction`, and `runtime_observation` remain distinct roles; adapter evidence is outside the verifier's scope and must not be folded into proof, native, or runtime evidence.
+
+Runtime observation is off by default because it executes the reproduced program. The runtime-on validation in this CI lane is an explicit opt-in for this checked-in trusted fixture source and the bundle built from it only. Do not reuse that lane as unconditional execution of external input artifacts. The verifier keeps the existing attempt timeout/memory-bound mechanism rather than weakening it.
+
+The negative validation uses a wrong externally supplied build ID and requires the native source/LLVM and artifact reproduction roles to remain `inconclusive` with `unclaimed_exit_outcome`; it must not become false acceptance.
+
 ## Timing evidence
 
 The composite action exposes `setup_seconds`, `audit_seconds`, and `total_seconds` and prints them in the job summary. The upstream selftest runs it against `examples/ci-small-repo` in [`.github/workflows/mumei-audit-selftest.yml`](https://github.com/mumei-lang/mumei-agent/blob/develop/.github/workflows/mumei-audit-selftest.yml).
