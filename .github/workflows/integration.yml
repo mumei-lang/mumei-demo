@@ -82,15 +82,21 @@ jobs:
           repository: mumei-lang/mumei-agent
           ref: develop
           path: mumei-agent
+      - name: Set up hash-pinned Z3
+        uses: ./mumei/.github/actions/setup-z3
+      - name: Use pinned Z3 for native linking
+        run: |
+          test -n "$Z3_SYS_Z3_LIB_DIR"
+          echo "LIBRARY_PATH=$Z3_SYS_Z3_LIB_DIR${LIBRARY_PATH:+:$LIBRARY_PATH}" >> "$GITHUB_ENV"
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Install Z3 + LLVM 17
+      - name: Install LLVM 17
         run: |
           # The hosted runner's unused Microsoft package feed intermittently returns 403.
           sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
           sudo apt-get update
-          sudo apt-get install -y libz3-dev pkg-config libssl-dev libzstd-dev z3
+          sudo apt-get install -y pkg-config libssl-dev libzstd-dev
           wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key \
             | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc > /dev/null
           codename=$(lsb_release -cs)
@@ -113,9 +119,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: mumei
-          # shared-key omits the GitHub job id so Demo All and Integration
-          # Demo can reuse the same mumei target cache.
-          shared-key: release
+          # Keep the Z3-4.14-linked target cache separate from workflows that
+          # still build against the distribution solver.
+          shared-key: release-z3-4.14.1
 
       - name: Build mumei
         id: build-mumei
