@@ -377,6 +377,7 @@ def test_payment_fixture_is_canonical_in_starter_and_docs_reference_it() -> None
         "pushing the starter to `main` alone does not trigger",
         "listens only to `pull_request`",
         "empty private throwaway repository",
+        "sandbox owner controlled by the pilot operator",
         "no secrets",
         "Branch protection is not required",
         "exactly the starter shape",

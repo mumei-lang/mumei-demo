@@ -34,7 +34,7 @@ This is a GitHub Actions CI-first path. The composite action provisions Python, 
 
 ## Fresh consumer pilot runbook
 
-Use a dedicated private throwaway repository for the first real consumer pilot. An existing repository branch is not a clean pilot because existing workflows, root files, branch protection, organization secrets, and Actions policy can change the result. The pilot repository should start empty, have no secrets, and use an owner whose Actions policy allows `actions/checkout`, `actions/download-artifact`, and `mumei-lang/mumei-agent`. Branch protection is not required for the pilot; if it is enabled later, the relevant job names are `audit` and `verify-downloaded-evidence`.
+Use a dedicated private throwaway repository for the first real consumer pilot. An existing repository branch is not a clean pilot because existing workflows, root files, branch protection, organization secrets, and Actions policy can change the result. Use a sandbox owner controlled by the pilot operator, such as an organization sandbox or personal account. The pilot repository should start empty, have no secrets, and use an owner whose Actions policy allows `actions/checkout`, `actions/download-artifact`, and `mumei-lang/mumei-agent`. Branch protection is not required for the pilot; if it is enabled later, the relevant job names are `audit` and `verify-downloaded-evidence`.
 
 Exact pilot runbook:
 
