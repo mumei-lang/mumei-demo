@@ -236,6 +236,8 @@ def test_write_summary(tmp_path):
     assert "| python | 3 | 2 (67%) | 2 (67%) | 1/1 (100%) |" in text
     assert "| rust | 2 | 0 (0%) | 1 (50%) | 0/1 (0%) |" in text
     assert "| [py-01-a](python/py-01-a/audit/audit.md) | 3 | 2 | 0 | 1 | 1/1 | 0 |" in text
+    assert "`insecure-randomness`" in text
+    assert "`timing-side-channel`" in text
 
 
 # --- aggregate / history / scoreboard ---------------------------------------
