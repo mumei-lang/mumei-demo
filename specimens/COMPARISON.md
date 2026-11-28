@@ -10,13 +10,13 @@ Every row is scored against the same 171 defects in `DEFECTS.json` with the same
 
 Model for both LLM rows: `openai/gpt-6-luna`.
 
-Evidence snapshot: measured 2026-11-03–2026-11-27; mumei-agent commits: mumei + LLM `e8be527`, mumei only `cf06d5c`; mumei commits: mumei + LLM `36eb534`, mumei only `b777e8e`.
+Evidence snapshot: measured 2026-11-03–2026-11-28; mumei-agent commits: mumei + LLM `e8be527`, mumei only `45f5345`; mumei commits: mumei + LLM `36eb534`, mumei only `b777e8e`.
 
 ## Totals
 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
 |---|---:|---:|---:|---:|---:|---:|
-| mumei only | 11 (6%) | 24 (14%) | 57%–91% | 1 | $0.00 | 112 s wall |
+| mumei only | 13 (8%) | 27 (16%) | 60%–92% | 1 | $0.00 | 111 s wall |
 | mumei + LLM | 12 (7%) | 68 (40%) | 10%–87% | 211 | $0.22 | 54 min wall |
 | LLM only (3 runs, median) | 104 (61%), range 104–105 | 136 (80%), range 135–138 | 62%–100% | 76, range 68–79 | $0.06 | 22 min model time |
 
@@ -28,9 +28,9 @@ Defects detected, counting an LLM-only defect when any run found it.
 
 | Pair | Both | Only first | Only second | Either |
 |---|---:|---:|---:|---:|
-| mumei only vs LLM only | 10 | 1 | 110 | 121 |
+| mumei only vs LLM only | 12 | 1 | 108 | 121 |
 | mumei + LLM vs LLM only | 11 | 1 | 109 | 121 |
-| mumei only vs mumei + LLM | 10 | 1 | 2 | 13 |
+| mumei only vs mumei + LLM | 10 | 3 | 2 | 15 |
 
 ## mumei findings by kind
 
@@ -38,7 +38,7 @@ Findings of the two audit rows by the audit section they come from, on the buggy
 
 | Kind | mumei only: buggy | mumei only: fixed | mumei + LLM: buggy | mumei + LLM: fixed |
 |---|---:|---:|---:|---:|
-| Verifier violations | 14 | 0 | 39 | 29 |
+| Verifier violations | 16 | 0 | 39 | 29 |
 | Spec vs code cross-check gaps | 8 | 1 | 105 | 151 |
 | Spec health issues | 1 | 0 | 56 | 32 |
 
@@ -48,9 +48,9 @@ Of the 212 mumei + LLM findings on fixed code (211 false alarms, 1 reviewed as r
 
 | Language | Defects | mumei only | mumei + LLM | LLM only |
 |---|---:|---:|---:|---:|
-| go | 32 | 1 | 2 | 23, range 23–24 |
+| go | 32 | 2 | 2 | 23, range 23–24 |
 | python | 41 | 1 | 1 | 24, range 23–25 |
-| rust | 34 | 1 | 1 | 20, range 20–21 |
+| rust | 34 | 2 | 1 | 20, range 20–21 |
 | solidity | 31 | 6 | 6 | 19, range 17–20 |
 | typescript | 33 | 2 | 2 | 18, range 17–19 |
 
