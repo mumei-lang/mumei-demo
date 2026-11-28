@@ -119,7 +119,7 @@ def load_llm_arm(specimens: list[Path], model: str) -> dict | None:
                              "run scripts/run_llm_only.py again")
         if rsa.defect_catalog_matches(rec, d) is False:
             raise SystemExit(f"{d.name}: defect catalog changed since the LLM-only review was scored; "
-                             "run scripts/run_llm_only.py --rescore")
+                             f"run scripts/run_llm_only.py --rescore --model {model}")
         recs.append(rec)
     numbers = sorted({r["run"] for rec in recs for r in rec["runs"]})
     runs, usage = [], []

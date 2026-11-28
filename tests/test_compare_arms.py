@@ -542,8 +542,9 @@ def test_audit_arm_rejects_changed_specimen(tree, monkeypatch, llm):
 def test_audit_arm_rejects_stale_defect_catalog(tree, monkeypatch):
     root = _full(tree)
     _, a, _ = tree
+    monkeypatch.setattr(rsa, "specimen_input_hash", lambda d: "input-now")
     monkeypatch.setattr(rsa, "defect_catalog_hash", lambda d: "now")
-    _set(rsa.audit_dir(a, False) / "coverage.json", defect_catalog_hash="then")
+    _set(rsa.audit_dir(a, False) / "coverage.json", input_hash="input-now", defect_catalog_hash="then")
     with pytest.raises(SystemExit, match="defect catalog changed"):
         ca.load_audit_arm(rsa.discover(root), False)
 
@@ -569,8 +570,9 @@ def test_llm_arm_rejects_changed_specimen(tree, monkeypatch):
 def test_llm_arm_rejects_stale_defect_catalog(tree, monkeypatch):
     root = _full(tree)
     _, _, b = tree
+    monkeypatch.setattr(rsa, "specimen_input_hash", lambda d: "input-now")
     monkeypatch.setattr(rsa, "defect_catalog_hash", lambda d: "now")
-    _set(rlo.record_path(b, MODEL), defect_catalog_hash="then")
+    _set(rlo.record_path(b, MODEL), input_hash="input-now", defect_catalog_hash="then")
     with pytest.raises(SystemExit, match="defect catalog changed"):
         ca.load_llm_arm(rsa.discover(root), MODEL)
 
