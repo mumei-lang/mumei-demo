@@ -2,9 +2,25 @@
 
 Use the upstream composite action for the initial existing-code audit gate. The richer evidence-pack reference in this repository remains the migration/proof-pack example; it does not fabricate SARIF or baseline data.
 
-## Copy/paste quick start
+## Payment/ledger vertical quick start
 
-1. Add `.github/workflows/mumei-audit.yml` in the repository being introduced:
+The recommended first vertical is a small payment/ledger backend because its review questions map directly to preconditions, arithmetic rounding, balance invariants, and state transitions. This repository carries a stdlib-only Python fixture at [`scenarios/ci_evidence_pack/reference/payment_ledger.py`](../scenarios/ci_evidence_pack/reference/payment_ledger.py). It is intentionally small and is not a production-safe ledger: copy it into a throwaway consumer repository as `src/payment_ledger.py` only to exercise the adoption path, or point `code-file` at your own payment module.
+
+The copy/paste workflow below is also the payment/ledger workflow. With the fixture and the deterministic/no-LLM settings, the expected result is one high-priority migration hint for `split_cents`, one migration execution candidate named `split_cents` in `blocked` state, `review_required: true`, and a downloaded artifact that passes the pinned artifact verifier. `blocked` is retained review evidence, not an operational failure of the action.
+
+Use this payment reviewer checklist before acting on the artifact:
+
+- Check whether `recipient_count > 0` must become an explicit precondition or runtime validation for payout splitting; migration execution evidence does not decide that product requirement.
+- Check the integer-split remainder policy in `payout_summary`; the generated artifact does not prove that the host Python implements the same rounding behavior.
+- Check account-existence, negative-amount, and non-negative-balance requirements in `transfer_cents`; these remain human migration requirements even when a generated `.mm` candidate exists.
+- Treat migration execution as generated `.mm` acceptance evidence only. It is not host semantic-equivalence proof, and `audit-baseline.json`/`generated-baseline.json` are CI policy rather than evidence.
+
+Decision guide: use this composite-action path for the first ten-minute audit gate; use the advanced evidence-pack reference only when you need the custom pack layout and reviewed reference certificate; use native distribution verification only later for trusted `.mm` native bundles. When a pinned action includes migration contract-erosion provenance, `contract_erosion` is additive tool-execution provenance rather than proof acceptance, and a skip such as `skipped_no_change` is explicit not-checked evidence; it is not a success condition for this first payment path.
+
+## Copy/paste payment/ledger workflow
+
+1. Copy [`scenarios/ci_evidence_pack/reference/payment_ledger.py`](../scenarios/ci_evidence_pack/reference/payment_ledger.py) into the repository being introduced as `src/payment_ledger.py` for the fixture walkthrough, or skip this file and point `code-file` at the repository's own payment/ledger source tree.
+2. Add `.github/workflows/mumei-audit.yml` in the repository being introduced:
 
    ```yaml
    name: Mumei audit
@@ -45,10 +61,10 @@ Use the upstream composite action for the initial existing-code audit gate. The 
 
    `migration-execution-output` is optional but shown in the golden path because it makes the migration evidence handoff explicit. The path must be fresh on every run, stay inside the caller workspace, and use a `.json` filename; the action automatically adds `--auto-migrate` when needed and copies the JSON plus companion generated files into the evidence artifact. Do not commit or reuse that output path as a cache.
 
-2. Open a pull request. The action writes a step summary, audit JSON, SARIF, logs, timing files, `generated-baseline.json`, and migration execution evidence in the `mumei-audit-evidence` artifact.
-3. Review `migration-execution/migration_execution.json` with `status.json` and `generated-artifacts/` before acting on any migration candidate. Treat `ready_for_human_review` as a review queue and `blocked` as retained evidence gaps, not as independent CI failure classes.
-4. Review `generated-baseline.json`. If the suppressed fingerprints are accepted as repository policy, commit that file as `audit-baseline.json`. Later runs pass it through `--baseline`; do not treat the baseline as evidence.
-5. Optional: protect `audit-baseline.json` with CODEOWNERS or an equivalent review rule. It is CI suppression policy, so changes to it need the same explicit review as other merge-gate policy.
+3. Open a pull request. The action writes a step summary, audit JSON, SARIF, logs, timing files, `generated-baseline.json`, and migration execution evidence in the `mumei-audit-evidence` artifact.
+4. Review `migration-execution/migration_execution.json` with `status.json` and `generated-artifacts/` before acting on any migration candidate. Treat `ready_for_human_review` as a review queue and `blocked` as retained evidence gaps, not as independent CI failure classes.
+5. Review `generated-baseline.json`. If the suppressed fingerprints are accepted as repository policy, commit that file as `audit-baseline.json`. Later runs pass it through `--baseline`; do not treat the baseline as evidence.
+6. Optional: protect `audit-baseline.json` with CODEOWNERS or an equivalent review rule. It is CI suppression policy, so changes to it need the same explicit review as other merge-gate policy.
 
 A maintainer can complete the copy/edit/review loop in about ten minutes. The measured small-repo action runtime is much shorter than that human review loop; the first uncached run can still take longer because Python, uv dependencies, and the mumei installer are being populated.
 

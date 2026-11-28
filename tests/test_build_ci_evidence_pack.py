@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import os
 import re
+import runpy
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -1048,6 +1051,44 @@ def test_audit_evidence_workflow_verifies_real_downloaded_artifact() -> None:
     assert "Verify copied evidence pack as a consumer (strict proof revalidation)" in workflow
 
 
+def test_payment_golden_path_fixture_is_stdlib_only_and_focused() -> None:
+    fixture = SCENARIO_DIR / "reference" / "payment_ledger.py"
+    source = fixture.read_text(encoding="utf-8")
+    tree = ast.parse(source, filename=str(fixture))
+    compile(source, str(fixture), "exec")
+
+    imported_roots = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported_roots.update(alias.name.split(".", 1)[0] for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported_roots.add(node.module.split(".", 1)[0])
+    assert imported_roots <= sys.stdlib_module_names
+
+    functions = {node.name for node in tree.body if isinstance(node, ast.FunctionDef)}
+    expected = {"opening_accounts", "transfer_cents", "fee_cents", "split_cents", "post_payment", "payout_summary"}
+    assert expected <= functions
+    assert "amount_cents // recipient_count" in source
+    assert "not a production-safe ledger" in source
+
+
+def test_payment_golden_path_fixture_arithmetic_is_deterministic() -> None:
+    namespace = runpy.run_path(str(SCENARIO_DIR / "reference" / "payment_ledger.py"))
+
+    opening = namespace["opening_accounts"]()
+    transferred = namespace["transfer_cents"](opening, "operating", "merchant", 2_500)
+    assert sum(transferred.values()) == sum(opening.values())
+    assert transferred["operating"] == 7_500
+    assert transferred["merchant"] == 2_500
+    assert namespace["fee_cents"](10_000, 25) == 25
+    assert namespace["split_cents"](9_975, 4) == 2_493
+    assert namespace["payout_summary"](10_000, 4, 25) == {
+        "fee_cents": 25,
+        "share_cents": 2_493,
+        "remainder_cents": 3,
+    }
+
+
 def test_golden_path_consumer_workflow_matches_documented_action_contract() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
     doc = (REPO_ROOT / "docs" / "CI_REFERENCE.md").read_text(encoding="utf-8")
@@ -1065,8 +1106,18 @@ def test_golden_path_consumer_workflow_matches_documented_action_contract() -> N
     assert "mumei-version: v0.7.1" in workflow
     assert "migration-execution-output: .mumei-audit/migration_execution.json" in workflow
     assert "--fail-on high-confidence" in workflow
+    assert "contract_erosion" not in workflow
+    assert "- scenarios/ci_evidence_pack/reference/payment_ledger.py" in workflow
     assert "direct hardcoded-credential findings are projected as high-confidence" in doc
-    assert "cp scenarios/ci_evidence_pack/src/ledger.py src/ledger.py" in workflow
+    assert "cp scenarios/ci_evidence_pack/reference/payment_ledger.py src/payment_ledger.py" in workflow
+    assert "## Payment/ledger vertical quick start" in doc
+    assert "## Copy/paste payment/ledger workflow" in doc
+    assert "as `src/payment_ledger.py` for the fixture walkthrough" in doc
+    assert "one migration execution candidate named `split_cents` in `blocked` state" in doc
+    assert "not a production-safe ledger" in doc
+    assert "`contract_erosion` is additive tool-execution provenance rather than proof acceptance" in doc
+    assert "not a success condition for this first payment path" in doc
+    assert "not host semantic-equivalence proof" in doc
 
     for fragment in (
         "Validate action outputs and pre-publication summary markdown",
@@ -1097,6 +1148,10 @@ def test_golden_path_consumer_download_verification_is_strict_and_pinned() -> No
         "--forbidden-literal fake-unused-llm-key",
     ):
         assert flag in download_job
+    assert 'candidates[0].get("function_name") == "split_cents"' in download_job
+    assert 'candidates[0].get("execution_state") == "blocked"' in download_job
+    assert 'execution.get("summary", {}).get("review_required") is True' in download_job
+    assert 'hint.get("function_name") == "split_cents" and hint.get("priority") == "high"' in download_job
     assert "LLM_API_KEY (or OPENAI_API_KEY) is not set" in download_job
     assert '"fake-unused-llm-key" not in encoded' in download_job
     assert '"127.0.0.1:9" not in encoded' in download_job
