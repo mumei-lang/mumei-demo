@@ -561,7 +561,7 @@ def baseline_hash(specimen_dir: Path) -> str:
 
 def build_record(tool: Tool, defects_doc: dict, findings: list[dict], errors: int,
                  fixed: tuple[list[dict], int] | None, reviews: list[dict],
-                 source_hash: str, generated_at: str) -> dict:
+                 source_hash: str, generated_at: str, provenance_data: dict | None = None) -> dict:
     specimen = defects_doc["specimen"]
     own = [r for r in reviews if r["tool"] == tool.name]
     record = {
@@ -574,6 +574,8 @@ def build_record(tool: Tool, defects_doc: dict, findings: list[dict], errors: in
         "raw_findings": findings,
         **score(defects_doc, findings, specimen, own),
     }
+    if provenance_data is not None:
+        record.update(provenance_data)
     if fixed is not None:
         record["fixed_raw_findings"] = fixed[0]
         record["fixed_tool_errors"] = fixed[1]
@@ -592,7 +594,7 @@ def run_specimen(specimen_dir: Path, tool: Tool, reviews: list[dict], timeout: i
         if has_fixed:
             fixed = tool.run(scratch_copy(specimen_dir, Path(tmp) / "fixed", True), language, timeout)
     return build_record(tool, defects_doc, findings, errors, fixed, reviews,
-                        baseline_hash(specimen_dir), generated_at)
+                        baseline_hash(specimen_dir), generated_at, rsa.provenance(specimen_dir))
 
 
 def rescore_record(specimen_dir: Path, tool: Tool, reviews: list[dict]) -> dict:
@@ -607,7 +609,7 @@ def rescore_record(specimen_dir: Path, tool: Tool, reviews: list[dict]) -> dict:
         raise SystemExit(f"{specimen_dir.name}: {path.name} was produced with {recorded}, "
                          f"but the current pins are {pinned}; run the baselines again")
     current = baseline_hash(specimen_dir)
-    if previous.get("source_hash") != current:
+    if rsa.raw_input_matches(previous, specimen_dir, baseline_hash) is not True:
         raise SystemExit(f"{specimen_dir.name}: specimen changed since the {tool.name} run; "
                          "run the baselines again")
     if (specimen_dir / rsa.FIXED_PATCH).is_file() and "fixed_raw_findings" not in previous:
@@ -618,7 +620,7 @@ def rescore_record(specimen_dir: Path, tool: Tool, reviews: list[dict]) -> dict:
     if "fixed_raw_findings" in previous:
         fixed = (previous["fixed_raw_findings"], previous.get("fixed_tool_errors", 0))
     return build_record(tool, defects_doc, previous["raw_findings"], previous.get("tool_errors", 0),
-                        fixed, reviews, current, previous["generated_at"])
+                        fixed, reviews, current, previous["generated_at"], rsa.provenance(specimen_dir))
 
 
 META_KEYS = ("tool", "version", "rules_commit", "rule_categories", "solc_version", "impacts",
@@ -717,7 +719,9 @@ def comparison(coverages: list[dict], records: list[dict],
         lang = langs.get(rec["language"])
         if lang is None or rec["specimen"] not in hashes:
             continue
-        if rec.get("source_hash") != hashes[rec["specimen"]]:
+        cov = {"source_hash": hashes[rec["specimen"]]}
+        matching_coverage = next((c for c in coverages if c["specimen"] == rec["specimen"]), cov)
+        if not rsa.same_raw_input(rec, matching_coverage):
             stale.add(rec["specimen"])
         _add_side(lang["tools"].setdefault(rec["tool"], _empty_side()), rec)
         lang["b"] |= _detected(rec)

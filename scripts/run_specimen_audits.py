@@ -125,7 +125,9 @@ STRONG_KINDS = ("verification_violations", "spec_health_issues", "cross_validati
 FINDING_VERDICTS = ("real", "false_positive")
 FINDING_STATUSES = ("defect_evidence",) + FINDING_VERDICTS + ("unreviewed",)
 HISTORY_SCHEMA = 2
+PROVENANCE_VERSION = 2
 FIXED_PATCH = "fixed.patch"
+DEFECT_CATALOG = "DEFECTS.json"
 
 
 def short_name(function: str) -> str:
@@ -199,8 +201,13 @@ def tracked_files(specimen_dir: Path) -> list[Path]:
 
 
 def audit_files(specimen_dir: Path) -> list[Path]:
-    """Tracked specimen files the audit sees: everything except fixed.patch."""
-    return [f for f in tracked_files(specimen_dir) if f.relative_to(specimen_dir).as_posix() != FIXED_PATCH]
+    """Tracked specimen files copied into the raw-tool scratch input.
+
+    fixed.patch is applied separately for fixed variants. DEFECTS.json is the
+    scoring catalog, not code input, and is never copied to the tools."""
+    excluded = {FIXED_PATCH, DEFECT_CATALOG}
+    return [f for f in tracked_files(specimen_dir)
+            if f.relative_to(specimen_dir).as_posix() not in excluded]
 
 
 def apply_fixed_patch(patch: Path, scratch: Path) -> None:
@@ -571,16 +578,84 @@ def audit_failure(rc_json: int, rc_md: int, audit: dict) -> str | None:
     return None
 
 
-def specimen_hash(specimen_dir: Path) -> str:
-    """Hash of the git-tracked specimen files (the files an audit reads, audit/
-    excluded), so --rescore can tell when they changed after the audit.
-    Untracked build outputs such as Cargo.lock or bin/ do not count."""
+def _hash_files(specimen_dir: Path, files: list[Path]) -> str:
     h = hashlib.sha256()
-    for f in sorted(tracked_files(specimen_dir)):
+    for f in sorted(files):
         rel = f.relative_to(specimen_dir).as_posix()
         data = f.read_bytes() if f.is_file() else b"<missing>"
         h.update(rel.encode() + b"\0" + data + b"\0")
     return h.hexdigest()
+
+
+def specimen_hash(specimen_dir: Path) -> str:
+    """Legacy hash of all git-tracked specimen files (audit/ and other benchmark
+    outputs excluded). Kept for compatibility with pre-provenance-version-2
+    artifacts; new raw-input freshness checks use specimen_input_hash."""
+    return _hash_files(specimen_dir, tracked_files(specimen_dir))
+
+
+def specimen_input_hash(specimen_dir: Path) -> str:
+    """Hash of the raw benchmark input closure.
+
+    This excludes the ground-truth defect catalog but includes fixed.patch
+    because fixed-variant raw findings are stored in the same artifact as the
+    original findings. Untracked build outputs such as Cargo.lock or bin/ do
+    not count."""
+    files = [f for f in tracked_files(specimen_dir)
+             if f.relative_to(specimen_dir).as_posix() != DEFECT_CATALOG]
+    return _hash_files(specimen_dir, files)
+
+
+def defect_catalog_hash(specimen_dir: Path) -> str:
+    """Hash of the ground-truth catalog used to score raw findings."""
+    path = specimen_dir / DEFECT_CATALOG
+    data = path.read_bytes() if path.is_file() else b"<missing>"
+    return hashlib.sha256(DEFECT_CATALOG.encode() + b"\0" + data).hexdigest()
+
+
+def provenance(specimen_dir: Path) -> dict:
+    return {
+        "provenance_version": PROVENANCE_VERSION,
+        "input_hash": specimen_input_hash(specimen_dir),
+        "defect_catalog_hash": defect_catalog_hash(specimen_dir),
+    }
+
+
+def defect_catalog_matches(record: dict, specimen_dir: Path) -> bool | None:
+    """Whether scored rows match the current defect catalog.
+
+    Legacy artifacts have no catalog hash and rely on the full-specimen hash
+    check instead; None means no catalog provenance is available."""
+    if record.get("defect_catalog_hash") is None:
+        return None
+    return record["defect_catalog_hash"] == defect_catalog_hash(specimen_dir)
+
+
+def raw_input_matches(record: dict, specimen_dir: Path, legacy_hash=None) -> bool | None:
+    """Whether a raw artifact matches the current raw input closure.
+
+    Version-2 artifacts use input_hash, so defect-catalog edits do not stale
+    raw evidence. Legacy artifacts only carry the full-specimen source_hash;
+    they remain governed by the old conservative check. None means the legacy
+    artifact has no provenance at all."""
+    if record.get("input_hash") is not None:
+        return record["input_hash"] == specimen_input_hash(specimen_dir)
+    if record.get("source_hash") is None:
+        return None
+    if callable(legacy_hash):
+        current_legacy = legacy_hash(specimen_dir)
+    elif legacy_hash is None:
+        current_legacy = specimen_hash(specimen_dir)
+    else:
+        current_legacy = legacy_hash
+    return record["source_hash"] == current_legacy
+
+
+def same_raw_input(a: dict, b: dict) -> bool:
+    """Compare provenance across two artifacts, preferring version-2 hashes."""
+    if a.get("input_hash") is not None and b.get("input_hash") is not None:
+        return a["input_hash"] == b["input_hash"]
+    return a.get("source_hash") == b.get("source_hash")
 
 
 def audit_dir(specimen_dir: Path, llm: bool) -> Path:
@@ -614,6 +689,7 @@ def build_coverage(specimen_dir: Path, defects_doc: dict, audit: dict, rc_json: 
         "counts": counts(scored["defects"]),
         **scored,
         "source_hash": source_hash,
+        **provenance(specimen_dir),
         "meta": meta,
     }
     if fixed_audit is not None:
@@ -636,11 +712,11 @@ def rescore_specimen(specimen_dir: Path, adjudications: list[dict] | None,
     if "meta" not in previous:
         raise SystemExit(f"{specimen_dir.name}: coverage.json has no run metadata; run a full audit first")
     current = specimen_hash(specimen_dir)
-    recorded = previous.get("source_hash")
-    if recorded is None:
+    matches = raw_input_matches(previous, specimen_dir)
+    if matches is None:
         print(f"warning: {specimen_dir.name}: coverage.json predates source hashes; "
               "assuming the sources match the audit", file=sys.stderr)
-    elif recorded != current:
+    elif not matches:
         raise SystemExit(f"{specimen_dir.name}: specimen changed since the audit; run a full audit first")
     defects_doc = json.loads((specimen_dir / "DEFECTS.json").read_text(encoding="utf-8"))
     fixed_audit = None

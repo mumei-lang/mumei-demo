@@ -545,6 +545,24 @@ def test_baseline_outputs_do_not_change_hashes(tmp_path, monkeypatch):
     assert all("baselines" not in f.parts for f in rsa.audit_files(d))
 
 
+def test_scratch_copy_excludes_defect_catalog(tmp_path, monkeypatch):
+    _, d = _git_tree(tmp_path, monkeypatch)
+    scratch = rb.scratch_copy(d, tmp_path / "scratch", False)
+    assert not (scratch / "DEFECTS.json").exists()
+    assert (scratch / "app.py").exists()
+
+
+def test_rescore_v2_record_ignores_defect_catalog_for_raw_freshness(tmp_path, monkeypatch):
+    _, d = _git_tree(tmp_path, monkeypatch)
+    rec = rb.build_record(rb.TOOLS["semgrep"], DOC, [], 0, None, [], rb.baseline_hash(d), "then",
+                          rsa.provenance(d))
+    rb.write_json(d / "baselines" / "semgrep.json", rec)
+    (d / "DEFECTS.json").write_text((d / "DEFECTS.json").read_text() + "\n")
+    out = rb.rescore_record(d, rb.TOOLS["semgrep"], [])
+    assert out["input_hash"] == rsa.specimen_input_hash(d)
+    assert out["defect_catalog_hash"] == rsa.defect_catalog_hash(d)
+
+
 def test_rescore_record_refuses_changed_source(tmp_path, monkeypatch):
     _, d = _git_tree(tmp_path, monkeypatch)
     rec = rb.build_record(rb.TOOLS["semgrep"], DOC, [], 0, None, [], rb.baseline_hash(d), "then")

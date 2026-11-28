@@ -1130,6 +1130,43 @@ def test_rescore_specimen_refuses_changed_specimen(tmp_path, monkeypatch, edit):
         rsa.rescore_specimen(d, [], [])
 
 
+def test_input_hash_separates_defect_catalog(tmp_path, monkeypatch):
+    monkeypatch.setattr(rsa, "REPO_ROOT", tmp_path)
+    d = _mini_specimen(tmp_path / "specimens")
+    _git_track(tmp_path)
+    full_before = rsa.specimen_hash(d)
+    input_before = rsa.specimen_input_hash(d)
+    catalog_before = rsa.defect_catalog_hash(d)
+    (d / "DEFECTS.json").write_text((d / "DEFECTS.json").read_text() + "\n")
+    assert rsa.specimen_hash(d) != full_before
+    assert rsa.specimen_input_hash(d) == input_before
+    assert rsa.defect_catalog_hash(d) != catalog_before
+    (d / "app.py").write_text((d / "app.py").read_text() + "# edited\n")
+    assert rsa.specimen_input_hash(d) != input_before
+
+
+def test_rescore_v2_specimen_ignores_defect_catalog_for_raw_freshness(tmp_path, monkeypatch):
+    _, d = _rescore_tree(tmp_path, monkeypatch)
+    cov_path = d / "audit" / "coverage.json"
+    cov_path.write_text(json.dumps({**json.loads(cov_path.read_text()),
+                                    "input_hash": rsa.specimen_input_hash(d)}))
+    (d / "DEFECTS.json").write_text((d / "DEFECTS.json").read_text() + "\n")
+    cov = rsa.rescore_specimen(d, [], [])
+    assert cov["input_hash"] == rsa.specimen_input_hash(d)
+    assert cov["defect_catalog_hash"] == rsa.defect_catalog_hash(d)
+    assert cov["source_hash"] == rsa.specimen_hash(d)
+
+
+def test_rescore_v2_specimen_refuses_changed_raw_input(tmp_path, monkeypatch):
+    _, d = _rescore_tree(tmp_path, monkeypatch)
+    cov_path = d / "audit" / "coverage.json"
+    cov_path.write_text(json.dumps({**json.loads(cov_path.read_text()),
+                                    "input_hash": rsa.specimen_input_hash(d)}))
+    (d / "app.py").write_text((d / "app.py").read_text() + "# edited\n")
+    with pytest.raises(SystemExit, match="changed since the audit"):
+        rsa.rescore_specimen(d, [], [])
+
+
 def test_specimen_hash_ignores_untracked_and_audit_files(tmp_path, monkeypatch):
     monkeypatch.setattr(rsa, "REPO_ROOT", tmp_path)
     d = _mini_specimen(tmp_path / "specimens")
@@ -1523,7 +1560,7 @@ MINI_FIX = """diff --git a/app.py b/app.py
 def test_audit_files_excludes_fixed_patch(tmp_path, monkeypatch):
     d = _git_specimen(tmp_path, monkeypatch, MINI_FIX)
     names = {f.relative_to(d).as_posix() for f in rsa.audit_files(d)}
-    assert names == {"DEFECTS.json", "app.py"}
+    assert names == {"app.py"}
     assert "fixed.patch" in {f.name for f in rsa.tracked_files(d)}
 
 
@@ -1535,7 +1572,7 @@ def test_tracked_files_skip_benchmark_outputs(tmp_path, monkeypatch, out_dir):
     (d / out_dir).mkdir(exist_ok=True)
     (d / out_dir / "record.json").write_text("{}")
     sp.run(["git", "add", "-A"], cwd=tmp_path, check=True)
-    assert {f.relative_to(d).as_posix() for f in rsa.audit_files(d)} == {"DEFECTS.json", "app.py"}
+    assert {f.relative_to(d).as_posix() for f in rsa.audit_files(d)} == {"app.py"}
     assert rsa.specimen_hash(d) == before
 
 

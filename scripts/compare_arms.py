@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import statistics
 import sys
 import textwrap
@@ -55,9 +56,12 @@ def load_audit_arm(specimens: list[Path], llm: bool) -> dict | None:
         if not path.is_file():
             return None
         cov = json.loads(path.read_text(encoding="utf-8"))
-        if cov.get("source_hash") is not None and cov["source_hash"] != rsa.specimen_hash(d):
+        if rsa.raw_input_matches(cov, d) is False:
             raise SystemExit(f"{d.name}: specimen changed since the {'with-LLM' if llm else 'no-LLM'} "
                              "audit; run scripts/run_specimen_audits.py again")
+        if rsa.defect_catalog_matches(cov, d) is False:
+            raise SystemExit(f"{d.name}: defect catalog changed since the {'with-LLM' if llm else 'no-LLM'} "
+                             "audit was scored; run scripts/run_specimen_audits.py --rescore")
         covs.append(cov)
     metas = {json.dumps(c["meta"], sort_keys=True) for c in covs}
     if len(metas) != 1:
@@ -111,9 +115,12 @@ def load_llm_arm(specimens: list[Path], model: str) -> dict | None:
         if not path.is_file():
             return None
         rec = json.loads(path.read_text(encoding="utf-8"))
-        if rec.get("source_hash") is not None and rec["source_hash"] != rlo.rb.baseline_hash(d):
+        if rsa.raw_input_matches(rec, d, rlo.rb.baseline_hash) is False:
             raise SystemExit(f"{d.name}: specimen changed since the LLM-only review; "
                              "run scripts/run_llm_only.py again")
+        if rsa.defect_catalog_matches(rec, d) is False:
+            raise SystemExit(f"{d.name}: defect catalog changed since the LLM-only review was scored; "
+                             f"run scripts/run_llm_only.py --rescore --model {shlex.quote(model)}")
         recs.append(rec)
     numbers = sorted({r["run"] for rec in recs for r in rec["runs"]})
     runs, usage = [], []
