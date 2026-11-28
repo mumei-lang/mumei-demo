@@ -18,7 +18,7 @@ Expected fixture-smoke result:
 
 ## Required inputs and permissions
 
-The starter pins both the composite action and the artifact verifier script to commit `b128577526c3540f5f307c0ddf169e1720389d15`. Keep those two commit references identical when updating them. `uses:` cannot interpolate an environment variable, so the duplication must be reviewed manually or by repository tests.
+The starter pins both the composite action and the artifact verifier script to commit `adc45e3c150a3c1eaa472cda8b642054fa19e1cc`. Keep those two commit references identical when updating them. `uses:` cannot interpolate an environment variable, so the duplication must be reviewed manually or by repository tests.
 
 The audit job uses only `contents: read`. The verification job adds `actions: read` so it can download the artifact. `upload-sarif` is `false` because code scanning is optional. To publish SARIF to code scanning, enable GitHub code scanning, set `upload-sarif: true`, and give the audit job a permissions block that keeps checkout access while adding code-scanning access:
 
