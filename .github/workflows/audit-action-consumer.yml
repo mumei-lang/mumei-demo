@@ -7,6 +7,7 @@ on:
       - .github/workflows/audit-action-consumer.yml
       - docs/CI_REFERENCE.md
       - scenarios/ci_evidence_pack/src/**
+      - scenarios/ci_evidence_pack/reference/payment_ledger.py
       - tests/test_build_ci_evidence_pack.py
   workflow_dispatch:
 
@@ -38,7 +39,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p src
-          cp scenarios/ci_evidence_pack/src/ledger.py src/ledger.py
+          cp scenarios/ci_evidence_pack/reference/payment_ledger.py src/payment_ledger.py
           printf '%s\n' '{"version":"mumei.audit-baseline/v1","fingerprints":[]}' > audit-baseline.json
 
       - name: Run documented deterministic audit action
@@ -129,6 +130,18 @@ jobs:
           from pathlib import Path
 
           execution = json.loads(Path("evidence/migration-execution/migration_execution.json").read_text(encoding="utf-8"))
+          candidates = execution.get("candidates")
+          assert len(candidates) == 1
+          assert candidates[0].get("function_name") == "split_cents"
+          assert candidates[0].get("execution_state") == "blocked"
+          assert execution.get("summary", {}).get("review_required") is True
+
+          audit = json.loads(Path("evidence/audit.json").read_text(encoding="utf-8"))
+          assert any(
+              hint.get("function_name") == "split_cents" and hint.get("priority") == "high"
+              for hint in audit.get("migration_hints", [])
+          )
+
           encoded = json.dumps(execution)
           assert "LLM_API_KEY (or OPENAI_API_KEY) is not set" in encoded
           assert "fake-unused-llm-key" not in encoded
