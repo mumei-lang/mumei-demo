@@ -145,30 +145,64 @@ jobs:
               "atom_count", "eroded_atom_count", "atoms",
           }
           forbidden_erosion_key_parts = ("counterexample", "stdout", "stderr", "report", "detail")
-          for candidate in candidates:
-              erosion = candidate.get("contract_erosion")
-              assert isinstance(erosion, dict)
-              assert erosion.get("status") in erosion_statuses
-              assert type(erosion.get("checked")) is bool
-              assert isinstance(erosion.get("atoms"), list)
-              assert erosion.get("summary") is None or isinstance(erosion.get("summary"), str)
-              assert erosion.get("reason") is None or isinstance(erosion.get("reason"), str)
-              assert erosion.get("source") is None or isinstance(erosion.get("source"), str)
-              assert set(erosion) <= allowed_erosion_keys
-              assert not any(
-                  part in key.lower()
-                  for key in erosion
-                  for part in forbidden_erosion_key_parts
-              )
-              assert all(isinstance(atom, dict) and set(atom) <= {"name", "status"} for atom in erosion["atoms"])
 
-              provenance = candidate.get("contract_provenance")
-              assert isinstance(provenance, dict)
-              for delta_name in ("requires_delta", "ensures_delta"):
-                  delta = provenance.get(delta_name)
-                  assert isinstance(delta, dict)
-                  assert isinstance(delta.get("added"), list)
-                  assert isinstance(delta.get("removed"), list)
+          def validate_migration_contract_provenance(rows):
+              for candidate in rows:
+                  erosion = candidate.get("contract_erosion")
+                  assert isinstance(erosion, dict)
+                  assert erosion.get("status") in erosion_statuses
+                  assert type(erosion.get("checked")) is bool
+                  assert type(erosion.get("atom_count")) is int
+                  assert type(erosion.get("eroded_atom_count")) is int
+                  assert isinstance(erosion.get("atoms"), list)
+                  assert erosion.get("summary") is None or isinstance(erosion.get("summary"), str)
+                  assert erosion.get("reason") is None or isinstance(erosion.get("reason"), str)
+                  assert erosion.get("source") is None or isinstance(erosion.get("source"), str)
+                  assert set(erosion) <= allowed_erosion_keys
+                  assert not any(
+                      part in key.lower()
+                      for key in erosion
+                      for part in forbidden_erosion_key_parts
+                  )
+                  for atom in erosion["atoms"]:
+                      assert isinstance(atom, dict)
+                      assert set(atom) <= {"name", "status"}
+                      assert isinstance(atom.get("name"), str)
+                      assert isinstance(atom.get("status"), str)
+
+                  provenance = candidate.get("contract_provenance")
+                  assert isinstance(provenance, dict)
+                  for delta_name in ("requires_delta", "ensures_delta"):
+                      delta = provenance.get(delta_name)
+                      assert isinstance(delta, dict)
+                      assert isinstance(delta.get("added"), list)
+                      assert isinstance(delta.get("removed"), list)
+                      assert all(isinstance(item, str) for item in delta["added"])
+                      assert all(isinstance(item, str) for item in delta["removed"])
+
+          validate_migration_contract_provenance(candidates)
+
+          def expect_invalid_provenance(label, mutate):
+              mutated = json.loads(json.dumps(candidates))
+              mutate(mutated)
+              try:
+                  validate_migration_contract_provenance(mutated)
+              except AssertionError:
+                  return
+              raise AssertionError(f"malformed contract provenance was accepted: {label}")
+
+          expect_invalid_provenance(
+              "non-integer atom count",
+              lambda rows: rows[0]["contract_erosion"].__setitem__("atom_count", {}),
+          )
+          expect_invalid_provenance(
+              "atom missing name",
+              lambda rows: rows[0]["contract_erosion"]["atoms"].append({"status": "preserved"}),
+          )
+          expect_invalid_provenance(
+              "non-string requires delta item",
+              lambda rows: rows[0]["contract_provenance"]["requires_delta"]["added"].append(1),
+          )
 
           audit = json.loads(Path("evidence/audit.json").read_text(encoding="utf-8"))
           assert any(

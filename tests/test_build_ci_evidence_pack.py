@@ -1157,14 +1157,22 @@ def test_golden_path_consumer_download_verification_is_strict_and_pinned() -> No
         '"operational_error", "skipped_no_change", "not_checked"',
         'assert erosion.get("status") in erosion_statuses',
         'assert type(erosion.get("checked")) is bool',
+        'assert type(erosion.get("atom_count")) is int',
+        'assert type(erosion.get("eroded_atom_count")) is int',
         'assert isinstance(erosion.get("atoms"), list)',
         'assert erosion.get("summary") is None or isinstance(erosion.get("summary"), str)',
         'assert set(erosion) <= allowed_erosion_keys',
         'for part in forbidden_erosion_key_parts',
-        'assert all(isinstance(atom, dict) and set(atom) <= {"name", "status"} for atom in erosion["atoms"])',
+        'assert isinstance(atom.get("name"), str)',
+        'assert isinstance(atom.get("status"), str)',
         'for delta_name in ("requires_delta", "ensures_delta"):',
         'assert isinstance(delta.get("added"), list)',
         'assert isinstance(delta.get("removed"), list)',
+        'assert all(isinstance(item, str) for item in delta["added"])',
+        'assert all(isinstance(item, str) for item in delta["removed"])',
+        '"non-integer atom count"',
+        '"atom missing name"',
+        '"non-string requires delta item"',
     ):
         assert fragment in download_job
     assert "LLM_API_KEY (or OPENAI_API_KEY) is not set" in download_job
