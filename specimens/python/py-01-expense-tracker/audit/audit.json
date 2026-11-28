@@ -167,13 +167,15 @@
       "skipped_rate_limited": false
     },
     {
-      "success": true,
+      "success": false,
       "source_file": "specimens/python/py-01-expense-tracker/ledger.py",
       "language": "python",
       "spec_extracted": true,
       "verification_status": "unverifiable",
       "spec_health_issues": [],
-      "verification_violations": [],
+      "verification_violations": [
+        "Python function `subcategory` indexes a `str.split(...)` result with a positive literal index without a dominating length guard"
+      ],
       "counterexample_values": [],
       "cross_validation_gaps": [
         "spec precondition assumed, not enforced, by `daily_average`",
@@ -184,6 +186,11 @@
       "heal_errors": [],
       "trusted_atoms": [],
       "next_steps": [
+        {
+          "priority": "high",
+          "action": "migrate-suggest で .mm スケルトンを生成",
+          "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
+        },
         {
           "priority": "high",
           "action": "validate-spec-to-code で制約の対応を確認",
@@ -200,13 +207,25 @@
       "scheduled_verification": null,
       "scheduled_verification_check": null,
       "finding_counts": {
-        "code": 0,
+        "code": 1,
         "confirmed": 0,
         "spec": 2,
         "model_limitations": 0,
         "errors": 0
       },
       "findings": [
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "code",
+          "severity": "error",
+          "confidence": "medium",
+          "verification_basis": "deterministic-static-analysis",
+          "message": "Python function `subcategory` indexes a `str.split(...)` result with a positive literal index without a dominating length guard",
+          "source_file": "specimens/python/py-01-expense-tracker/ledger.py",
+          "line": null,
+          "triage_bucket": "code_review",
+          "fingerprint": "e6af970d1de173801e8a199350eab937236f3cb1e1c82196048186ed4daa0e31"
+        },
         {
           "schema": "mumei.audit-findings/v1",
           "category": "spec",
@@ -260,7 +279,7 @@
       },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed with 2 spec diagnostics to review: specimens/python/py-01-expense-tracker/ledger.py\nlanguage: python\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: ['spec precondition assumed, not enforced, by `daily_average`', 'spec precondition assumed, not enforced, by `average_expense`']\nfinding_counts: code=0, confirmed=0, spec=2, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, is_over_budget.requires, subcategory.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit found issues: specimens/python/py-01-expense-tracker/ledger.py\nlanguage: python\nspec_extracted: True\nverification_status: unverifiable\nspec_health_issues: []\nverification_violations: ['Python function `subcategory` indexes a `str.split(...)` result with a positive literal index without a dominating length guard']\ncounterexample_values: []\ncross_validation_gaps: ['spec precondition assumed, not enforced, by `daily_average`', 'spec precondition assumed, not enforced, by `average_expense`']\nfinding_counts: code=1, confirmed=0, spec=2, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, is_over_budget.requires, subcategory.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -335,15 +354,16 @@
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/python/py-01-expense-tracker\n  app.py: 0 violations, 0 gaps\n  config.py: 2 violations, 0 gaps\n  ledger.py: 0 violations, 2 gaps\n  store.py: 0 violations, 0 gaps\nSummary: 4 files, 1 file with issues, 1 file with spec diagnostics\nfinding_counts: code=2, confirmed=0, spec=2, model_limitations=0, errors=0\ntriage: refuted=0, verified=0, unverifiable=4\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, _read_json.requires, _respond.requires, _respond.ensures, _respond_text.requires, _respond_text.ensures, _dispatch.requires, _dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, is_over_budget.requires, subcategory.requires\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: __init__.requires, __init__.ensures, acquire.requires, release.requires, release.ensures, open_count.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/python/py-01-expense-tracker\n  app.py: 0 violations, 0 gaps\n  config.py: 2 violations, 0 gaps\n  ledger.py: 1 violation, 2 gaps\n  store.py: 0 violations, 0 gaps\nSummary: 4 files, 2 files with issues, 1 file with spec diagnostics\nfinding_counts: code=3, confirmed=0, spec=2, model_limitations=0, errors=0\ntriage: refuted=0, verified=0, unverifiable=4\nnext_steps:\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: row_to_dict.requires, log_message.requires, log_message.ensures, _read_json.requires, _respond.requires, _respond.ensures, _respond_text.requires, _respond_text.ensures, _dispatch.requires, _dispatch.ensures, do_GET.requires, do_GET.ensures, do_POST.requires, do_POST.ensures, create_expense.requires, create_expense.ensures, list_expenses.requires, list_expenses.ensures, summary.requires, summary.ensures, set_budget.requires, set_budget.ensures, create_report.requires, create_report.ensures, export.requires, export.ensures, admin_stats.requires, admin_stats.ensures, health.requires, health.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_amount.requires, is_over_budget.requires, subcategory.requires\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: __init__.requires, __init__.ensures, acquire.requires, release.requires, release.ensures, open_count.requires\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 4,
-  "files_with_issues": 1,
+  "files_with_issues": 2,
   "files_with_spec_diagnostics": 1,
   "verification_status": "unverifiable",
   "spec_health_issues": [],
   "verification_violations": [
     "config.py: No function signatures were extracted.",
-    "config.py: Python hardcoded credential constant `ADMIN_TOKEN` is stored directly in source"
+    "config.py: Python hardcoded credential constant `ADMIN_TOKEN` is stored directly in source",
+    "ledger.py: Python function `subcategory` indexes a `str.split(...)` result with a positive literal index without a dominating length guard"
   ],
   "cross_validation_gaps": [
     "ledger.py: spec precondition assumed, not enforced, by `daily_average`",
@@ -383,7 +403,7 @@
     }
   ],
   "finding_counts": {
-    "code": 2,
+    "code": 3,
     "confirmed": 0,
     "spec": 2,
     "model_limitations": 0,
@@ -413,6 +433,18 @@
       "line": null,
       "triage_bucket": "code_review",
       "fingerprint": "8b4e351bafc754a9c8a2fda93b2ea6778eba0e11d4d30719c5665b41a0f136f7"
+    },
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "code",
+      "severity": "error",
+      "confidence": "medium",
+      "verification_basis": "deterministic-static-analysis",
+      "message": "Python function `subcategory` indexes a `str.split(...)` result with a positive literal index without a dominating length guard",
+      "source_file": "specimens/python/py-01-expense-tracker/ledger.py",
+      "line": null,
+      "triage_bucket": "code_review",
+      "fingerprint": "e6af970d1de173801e8a199350eab937236f3cb1e1c82196048186ed4daa0e31"
     },
     {
       "schema": "mumei.audit-findings/v1",

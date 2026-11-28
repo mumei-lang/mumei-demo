@@ -216,8 +216,8 @@ with `--run-fixed` it is applied to a scratch copy, where `run.sh` must pass and
 
 ![Detection over runs](scoreboard/history.svg)
 
-Latest run — no LLM: mumei-agent `41afb4d` · mumei `b777e8e` (mumei 0.6.23) · 2026-11-28T08:48:44Z
-Findings — no LLM: 43 (defect evidence 30, real 2, false positive 2, unreviewed 9) · precision 74%–95%
+Latest run — no LLM: mumei-agent `4da1226` · mumei `b777e8e` (mumei 0.6.23) · 2026-11-28T09:22:45Z
+Findings — no LLM: 46 (defect evidence 33, real 2, false positive 2, unreviewed 9) · precision 76%–96%
 Fixed variants — no LLM: 16 specimens (171 defects fixed) · 1 legacy false alarms in 1 findings on fixed code (0 code-evidence false alarms; 1 cross-validation spec diagnostic) · 0 defects still reported
 
 Latest run — with LLM (`openai/gpt-6-luna`): mumei-agent `e8be527` · mumei `36eb534` (mumei 0.6.23) · 2026-11-03T05:18:58Z
@@ -227,17 +227,18 @@ Fixed variants — with LLM (`openai/gpt-6-luna`): 16 specimens (171 defects fix
 
 | Language | Defects | No LLM detected | No LLM detected or flagged | With LLM detected | With LLM detected or flagged |
 |---|---:|---:|---:|---:|---:|
-| go | 32 | 8/32 (25%) | 10/32 (31%) | 2/32 (6%) | 18/32 (56%) |
-| python | 41 | 4/41 (10%) | 6/41 (15%) | 1/41 (2%) | 4/41 (10%) |
-| rust | 34 | 4/34 (12%) | 6/34 (18%) | 1/34 (3%) | 4/34 (12%) |
+| go | 32 | 9/32 (28%) | 11/32 (34%) | 2/32 (6%) | 18/32 (56%) |
+| python | 41 | 5/41 (12%) | 7/41 (17%) | 1/41 (2%) | 4/41 (10%) |
+| rust | 34 | 5/34 (15%) | 9/34 (26%) | 1/34 (3%) | 4/34 (12%) |
 | solidity | 31 | 9/31 (29%) | 17/31 (55%) | 6/31 (19%) | 27/31 (87%) |
 | typescript | 33 | 5/33 (15%) | 5/33 (15%) | 2/33 (6%) | 12/33 (36%) |
-| **Total** | **171** | **30/171 (18%)** | **44/171 (26%)** | **12/171 (7%)** | **65/171 (38%)** |
+| **Total** | **171** | **33/171 (19%)** | **49/171 (29%)** | **12/171 (7%)** | **65/171 (38%)** |
 
 Recent runs:
 
 | Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected | Flagged % | Precision | False alarms on fixed code | Adjudication |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---|
+| 2026-11-28 | no | `4da1226` | `b777e8e` | 171 | 19% | 32/83 (39%) | 29% | 76%–96% | 1 / 16 specimens | incomplete (9 unreviewed, 0 stale) |
 | 2026-11-28 | no | `41afb4d` | `b777e8e` | 171 | 18% | 29/83 (35%) | 26% | 74%–95% | 1 / 16 specimens | incomplete (9 unreviewed, 0 stale) |
 | 2026-11-28 | no | `b128577` | `b777e8e` | 171 | 16% | 26/83 (31%) | 25% | 72%–95% | 1 / 16 specimens | incomplete (9 unreviewed, 0 stale) |
 | 2026-11-28 | no | `6b87f34` | `b777e8e` | 171 | 13% | 22/79 (28%) | 23% | 69%–94% | 1 / 16 specimens | incomplete (9 unreviewed, 0 stale) |
@@ -247,7 +248,6 @@ Recent runs:
 | 2026-11-28 (rescored 2026-11-28) | no | `15541eb` | `b777e8e` | 171 | 11% | 18/77 (23%) | 20% | 66%–94% | 1 / 16 specimens | incomplete (9 unreviewed, 0 stale) |
 | 2026-11-03 (rescored 2026-11-28) | yes | `e8be527` | `36eb534` | 171 | 7% | 11/77 (14%) | 38% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
 | 2026-11-28 (rescored 2026-11-28) | no | `15541eb` | `b777e8e` | 171 | 11% | 17/77 (22%) | 20% | 62%–94% | 1 / 16 specimens | incomplete (10 unreviewed, 0 stale) |
-| 2026-11-28 | no | `45f5345` | `b777e8e` | 171 | 8% | 12/71 (17%) | 16% | 60%–92% | 1 / 16 specimens | incomplete (8 unreviewed, 0 stale) |
 
 Target-denominator note: this history mixes target definitions with 71 and 77 and 79 and 83 planted target defects; compare target percentages only within the same denominator. Versioned rows record the sorted `target_categories` and a `target_definition_hash`; rows without them are legacy unversioned entries and are not overwritten when the target definition changes.
 
@@ -325,12 +325,12 @@ with `python3 scripts/run_baselines.py --rescore`.
 
 | Analyzer | Detected | Precision | Fixed-code false alarms |
 |---|---|---|---|
-| Mumei (no LLM) | 30/171 (18%) | 74%–95% | 1 / 16 specimens |
+| Mumei (no LLM) | 33/171 (19%) | 76%–96% | 1 / 16 specimens |
 | bandit | 5/41 (12%) | 88% | 3 / 4 specimens |
 | clippy | 0/34 (0%) | n/a | 0 / 3 specimens |
 | gosec | 6/32 (19%) | 62% | 15 / 3 specimens |
 | semgrep | 9/171 (5%) | 81% | 9 / 16 specimens |
 | slither | 11/31 (35%) | 40% | 28 / 3 specimens |
 
-Of 171 defects, 23 are detected only by Mumei (no LLM), 17 only by a baseline, 7 by both and 124 by neither.
+Of 171 defects, 26 are detected only by Mumei (no LLM), 17 only by a baseline, 7 by both and 121 by neither.
 <!-- baselines:end -->

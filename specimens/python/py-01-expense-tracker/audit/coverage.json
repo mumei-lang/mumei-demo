@@ -5,12 +5,12 @@
   "audit_markdown_exit_code": 0,
   "verification_status": "unverifiable",
   "files_audited": 4,
-  "files_with_issues": 1,
+  "files_with_issues": 2,
   "counts": {
     "total": 11,
-    "detected": 1,
+    "detected": 2,
     "function_flagged": 2,
-    "missed": 8
+    "missed": 7
   },
   "defects": [
     {
@@ -94,8 +94,10 @@
       "category": "out-of-bounds",
       "class": "bug",
       "in_target_category": true,
-      "status": "missed",
-      "findings": []
+      "status": "detected",
+      "findings": [
+        "Python function `subcategory` indexes a `str.split(...)` result with a positive literal index without a dominating length guard"
+      ]
     },
     {
       "id": "PY01-D09",
@@ -152,6 +154,12 @@
     },
     {
       "file": "ledger.py",
+      "kind": "verification_violations",
+      "text": "Python function `subcategory` indexes a `str.split(...)` result with a positive literal index without a dominating length guard",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "ledger.py",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `daily_average`",
       "status": "unreviewed"
@@ -164,8 +172,8 @@
     }
   ],
   "finding_counts": {
-    "total": 4,
-    "defect_evidence": 1,
+    "total": 5,
+    "defect_evidence": 2,
     "real": 0,
     "false_positive": 0,
     "unreviewed": 3
@@ -176,12 +184,12 @@
   "input_hash": "318a8ca1a5b2623f36a5576f325431241dc4191ff5954b889242551df33d0970",
   "defect_catalog_hash": "6d058a64c1c05bcbc065e13e4459271304bff2a4ef516800856b4517eb1d8505",
   "meta": {
-    "mumei_agent_commit": "41afb4dedfd70fb7b462696dcfcc70ea0d971d10",
+    "mumei_agent_commit": "4da122661693e1f496665acad023c9f2cc83211e",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T08:48:44Z"
+    "generated_at": "2026-11-28T09:22:45Z"
   },
   "fixed": {
     "defects": 11,

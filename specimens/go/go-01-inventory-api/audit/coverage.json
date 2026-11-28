@@ -8,9 +8,9 @@
   "files_with_issues": 3,
   "counts": {
     "total": 11,
-    "detected": 3,
+    "detected": 4,
     "function_flagged": 0,
-    "missed": 8
+    "missed": 7
   },
   "defects": [
     {
@@ -50,8 +50,10 @@
       "category": "out-of-bounds",
       "class": "bug",
       "in_target_category": true,
-      "status": "missed",
-      "findings": []
+      "status": "detected",
+      "findings": [
+        "Go function `itemHandler` indexes a `strings.Split`/`strings.Fields` result with a positive literal index without a dominating length guard"
+      ]
     },
     {
       "id": "GO01-D05",
@@ -158,6 +160,12 @@
     },
     {
       "file": "handlers.go",
+      "kind": "verification_violations",
+      "text": "Go function `itemHandler` indexes a `strings.Split`/`strings.Fields` result with a positive literal index without a dominating length guard",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "handlers.go",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `viewItem`",
       "status": "unreviewed"
@@ -176,8 +184,8 @@
     }
   ],
   "finding_counts": {
-    "total": 6,
-    "defect_evidence": 3,
+    "total": 7,
+    "defect_evidence": 4,
     "real": 0,
     "false_positive": 0,
     "unreviewed": 3
@@ -188,12 +196,12 @@
   "input_hash": "a8d85733bc0c55eaeb21c1758cd638df42831b94e34c338ed4886558434cba02",
   "defect_catalog_hash": "92993f55869217a7006dbb11af4b3753f17d6076af46b95a8740965c117c8e05",
   "meta": {
-    "mumei_agent_commit": "41afb4dedfd70fb7b462696dcfcc70ea0d971d10",
+    "mumei_agent_commit": "4da122661693e1f496665acad023c9f2cc83211e",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T08:48:44Z"
+    "generated_at": "2026-11-28T09:22:45Z"
   },
   "fixed": {
     "defects": 11,
