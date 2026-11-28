@@ -312,3 +312,74 @@ def test_host_environment_tolerates_missing_loadavg(monkeypatch):
     env = bench.host_environment()
     assert "loadavg_1m" not in env
     assert {"sampled_at", "os", "arch", "cpu_count"} <= set(env)
+
+
+def toolchain_metadata(z3_version="4.14.1.0"):
+    return {
+        "schema_version": "mumei.native-toolchain-observation/v1",
+        "scope": "effective_toolchain_identity_observation_only/no_environment_or_artifact_semantic_attestation",
+        "host": {"os": "linux", "arch": "x86_64", "family": "unix"},
+        "solvers": {"z3": {"binding": "linked", "version": z3_version}},
+        "llvm": {"binding": "linked", "version": "17.0.6"},
+        "target_triple": "x86_64-pc-linux-gnu",
+        "link": {"driver": "cc", "driver_version": "11.4.0", "driver_target": "x86_64-linux-gnu",
+                 "linker": "gnu-ld", "linker_version": "2.38"},
+    }
+
+
+def test_toolchain_observation_uses_read_only_native_surface(monkeypatch):
+    calls = []
+
+    def command(args, cwd, timeout):
+        calls.append((args, cwd, timeout))
+        return {"exit": 0, "stdout": json.dumps(toolchain_metadata()), "stderr": "", "seconds": 0.01}
+
+    monkeypatch.setattr(bench, "command", command)
+    observed = bench.toolchain_observation("/fake/mumei", 30)
+    assert observed == {"status": "observed", "observation": toolchain_metadata()}
+    assert calls == [(["/fake/mumei", "native-bundle", "observe-toolchain", "--json"], bench.cb.REPO_ROOT, 30)]
+
+
+@pytest.mark.parametrize(("command_result", "reason"), [
+    ({"exit": 2, "stdout": "", "stderr": "raw unconstrained stderr", "seconds": 0.01}, "observe-toolchain exit 2"),
+    ({"error": "timeout", "seconds": 30.0}, "observe-toolchain timeout"),
+    ({"error": "environment_error", "seconds": 0.01}, "observe-toolchain environment_error"),
+    ({"exit": 0, "stdout": "not-json", "stderr": "", "seconds": 0.01}, "observe-toolchain returned invalid metadata"),
+    ({"exit": 0, "stdout": json.dumps({"schema_version": "other"}), "stderr": "", "seconds": 0.01},
+     "observe-toolchain returned invalid metadata"),
+    ({"exit": 0, "stdout": json.dumps({**toolchain_metadata(), "solvers": {"z3": {"binding": "path", "version": "4.8.12"}}}),
+      "stderr": "", "seconds": 0.01}, "observe-toolchain returned invalid metadata"),
+    ({"exit": 0, "stdout": json.dumps({key: value for key, value in toolchain_metadata().items() if key != "target_triple"}),
+      "stderr": "", "seconds": 0.01}, "observe-toolchain returned invalid metadata"),
+])
+def test_toolchain_observation_unavailable_is_bounded_diagnostic(monkeypatch, command_result, reason):
+    monkeypatch.setattr(bench, "command", lambda *args: command_result)
+    unavailable = bench.toolchain_observation("/fake/mumei", 30)
+    assert unavailable == {"status": "unavailable", "reason": reason}
+    assert "raw unconstrained stderr" not in json.dumps(unavailable)
+
+
+def test_report_contains_additive_toolchain_metadata(monkeypatch, tmp_path):
+    cases = [{"id": "A"}]
+
+    def run_case(case, binary, timeout):
+        return {
+            "id": case["id"], "vacuity": "ok",
+            "buggy": {"z3": {"outcome": "refuted"}, "native": {"outcome": "source_refuted"}},
+            "fixed": {"z3": {"outcome": "proven"}, "native": {"outcome": "accepted"}},
+        }
+
+    monkeypatch.setattr(bench.cb, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(bench.cb, "load_cases", lambda: (cases, []))
+    monkeypatch.setattr(bench.cb, "git_identity", lambda _: {})
+    monkeypatch.setattr(bench.cb, "verifier_identity", lambda _: {})
+    monkeypatch.setattr(bench.shutil, "which", lambda binary: binary)
+    monkeypatch.setattr(bench, "run_case", run_case)
+    monkeypatch.setattr(bench, "toolchain_observation", lambda binary, timeout: {"status": "observed", "observation": toolchain_metadata()})
+
+    output = tmp_path / "machine-tv.json"
+    assert bench.main(["--mumei-bin", "/fake/mumei", "--output", str(output)]) == 0
+    doc = json.loads(output.read_text())
+    assert doc["toolchain"] == {"status": "observed", "observation": toolchain_metadata()}
+    assert "toolchain" not in doc["cases"][0]["buggy"]["native"]
+    assert doc["toolchain"]["observation"]["solvers"]["z3"]["binding"] == "linked"

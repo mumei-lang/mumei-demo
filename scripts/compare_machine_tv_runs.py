@@ -96,6 +96,48 @@ def input_identity(case: dict, prefer_port_hashes: bool) -> dict:
     return {"case_hash": case.get("case_hash"), "source_hash": case.get("source_hash")}
 
 
+def toolchain_identity(report: dict) -> dict:
+    metadata = report.get("toolchain")
+    if not isinstance(metadata, dict):
+        return {"status": "unavailable", "reason": "toolchain metadata missing"}
+    if metadata.get("status") == "observed" and bench.valid_toolchain_observation(metadata.get("observation")):
+        observation = metadata["observation"]
+        identity = {
+            key: observation[key]
+            for key in ("host", "target_triple", "solvers", "llvm", "link")
+            if key in observation
+        }
+        return {"status": "observed", "observation": identity}
+    return {"status": "unavailable", "reason": metadata.get("reason") or "toolchain metadata unavailable"}
+
+
+def flattened_metadata(value, prefix: str = "") -> dict:
+    if isinstance(value, dict) and value:
+        flattened = {}
+        for key in sorted(value):
+            flattened.update(flattened_metadata(value[key], f"{prefix}{key}."))
+        return flattened
+    return {prefix[:-1]: value}
+
+
+def compare_toolchain_identity(base: dict, repeat: dict) -> dict:
+    base_identity = toolchain_identity(base)
+    repeat_identity = toolchain_identity(repeat)
+    unavailable = [label for label, identity in (("base", base_identity), ("repeat", repeat_identity))
+                   if identity.get("status") != "observed"]
+    changed_fields = []
+    if not unavailable:
+        base_flat = flattened_metadata(base_identity["observation"])
+        repeat_flat = flattened_metadata(repeat_identity["observation"])
+        changed_fields = sorted(key for key in set(base_flat) | set(repeat_flat)
+                                if base_flat.get(key) != repeat_flat.get(key))
+    return {
+        "matches": not unavailable and not changed_fields,
+        "unavailable": unavailable,
+        "changed_fields": changed_fields,
+    }
+
+
 def compare_reports(base: dict, repeat: dict) -> dict:
     base_cases = {case.get("id"): case for case in base["cases"] if isinstance(case, dict)}
     repeat_cases = {case.get("id"): case for case in repeat["cases"] if isinstance(case, dict)}
@@ -150,6 +192,7 @@ def compare_reports(base: dict, repeat: dict) -> dict:
                 "repeat": after,
                 "stage_differences": stages,
             })
+    toolchain = compare_toolchain_identity(base, repeat)
     return {
         "schema_version": SCHEMA,
         "compared_at": dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat(),
@@ -178,6 +221,7 @@ def compare_reports(base: dict, repeat: dict) -> dict:
             },
             "stage_result_changes": stage_result_changes,
             "stage_changes": len(stage_changes),
+            "toolchain_identity": toolchain,
         },
         "changes": changes,
         "stage_changes": stage_changes,
@@ -190,6 +234,7 @@ def report_identity(doc: dict) -> dict:
         "demo": doc.get("demo"),
         "verifier": doc.get("verifier"),
         "environment": doc.get("environment"),
+        "toolchain": doc.get("toolchain"),
         "settings": doc.get("settings"),
         "seconds": doc.get("seconds"),
     }

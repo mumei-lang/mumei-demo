@@ -256,6 +256,48 @@ def host_environment() -> dict:
             "loadavg_15m": round(load15, 2)}
 
 
+TOOLCHAIN_OBSERVATION_SCHEMA = "mumei.native-toolchain-observation/v1"
+
+
+def valid_toolchain_observation(observation: dict) -> bool:
+    if not isinstance(observation, dict):
+        return False
+    solvers = observation.get("solvers")
+    z3 = solvers.get("z3", {}) if isinstance(solvers, dict) else {}
+    llvm = observation.get("llvm", {}) if isinstance(observation.get("llvm"), dict) else {}
+    host = observation.get("host", {}) if isinstance(observation.get("host"), dict) else {}
+    link = observation.get("link", {}) if isinstance(observation.get("link"), dict) else {}
+    return (
+        observation.get("schema_version") == TOOLCHAIN_OBSERVATION_SCHEMA
+        and z3.get("binding") == "linked"
+        and isinstance(z3.get("version"), str)
+        and llvm.get("binding") == "linked"
+        and isinstance(llvm.get("version"), str)
+        and isinstance(observation.get("target_triple"), str)
+        and isinstance(host.get("os"), str)
+        and isinstance(host.get("arch"), str)
+        and all(isinstance(link.get(key), str)
+                for key in ("driver", "driver_version", "driver_target", "linker", "linker_version"))
+    )
+
+
+def toolchain_observation(mumei_bin: str, timeout: int) -> dict:
+    """Observe effective solver/toolchain identity without making it acceptance evidence.
+
+    Unavailability is explicit diagnostic metadata. Raw stderr is not copied because it
+    is unconstrained output and is not needed to classify this bounded observation failure.
+    """
+    result = command([mumei_bin, "native-bundle", "observe-toolchain", "--json"], cb.REPO_ROOT, timeout)
+    if result.get("error"):
+        return {"status": "unavailable", "reason": f"observe-toolchain {result['error']}"}
+    if result.get("exit") != 0:
+        return {"status": "unavailable", "reason": f"observe-toolchain exit {result.get('exit')}"}
+    observation = json_stdout(result)
+    if not valid_toolchain_observation(observation):
+        return {"status": "unavailable", "reason": "observe-toolchain returned invalid metadata"}
+    return {"status": "observed", "observation": observation}
+
+
 UNRESOLVED_OUTCOME_GROUPS = {
     "unsupported": ("source_outside_profile", "machine_outside_profile"),
     "inconclusive": ("inconclusive",),
@@ -363,6 +405,7 @@ def main(argv: list[str]) -> int:
         parser.error("no contract benchmark cases")
     started = dt.datetime.now(dt.timezone.utc)
     environment_start = host_environment()
+    toolchain = toolchain_observation(mumei_bin, args.timeout)
     clock = time.monotonic()
     with ThreadPoolExecutor(max_workers=args.jobs) as pool:
         records = list(pool.map(lambda case: run_case(case, mumei_bin, args.timeout), cases))
@@ -373,6 +416,7 @@ def main(argv: list[str]) -> int:
         "demo": cb.git_identity(str(cb.REPO_ROOT)),
         "verifier": cb.verifier_identity(mumei_bin),
         "environment": {"start": environment_start, "end": host_environment()},
+        "toolchain": toolchain,
         "settings": {"jobs": args.jobs, "timeout_seconds": args.timeout, "model_calls": 0},
         "seconds": round(time.monotonic() - clock, 3),
         "summary": summary,

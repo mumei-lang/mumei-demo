@@ -124,10 +124,26 @@ def test_summary_is_bounded_and_not_a_verdict(tmp_path):
     json.dumps(diff())
 
 
+def toolchain(z3_version="4.14.1.0"):
+    return {
+        "status": "observed",
+        "observation": {
+            "schema_version": "mumei.native-toolchain-observation/v1",
+            "host": {"os": "linux", "arch": "x86_64", "family": "unix"},
+            "solvers": {"z3": {"binding": "linked", "version": z3_version}},
+            "llvm": {"binding": "linked", "version": "17.0.6"},
+            "target_triple": "x86_64-pc-linux-gnu",
+            "link": {"driver": "cc", "driver_version": "11.4.0", "driver_target": "x86_64-linux-gnu",
+                     "linker": "gnu-ld", "linker_version": "2.38"},
+        },
+    }
+
+
 def valid_report(case_id="SOL01-D01"):
     return {
         "schema_version": "mumei-demo.machine-tv-bench/v1",
         "recorded_at": "2026-01-01T00:00:00+00:00",
+        "toolchain": toolchain(),
         "cases": [{
             "id": case_id,
             "case_hash": "same",
@@ -177,6 +193,37 @@ def test_main_returns_failure_when_positive_control_is_stably_not_accepted(monke
     assert diff_doc["summary"]["outcome_transitions"] == {}
     assert diff_doc["summary"]["verdict_changes"] == 0
     assert "positive control SOL01-D01 fixed" in capsys.readouterr().out
+
+
+def test_toolchain_identity_drift_fails_without_timing_noise():
+    failures = stability.stability_failures(
+        diff(toolchain_identity={"matches": False, "unavailable": [], "changed_fields": ["solvers.z3.version"], }),
+        report(), report(),
+    )
+    assert failures == ["toolchain identity changed: solvers.z3.version"]
+
+
+def test_toolchain_identity_unavailable_fails_explicitly():
+    failures = stability.stability_failures(
+        diff(toolchain_identity={"matches": False, "unavailable": ["repeat"], "changed_fields": []}),
+        report(), report(),
+    )
+    assert failures == ["toolchain identity unavailable: repeat"]
+
+
+def test_main_returns_failure_when_repeat_toolchain_identity_changes(monkeypatch, tmp_path):
+    def fake_run(binary, output, jobs, timeout):
+        doc = valid_report()
+        if output.name == "machine_tv_repeat.json":
+            doc["toolchain"] = toolchain("4.8.12.0")
+        output.write_text(json.dumps(doc))
+
+    monkeypatch.setattr(stability, "run_benchmark", fake_run)
+    assert stability.main(["--mumei-bin", "/fake/mumei", "--output-dir", str(tmp_path)]) == 1
+    diff_doc = json.loads((tmp_path / "machine_tv_diff.json").read_text())
+    assert diff_doc["summary"]["toolchain_identity"]["changed_fields"] == ["solvers.z3.version"]
+    assert diff_doc["summary"]["stage_result_changes"] == 0
+    assert diff_doc["summary"]["stage_changes"] == 0
 
 
 def test_main_returns_failure_when_repeat_diagnostic_reason_changes(monkeypatch, tmp_path):
