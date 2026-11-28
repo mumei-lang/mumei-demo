@@ -135,7 +135,8 @@
       "verification_status": "verified",
       "spec_health_issues": [],
       "verification_violations": [
-        "Go function `viewItem` can dereference nil through a pointer struct field chain"
+        "Go function `viewItem` can dereference nil through a pointer struct field chain",
+        "Go function `itemHandler` indexes a `strings.Split`/`strings.Fields` result with a positive literal index without a dominating length guard"
       ],
       "counterexample_values": [],
       "cross_validation_gaps": [
@@ -167,7 +168,7 @@
       "scheduled_verification": null,
       "scheduled_verification_check": null,
       "finding_counts": {
-        "code": 1,
+        "code": 2,
         "confirmed": 0,
         "spec": 1,
         "model_limitations": 0,
@@ -185,6 +186,18 @@
           "line": null,
           "triage_bucket": "code_review",
           "fingerprint": "9d18b8ecf66e0ce44cff6255cadf6a5947e565c9db4270cd3d5e41b7a4f2ca59"
+        },
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "code",
+          "severity": "error",
+          "confidence": "medium",
+          "verification_basis": "deterministic-static-analysis",
+          "message": "Go function `itemHandler` indexes a `strings.Split`/`strings.Fields` result with a positive literal index without a dominating length guard",
+          "source_file": "specimens/go/go-01-inventory-api/handlers.go",
+          "line": null,
+          "triage_bucket": "code_review",
+          "fingerprint": "f2fd25dc88a1e5e87a09ae35c7479107ceb6891ed4515ccbf934289ebbe9143a"
         },
         {
           "schema": "mumei.audit-findings/v1",
@@ -227,7 +240,7 @@
       },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit found issues: specimens/go/go-01-inventory-api/handlers.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: ['Go function `viewItem` can dereference nil through a pointer struct field chain']\ncounterexample_values: []\ncross_validation_gaps: ['spec precondition assumed, not enforced, by `viewItem`']\nfinding_counts: code=1, confirmed=0, spec=1, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: itemHandler.requires, itemHandler.ensures, createItem.requires, createItem.ensures, viewItem.ensures, reserveHandler.requires, reserveHandler.ensures, releaseHandler.requires, releaseHandler.ensures, restockHandler.requires, restockHandler.ensures, reportHandler.requires, reportHandler.ensures, searchHandler.requires, searchHandler.ensures, resetHandler.requires, resetHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit found issues: specimens/go/go-01-inventory-api/handlers.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: ['Go function `viewItem` can dereference nil through a pointer struct field chain', 'Go function `itemHandler` indexes a `strings.Split`/`strings.Fields` result with a positive literal index without a dominating length guard']\ncounterexample_values: []\ncross_validation_gaps: ['spec precondition assumed, not enforced, by `viewItem`']\nfinding_counts: code=2, confirmed=0, spec=1, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: itemHandler.requires, itemHandler.ensures, createItem.requires, createItem.ensures, viewItem.ensures, reserveHandler.requires, reserveHandler.ensures, releaseHandler.requires, releaseHandler.ensures, restockHandler.requires, restockHandler.ensures, reportHandler.requires, reportHandler.ensures, searchHandler.requires, searchHandler.ensures, resetHandler.requires, resetHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -402,7 +415,7 @@
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/go/go-01-inventory-api\n  calc.go: 2 violations, 1 gap\n  handlers.go: 1 violation, 1 gap\n  main.go: 1 violation, 0 gaps\n  store.go: 0 violations, 1 gap\nSummary: 4 files, 3 files with issues, 3 files with spec diagnostics\nfinding_counts: code=4, confirmed=0, spec=3, model_limitations=0, errors=0\ntriage: refuted=1, verified=3, unverifiable=0\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: reorderPoint.ensures, appendMovement.requires, appendMovement.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: itemHandler.requires, itemHandler.ensures, createItem.requires, createItem.ensures, viewItem.ensures, reserveHandler.requires, reserveHandler.ensures, releaseHandler.requires, releaseHandler.ensures, restockHandler.requires, restockHandler.ensures, reportHandler.requires, reportHandler.ensures, searchHandler.requires, searchHandler.ensures, resetHandler.requires, resetHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures, auditRequests.requires, auditRequests.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: NewStore.requires, NewStore.ensures, Put.requires, Put.ensures, Get.ensures, All.requires, All.ensures, Reset.requires, Reset.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/go/go-01-inventory-api\n  calc.go: 2 violations, 1 gap\n  handlers.go: 2 violations, 1 gap\n  main.go: 1 violation, 0 gaps\n  store.go: 0 violations, 1 gap\nSummary: 4 files, 3 files with issues, 3 files with spec diagnostics\nfinding_counts: code=5, confirmed=0, spec=3, model_limitations=0, errors=0\ntriage: refuted=1, verified=3, unverifiable=0\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: high\n    action: validate-spec-to-code で制約の対応を確認\n    command: mumei-agent validate-spec-to-code --spec <spec> --code <file> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: reorderPoint.ensures, appendMovement.requires, appendMovement.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: itemHandler.requires, itemHandler.ensures, createItem.requires, createItem.ensures, viewItem.ensures, reserveHandler.requires, reserveHandler.ensures, releaseHandler.requires, releaseHandler.ensures, restockHandler.requires, restockHandler.ensures, reportHandler.requires, reportHandler.ensures, searchHandler.requires, searchHandler.ensures, resetHandler.requires, resetHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures, auditRequests.requires, auditRequests.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: NewStore.requires, NewStore.ensures, Put.requires, Put.ensures, Get.ensures, All.requires, All.ensures, Reset.requires, Reset.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 4,
   "files_with_issues": 3,
   "files_with_spec_diagnostics": 3,
@@ -412,6 +425,7 @@
     "calc.go: Go function `reorderPoint` can divide by `int32(len(locations))` without a non-zero contract (Z3 counterexample: int32(len(locations))=0)",
     "calc.go: Z3 Counter-example: int32(len(locations))=0",
     "handlers.go: Go function `viewItem` can dereference nil through a pointer struct field chain",
+    "handlers.go: Go function `itemHandler` indexes a `strings.Split`/`strings.Fields` result with a positive literal index without a dominating length guard",
     "main.go: Go hardcoded credential constant `adminToken` in package main is stored directly in source"
   ],
   "cross_validation_gaps": [
@@ -458,7 +472,7 @@
     }
   ],
   "finding_counts": {
-    "code": 4,
+    "code": 5,
     "confirmed": 0,
     "spec": 3,
     "model_limitations": 0,
@@ -512,6 +526,18 @@
       "line": null,
       "triage_bucket": "code_review",
       "fingerprint": "9d18b8ecf66e0ce44cff6255cadf6a5947e565c9db4270cd3d5e41b7a4f2ca59"
+    },
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "code",
+      "severity": "error",
+      "confidence": "medium",
+      "verification_basis": "deterministic-static-analysis",
+      "message": "Go function `itemHandler` indexes a `strings.Split`/`strings.Fields` result with a positive literal index without a dominating length guard",
+      "source_file": "specimens/go/go-01-inventory-api/handlers.go",
+      "line": null,
+      "triage_bucket": "code_review",
+      "fingerprint": "f2fd25dc88a1e5e87a09ae35c7479107ceb6891ed4515ccbf934289ebbe9143a"
     },
     {
       "schema": "mumei.audit-findings/v1",

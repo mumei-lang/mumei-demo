@@ -11,7 +11,8 @@
       "verification_status": "verified",
       "spec_health_issues": [],
       "verification_violations": [
-        "Rust function `handle` uses hardcoded credential constant `ADMIN_TOKEN` stored directly in source"
+        "Rust function `handle` uses hardcoded credential constant `ADMIN_TOKEN` stored directly in source",
+        "Rust function `read_request` indexes a split-produced `Vec` with a positive literal index without a dominating length guard"
       ],
       "counterexample_values": [],
       "cross_validation_gaps": [],
@@ -36,7 +37,7 @@
       "scheduled_verification": null,
       "scheduled_verification_check": null,
       "finding_counts": {
-        "code": 1,
+        "code": 2,
         "confirmed": 0,
         "spec": 0,
         "model_limitations": 0,
@@ -54,6 +55,18 @@
           "line": null,
           "triage_bucket": "code_review",
           "fingerprint": "228083528af8979cfac4c8fb0a4eb4b5c01642d3c1e76380ac8e2f9f7dcfdeb8"
+        },
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "code",
+          "severity": "error",
+          "confidence": "medium",
+          "verification_basis": "deterministic-static-analysis",
+          "message": "Rust function `read_request` indexes a split-produced `Vec` with a positive literal index without a dominating length guard",
+          "source_file": "specimens/rust/rs-02-kv-server/src/main.rs",
+          "line": null,
+          "triage_bucket": "code_review",
+          "fingerprint": "361f49683195adf6f718944332fcdfadbf43007497c922c1217f9ab8c494f74f"
         }
       ],
       "triage": {
@@ -84,19 +97,20 @@
       },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit found issues: specimens/rust/rs-02-kv-server/src/main.rs\nlanguage: rust\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: ['Rust function `handle` uses hardcoded credential constant `ADMIN_TOKEN` stored directly in source']\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=1, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: data_dir.requires, data_dir.ensures, normalize_key.requires, normalize_key.ensures, incr.requires, incr.ensures, keys_with_prefix.requires, keys_with_prefix.ensures, snapshot.requires, snapshot.ensures, flush.requires, flush.ensures, log_line.requires, log_line.ensures, read_request.requires, read_request.ensures, find_subslice.requires, find_subslice.ensures, split_target.requires, split_target.ensures, url_decode.requires, url_decode.ensures, respond.requires, respond.ensures, handle.requires, handle.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit found issues: specimens/rust/rs-02-kv-server/src/main.rs\nlanguage: rust\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: ['Rust function `handle` uses hardcoded credential constant `ADMIN_TOKEN` stored directly in source', 'Rust function `read_request` indexes a split-produced `Vec` with a positive literal index without a dominating length guard']\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=2, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: data_dir.requires, data_dir.ensures, normalize_key.requires, normalize_key.ensures, incr.requires, incr.ensures, keys_with_prefix.requires, keys_with_prefix.ensures, snapshot.requires, snapshot.ensures, flush.requires, flush.ensures, log_line.requires, log_line.ensures, read_request.requires, read_request.ensures, find_subslice.requires, find_subslice.ensures, split_target.requires, split_target.ensures, url_decode.requires, url_decode.ensures, respond.requires, respond.ensures, handle.requires, handle.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/rust/rs-02-kv-server\n  src/main.rs: 1 violation, 0 gaps\nSummary: 1 file, 1 file with issues, 0 files with spec diagnostics\nfinding_counts: code=1, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=0, verified=1, unverifiable=0\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: data_dir.requires, data_dir.ensures, normalize_key.requires, normalize_key.ensures, incr.requires, incr.ensures, keys_with_prefix.requires, keys_with_prefix.ensures, snapshot.requires, snapshot.ensures, flush.requires, flush.ensures, log_line.requires, log_line.ensures, read_request.requires, read_request.ensures, find_subslice.requires, find_subslice.ensures, split_target.requires, split_target.ensures, url_decode.requires, url_decode.ensures, respond.requires, respond.ensures, handle.requires, handle.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/rust/rs-02-kv-server\n  src/main.rs: 2 violations, 0 gaps\nSummary: 1 file, 1 file with issues, 0 files with spec diagnostics\nfinding_counts: code=2, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=0, verified=1, unverifiable=0\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: data_dir.requires, data_dir.ensures, normalize_key.requires, normalize_key.ensures, incr.requires, incr.ensures, keys_with_prefix.requires, keys_with_prefix.ensures, snapshot.requires, snapshot.ensures, flush.requires, flush.ensures, log_line.requires, log_line.ensures, read_request.requires, read_request.ensures, find_subslice.requires, find_subslice.ensures, split_target.requires, split_target.ensures, url_decode.requires, url_decode.ensures, respond.requires, respond.ensures, handle.requires, handle.ensures, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 1,
   "files_with_issues": 1,
   "files_with_spec_diagnostics": 0,
   "verification_status": "verified",
   "spec_health_issues": [],
   "verification_violations": [
-    "src/main.rs: Rust function `handle` uses hardcoded credential constant `ADMIN_TOKEN` stored directly in source"
+    "src/main.rs: Rust function `handle` uses hardcoded credential constant `ADMIN_TOKEN` stored directly in source",
+    "src/main.rs: Rust function `read_request` indexes a split-produced `Vec` with a positive literal index without a dominating length guard"
   ],
   "cross_validation_gaps": [],
   "migration_hints": [],
@@ -118,7 +132,7 @@
     }
   ],
   "finding_counts": {
-    "code": 1,
+    "code": 2,
     "confirmed": 0,
     "spec": 0,
     "model_limitations": 0,
@@ -136,6 +150,18 @@
       "line": null,
       "triage_bucket": "code_review",
       "fingerprint": "228083528af8979cfac4c8fb0a4eb4b5c01642d3c1e76380ac8e2f9f7dcfdeb8"
+    },
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "code",
+      "severity": "error",
+      "confidence": "medium",
+      "verification_basis": "deterministic-static-analysis",
+      "message": "Rust function `read_request` indexes a split-produced `Vec` with a positive literal index without a dominating length guard",
+      "source_file": "specimens/rust/rs-02-kv-server/src/main.rs",
+      "line": null,
+      "triage_bucket": "code_review",
+      "fingerprint": "361f49683195adf6f718944332fcdfadbf43007497c922c1217f9ab8c494f74f"
     }
   ],
   "triage": {

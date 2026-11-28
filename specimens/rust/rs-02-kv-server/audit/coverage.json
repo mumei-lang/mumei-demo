@@ -8,9 +8,9 @@
   "files_with_issues": 1,
   "counts": {
     "total": 11,
-    "detected": 1,
-    "function_flagged": 2,
-    "missed": 8
+    "detected": 2,
+    "function_flagged": 4,
+    "missed": 5
   },
   "defects": [
     {
@@ -20,8 +20,10 @@
       "category": "out-of-bounds",
       "class": "bug",
       "in_target_category": true,
-      "status": "missed",
-      "findings": []
+      "status": "detected",
+      "findings": [
+        "Rust function `read_request` indexes a split-produced `Vec` with a positive literal index without a dominating length guard"
+      ]
     },
     {
       "id": "RS02-D02",
@@ -30,8 +32,10 @@
       "category": "unbounded-resource",
       "class": "vulnerability",
       "in_target_category": false,
-      "status": "missed",
-      "findings": []
+      "status": "function_flagged",
+      "findings": [
+        "Rust function `read_request` indexes a split-produced `Vec` with a positive literal index without a dominating length guard"
+      ]
     },
     {
       "id": "RS02-D03",
@@ -90,8 +94,10 @@
       "category": "resource-leak",
       "class": "design",
       "in_target_category": false,
-      "status": "missed",
-      "findings": []
+      "status": "function_flagged",
+      "findings": [
+        "Rust function `read_request` indexes a split-produced `Vec` with a positive literal index without a dominating length guard"
+      ]
     },
     {
       "id": "RS02-D09",
@@ -137,11 +143,17 @@
       "kind": "verification_violations",
       "text": "Rust function `handle` uses hardcoded credential constant `ADMIN_TOKEN` stored directly in source",
       "status": "defect_evidence"
+    },
+    {
+      "file": "src/main.rs",
+      "kind": "verification_violations",
+      "text": "Rust function `read_request` indexes a split-produced `Vec` with a positive literal index without a dominating length guard",
+      "status": "defect_evidence"
     }
   ],
   "finding_counts": {
-    "total": 1,
-    "defect_evidence": 1,
+    "total": 2,
+    "defect_evidence": 2,
     "real": 0,
     "false_positive": 0,
     "unreviewed": 0
@@ -152,12 +164,12 @@
   "input_hash": "e4f616cde4ad6558617d3dcc9ce9502dc3d19e756f09a99ddd0a651457ca755a",
   "defect_catalog_hash": "bd78bc6ea2b2c43a211ff277e2d0d5af25bd6eae1e7687b1541428be35b647a6",
   "meta": {
-    "mumei_agent_commit": "41afb4dedfd70fb7b462696dcfcc70ea0d971d10",
+    "mumei_agent_commit": "4da122661693e1f496665acad023c9f2cc83211e",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T08:48:44Z"
+    "generated_at": "2026-11-28T09:22:45Z"
   },
   "fixed": {
     "defects": 11,
