@@ -8,9 +8,9 @@
   "files_with_issues": 1,
   "counts": {
     "total": 10,
-    "detected": 1,
+    "detected": 2,
     "function_flagged": 2,
-    "missed": 7
+    "missed": 6
   },
   "defects": [
     {
@@ -86,8 +86,10 @@
       "category": "unchecked-call",
       "class": "bug",
       "in_target_category": true,
-      "status": "missed",
-      "findings": []
+      "status": "detected",
+      "findings": [
+        "Solidity function `_payFee` discards the success flag of a low-level value call at line 171"
+      ]
     },
     {
       "id": "SOL01-D08",
@@ -137,14 +139,20 @@
     },
     {
       "file": "src/RewardVault.sol",
+      "kind": "verification_violations",
+      "text": "Solidity function `_payFee` discards the success flag of a low-level value call at line 171",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "src/RewardVault.sol",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `sharePrice`",
       "status": "unreviewed"
     }
   ],
   "finding_counts": {
-    "total": 3,
-    "defect_evidence": 1,
+    "total": 4,
+    "defect_evidence": 2,
     "real": 1,
     "false_positive": 0,
     "unreviewed": 1
@@ -161,12 +169,12 @@
   "input_hash": "3928c3e8e82cf9bac5aceb4fefa666ea8b203cd7b9fa9e760df7d4f72a2f84ce",
   "defect_catalog_hash": "9414f96ecc6ebf1543e8cb7eb84654da3b386ad0092f34bfa4b3ee9c03b4480e",
   "meta": {
-    "mumei_agent_commit": "eb6859642ecfcbe8d67f0426e19d71242df3bc5c",
+    "mumei_agent_commit": "6b87f348515fd519d290ba5987cf6d1c166d7951",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T03:50:46Z"
+    "generated_at": "2026-11-28T05:10:21Z"
   },
   "fixed": {
     "defects": 10,

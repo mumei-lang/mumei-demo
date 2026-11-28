@@ -71,6 +71,17 @@ def test_category_hit_overflow():
     assert not rsa.category_hit("reentrant call", "integer-overflow")
 
 
+def test_category_hit_unchecked_call_detector_messages():
+    assert rsa.category_hit(
+        "Solidity function `payFee` discards the success flag of a low-level value call at line 3",
+        "unchecked-call",
+    )
+    assert rsa.category_hit(
+        "Solidity function `getReward` discards the boolean return of an ERC20-like token transfer at line 9",
+        "unchecked-call",
+    )
+
+
 def test_category_hit_logic_error_never_hits():
     assert not rsa.category_hit("overflow bounds index inject", "logic-error")
 

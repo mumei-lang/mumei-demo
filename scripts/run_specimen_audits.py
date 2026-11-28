@@ -89,7 +89,7 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "missing-authorization": ["authoriz", "access control", "access-control", "owner", "msg.sender"],
     "missing-authentication": ["authenticat", "credential"],
     "tx-origin-auth": ["tx.origin"],
-    "unchecked-call": ["unchecked", "return value", "low-level call"],
+    "unchecked-call": ["unchecked", "return value", "low-level call", "low-level value call", "erc20-like token transfer"],
     "rounding-error": ["round", "precision", "truncat"],
     "float-money": ["float", "precision", "round"],
     "sql-injection": ["sql", "inject"],
