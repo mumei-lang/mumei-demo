@@ -3,7 +3,9 @@
 
 The fixture source is trusted and checked into this repository. The runtime-on
 lane is explicit validation of that fixture only; this script is not a generic
-runner for untrusted distribution artifacts.
+runner for untrusted distribution artifacts. Its trusted-build-id file is a
+simulated producer channel: consumer invocations read it back rather than
+reusing the producer-side hash variable.
 """
 
 from __future__ import annotations
@@ -11,6 +13,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -19,9 +22,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TRUSTED_FIXTURE = (REPO_ROOT / "scenarios/native_observations_accept/src/main.mm").resolve()
 ROLES = ("proof_certificate", "native_source_llvm", "artifact_reproduction")
+TRUSTED_BUILD_ID_FILE = "trusted-build-id.txt"
 GENERATED_NAMES = {
     "bundle",
-    "build_id.txt",
+    TRUSTED_BUILD_ID_FILE,
     "native-bundle-build.log",
     "verify-distribution-runtime-off.json",
     "verify-distribution-runtime-on.json",
@@ -31,6 +35,22 @@ GENERATED_NAMES = {
 
 def sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read_trusted_build_id_channel(path: Path) -> str:
+    """Read the simulated producer channel without deriving trust from the artifact."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except FileNotFoundError as exc:
+        raise ValueError("trusted build ID channel is missing") from exc
+    if not text.strip():
+        raise ValueError("trusted build ID channel is empty")
+    match = re.fullmatch(r"([0-9a-f]{64})(?:\r?\n)?", text)
+    if match is not None:
+        return match.group(1)
+    if len(text.splitlines()) != 1:
+        raise ValueError("trusted build ID channel must contain exactly one line")
+    raise ValueError("trusted build ID channel must contain one lowercase sha256 hex line")
 
 
 def load_report(path: Path) -> dict:
@@ -151,19 +171,21 @@ def validate_fixture(args: argparse.Namespace) -> dict:
     if built.returncode != 0:
         raise RuntimeError("trusted fixture native-bundle build failed")
     record = bundle / "native-bundle.json"
-    build_id = sha256_file(record)
-    (work_dir / "build_id.txt").write_text(build_id + "\n", encoding="utf-8")
+    producer_build_id = sha256_file(record)
+    channel_path = work_dir / TRUSTED_BUILD_ID_FILE
+    channel_path.write_text(producer_build_id + "\n", encoding="utf-8")
+    trusted_build_id = read_trusted_build_id_channel(channel_path)
 
     agent_repo = args.mumei_agent_repo.resolve()
     off_report = work_dir / "verify-distribution-runtime-off.json"
     run_checked(
-        verifier_argv(args, bundle, off_report, build_id), cwd=agent_repo
+        verifier_argv(args, bundle, off_report, trusted_build_id), cwd=agent_repo
     )
     off = load_report(off_report)
     validate_positive_report(off, runtime=False)
 
     on_report = work_dir / "verify-distribution-runtime-on.json"
-    on_argv = verifier_argv(args, bundle, on_report, build_id)
+    on_argv = verifier_argv(args, bundle, on_report, trusted_build_id)
     on_argv.insert(on_argv.index("--core"), "--enable-runtime-observations")
     run_checked(on_argv, cwd=agent_repo)
     on = load_report(on_report)
