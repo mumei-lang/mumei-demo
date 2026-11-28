@@ -113,6 +113,15 @@ def test_generated_workdir_preserves_unexpected_files(tmp_path, monkeypatch):
     fixture = tmp_path / "fixture.mm"
     fixture.write_text("atom main() -> i64\nrequires: true;\nbody: { 0 };\n", encoding="utf-8")
     monkeypatch.setattr(module, "TRUSTED_FIXTURE", fixture.resolve())
+    real_iterdir = Path.iterdir
+
+    def bundle_first_iterdir(path):
+        children = list(real_iterdir(path))
+        if path == tmp_path:
+            children.sort(key=lambda child: child.name != "bundle")
+        return iter(children)
+
+    monkeypatch.setattr(Path, "iterdir", bundle_first_iterdir)
     fake_core = tmp_path / "mumei"
     fake_core.write_text("#!/bin/sh\n", encoding="utf-8")
     parser = module.build_parser()
