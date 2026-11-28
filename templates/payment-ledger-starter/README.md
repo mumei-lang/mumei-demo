@@ -10,6 +10,8 @@ The `.github` directory is hidden by default in many file browsers and shell lis
 
 This README is the minimal starter runbook. The [GitHub Actions CI reference](https://github.com/mumei-lang/mumei-demo/blob/main/docs/CI_REFERENCE.md) is the canonical detailed reference for artifact entries, step outputs, baseline operation, migration states, and evidence boundaries.
 
+For the first real consumer pilot, follow the [fresh consumer pilot runbook](https://github.com/mumei-lang/mumei-demo/blob/main/docs/CI_REFERENCE.md#fresh-consumer-pilot-runbook): use a dedicated private throwaway repository, push the starter to `main`, then open a pull request from a pilot branch because the workflow does not run on the initial `main` push alone.
+
 ## Ten-minute path
 
 A maintainer can reach **evidence generation and review-handoff confirmation** in about ten minutes on a small repository. That does not mean the human migration review is complete in ten minutes; reviewing the candidate contract and deciding whether to migrate remains human work. The first uncached run can also take longer while Python, uv dependencies, and the mumei installer are populated.
