@@ -7,8 +7,9 @@ on:
       - .github/workflows/audit-action-consumer.yml
       - docs/CI_REFERENCE.md
       - scenarios/ci_evidence_pack/src/**
-      - scenarios/ci_evidence_pack/reference/payment_ledger.py
+      - templates/payment-ledger-starter/**
       - tests/test_build_ci_evidence_pack.py
+      - tests/test_payment_starter_template.py
   workflow_dispatch:
 
 permissions:
@@ -39,7 +40,7 @@ jobs:
         shell: bash
         run: |
           mkdir -p src
-          cp scenarios/ci_evidence_pack/reference/payment_ledger.py src/payment_ledger.py
+          cp templates/payment-ledger-starter/src/payment_ledger.py src/payment_ledger.py
           printf '%s\n' '{"version":"mumei.audit-baseline/v1","fingerprints":[]}' > audit-baseline.json
 
       - name: Run documented deterministic audit action
