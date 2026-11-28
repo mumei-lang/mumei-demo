@@ -1,0 +1,86 @@
+name: Mumei audit
+
+on: [pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run deterministic Mumei audit
+        id: audit
+        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@640d597ec60bf574d0102cae6b89054d47fd9f0f
+        env:
+          # Keep the deterministic/no-LLM adoption path even when repository
+          # or organization secrets exist. Do not pass secret values here.
+          LLM_API_KEY: ""
+          OPENAI_API_KEY: ""
+        with:
+          # For real adoption, point this at the repository payment/ledger
+          # source tree and adjust `language` as needed.
+          code-file: src/
+          language: python
+          mumei-version: v0.7.1
+          # migration_execution.json is a fresh workspace-local JSON output on
+          # every run; do not commit or cache it.
+          audit-args: --baseline audit-baseline.json --write-baseline .mumei-audit/generated-baseline.json --fail-on high-confidence
+          migration-execution-output: .mumei-audit/migration_execution.json
+          artifact-name: mumei-audit-evidence
+          # Set true only after enabling GitHub code scanning and adding the
+          # security-events: write permission to this job.
+          upload-sarif: false
+
+  verify-downloaded-evidence:
+    needs: audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Download audit evidence artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mumei-audit-evidence
+          path: evidence
+
+      - name: Fetch pinned artifact verifier
+        shell: bash
+        run: |
+          # Keep this commit identical to the action pin above.
+          curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/640d597ec60bf574d0102cae6b89054d47fd9f0f/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
+            -o verify_audit_evidence_artifact.py
+
+      - name: Verify downloaded fixture-smoke artifact
+        shell: bash
+        run: |
+          # Fixture smoke only: these strict flags require the included payment
+          # fixture to produce at least one blocked migration candidate. A
+          # real repository can produce zero candidates, and that artifact is
+          # outside the current verifier contract; adjust or remove this step
+          # when replacing the fixture with real source.
+          python3 verify_audit_evidence_artifact.py evidence \
+            --require-hidden-companion \
+            --require-blocked-candidate \
+            --require-generated-mm
+
+      - name: Validate expected payment fixture handoff
+        shell: bash
+        run: |
+          # Fixture smoke only. Delete this step when auditing real source.
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          execution = json.loads(Path("evidence/migration-execution/migration_execution.json").read_text(encoding="utf-8"))
+          candidates = execution.get("candidates")
+          assert len(candidates) == 1
+          assert candidates[0].get("function_name") == "split_cents"
+          assert candidates[0].get("execution_state") == "blocked"
+          assert execution.get("summary", {}).get("review_required") is True
+          PY

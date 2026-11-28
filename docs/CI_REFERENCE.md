@@ -4,9 +4,9 @@ Use the upstream composite action for the initial existing-code audit gate. The 
 
 ## Payment/ledger vertical quick start
 
-The recommended first vertical is a small payment/ledger backend because its review questions map directly to preconditions, arithmetic rounding, balance invariants, and state transitions. This repository carries a stdlib-only Python fixture at [`scenarios/ci_evidence_pack/reference/payment_ledger.py`](../scenarios/ci_evidence_pack/reference/payment_ledger.py). It is intentionally small and is not a production-safe ledger: copy it into a throwaway consumer repository as `src/payment_ledger.py` only to exercise the adoption path, or point `code-file` at your own payment module.
+The recommended first vertical is a small payment/ledger backend because its review questions map directly to preconditions, arithmetic rounding, balance invariants, and state transitions. The reusable repo-root starter is [`templates/payment-ledger-starter`](../templates/payment-ledger-starter/). It carries the canonical stdlib-only fixture at [`templates/payment-ledger-starter/src/payment_ledger.py`](../templates/payment-ledger-starter/src/payment_ledger.py), an empty `mumei.audit-baseline/v1` baseline, a two-job workflow skeleton, and a payment-specific reviewer runbook. The fixture is intentionally small and is not a production-safe ledger: use it only to exercise the adoption path, then point `code-file` at your own payment module.
 
-The copy/paste workflow below is also the payment/ledger workflow. With the fixture and the deterministic/no-LLM settings, the expected result is one high-priority migration hint for `split_cents`, one migration execution candidate named `split_cents` in `blocked` state, `review_required: true`, and a downloaded artifact that passes the pinned artifact verifier. `blocked` is retained review evidence, not an operational failure of the action.
+With the fixture and deterministic/no-LLM settings, the expected result is one high-priority migration hint for `split_cents`, one migration execution candidate named `split_cents` in `blocked` state, `review_required: true`, and a downloaded artifact that passes the pinned artifact verifier. `blocked` is retained review evidence, not an operational failure of the action.
 
 Use this payment reviewer checklist before acting on the artifact:
 
@@ -15,62 +15,24 @@ Use this payment reviewer checklist before acting on the artifact:
 - Check account-existence, negative-amount, and non-negative-balance requirements in `transfer_cents`; these remain human migration requirements even when a generated `.mm` candidate exists.
 - Treat migration execution as generated `.mm` acceptance evidence only. It is not host semantic-equivalence proof, and `audit-baseline.json`/`generated-baseline.json` are CI policy rather than evidence.
 
-Decision guide: use this composite-action path for the first ten-minute audit gate; use the advanced evidence-pack reference only when you need the custom pack layout and reviewed reference certificate; use native distribution verification only later for trusted `.mm` native bundles. The pinned action includes migration contract-erosion provenance. `contract_erosion` is additive tool-execution provenance rather than proof acceptance, and a skip such as `skipped_no_change` is explicit not-checked evidence; in this no-LLM payment fixture it means the generated contract text did not change, so erosion comparison was not run. It is not a success condition for this first payment path and does not make migration execution anything more than generated `.mm` acceptance evidence.
+Decision guide: use the starter composite-action path for the first ten-minute audit evidence/review-handoff loop; use the advanced evidence-pack reference only when you need the custom pack layout and reviewed reference certificate; use native distribution verification only later for trusted `.mm` native bundles. The pinned action includes migration contract-erosion provenance. `contract_erosion` is additive tool-execution provenance rather than proof acceptance, and a skip such as `skipped_no_change` is explicit not-checked evidence; in this no-LLM payment fixture it means the generated contract text did not change, so erosion comparison was not run. It is not a success condition for this first payment path and does not make migration execution anything more than generated `.mm` acceptance evidence.
 
-## Copy/paste payment/ledger workflow
+## Starter workflow adoption path
 
-1. Copy [`scenarios/ci_evidence_pack/reference/payment_ledger.py`](../scenarios/ci_evidence_pack/reference/payment_ledger.py) into the repository being introduced as `src/payment_ledger.py` for the fixture walkthrough, or skip this file and point `code-file` at the repository's own payment/ledger source tree.
-2. Add `.github/workflows/mumei-audit.yml` in the repository being introduced:
+1. Copy the contents of [`templates/payment-ledger-starter`](../templates/payment-ledger-starter/) into a throwaway consumer repository root, preserving the `.github` directory. The template is already laid out as it should exist in the consumer repo.
+2. Review [`.github/workflows/mumei-audit.yml`](../templates/payment-ledger-starter/.github/workflows/mumei-audit.yml) before enabling it. It uses `mumei-audit@640d597ec60bf574d0102cae6b89054d47fd9f0f` and a verifier raw URL pinned to the same commit. Keep those commit references identical when updating them. Before production use, review the action and pin either that commit SHA or a newer immutable release ref; do not use a mutable branch ref such as `@develop` as a production dependency.
+3. Keep `audit-args` on one line: the composite action treats it as a space-separated argument list. `migration-execution-output` is optional but enabled in the starter because it makes the migration evidence handoff explicit. The path must be fresh on every run, stay inside the caller workspace, and use a `.json` filename; the action automatically adds `--auto-migrate` when needed and copies the JSON plus companion generated files into the evidence artifact. Do not commit or reuse that output path as a cache.
+4. Open a pull request. The audit job writes a step summary, audit JSON, SARIF, logs, timing files, `generated-baseline.json`, and migration execution evidence in the `mumei-audit-evidence` artifact. The second job downloads that artifact and verifies it offline for the fixture smoke.
+5. The strict verifier flags and exact `split_cents` assertion are fixture-smoke checks. When replacing the fixture with real source, delete that assertion and adjust or remove the strict flags as described in the starter README. A real repository can produce zero migration candidates; that artifact is outside the current artifact verifier contract and is not proof failure or proof success.
+6. Review `migration-execution/migration_execution.json` with `status.json` and `generated-artifacts/` before acting on any migration candidate. Treat `ready_for_human_review` as a review queue and `blocked` as retained evidence gaps, not as independent CI failure classes.
+7. Review `generated-baseline.json`. If the suppressed fingerprints are accepted as repository policy, commit that file as `audit-baseline.json`. Later runs pass it through `--baseline`; do not treat the baseline as evidence.
+8. Optional: protect `audit-baseline.json` with CODEOWNERS or an equivalent review rule. It is CI suppression policy, so changes to it need the same explicit review as other merge-gate policy.
 
-   ```yaml
-   name: Mumei audit
-   on: [pull_request]
-
-   permissions:
-     contents: read
-     security-events: write  # only needed for SARIF code-scanning upload
-
-   jobs:
-     audit:
-       runs-on: ubuntu-latest
-       steps:
-         - uses: actions/checkout@v4
-
-         - name: Create a bootstrap audit baseline when absent
-           run: |
-             if [ ! -f audit-baseline.json ]; then
-               printf '%s\n' '{"version":"mumei.audit-baseline/v1","fingerprints":[]}' > audit-baseline.json
-             fi
-
-         - uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@640d597ec60bf574d0102cae6b89054d47fd9f0f
-          # Keep the default deterministic/no-LLM path even when repository secrets exist.
-           env:
-             LLM_API_KEY: ""
-             OPENAI_API_KEY: ""
-           with:
-             code-file: src/
-             language: python
-             mumei-version: v0.7.1
-             audit-args: --baseline audit-baseline.json --write-baseline .mumei-audit/generated-baseline.json --fail-on high-confidence
-             migration-execution-output: .mumei-audit/migration_execution.json
-             artifact-name: mumei-audit-evidence
-             upload-sarif: false  # set true only when GitHub code scanning is enabled
-   ```
-
-   Adjust `code-file` and, when needed, `language`. Keep `audit-args` on one line: the composite action treats it as a space-separated argument list. The example pins the full action commit SHA and the mumei release version used for reproducible setup; before production use, review the action and pin either that commit SHA or a newer immutable release ref. Do not use a mutable branch ref such as `@develop` as a production dependency. `@develop` is acceptable only for short-lived bootstrap experiments or examples where reproducibility and supply-chain stability are not yet the gate.
-
-   `migration-execution-output` is optional but shown in the golden path because it makes the migration evidence handoff explicit. The path must be fresh on every run, stay inside the caller workspace, and use a `.json` filename; the action automatically adds `--auto-migrate` when needed and copies the JSON plus companion generated files into the evidence artifact. Do not commit or reuse that output path as a cache.
-
-3. Open a pull request. The action writes a step summary, audit JSON, SARIF, logs, timing files, `generated-baseline.json`, and migration execution evidence in the `mumei-audit-evidence` artifact.
-4. Review `migration-execution/migration_execution.json` with `status.json` and `generated-artifacts/` before acting on any migration candidate. Treat `ready_for_human_review` as a review queue and `blocked` as retained evidence gaps, not as independent CI failure classes.
-5. Review `generated-baseline.json`. If the suppressed fingerprints are accepted as repository policy, commit that file as `audit-baseline.json`. Later runs pass it through `--baseline`; do not treat the baseline as evidence.
-6. Optional: protect `audit-baseline.json` with CODEOWNERS or an equivalent review rule. It is CI suppression policy, so changes to it need the same explicit review as other merge-gate policy.
-
-A maintainer can complete the copy/edit/review loop in about ten minutes. The measured small-repo action runtime is much shorter than that human review loop; the first uncached run can still take longer because Python, uv dependencies, and the mumei installer are being populated.
+A maintainer can reach evidence generation and review-handoff confirmation in about ten minutes for the small fixture. Human migration review is not included in that ten-minute target. The measured small-repo action runtime is much shorter than the human review loop; the first uncached run can still take longer because Python, uv dependencies, and the mumei installer are being populated.
 
 ## Required permissions and SARIF behavior
 
-`contents: read` is required for checkout. `security-events: write` is required only when `upload-sarif` is true and GitHub code scanning is enabled for the repository. The SARIF file is still uploaded in the evidence artifact either way.
+`contents: read` is required for checkout. The starter verification job also needs `actions: read` to download the evidence artifact. `security-events: write` is required only when `upload-sarif` is true and GitHub code scanning is enabled for the repository. The SARIF file is still uploaded in the evidence artifact either way.
 
 The quick start sets `upload-sarif: false` because the optional upload fails in repositories without GitHub Code Security/code scanning even when the audit itself succeeded. The SARIF file remains in the evidence artifact either way. After enabling code scanning, set `upload-sarif: true` to publish the same upstream-generated SARIF there.
 
