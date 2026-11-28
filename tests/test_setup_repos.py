@@ -29,6 +29,22 @@ def test_setup_repos_agent_install_matches_ci_dependency_fallback() -> None:
         assert '-m pip install -e ".[test]"' in workflow
 
 
+def test_integration_demo_pins_linked_z3_before_building_mumei() -> None:
+    workflow = (REPO_ROOT / ".github" / "workflows" / "integration.yml").read_text(encoding="utf-8")
+
+    setup_step = workflow.index("uses: ./mumei/.github/actions/setup-z3")
+    llvm_step = workflow.index("name: Install LLVM 17")
+    build_step = workflow.index("name: Build mumei")
+
+    assert setup_step < llvm_step < build_step
+    assert "name: Use pinned Z3 for native linking" in workflow
+    assert 'LIBRARY_PATH=$Z3_SYS_Z3_LIB_DIR' in workflow
+    assert "shared-key: release-z3-4.14.1" in workflow
+    assert "libz3-dev" not in workflow
+    assert not any(line.strip().endswith(" z3") or line.strip().endswith(" z3 \\")
+                   for line in workflow.splitlines() if "apt-get install" in line)
+
+
 def _write_executable(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
     path.chmod(0o755)
