@@ -298,9 +298,9 @@ Run a focused machine-TV benchmark matrix twice and compare repeat stability.
 | Option | Value | Required | Default | Description |
 |---|---|---|---|---|
 | `--mumei-bin` | `<MUMEI_BIN>` | yes | — | mumei binary used for both repeat runs |
-| `--output-dir` | `<OUTPUT_DIR>` | no | `reports/machine-tv-stability` | — |
-| `--jobs` | `<JOBS>` | no | `4` | — |
-| `--timeout` | `<TIMEOUT>` | no | `120` | — |
+| `--output-dir` | `<OUTPUT_DIR>` | no | `reports/machine-tv-stability` | repeat report, diff, and summary output directory |
+| `--jobs` | `<JOBS>` | no | `4` | cases run in parallel |
+| `--timeout` | `<TIMEOUT>` | no | `120` | per-command timeout in seconds |
 
 ### `scripts/run_native_replay.py`
 

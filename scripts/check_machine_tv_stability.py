@@ -98,9 +98,10 @@ def write_summary(path: Path, diff: dict, failures: list[str]) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mumei-bin", required=True, help="mumei binary used for both repeat runs")
-    parser.add_argument("--output-dir", type=Path, default=REPO_ROOT / "reports/machine-tv-stability")
-    parser.add_argument("--jobs", type=int, default=4)
-    parser.add_argument("--timeout", type=int, default=120)
+    parser.add_argument("--output-dir", type=Path, default=REPO_ROOT / "reports/machine-tv-stability",
+                        help="repeat report, diff, and summary output directory")
+    parser.add_argument("--jobs", type=int, default=4, help="cases run in parallel")
+    parser.add_argument("--timeout", type=int, default=120, help="per-command timeout in seconds")
     return parser
 
 
