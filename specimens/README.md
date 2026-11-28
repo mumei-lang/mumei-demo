@@ -208,7 +208,7 @@ with `--run-fixed` it is applied to a scratch copy, where `run.sh` must pass and
 ![Detection over runs](scoreboard/history.svg)
 
 Latest run — no LLM: mumei-agent `15541eb` · mumei `b777e8e` (mumei 0.6.23) · 2026-11-28T01:49:34Z
-Findings — no LLM: 32 (defect evidence 18, real 2, false positive 2, unreviewed 10) · precision 62%–94%
+Findings — no LLM: 32 (defect evidence 19, real 2, false positive 2, unreviewed 9) · precision 66%–94%
 Fixed variants — no LLM: 16 specimens (171 defects fixed) · 1 false alarms in 1 findings on fixed code · 0 defects still reported
 
 Latest run — with LLM (`openai/gpt-6-luna`): mumei-agent `e8be527` · mumei `36eb534` (mumei 0.6.23) · 2026-11-03T05:18:58Z
@@ -220,15 +220,17 @@ Fixed variants — with LLM (`openai/gpt-6-luna`): 16 specimens (171 defects fix
 |---|---:|---:|---:|---:|---:|
 | go | 32 | 4/32 (12%) | 6/32 (19%) | 2/32 (6%) | 18/32 (56%) |
 | python | 41 | 2/41 (5%) | 5/41 (12%) | 1/41 (2%) | 4/41 (10%) |
-| rust | 34 | 3/34 (9%) | 5/34 (15%) | 1/34 (3%) | 4/34 (12%) |
+| rust | 34 | 4/34 (12%) | 6/34 (18%) | 1/34 (3%) | 4/34 (12%) |
 | solidity | 31 | 6/31 (19%) | 15/31 (48%) | 6/31 (19%) | 27/31 (87%) |
 | typescript | 33 | 3/33 (9%) | 3/33 (9%) | 2/33 (6%) | 12/33 (36%) |
-| **Total** | **171** | **18/171 (11%)** | **34/171 (20%)** | **12/171 (7%)** | **65/171 (38%)** |
+| **Total** | **171** | **19/171 (11%)** | **35/171 (20%)** | **12/171 (7%)** | **65/171 (38%)** |
 
 Recent runs:
 
 | Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code | Adjudication |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---|
+| 2026-11-03 (rescored 2026-11-28) | yes | `e8be527` | `36eb534` | 171 | 7% | 14% | 38% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
+| 2026-11-28 (rescored 2026-11-28) | no | `15541eb` | `b777e8e` | 171 | 11% | 23% | 20% | 66%–94% | 1 / 16 specimens | incomplete (9 unreviewed, 0 stale) |
 | 2026-11-03 (rescored 2026-11-28) | yes | `e8be527` | `36eb534` | 171 | 7% | 14% | 38% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
 | 2026-11-28 (rescored 2026-11-28) | no | `15541eb` | `b777e8e` | 171 | 11% | 22% | 20% | 62%–94% | 1 / 16 specimens | incomplete (10 unreviewed, 0 stale) |
 | 2026-11-28 | no | `45f5345` | `b777e8e` | 171 | 8% | 17% | 16% | 60%–92% | 1 / 16 specimens | incomplete (8 unreviewed, 0 stale) |
@@ -237,8 +239,6 @@ Recent runs:
 | 2026-11-27 | no | `cf06d5c` | `b777e8e` | 171 | 6% | 14% | 14% | 57%–91% | 1 / 16 specimens | incomplete (8 unreviewed, 3 stale) |
 | 2026-11-27 | no | `7a488f4` | `b777e8e` | 171 | 6% | 14% | 14% | 42%–94% | 4 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 | 2026-11-27 (rescored 2026-11-27) | no | `beaa286` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
-| 2026-11-27 (rescored 2026-11-27) | no | `554f018` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
-| 2026-11-27 (rescored 2026-11-27) | no | `220fd51` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 
 Target-denominator note: this history mixes target definitions with 71 and 77 planted target defects; compare target percentages only within the same denominator.
 
@@ -307,12 +307,12 @@ with `python3 scripts/run_baselines.py --rescore`.
 
 | Analyzer | Detected | Precision | Fixed-code false alarms |
 |---|---|---|---|
-| Mumei (no LLM) | 18/171 (11%) | 62%–94% | 1 / 16 specimens |
+| Mumei (no LLM) | 19/171 (11%) | 66%–94% | 1 / 16 specimens |
 | bandit | 5/41 (12%) | 88% | 3 / 4 specimens |
 | clippy | 0/34 (0%) | n/a | 0 / 3 specimens |
 | gosec | 6/32 (19%) | 62% | 15 / 3 specimens |
 | semgrep | 9/171 (5%) | 81% | 9 / 16 specimens |
 | slither | 11/31 (35%) | 40% | 28 / 3 specimens |
 
-Of 171 defects, 15 are detected only by Mumei (no LLM), 21 only by a baseline, 3 by both and 132 by neither.
+Of 171 defects, 16 are detected only by Mumei (no LLM), 21 only by a baseline, 3 by both and 131 by neither.
 <!-- baselines:end -->

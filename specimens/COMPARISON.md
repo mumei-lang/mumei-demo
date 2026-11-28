@@ -16,9 +16,9 @@ Evidence snapshot: measured 2026-11-03–2026-11-28; mumei-agent commits: mumei 
 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
 |---|---:|---:|---:|---:|---:|---:|
-| mumei only | 18 (11%) | 34 (20%) | 62%–94% | 1 | $0.00 | 119 s wall |
+| mumei only | 19 (11%) | 35 (20%) | 66%–94% | 1 | $0.00 | 119 s wall |
 | mumei + LLM | 12 (7%) | 65 (38%) | 10%–87% | 211 | $0.22 | 54 min wall |
-| LLM only (3 runs, median) | 104 (61%), range 104–105 | 136 (80%), range 135–138 | 62%–100% | 76, range 68–79 | $0.06 | 22 min model time |
+| LLM only (3 runs, median) | 105 (61%), range 105–106 | 137 (80%), range 136–139 | 63%–100% | 76, range 68–79 | $0.06 | 22 min model time |
 
 Precision is (defect evidence + findings reviewed as real) / findings, a range while findings are unreviewed. False alarms on fixed code count findings on the specimens with their `fixed.patch` applied. Cost per pass is the OpenRouter spend for one pass over the corpus (buggy and fixed code). Time per pass is the audit wall time for the mumei rows and the summed model response time for LLM only, so the two are not directly comparable.
 
@@ -28,9 +28,9 @@ Defects detected, counting an LLM-only defect when any run found it.
 
 | Pair | Both | Only first | Only second | Either |
 |---|---:|---:|---:|---:|
-| mumei only vs LLM only | 16 | 2 | 104 | 122 |
-| mumei + LLM vs LLM only | 11 | 1 | 109 | 121 |
-| mumei only vs mumei + LLM | 10 | 8 | 2 | 20 |
+| mumei only vs LLM only | 17 | 2 | 104 | 123 |
+| mumei + LLM vs LLM only | 11 | 1 | 110 | 122 |
+| mumei only vs mumei + LLM | 10 | 9 | 2 | 21 |
 
 ## mumei findings by kind
 
@@ -50,7 +50,7 @@ Of the 212 mumei + LLM findings on fixed code (211 false alarms, 1 reviewed as r
 |---|---:|---:|---:|---:|
 | go | 32 | 4 | 2 | 23, range 23–24 |
 | python | 41 | 2 | 1 | 24, range 23–25 |
-| rust | 34 | 3 | 1 | 20, range 20–21 |
+| rust | 34 | 4 | 1 | 21, range 21–22 |
 | solidity | 31 | 6 | 6 | 19, range 17–20 |
 | typescript | 33 | 3 | 2 | 18, range 17–19 |
 

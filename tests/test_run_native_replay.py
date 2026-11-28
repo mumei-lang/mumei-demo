@@ -402,10 +402,12 @@ def git_specimen(tmp_path, monkeypatch):
     (spec_dir / "audit").mkdir(parents=True)
     (spec_dir / "app.py").write_text("x = 1\n")
     (spec_dir / "fixed.patch").write_text("patch\n")
+    (spec_dir / "DEFECTS.json").write_text("{}\n")
     (spec_dir / "audit" / "result.json").write_text("{}\n")
     (spec_dir / "untracked.py").write_text("y = 1\n")
     subprocess.run(["git", "init", "-q"], cwd=root, check=True)
-    subprocess.run(["git", "add", "python/py-x/app.py", "python/py-x/fixed.patch", "python/py-x/audit"],
+    subprocess.run(["git", "add", "python/py-x/app.py", "python/py-x/fixed.patch",
+                    "python/py-x/DEFECTS.json", "python/py-x/audit"],
                    cwd=root, check=True)
     monkeypatch.setattr(nr.rb, "SPECIMENS_ROOT", root)
     return spec_dir
@@ -414,6 +416,7 @@ def git_specimen(tmp_path, monkeypatch):
 @pytest.mark.parametrize("edit, changes", [
     (lambda d: (d / "app.py").write_text("x = 2\n"), True),
     (lambda d: (d / "fixed.patch").write_text("other\n"), True),
+    (lambda d: (d / "DEFECTS.json").write_text('{"changed": true}\n'), False),
     (lambda d: (d / "audit" / "result.json").write_text("[]\n"), False),
     (lambda d: (d / "untracked.py").write_text("y = 2\n"), False),
 ])

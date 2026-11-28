@@ -33,7 +33,7 @@ with different denominators are not directly comparable; compare within a langua
 | python | Mumei (no LLM) | 2/41 (5%) | 29%–100% | 0 / 4 specimens |
 | python | bandit | 5/41 (12%) | 88% | 3 / 4 specimens |
 | python | semgrep | 3/41 (7%) | 100% | 1 / 4 specimens |
-| rust | Mumei (no LLM) | 3/34 (9%) | 75%–100% | 0 / 3 specimens |
+| rust | Mumei (no LLM) | 4/34 (12%) | 100% | 0 / 3 specimens |
 | rust | clippy | 0/34 (0%) | n/a | 0 / 3 specimens |
 | rust | semgrep | 0/34 (0%) | 0% | 2 / 3 specimens |
 | solidity | Mumei (no LLM) | 6/31 (19%) | 73%–82% | 0 / 3 specimens |
@@ -51,7 +51,7 @@ both, or neither (function-flagged defects count as not detected).
 |---|---|---|---|---|---|
 | go | 32 | 4 | 6 | 0 | 22 |
 | python | 41 | 1 | 4 | 1 | 35 |
-| rust | 34 | 3 | 0 | 0 | 31 |
+| rust | 34 | 4 | 0 | 0 | 30 |
 | solidity | 31 | 4 | 9 | 2 | 16 |
 | typescript | 33 | 3 | 2 | 0 | 28 |
-| **Total** | 171 | 15 | 21 | 3 | 132 |
+| **Total** | 171 | 16 | 21 | 3 | 131 |
