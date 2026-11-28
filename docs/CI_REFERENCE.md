@@ -32,6 +32,28 @@ A maintainer can reach evidence generation and review-handoff confirmation in ab
 
 This is a GitHub Actions CI-first path. The composite action provisions Python, uv, and the mumei toolchain on the runner, so the consumer workstation does not need Rust, Z3, LLVM, or sibling `mumei` repositories. `make setup` in this repository is maintainer setup for developing `mumei-demo`, not a consumer prerequisite, and full local reproduction of composite-action artifact semantics is outside the ten-minute path.
 
+## Fresh consumer pilot runbook
+
+Use a dedicated private throwaway repository for the first real consumer pilot. An existing repository branch is not a clean pilot because existing workflows, root files, branch protection, organization secrets, and Actions policy can change the result. The pilot repository should start empty, have no secrets, and use an owner whose Actions policy allows `actions/checkout`, `actions/download-artifact`, and `mumei-lang/mumei-agent`. Branch protection is not required for the pilot; if it is enabled later, the relevant job names are `audit` and `verify-downloaded-evidence`.
+
+Exact pilot runbook:
+
+1. Create the empty private throwaway repository without a template or initial README.
+2. Clone it, then copy the starter with `cp -a templates/payment-ledger-starter/. .` from a `mumei-demo` checkout.
+3. Confirm that the repository contains exactly the starter shape: `.github/workflows/mumei-audit.yml`, `README.md`, `audit-baseline.json`, and `src/payment_ledger.py`.
+4. Commit those files and push `main`.
+5. Create a pilot branch, push an empty commit or a small pilot note commit, and open a pull request. This branch-and-PR step is required: pushing the starter to `main` alone does not trigger the starter workflow because it listens only to `pull_request`.
+6. Record the workflow run URL, setup/audit/total seconds, artifact entries and size, generated-baseline entry count, and whether the run was cold or a rerun.
+7. Download or inspect the `mumei-audit-evidence` artifact and the two job results before interpreting the pilot.
+
+Minimum success criteria are: the `audit` job succeeds with `audit_exit_code=0`; the rendered step summary exists and includes migration execution evidence; `mumei-audit-evidence` is uploaded; `verify-downloaded-evidence` is not skipped and succeeds; the pinned offline verifier passes with the strict fixture flags; the fixture assertion sees one `split_cents` candidate in `blocked` state with `review_required=true`; and candidate `operational_error` count is zero. A passing audit means no non-suppressed high-confidence code evidence failed the policy gate. It does not mean there were no findings, that the fixture is correct, or that proof succeeded.
+
+The strict downloaded-artifact verifier is fixture smoke and currently expects at least one blocked or ready migration candidate. A zero-candidate artifact is outside that verifier contract, not proof failure or proof success. When adapting the workflow to real source, use the documented decision rule: if zero candidates are acceptable, remove or gate the entire downloaded-artifact verification job rather than only deleting individual strict flags.
+
+After the pilot, close the PR, delete the pilot branch, and delete or archive the throwaway repository. Actions can also be disabled if the repository is retained. No secret cleanup should be needed because the pilot must not configure LLM secrets.
+
+This pilot does not prove host-language semantic equivalence, artifact producer authenticity, or proof correctness. It does not validate real-repository zero-candidate behavior, SARIF/code scanning upload, or a ten-minute completion guarantee; cold cache runs and human migration review can exceed ten minutes. Adding `workflow_dispatch` for easier manual reruns is an optional future improvement, not part of this runbook.
+
 ## Required permissions and SARIF behavior
 
 `contents: read` is required for checkout. The starter verification job also needs `actions: read` to download the evidence artifact. `security-events: write` is required only when `upload-sarif` is true and GitHub code scanning is enabled for the repository. The SARIF file is still uploaded in the evidence artifact either way.

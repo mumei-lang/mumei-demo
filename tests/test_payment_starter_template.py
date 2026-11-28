@@ -349,6 +349,9 @@ def test_payment_starter_readme_preserves_review_and_evidence_boundaries() -> No
     assert "integer-split remainder policy" in readme
     assert "account-existence, negative-amount, and non-negative-balance requirements" in readme
     assert "Exact bundle layout and trusted build-ID validation intentionally are not part of this starter" in readme
+    assert "fresh consumer pilot runbook" in readme
+    assert "dedicated private throwaway repository" in readme
+    assert "does not run on the initial `main` push alone" in readme
 
 
 def test_payment_fixture_is_canonical_in_starter_and_docs_reference_it() -> None:
@@ -369,6 +372,33 @@ def test_payment_fixture_is_canonical_in_starter_and_docs_reference_it() -> None
     assert "otherwise guarantee proof correctness" in doc
     assert "does not update the committed input baseline automatically" in doc
     assert f"mumei-audit@{PIN}" in doc
+    for fragment in (
+        "## Fresh consumer pilot runbook",
+        "pushing the starter to `main` alone does not trigger",
+        "listens only to `pull_request`",
+        "empty private throwaway repository",
+        "no secrets",
+        "Branch protection is not required",
+        "exactly the starter shape",
+        "setup/audit/total seconds",
+        "artifact entries and size",
+        "generated-baseline entry count",
+        "cold or a rerun",
+        "`audit_exit_code=0`",
+        "not skipped and succeeds",
+        "candidate `operational_error` count is zero",
+        "does not mean there were no findings",
+        "zero-candidate artifact is outside that verifier contract",
+        "remove or gate the entire downloaded-artifact verification job",
+        "delete or archive the throwaway repository",
+        "host-language semantic equivalence",
+        "artifact producer authenticity",
+        "proof correctness",
+        "SARIF/code scanning upload",
+        "ten-minute completion guarantee",
+        "`workflow_dispatch`",
+    ):
+        assert fragment in doc
 
     consumer = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
     assert "templates/payment-ledger-starter/src/payment_ledger.py" in consumer
