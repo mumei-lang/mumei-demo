@@ -150,7 +150,8 @@
       "file": "calc.go",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `reorderPoint`",
-      "status": "unreviewed"
+      "status": "real",
+      "reason": "`reorderPoint` divides `total` by `int32(len(locations))` with no empty-slice guard, so empty locations panics; the unenforced precondition is exactly the planted division-by-zero defect GO01-D05."
     },
     {
       "file": "handlers.go",
@@ -168,7 +169,8 @@
       "file": "handlers.go",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `viewItem`",
-      "status": "unreviewed"
+      "status": "real",
+      "reason": "`viewItem` dereferences `item` with no nil guard and handlers pass `Store.Get` results that are nil for unknown SKUs; the unenforced precondition is exactly the planted null-dereference defect GO01-D06."
     },
     {
       "file": "main.go",
@@ -180,17 +182,34 @@
       "file": "store.go",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `Get`",
-      "status": "unreviewed"
+      "status": "false_positive",
+      "reason": "Generated caller-assumption noise: `Get` is a plain mutex-guarded map lookup with no hazardous operation, so the unenforced precondition does not identify a defect in the function."
     }
   ],
   "finding_counts": {
     "total": 7,
     "defect_evidence": 4,
-    "real": 0,
-    "false_positive": 0,
-    "unreviewed": 3
+    "real": 2,
+    "false_positive": 1,
+    "unreviewed": 0
   },
-  "reviews_used": [],
+  "reviews_used": [
+    [
+      "go-01-inventory-api",
+      "calc.go",
+      "spec precondition assumed, not enforced, by `reorderPoint`"
+    ],
+    [
+      "go-01-inventory-api",
+      "handlers.go",
+      "spec precondition assumed, not enforced, by `viewItem`"
+    ],
+    [
+      "go-01-inventory-api",
+      "store.go",
+      "spec precondition assumed, not enforced, by `Get`"
+    ]
+  ],
   "source_hash": "5014fb7d871106c11847f9092f9e18758378b37f1e691a333b4b7ab14540faa5",
   "provenance_version": 2,
   "input_hash": "a8d85733bc0c55eaeb21c1758cd638df42831b94e34c338ed4886558434cba02",

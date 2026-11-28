@@ -146,17 +146,24 @@
       "file": "vault.py",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `make_share_token`",
-      "status": "unreviewed"
+      "status": "false_positive",
+      "reason": "Generated noise: `make_share_token` takes no arguments, so there is no caller-controlled input precondition to enforce; the genuine planted defect PY04-D01 (insecure randomness) is unrelated to any precondition and is separately evidenced."
     }
   ],
   "finding_counts": {
     "total": 3,
     "defect_evidence": 2,
     "real": 0,
-    "false_positive": 0,
-    "unreviewed": 1
+    "false_positive": 1,
+    "unreviewed": 0
   },
-  "reviews_used": [],
+  "reviews_used": [
+    [
+      "py-04-doc-vault",
+      "vault.py",
+      "spec precondition assumed, not enforced, by `make_share_token`"
+    ]
+  ],
   "source_hash": "72e439da48aa288e49aec62eec0bd658c64d3b6eeb98a6cebfc9acaf41568107",
   "provenance_version": 2,
   "input_hash": "ba907c51ab9799149df009df6dd1864d833a29f82085772a2e3c6c9c1cd7a69f",

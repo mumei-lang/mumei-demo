@@ -131,7 +131,7 @@
       "function": "drawEarlyBirdBonus",
       "category": "insecure-randomness",
       "class": "vulnerability",
-      "in_target_category": false,
+      "in_target_category": true,
       "status": "function_flagged",
       "findings": [
         "Solidity function `drawEarlyBirdBonus` may be vulnerable to reentrancy: verified guard-state-machine trace shows an external call reachable in the Unlocked state before a later state write (Checks-Effects-Interactions violation; move state updates before external calls or add a reentrancy guard)",
@@ -345,6 +345,11 @@
       "SOL02-D11"
     ],
     "false_alarms": 9,
+    "code_evidence_false_alarms": 6,
+    "non_code_kind_counts": {
+      "cross_validation_gaps": 2,
+      "spec_health_issues": 1
+    },
     "findings": [
       {
         "file": "src/EnglishAuction.sol",

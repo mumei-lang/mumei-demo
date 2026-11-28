@@ -231,6 +231,69 @@
       "finding_contains": "spec precondition assumed, not enforced, by `passwordMatches`",
       "verdict": "false_positive",
       "reason": "The non-nil request/input precondition is a generated caller assumption for an authentication helper and does not identify a defect in the fixed constant-time comparison."
+    },
+    {
+      "specimen": "py-01-expense-tracker",
+      "file": "ledger.py",
+      "finding_contains": "spec precondition assumed, not enforced, by `daily_average`",
+      "verdict": "real",
+      "reason": "`daily_average` returns `total_cents // days` with no non-zero guard on `days`; the unenforced precondition is exactly the planted division-by-zero defect PY01-D03, so the gap is actionable code evidence."
+    },
+    {
+      "specimen": "py-01-expense-tracker",
+      "file": "ledger.py",
+      "finding_contains": "spec precondition assumed, not enforced, by `average_expense`",
+      "verdict": "real",
+      "reason": "`average_expense` divides by `len(amounts)` with no empty-input guard, so an empty list raises ZeroDivisionError; the unenforced precondition identifies a genuine crash hazard regardless of the catalog's rounding-error label."
+    },
+    {
+      "specimen": "py-02-report-cli",
+      "file": "timesheet.py",
+      "finding_contains": "spec precondition assumed, not enforced, by `share_of_total`",
+      "verdict": "real",
+      "reason": "`share_of_total` returns `part / whole` with no non-zero guard on `whole`; the unenforced precondition is exactly the planted division-by-zero defect PY02-D02."
+    },
+    {
+      "specimen": "go-01-inventory-api",
+      "file": "calc.go",
+      "finding_contains": "spec precondition assumed, not enforced, by `reorderPoint`",
+      "verdict": "real",
+      "reason": "`reorderPoint` divides `total` by `int32(len(locations))` with no empty-slice guard, so empty locations panics; the unenforced precondition is exactly the planted division-by-zero defect GO01-D05."
+    },
+    {
+      "specimen": "go-01-inventory-api",
+      "file": "handlers.go",
+      "finding_contains": "spec precondition assumed, not enforced, by `viewItem`",
+      "verdict": "real",
+      "reason": "`viewItem` dereferences `item` with no nil guard and handlers pass `Store.Get` results that are nil for unknown SKUs; the unenforced precondition is exactly the planted null-dereference defect GO01-D06."
+    },
+    {
+      "specimen": "sol-01-token-vault",
+      "file": "src/RewardVault.sol",
+      "finding_contains": "spec precondition assumed, not enforced, by `sharePrice`",
+      "verdict": "real",
+      "reason": "`sharePrice` divides by `totalShares` with no non-zero guard, reverting whenever no shares exist; the unenforced precondition is exactly the planted division-by-zero defect SOL01-D03."
+    },
+    {
+      "specimen": "py-01-expense-tracker",
+      "file": "config.py",
+      "finding_contains": "No function signatures were extracted.",
+      "verdict": "false_positive",
+      "reason": "Extractor artifact: config.py holds only module-level constants and has no functions to extract, and the planted hardcoded secret PY01-D09 is separately surfaced as a credential witness; this message is not actionable code evidence."
+    },
+    {
+      "specimen": "go-01-inventory-api",
+      "file": "store.go",
+      "finding_contains": "spec precondition assumed, not enforced, by `Get`",
+      "verdict": "false_positive",
+      "reason": "Generated caller-assumption noise: `Get` is a plain mutex-guarded map lookup with no hazardous operation, so the unenforced precondition does not identify a defect in the function."
+    },
+    {
+      "specimen": "py-04-doc-vault",
+      "file": "vault.py",
+      "finding_contains": "spec precondition assumed, not enforced, by `make_share_token`",
+      "verdict": "false_positive",
+      "reason": "Generated noise: `make_share_token` takes no arguments, so there is no caller-controlled input precondition to enforce; the genuine planted defect PY04-D01 (insecure randomness) is unrelated to any precondition and is separately evidenced."
     }
   ]
 }

@@ -19,7 +19,7 @@
       "function": "loginHandler",
       "category": "insecure-randomness",
       "class": "vulnerability",
-      "in_target_category": false,
+      "in_target_category": true,
       "status": "function_flagged",
       "findings": [
         "encoding-gap: loginHandler: spec_lowering_failed: failed to lower ensures clause '! allow_attempt => result.status == 429 && result.message == \"try again later\" && ! result.body_processed && ! result.session_recorded': Verification Error: Expected int (constraints: [\"! allow_attempt => result.status == 429 && result.message == \\\"try again later\\\" && ! result.body_processed && ! result.session_recorded\"])"
@@ -256,6 +256,11 @@
       "GO03-D06"
     ],
     "false_alarms": 13,
+    "code_evidence_false_alarms": 0,
+    "non_code_kind_counts": {
+      "spec_health_issues": 2,
+      "cross_validation_gaps": 11
+    },
     "findings": [
       {
         "file": "auth.go",

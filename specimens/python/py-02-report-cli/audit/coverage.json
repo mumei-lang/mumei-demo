@@ -118,17 +118,24 @@
       "file": "timesheet.py",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `share_of_total`",
-      "status": "unreviewed"
+      "status": "real",
+      "reason": "`share_of_total` returns `part / whole` with no non-zero guard on `whole`; the unenforced precondition is exactly the planted division-by-zero defect PY02-D02."
     }
   ],
   "finding_counts": {
     "total": 2,
     "defect_evidence": 1,
-    "real": 0,
+    "real": 1,
     "false_positive": 0,
-    "unreviewed": 1
+    "unreviewed": 0
   },
-  "reviews_used": [],
+  "reviews_used": [
+    [
+      "py-02-report-cli",
+      "timesheet.py",
+      "spec precondition assumed, not enforced, by `share_of_total`"
+    ]
+  ],
   "source_hash": "b6375b9e951fe8168248879c85f29082bd138e5ef7d0bf5c862ec264d3cd98c1",
   "provenance_version": 2,
   "input_hash": "d768da3bd64d9624a535129a796de4acd9c7c8106be829a30ac3b6ae03266500",
