@@ -69,7 +69,10 @@ CONTRACT_BENCH_TARGET_CATEGORIES = {
 }
 
 # Categories the audit pipeline targets today (see specimens/README.md).
-TARGET_CATEGORIES = CONTRACT_BENCH_TARGET_CATEGORIES | {"hardcoded-secret"}
+TARGET_CATEGORIES = CONTRACT_BENCH_TARGET_CATEGORIES | {
+    "hardcoded-secret",
+    "timing-side-channel",
+}
 
 CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "integer-overflow": ["overflow", "wrap", "arithmetic bounds"],

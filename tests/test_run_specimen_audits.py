@@ -229,6 +229,11 @@ def test_write_summary(tmp_path):
 
 # --- aggregate / history / scoreboard ---------------------------------------
 
+def test_timing_side_channel_is_an_audit_target_not_a_contract_bench_target():
+    assert "timing-side-channel" in rsa.TARGET_CATEGORIES
+    assert "timing-side-channel" not in rsa.CONTRACT_BENCH_TARGET_CATEGORIES
+
+
 def test_aggregate_numbers():
     d = lambda status, cat: {"status": status, "category": cat,
                              "in_target_category": cat in rsa.TARGET_CATEGORIES}
