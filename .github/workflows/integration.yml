@@ -150,20 +150,6 @@ jobs:
             --mumei-agent-repo "$GITHUB_WORKSPACE/mumei-agent" \
             --source scenarios/native_observations_accept/src/main.mm \
             --work-dir reports/verify_distribution/latest
-      - name: Check focused machine-TV repeat stability
-        working-directory: mumei-demo
-        env:
-          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
-        run: |
-          python3 scripts/check_machine_tv_stability.py \
-            --mumei-bin "$MUMEI_BIN" \
-            --output-dir reports/machine-tv-stability
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: machine-tv-stability
-          path: mumei-demo/reports/machine-tv-stability/
-          if-no-files-found: ignore
       - name: Run integrated demo scenarios
         run: make demo-ci
         working-directory: mumei-demo
@@ -208,6 +194,20 @@ jobs:
           MUMEI_LEAN_REPO: ${{ github.workspace }}/mumei-lean
           MUMEI_AGENT_REPO: ${{ github.workspace }}/mumei-agent
           MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
+      - name: Check focused machine-TV repeat stability
+        working-directory: mumei-demo
+        env:
+          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
+        run: |
+          python3 scripts/check_machine_tv_stability.py \
+            --mumei-bin "$MUMEI_BIN" \
+            --output-dir reports/machine-tv-stability
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: machine-tv-stability
+          path: mumei-demo/reports/machine-tv-stability/
+          if-no-files-found: ignore
       - name: Check synthetic evidence regressions against the real Charter run
         if: always()
         run: python scripts/check_evidence_regressions.py reports/charter_gate_demo/latest/result.json --out-dir reports/charter_regressions
