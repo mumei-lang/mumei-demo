@@ -181,4 +181,5 @@ def test_main_resolves_relative_output_dir_before_child_runs(monkeypatch, tmp_pa
 def test_stability_step_runs_after_existing_integration_validation():
     workflow = (stability.REPO_ROOT / ".github/workflows/integration.yml").read_text()
     assert workflow.index("Run integrated demo scenarios") < workflow.index("Check focused machine-TV repeat stability")
-    assert workflow.index("Check separate record model and execution evidence") < workflow.index("Check focused machine-TV repeat stability")
+    assert workflow.index("Check planner selection-policy regression") < workflow.index("Check focused machine-TV repeat stability")
+    assert workflow.index("Check focused machine-TV repeat stability") < workflow.index("Check separate record model and execution evidence")
