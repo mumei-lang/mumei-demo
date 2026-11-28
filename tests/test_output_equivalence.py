@@ -225,11 +225,11 @@ def test_bounded_interaction_tool_failure_is_inconclusive(monkeypatch: pytest.Mo
 
 
 def test_error_branch_policy_requires_success_and_error_boundaries(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    case = {**case_by_id("RS03-D03"), "id": "RS03-D03-error-only"}
+    case = {**case_by_id("SOL01-D03"), "id": "SOL01-D03-error-only"}
     proofs = tmp_path / "proofs"
     proofs.mkdir()
     data = json.loads((fidelity.REPO_ROOT / "proofs/output-equivalence-policy.json").read_text())
-    entry = data["cases"]["RS03-D03"]
+    entry = data["cases"]["SOL01-D03"]
     entry["error_branch_inputs"] = [entry["error_branch_inputs"][0]]
     data["cases"][case["id"]] = entry
     (proofs / "output-equivalence-policy.json").write_text(json.dumps(data))
@@ -241,7 +241,7 @@ def test_error_branch_policy_requires_success_and_error_boundaries(tmp_path: Pat
 
 def _domain_safety_result() -> dict:
     return {"outcome": "refuted", "status": "failed", "seconds": 0.1, "budget_seconds": 5,
-            "diagnostics": [{"atom": "compare_invert2x2", "code": "failed",
+            "diagnostics": [{"atom": "compare_sharePrice", "code": "failed",
                              "message": "Verification Error: Potential division by zero. Counter-example: divisor = 0"}]}
 
 
@@ -249,7 +249,7 @@ def test_error_branch_fallback_compares_committed_success_and_error_boundaries(m
     monkeypatch.setattr(fidelity, "verify_text", lambda *_args: _domain_safety_result())
     monkeypatch.setattr(fidelity, "run_bounded_interaction_text", lambda *_args: {
         "exit_code": 0, "seconds": 0.1, "budget_seconds": 5})
-    case = case_by_id("RS03-D03")
+    case = case_by_id("SOL01-D03")
     candidate = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
 
     evidence = fidelity.output_equivalence(case, candidate, "unused", 5, "fixed")
@@ -269,7 +269,7 @@ def test_error_branch_fallback_observed_divergence_is_diagnostic_only(monkeypatc
     exits = iter([{"exit_code": 42, "seconds": 0.1, "budget_seconds": 5},
                   {"exit_code": 0, "seconds": 0.1, "budget_seconds": 5}])
     monkeypatch.setattr(fidelity, "run_bounded_interaction_text", lambda *_args: next(exits))
-    case = case_by_id("RS03-D03")
+    case = case_by_id("SOL01-D03")
     candidate = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
 
     evidence = fidelity.output_equivalence(case, candidate, "unused", 5, "fixed")
@@ -277,20 +277,20 @@ def test_error_branch_fallback_observed_divergence_is_diagnostic_only(monkeypatc
     assert evidence["outcome"] == "diverged"
     assert evidence["method"] == "bounded_native_interaction"
     assert evidence["error_branch_domain_safety_fallback"] is True
-    assert evidence["divergence_input"]["name"] == "error-singular-matrix"
+    assert evidence["divergence_input"]["name"] == "error-zero-shares"
 
 
 def test_error_branch_fallback_does_not_override_exact_or_postcondition_evidence(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(fidelity, "verify_text", lambda *_args: {
         "outcome": "refuted", "status": "failed", "diagnostics": [
-            {"atom": "compare_invert2x2", "code": "failed",
+            {"atom": "compare_sharePrice", "code": "failed",
              "message": "Verification Error: Postcondition (ensures) is not satisfied."}]})
 
     def forbidden_bounded(*_args):
         pytest.fail("postcondition evidence must not fall back to bounded inputs")
 
     monkeypatch.setattr(fidelity, "run_bounded_interaction_text", forbidden_bounded)
-    case = case_by_id("RS03-D03")
+    case = case_by_id("SOL01-D03")
     candidate = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
 
     evidence = fidelity.output_equivalence(case, candidate, "unused", 5, "fixed")
@@ -304,7 +304,7 @@ def test_error_branch_runtime_failure_stays_inconclusive_non_evidence(monkeypatc
     monkeypatch.setattr(fidelity, "verify_text", lambda *_args: _domain_safety_result())
     monkeypatch.setattr(fidelity, "run_bounded_interaction_text", lambda *_args: {
         "exit_code": 1, "seconds": 0.1, "budget_seconds": 5})
-    case = case_by_id("RS03-D03")
+    case = case_by_id("SOL01-D03")
     candidate = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
 
     evidence = fidelity.output_equivalence(case, candidate, "unused", 5, "fixed")
@@ -317,7 +317,7 @@ def test_error_branch_runtime_failure_stays_inconclusive_non_evidence(monkeypatc
 
 @pytest.mark.skipif(MUMEI_BIN is None, reason="MUMEI_BIN not set")
 def test_error_branch_reference_domain_error_positive_and_negative_controls() -> None:
-    case = case_by_id("RS03-D03")
+    case = case_by_id("SOL01-D03")
     fixed_reference = fidelity.body_inner(fidelity.split_port(case["ports"]["fixed"], case["atom"])[2]).strip()
     buggy_reference = fidelity.body_inner(fidelity.split_port(case["ports"]["buggy"], case["atom"])[2]).strip()
 

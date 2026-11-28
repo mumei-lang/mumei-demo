@@ -1054,7 +1054,7 @@ def run_bounded_interaction_text(mumei_bin: str, text: str, timeout: int) -> dic
             return {"result": "error", "error": type(error).__name__,
                     "seconds": time.monotonic() - started, "budget_seconds": timeout}
         try:
-            process.communicate(timeout=timeout)
+            _stdout, stderr = process.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
             kill_process_group(process)
             process.communicate()
@@ -1069,6 +1069,7 @@ def run_bounded_interaction_text(mumei_bin: str, text: str, timeout: int) -> dic
                 process.wait()
             raise
         return {"exit_code": process.returncode,
+                "verification_failed": "Verification failed" in stderr,
                 "seconds": time.monotonic() - started, "budget_seconds": timeout}
 
 
@@ -1159,7 +1160,7 @@ def bounded_interaction_equivalence(case: dict, candidate_body: str, mumei_bin: 
                 if run.get("exit_code") == 43:
                     attempt["result"] = "outside_requires"
                     invalid.append(attempt)
-                elif run.get("timeout") or run.get("error"):
+                elif run.get("timeout") or run.get("error") or not run.get("verification_failed"):
                     attempt["result"] = "error"
                     errors.append({**attempt, "error": run.get("error"),
                                    "exit_code": run.get("exit_code"),
