@@ -1108,7 +1108,7 @@ def test_golden_path_consumer_workflow_matches_documented_action_contract() -> N
     assert "--fail-on high-confidence" in workflow
     assert "contract_erosion" in workflow
     assert "- scenarios/ci_evidence_pack/reference/payment_ledger.py" in workflow
-    assert "direct hardcoded-credential findings and direct credential-comparison timing-side-channel findings are projected as high-confidence" in doc
+    assert "direct hardcoded-credential findings, direct credential-comparison timing-side-channel findings, and qualifying unchecked Solidity low-level value-call or ERC20-like token-transfer results are projected as high-confidence" in doc
     assert "cp scenarios/ci_evidence_pack/reference/payment_ledger.py src/payment_ledger.py" in workflow
     assert "## Payment/ledger vertical quick start" in doc
     assert "## Copy/paste payment/ledger workflow" in doc
