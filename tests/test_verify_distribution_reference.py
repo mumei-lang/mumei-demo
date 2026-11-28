@@ -64,7 +64,7 @@ def test_trusted_build_id_channel_accepts_single_lowercase_sha256_line(tmp_path)
     channel.write_text("b" * 64, encoding="utf-8")
     assert module.read_trusted_build_id_channel(channel) == "b" * 64
 
-    channel.write_text("c" * 64 + "\r\n", encoding="utf-8")
+    channel.write_bytes(b"c" * 64 + b"\r\n")
     assert module.read_trusted_build_id_channel(channel) == "c" * 64
 
 
