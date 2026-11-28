@@ -1170,6 +1170,8 @@ def test_golden_path_consumer_download_verification_is_strict_and_pinned() -> No
         'assert isinstance(delta.get("removed"), list)',
         'assert all(isinstance(item, str) for item in delta["added"])',
         'assert all(isinstance(item, str) for item in delta["removed"])',
+        '"sample atom"',
+        '"sample requirement"',
         '"non-integer atom count"',
         '"atom missing name"',
         '"non-string requires delta item"',

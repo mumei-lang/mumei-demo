@@ -182,6 +182,11 @@ jobs:
 
           validate_migration_contract_provenance(candidates)
 
+          non_empty_valid = json.loads(json.dumps(candidates))
+          non_empty_valid[0]["contract_erosion"]["atoms"].append({"name": "sample atom", "status": "preserved"})
+          non_empty_valid[0]["contract_provenance"]["requires_delta"]["added"].append("sample requirement")
+          validate_migration_contract_provenance(non_empty_valid)
+
           def expect_invalid_provenance(label, mutate):
               mutated = json.loads(json.dumps(candidates))
               mutate(mutated)
