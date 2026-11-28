@@ -27,6 +27,9 @@ def test_prompt_input_rejects_malformed_shape(tmp_path):
     with pytest.raises(SystemExit, match="invalid prompt input"):
         ablation.load_prompts(prompt_file(tmp_path, [
             {"label": "baseline", "text": None}, {"label": "empty", "text": "  "}]))
+    with pytest.raises(SystemExit, match="invalid prompt input"):
+        ablation.load_prompts(prompt_file(tmp_path, [
+            {"label": "baseline"}, {"label": "candidate", "text": "x"}]))
 
 
 def test_prompt_input_requires_exactly_one_baseline_and_unique_labels(tmp_path):
@@ -41,6 +44,8 @@ def test_prompt_input_requires_exactly_one_baseline_and_unique_labels(tmp_path):
 def test_output_dir_rejects_canonical_results_tree(tmp_path):
     with pytest.raises(SystemExit, match="canonical benchmark results"):
         ablation.validate_output_dir(str(ablation.REPO_ROOT / "proofs" / "results" / "analysis"))
+    with pytest.raises(SystemExit, match="canonical proofs tree"):
+        ablation.validate_output_dir(str(ablation.REPO_ROOT / "proofs" / "new-analysis"))
 
 
 def test_harness_writes_only_output_dir_and_records_gate_projection(tmp_path, monkeypatch):
@@ -173,4 +178,12 @@ def test_unknown_case_fails_closed(tmp_path, monkeypatch):
     args = Namespace(prompts=prompts, output_dir=str(tmp_path / "out"), cases="NO-SUCH", runs=1, jobs=1,
                      timeout=5, mumei_bin="mumei", model="gpt-4o")
     with pytest.raises(SystemExit, match="unknown case ids"):
+        ablation.run(args, object())
+
+
+def test_nonpositive_run_or_job_counts_fail_closed(tmp_path):
+    prompts = prompt_file(tmp_path, [{"label": "baseline", "text": None}, {"label": "candidate", "text": "x"}])
+    args = Namespace(prompts=prompts, output_dir=str(tmp_path / "out"), cases="PY02-D04", runs=0, jobs=1,
+                     timeout=5, mumei_bin="mumei", model="gpt-4o")
+    with pytest.raises(SystemExit, match="runs and jobs must be positive"):
         ablation.run(args, object())

@@ -40,6 +40,8 @@ def load_prompts(path: str) -> list[dict]:
     for row in rows:
         if not isinstance(row, dict) or not isinstance(row.get("label"), str) or not LABEL.fullmatch(row["label"]):
             raise SystemExit("invalid prompt input: unsafe or missing label")
+        if "text" not in row:
+            raise SystemExit("invalid prompt input: prompt text key is required")
         text = row.get("text")
         if text is None:
             baseline += 1
@@ -75,6 +77,9 @@ def validate_output_dir(raw: str) -> Path:
     canonical = (REPO_ROOT / "proofs" / "results").resolve()
     if path == canonical or canonical in path.parents:
         raise SystemExit("output directory must not be the canonical benchmark results directory")
+    proofs = (REPO_ROOT / "proofs").resolve()
+    if path == proofs or proofs in path.parents:
+        raise SystemExit("output directory must not be inside the canonical proofs tree")
     if path.exists() and any(path.iterdir()):
         raise SystemExit("output directory must be empty or not exist")
     path.mkdir(parents=True, exist_ok=True)
@@ -149,6 +154,8 @@ def render_report(doc: dict) -> str:
 def run(args, provider) -> dict:
     prompts = load_prompts(args.prompts)
     outdir = validate_output_dir(args.output_dir)
+    if args.runs < 1 or args.jobs < 1:
+        raise SystemExit("runs and jobs must be positive")
     ids = args.cases.split(",") if args.cases else FOCUSED_CASES
     cases = [c for c in cb.load_cases()[0] if c["id"] in ids]
     missing = sorted(set(ids) - {c["id"] for c in cases})
