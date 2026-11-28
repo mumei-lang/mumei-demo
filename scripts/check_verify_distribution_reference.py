@@ -37,33 +37,43 @@ def load_report(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError(message)
+
+
 def validate_positive_report(report: dict, *, runtime: bool) -> None:
-    assert report["schema_version"] == "mumei.verify-distribution-report/v1"
-    assert report["scope"] == "native_first_distribution_role_orchestration"
-    assert "inputs_changed" not in report
-    assert "unified_verdict" in report["checks_not_performed"]
-    assert "deep_acceptance_fold" in report["checks_not_performed"]
-    assert "adapter_evidence" in report["checks_not_performed"]
+    require(report["schema_version"] == "mumei.verify-distribution-report/v1", "unexpected report schema")
+    require(report["scope"] == "native_first_distribution_role_orchestration", "unexpected report scope")
+    require("inputs_changed" not in report, "orchestration inputs changed")
+    for check in ("unified_verdict", "deep_acceptance_fold", "adapter_evidence"):
+        require(check in report["checks_not_performed"], f"missing non-performed check: {check}")
     roles = report["roles"]
     for role in ROLES:
-        assert roles[role]["status"] == "accepted", (role, roles[role])
+        require(roles[role]["status"] == "accepted", f"{role} was not accepted")
     runtime_role = roles["runtime_observation"]
     if runtime:
-        assert runtime_role["status"] == "accepted", runtime_role
+        require(runtime_role["status"] == "accepted", "runtime observation was not accepted")
     else:
-        assert runtime_role["status"] == "skipped", runtime_role
-        assert runtime_role["reason"] == "runtime_observations_not_enabled"
+        require(runtime_role["status"] == "skipped", "runtime observation was not skipped")
+        require(
+            runtime_role["reason"] == "runtime_observations_not_enabled",
+            "runtime observation skip reason changed",
+        )
 
 
 def validate_wrong_build_id_report(report: dict) -> None:
     roles = report["roles"]
-    assert roles["proof_certificate"]["status"] == "accepted"
-    assert roles["runtime_observation"]["status"] == "skipped"
-    assert roles["runtime_observation"]["reason"] == "runtime_observations_not_enabled"
+    require(roles["proof_certificate"]["status"] == "accepted", "proof certificate was not accepted")
+    require(roles["runtime_observation"]["status"] == "skipped", "negative validation executed runtime observations")
+    require(
+        roles["runtime_observation"]["reason"] == "runtime_observations_not_enabled",
+        "negative validation runtime skip reason changed",
+    )
     for role in ROLES[1:]:
-        assert roles[role]["status"] == "inconclusive", (role, roles[role])
-        assert roles[role]["reason"] == "unclaimed_exit_outcome"
-        assert roles[role]["exit_code"] == 1
+        require(roles[role]["status"] == "inconclusive", f"{role} was falsely accepted")
+        require(roles[role]["reason"] == "unclaimed_exit_outcome", f"{role} reason changed")
+        require(roles[role]["exit_code"] == 1, f"{role} exit code changed")
 
 
 def run_checked(argv: list[str], *, cwd: Path, expected_exit: int = 0) -> subprocess.CompletedProcess:

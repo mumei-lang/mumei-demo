@@ -44,13 +44,13 @@ def test_positive_runtime_on_requires_explicit_runtime_acceptance():
 
 def test_runtime_off_rejects_silent_runtime_acceptance_or_skip_change():
     data = report(runtime_status="accepted")
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         module.validate_positive_report(data, runtime=False)
 
 
 def test_wrong_build_id_requires_unclaimed_inconclusive_native_roles():
     module.validate_wrong_build_id_report(report(native_status="inconclusive"))
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         module.validate_wrong_build_id_report(report(native_status="accepted"))
 
 
@@ -95,12 +95,12 @@ def test_reference_test_is_in_explicit_pytest_list():
 def test_positive_report_rejects_input_drift_or_missing_boundary_checks():
     data = report()
     data["inputs_changed"] = True
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         module.validate_positive_report(data, runtime=False)
 
     data = report()
     data["checks_not_performed"].remove("adapter_evidence")
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         module.validate_positive_report(data, runtime=False)
 
 
