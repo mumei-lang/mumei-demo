@@ -473,7 +473,7 @@ def test_ci_reference_quickstart_statically_covers_migration_action_contract() -
 
     uses = re.search(r"mumei-audit@(?<![0-9a-f])([0-9a-f]{40})(?![0-9a-f])", workflow)
     assert uses is not None, "quick start must pin an immutable full action commit"
-    assert uses.group(1) == "757b9296d70f58d6edb85485dae168223509f40b"
+    assert uses.group(1) == "f18a9102946c7885d3d4fef7a88bfbcb0b4cb16c"
 
     lines = workflow.splitlines()
     uses_index = next(index for index, line in enumerate(lines) if "mumei-audit@" in line)
@@ -1051,7 +1051,7 @@ def test_audit_evidence_workflow_verifies_real_downloaded_artifact() -> None:
 def test_golden_path_consumer_workflow_matches_documented_action_contract() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
     doc = (REPO_ROOT / "docs" / "CI_REFERENCE.md").read_text(encoding="utf-8")
-    pin = "757b9296d70f58d6edb85485dae168223509f40b"
+    pin = "f18a9102946c7885d3d4fef7a88bfbcb0b4cb16c"
 
     assert f"mumei-audit@{pin}" in workflow
     assert f"mumei-audit@{pin}" in doc
@@ -1065,6 +1065,7 @@ def test_golden_path_consumer_workflow_matches_documented_action_contract() -> N
     assert "mumei-version: v0.7.1" in workflow
     assert "migration-execution-output: .mumei-audit/migration_execution.json" in workflow
     assert "--fail-on high-confidence" in workflow
+    assert "direct hardcoded-credential findings are projected as high-confidence" in doc
     assert "cp scenarios/ci_evidence_pack/src/ledger.py src/ledger.py" in workflow
 
     for fragment in (
@@ -1082,7 +1083,7 @@ def test_golden_path_consumer_workflow_matches_documented_action_contract() -> N
 
 def test_golden_path_consumer_download_verification_is_strict_and_pinned() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
-    pin = "757b9296d70f58d6edb85485dae168223509f40b"
+    pin = "f18a9102946c7885d3d4fef7a88bfbcb0b4cb16c"
     download_job = workflow.split("  verify-downloaded-evidence:", 1)[1]
 
     assert "needs: documented-consumer-path" in download_job
@@ -1103,7 +1104,7 @@ def test_golden_path_consumer_download_verification_is_strict_and_pinned() -> No
 
 def test_ci_reference_documents_minimal_offline_action_verifier_path() -> None:
     doc = (REPO_ROOT / "docs" / "CI_REFERENCE.md").read_text(encoding="utf-8")
-    pin = "757b9296d70f58d6edb85485dae168223509f40b"
+    pin = "f18a9102946c7885d3d4fef7a88bfbcb0b4cb16c"
 
     assert "## Verifying a downloaded action artifact offline" in doc
     assert f"raw.githubusercontent.com/mumei-lang/mumei-agent/{pin}/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py" in doc
