@@ -150,6 +150,20 @@ jobs:
             --mumei-agent-repo "$GITHUB_WORKSPACE/mumei-agent" \
             --source scenarios/native_observations_accept/src/main.mm \
             --work-dir reports/verify_distribution/latest
+      - name: Check focused machine-TV repeat stability
+        working-directory: mumei-demo
+        env:
+          MUMEI_BIN: ${{ github.workspace }}/mumei/target/release/mumei
+        run: |
+          python3 scripts/check_machine_tv_stability.py \
+            --mumei-bin "$MUMEI_BIN" \
+            --output-dir reports/machine-tv-stability
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: machine-tv-stability
+          path: mumei-demo/reports/machine-tv-stability/
+          if-no-files-found: ignore
       - name: Run integrated demo scenarios
         run: make demo-ci
         working-directory: mumei-demo
