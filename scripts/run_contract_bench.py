@@ -764,7 +764,8 @@ def parse_json_reply(text: str) -> dict | None:
     return doc if isinstance(doc, dict) else None
 
 
-def run_llm_case(case: dict, provider, arm: str, seed: int, mumei_bin: str | None, timeout: int) -> dict:
+def run_llm_case(case: dict, provider, arm: str, seed: int, mumei_bin: str | None, timeout: int,
+                 write_certificates: bool = True) -> dict:
     out = {k: case[k] for k in ("id", "language", "specimen", "category", "function", "case_hash", "source_hash")}
     for v in VARIANTS:
         prompt = llm_prompt(case, v) if arm == "llm" else port_prompt(case, v)
@@ -793,12 +794,15 @@ def run_llm_case(case: dict, provider, arm: str, seed: int, mumei_bin: str | Non
         fail_on_verifier_startup([out[v] for v in VARIANTS])
         file = llm_cert_file(provider.model, seed)
         path = REPO_ROOT / case["dir"] / file
-        path.unlink(missing_ok=True)
-        if out["fixed"]["outcome"] == "proven":
-            out["fixed"]["certificate"], text = certify(mumei_bin, case, timeout, assemble(case, out["fixed"]["body"]), file)
-            if text is not None:
-                path.parent.mkdir(exist_ok=True)
-                path.write_text(text)
+        if write_certificates:
+            path.unlink(missing_ok=True)
+            if out["fixed"]["outcome"] == "proven":
+                out["fixed"]["certificate"], text = certify(mumei_bin, case, timeout, assemble(case, out["fixed"]["body"]), file)
+                if text is not None:
+                    path.parent.mkdir(exist_ok=True)
+                    path.write_text(text)
+        elif out["fixed"]["outcome"] == "proven":
+            out["fixed"]["certificate"] = {"status": "not collected / screening only"}
     return out
 
 
