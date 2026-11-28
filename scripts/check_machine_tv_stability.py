@@ -22,7 +22,14 @@ MATRIX = (
     "RS03-D03",
     "GO01-D02",
     "PY02-D05",
+    "SOL01-D01",
 )
+POSITIVE_CONTROLS = {
+    "SOL01-D01": {
+        "fixed": ("proven", "accepted"),
+        "buggy": ("refuted", "source_refuted"),
+    },
+}
 
 
 def run_benchmark(mumei_bin: str, output: Path, jobs: int, timeout: int) -> None:
@@ -43,6 +50,29 @@ def false_acceptances(report: dict) -> int:
             if slot.get("z3", {}).get("outcome") == "refuted" and slot.get("native", {}).get("outcome") == "accepted":
                 total += 1
     return total
+
+
+def positive_control_failures(report: dict, label: str) -> list[str]:
+    failures = []
+    cases = {case.get("id"): case for case in report.get("cases", []) if isinstance(case, dict)}
+    for case_id, variants in POSITIVE_CONTROLS.items():
+        case = cases.get(case_id)
+        if case is None:
+            failures.append(f"{label} positive control {case_id} is missing")
+            continue
+        for variant, (source_outcome, native_outcome) in variants.items():
+            slot = case.get(variant, {})
+            actual_source = slot.get("z3", {}).get("outcome")
+            actual_native = slot.get("native", {}).get("outcome")
+            if actual_source == "refuted" and actual_native == "accepted":
+                continue
+            if actual_source != source_outcome or actual_native != native_outcome:
+                failures.append(
+                    f"{label} positive control {case_id} {variant} is "
+                    f"source={actual_source}/native={actual_native}, "
+                    f"expected source={source_outcome}/native={native_outcome}"
+                )
+    return failures
 
 
 def changed_transitions(counts: dict) -> dict:
@@ -74,6 +104,7 @@ def stability_failures(diff: dict, base: dict, repeat: dict) -> list[str]:
         count = false_acceptances(report)
         if count:
             failures.append(f"{label} false acceptance count is {count}")
+        failures.extend(positive_control_failures(report, label))
     return failures
 
 

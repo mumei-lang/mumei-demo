@@ -9,7 +9,7 @@ def report(false_acceptance=False):
     native = {"outcome": "accepted" if false_acceptance else "source_refuted"}
     return {
         "schema_version": "mumei-demo.machine-tv-bench/v1",
-        "cases": [{"id": "A", "buggy": {"z3": {"outcome": "refuted"}, "native": native}, "fixed": {"z3": {"outcome": "proven"}, "native": {"outcome": "accepted"}}}],
+        "cases": [{"id": "SOL01-D01", "buggy": {"z3": {"outcome": "refuted"}, "native": native}, "fixed": {"z3": {"outcome": "proven"}, "native": {"outcome": "accepted"}}}],
         "summary": {"native": {"buggy": {"outcomes": {}}, "fixed": {"outcomes": {}}}},
     }
 
@@ -67,9 +67,46 @@ def test_false_acceptance_is_failure_independent_of_outcome_transition():
     assert failures == ["repeat false acceptance count is 1"]
 
 
-def test_matrix_covers_representative_stability_and_gap_cases_without_expected_outcomes():
+def test_positive_control_fixed_native_drift_fails():
+    base = report()
+    repeat = report()
+    repeat["cases"][0]["fixed"]["native"]["outcome"] = "inconclusive"
+    failures = stability.stability_failures(diff(), base, repeat)
+    assert failures == [
+        "repeat positive control SOL01-D01 fixed is source=proven/native=inconclusive, "
+        "expected source=proven/native=accepted"
+    ]
+
+
+def test_positive_control_negative_outcome_and_source_outcome_are_checked():
+    doc = report()
+    doc["cases"][0]["buggy"]["native"]["outcome"] = "inconclusive"
+    failures = stability.stability_failures(diff(), doc, report())
+    assert failures == [
+        "base positive control SOL01-D01 buggy is source=refuted/native=inconclusive, "
+        "expected source=refuted/native=source_refuted"
+    ]
+
+    doc = report()
+    doc["cases"][0]["fixed"]["z3"]["outcome"] = "inconclusive"
+    failures = stability.stability_failures(diff(), doc, report())
+    assert failures == [
+        "base positive control SOL01-D01 fixed is source=inconclusive/native=accepted, "
+        "expected source=proven/native=accepted"
+    ]
+
+
+def test_positive_control_missing_case_fails():
+    empty = report()
+    empty["cases"] = []
+    failures = stability.stability_failures(diff(), empty, report())
+    assert failures == ["base positive control SOL01-D01 is missing"]
+
+
+def test_matrix_covers_representative_gap_cases_and_one_positive_control():
     assert set(stability.MATRIX) == {
         "GO01-D05", "RS01-D04", "RS03-D02", "PY02-D02", "GO01-D04", "PY02-D08", "RS03-D03", "GO01-D02", "PY02-D05",
+        "SOL01-D01",
     }
     assert len(stability.MATRIX) == len(set(stability.MATRIX))
 
@@ -87,7 +124,7 @@ def test_summary_is_bounded_and_not_a_verdict(tmp_path):
     json.dumps(diff())
 
 
-def valid_report(case_id="A"):
+def valid_report(case_id="SOL01-D01"):
     return {
         "schema_version": "mumei-demo.machine-tv-bench/v1",
         "recorded_at": "2026-01-01T00:00:00+00:00",
@@ -126,6 +163,20 @@ def test_main_returns_failure_when_repeat_outcome_changes(monkeypatch, tmp_path)
     monkeypatch.setattr(stability, "run_benchmark", fake_run)
     assert stability.main(["--mumei-bin", "/fake/mumei", "--output-dir", str(tmp_path)]) == 1
     assert "accepted->inconclusive" in (tmp_path / "machine_tv_diff.json").read_text()
+
+
+def test_main_returns_failure_when_positive_control_is_stably_not_accepted(monkeypatch, tmp_path, capsys):
+    def fake_run(binary, output, jobs, timeout):
+        doc = valid_report()
+        doc["cases"][0]["fixed"]["native"]["outcome"] = "inconclusive"
+        output.write_text(json.dumps(doc))
+
+    monkeypatch.setattr(stability, "run_benchmark", fake_run)
+    assert stability.main(["--mumei-bin", "/fake/mumei", "--output-dir", str(tmp_path)]) == 1
+    diff_doc = json.loads((tmp_path / "machine_tv_diff.json").read_text())
+    assert diff_doc["summary"]["outcome_transitions"] == {}
+    assert diff_doc["summary"]["verdict_changes"] == 0
+    assert "positive control SOL01-D01 fixed" in capsys.readouterr().out
 
 
 def test_main_returns_failure_when_repeat_diagnostic_reason_changes(monkeypatch, tmp_path):
