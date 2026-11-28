@@ -325,12 +325,12 @@ with `python3 scripts/run_baselines.py --rescore`.
 
 | Analyzer | Detected | Precision | Fixed-code false alarms |
 |---|---|---|---|
-| Mumei (no LLM) | 33/171 (19%) | 76%–96% | 1 / 16 specimens |
+| Mumei (no LLM) | 36/171 (21%) | 78%–96% | 1 / 16 specimens |
 | bandit | 5/41 (12%) | 88% | 3 / 4 specimens |
 | clippy | 0/34 (0%) | n/a | 0 / 3 specimens |
 | gosec | 6/32 (19%) | 62% | 15 / 3 specimens |
 | semgrep | 9/171 (5%) | 81% | 9 / 16 specimens |
 | slither | 11/31 (35%) | 40% | 28 / 3 specimens |
 
-Of 171 defects, 26 are detected only by Mumei (no LLM), 17 only by a baseline, 7 by both and 121 by neither.
+Of 171 defects, 29 are detected only by Mumei (no LLM), 17 only by a baseline, 7 by both and 118 by neither.
 <!-- baselines:end -->
