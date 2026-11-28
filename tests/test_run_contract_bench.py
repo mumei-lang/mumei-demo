@@ -29,7 +29,7 @@ PATCH = """--- a/app.py
 """
 DEFECTS = {"specimen": "py-09-x", "language": "python", "defects": [
     {"id": "PY09-D01", "file": "app.py", "function": "average", "line": 2, "category": "division-by-zero"},
-    {"id": "PY09-D02", "file": "app.py", "function": "other", "line": 6, "category": "sql-injection"},
+    {"id": "PY09-D02", "file": "app.py", "function": "other", "line": 6, "category": "hardcoded-secret"},
 ]}
 HEADER = ("atom average(total: i64, days: i64) -> i64\n    requires: total >= 0;\n"
           "    ensures: (days <= 0 => result == 0) && (days > 0 => result == total / days);\n    ")
@@ -132,7 +132,7 @@ def test_load_cases_reads_case_and_hashes(repo):
     assert len(case["case_hash"]) == 64 and len(case["source_hash"]) == 64
 
 
-def test_non_target_defects_need_no_case(repo):
+def test_non_contract_port_defects_need_no_case(repo):
     _, errors = cb.load_cases()
     assert not any("PY09-D02" in e for e in errors)
 

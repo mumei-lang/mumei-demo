@@ -49,8 +49,10 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SPECIMENS_ROOT = REPO_ROOT / "specimens"
 
-# Categories the audit pipeline targets today (see specimens/README.md).
-TARGET_CATEGORIES = {
+# Categories the executable contract benchmark ports today. This stays narrower
+# than the audit target set: direct static findings such as hardcoded secrets do
+# not require a function port.
+CONTRACT_BENCH_TARGET_CATEGORIES = {
     "integer-overflow",
     "integer-underflow",
     "division-by-zero",
@@ -65,6 +67,9 @@ TARGET_CATEGORIES = {
     "tx-origin-auth",
     "unchecked-call",
 }
+
+# Categories the audit pipeline targets today (see specimens/README.md).
+TARGET_CATEGORIES = CONTRACT_BENCH_TARGET_CATEGORIES | {"hardcoded-secret"}
 
 CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "integer-overflow": ["overflow", "wrap", "arithmetic bounds"],
@@ -791,8 +796,8 @@ def write_summary(coverages: list[dict], meta: dict, path: Path,
         "function. `detected` means the finding text also carries a keyword for the defect's category;",
         "`function_flagged` means the audit flagged that function for something else; `missed` means nothing.",
         "\"Target\" categories are the ones the audit is designed to check today (arithmetic, bounds, null,",
-        "preconditions, invariants, state transitions, and the Solidity reentrancy/access-control/unchecked-call",
-        "heuristics). Findings that match no planted defect are listed per specimen in `audit/coverage.json`",
+        "preconditions, invariants, state transitions, hardcoded credentials, and the Solidity",
+        "reentrancy/access-control/unchecked-call heuristics). Findings that match no planted defect are listed per specimen in `audit/coverage.json`",
         "under `unmatched_findings`; they are either extra real issues or false positives and need human review.",
         "",
         "## How findings are scored",

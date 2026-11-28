@@ -94,10 +94,10 @@ Specimen ids are `<lang-prefix>-<NN>-<slug>`, with prefixes `py`, `ts`, `go`,
   specimen should sit in the classes Mumei's audit targets today (arithmetic
   overflow/underflow, division by zero, out-of-bounds, null/None/undefined
   dereference, missing preconditions, broken invariants, invalid state
-  transitions, reentrancy/access control in Solidity). The rest should be
-  outside that set (injection, path traversal, auth flaws, races, resource
-  leaks, crypto misuse, design errors) so the audit reports also show what is
-  not caught.
+  transitions, direct hardcoded credentials, reentrancy/access control in
+  Solidity). The rest should be outside that set (injection, path traversal,
+  auth flaws, races, resource leaks, crypto misuse, design errors) so the
+  audit reports also show what is not caught.
 
 ## DEFECTS.json
 
@@ -207,8 +207,8 @@ with `--run-fixed` it is applied to a scratch copy, where `run.sh` must pass and
 
 ![Detection over runs](scoreboard/history.svg)
 
-Latest run — no LLM: mumei-agent `45f5345` · mumei `b777e8e` (mumei 0.6.23) · 2026-11-28T00:52:02Z
-Findings — no LLM: 25 (defect evidence 13, real 2, false positive 2, unreviewed 8) · precision 60%–92%
+Latest run — no LLM: mumei-agent `15541eb` · mumei `b777e8e` (mumei 0.6.23) · 2026-11-28T01:49:34Z
+Findings — no LLM: 32 (defect evidence 18, real 2, false positive 2, unreviewed 10) · precision 62%–94%
 Fixed variants — no LLM: 16 specimens (171 defects fixed) · 1 false alarms in 1 findings on fixed code · 0 defects still reported
 
 Latest run — with LLM (`openai/gpt-6-luna`): mumei-agent `e8be527` · mumei `36eb534` (mumei 0.6.23) · 2026-11-03T05:18:58Z
@@ -218,17 +218,19 @@ Fixed variants — with LLM (`openai/gpt-6-luna`): 16 specimens (171 defects fix
 
 | Language | Defects | No LLM detected | No LLM detected or flagged | With LLM detected | With LLM detected or flagged |
 |---|---:|---:|---:|---:|---:|
-| go | 32 | 2/32 (6%) | 4/32 (12%) | 2/32 (6%) | 20/32 (62%) |
-| python | 41 | 1/41 (2%) | 4/41 (10%) | 1/41 (2%) | 4/41 (10%) |
-| rust | 34 | 2/34 (6%) | 2/34 (6%) | 1/34 (3%) | 4/34 (12%) |
+| go | 32 | 4/32 (12%) | 6/32 (19%) | 2/32 (6%) | 20/32 (62%) |
+| python | 41 | 2/41 (5%) | 5/41 (12%) | 1/41 (2%) | 4/41 (10%) |
+| rust | 34 | 3/34 (9%) | 5/34 (15%) | 1/34 (3%) | 4/34 (12%) |
 | solidity | 31 | 6/31 (19%) | 15/31 (48%) | 6/31 (19%) | 27/31 (87%) |
-| typescript | 33 | 2/33 (6%) | 2/33 (6%) | 2/33 (6%) | 13/33 (39%) |
-| **Total** | **171** | **13/171 (8%)** | **27/171 (16%)** | **12/171 (7%)** | **68/171 (40%)** |
+| typescript | 33 | 3/33 (9%) | 3/33 (9%) | 2/33 (6%) | 13/33 (39%) |
+| **Total** | **171** | **18/171 (11%)** | **34/171 (20%)** | **12/171 (7%)** | **68/171 (40%)** |
 
 Recent runs:
 
 | Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code | Adjudication |
 |---|---|---|---|---|---:|---:|---:|---:|---:|---|
+| 2026-11-03 (rescored 2026-11-28) | yes | `e8be527` | `36eb534` | 171 | 7% | 14% | 40% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
+| 2026-11-28 (rescored 2026-11-28) | no | `15541eb` | `b777e8e` | 171 | 11% | 22% | 20% | 62%–94% | 1 / 16 specimens | incomplete (10 unreviewed, 0 stale) |
 | 2026-11-28 | no | `45f5345` | `b777e8e` | 171 | 8% | 17% | 16% | 60%–92% | 1 / 16 specimens | incomplete (8 unreviewed, 0 stale) |
 | 2026-11-03 (rescored 2026-11-27) | yes | `e8be527` | `36eb534` | 171 | 7% | 15% | 40% | 10%–87% | 211 / 16 specimens | incomplete (339 unreviewed, 0 stale) |
 | 2026-11-27 (rescored 2026-11-27) | no | `cf06d5c` | `b777e8e` | 171 | 6% | 14% | 14% | 57%–91% | 1 / 16 specimens | incomplete (8 unreviewed, 0 stale) |
@@ -237,8 +239,6 @@ Recent runs:
 | 2026-11-27 (rescored 2026-11-27) | no | `beaa286` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 | 2026-11-27 (rescored 2026-11-27) | no | `554f018` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 | 2026-11-27 (rescored 2026-11-27) | no | `220fd51` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
-| 2026-11-27 (rescored 2026-11-27) | no | `b20e984` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
-| 2026-11-27 (rescored 2026-11-27) | no | `bc382db` | `b777e8e` | 171 | 6% | 14% | 14% | 37%–83% | 14 / 16 specimens | incomplete (16 unreviewed, 0 stale) |
 
 Per-specimen details and scoring rules: [AUDIT_SUMMARY.md](AUDIT_SUMMARY.md) (no LLM) and
 [AUDIT_SUMMARY_WITH_LLM.md](AUDIT_SUMMARY_WITH_LLM.md) (with LLM).
@@ -305,12 +305,12 @@ with `python3 scripts/run_baselines.py --rescore`.
 
 | Analyzer | Detected | Precision | Fixed-code false alarms |
 |---|---|---|---|
-| Mumei (no LLM) | 13/171 (8%) | 60%–92% | 1 / 16 specimens |
+| Mumei (no LLM) | 18/171 (11%) | 62%–94% | 1 / 16 specimens |
 | bandit | 5/41 (12%) | 88% | 3 / 4 specimens |
 | clippy | 0/34 (0%) | n/a | 0 / 3 specimens |
 | gosec | 6/32 (19%) | 62% | 15 / 3 specimens |
 | semgrep | 9/171 (5%) | 81% | 9 / 16 specimens |
 | slither | 11/31 (35%) | 40% | 28 / 3 specimens |
 
-Of 171 defects, 11 are detected only by Mumei (no LLM), 22 only by a baseline, 2 by both and 136 by neither.
+Of 171 defects, 15 are detected only by Mumei (no LLM), 21 only by a baseline, 3 by both and 132 by neither.
 <!-- baselines:end -->
