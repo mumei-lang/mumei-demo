@@ -109,6 +109,21 @@ variant, and records the per-stage command status/timing differences beside each
 changed case. Missing cases and changed verifier, settings or host metadata stay
 visible in the machine-readable diff instead of being reconciled away.
 
+## Lane B: focused repeat-stability smoke
+
+`scripts/check_machine_tv_stability.py` runs a small fixed matrix twice in the
+same job with the same inputs and toolchain, then compares the two reports.
+It fails only on changed input identity, changed case presence, outcome or
+unresolved-group transitions, stage-result transitions, or false acceptance.
+Timing-only differences stay in the machine-readable diff and CI summary.
+
+The smoke is a reliability diagnostic, not a full benchmark replacement and
+not a proof grade or unified verdict. It does not hard-code expected outcomes,
+so a future coverage improvement can change an outcome in both runs without
+being treated as instability. Unsupported and inconclusive results remain
+unresolved evidence, never accepted outcomes. Reports are CI artifacts only;
+committed benchmark evidence is not rewritten.
+
 The native path appends only a constant, unrelated `main` to satisfy the
 bundle entry requirement; the original contract and target atom are unchanged.
 It passes the manifest SHA-256 from the freshly built bundle to
