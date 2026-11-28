@@ -1128,6 +1128,12 @@ def test_golden_path_consumer_workflow_matches_documented_action_contract() -> N
         'os.environ["AUDIT_EXIT_CODE"] == "0"',
         'os.environ["MIGRATION_STATUS"] == "emitted_by_audit_cli"',
         'os.environ["OPERATIONAL_ERROR_COUNT"] == "0"',
+        "Adopt generated baseline as input policy",
+        "cp .mumei-audit/generated-baseline.json audit-baseline.json",
+        "id: audit-baselined",
+        "artifact-name: mumei-audit-evidence-baselined",
+        "Validate baselined action outputs",
+        "steps.audit-baselined.outputs.audit_exit_code",
     ):
         assert fragment in workflow
 
@@ -1152,6 +1158,18 @@ def test_golden_path_consumer_download_verification_is_strict_and_pinned() -> No
     assert 'candidates[0].get("execution_state") == "blocked"' in download_job
     assert 'execution.get("summary", {}).get("review_required") is True' in download_job
     assert 'hint.get("function_name") == "split_cents" and hint.get("priority") == "high"' in download_job
+    assert "name: mumei-audit-evidence-baselined" in download_job
+    assert "path: evidence-baselined" in download_job
+    assert "verify_audit_evidence_artifact.py evidence-baselined" in download_job
+    for fragment in (
+        "Verify baseline suppression round-trip",
+        'assert "new" in first_states',
+        'assert "suppressed" not in first_states',
+        'assert "suppressed" in second_states',
+        'assert "new" not in second_states',
+        'candidates[0].get("execution_state") == "blocked"',
+    ):
+        assert fragment in download_job
     for fragment in (
         '"passed", "failed", "inconclusive", "unavailable", "malformed"',
         '"operational_error", "skipped_no_change", "not_checked"',
