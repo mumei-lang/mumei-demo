@@ -89,13 +89,15 @@
       "skipped_rate_limited": false
     },
     {
-      "success": true,
+      "success": false,
       "source_file": "specimens/go/go-03-auth-gateway/handlers.go",
       "language": "go",
       "spec_extracted": true,
       "verification_status": "verified",
       "spec_health_issues": [],
-      "verification_violations": [],
+      "verification_violations": [
+        "Go function `loginHandler` generates credential material from a timestamp at line 34"
+      ],
       "counterexample_values": [],
       "cross_validation_gaps": [],
       "migration_hints": [],
@@ -104,9 +106,9 @@
       "trusted_atoms": [],
       "next_steps": [
         {
-          "priority": "info",
-          "action": "監査完了。追加の .mm 移行は不要",
-          "command": ""
+          "priority": "high",
+          "action": "migrate-suggest で .mm スケルトンを生成",
+          "command": "mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm"
         },
         {
           "priority": "medium",
@@ -119,13 +121,26 @@
       "scheduled_verification": null,
       "scheduled_verification_check": null,
       "finding_counts": {
-        "code": 0,
+        "code": 1,
         "confirmed": 0,
         "spec": 0,
         "model_limitations": 0,
         "errors": 0
       },
-      "findings": [],
+      "findings": [
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "code",
+          "severity": "error",
+          "confidence": "high",
+          "verification_basis": "deterministic-static-analysis",
+          "message": "Go function `loginHandler` generates credential material from a timestamp at line 34",
+          "source_file": "specimens/go/go-03-auth-gateway/handlers.go",
+          "line": null,
+          "triage_bucket": "code_review",
+          "fingerprint": "7ef2e1ce71e5e3d3bdccba5e9144dd9ff19694e0d3af67e15fedab6a1001d302"
+        }
+      ],
       "triage": {
         "schema": "mumei.audit-triage/v1",
         "refuted": [],
@@ -154,7 +169,7 @@
       },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit passed: specimens/go/go-03-auth-gateway/handlers.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: []\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=0, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: info\n    action: 監査完了。追加の .mm 移行は不要\n    command: \n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: loginHandler.requires, loginHandler.ensures, profileHandler.requires, profileHandler.ensures, proxyHandler.requires, proxyHandler.ensures, rotateHandler.requires, rotateHandler.ensures, healthHandler.requires, healthHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit found issues: specimens/go/go-03-auth-gateway/handlers.go\nlanguage: go\nspec_extracted: True\nverification_status: verified\nspec_health_issues: []\nverification_violations: ['Go function `loginHandler` generates credential material from a timestamp at line 34']\ncounterexample_values: []\ncross_validation_gaps: []\nfinding_counts: code=1, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: loginHandler.requires, loginHandler.ensures, profileHandler.requires, profileHandler.ensures, proxyHandler.requires, proxyHandler.ensures, rotateHandler.requires, rotateHandler.ensures, healthHandler.requires, healthHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -244,14 +259,15 @@
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/go/go-03-auth-gateway\n  auth.go: 1 violation, 0 gaps\n  handlers.go: 0 violations, 0 gaps\n  main.go: 1 violation, 0 gaps\nSummary: 3 files, 2 files with issues, 0 files with spec diagnostics\nfinding_counts: code=2, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=0, verified=3, unverifiable=0\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: tokenMatches.requires, tokenMatches.ensures, sessionUser.requires, sessionUser.ensures, bearerUser.requires, bearerUser.ensures, allowAttempt.requires, allowAttempt.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: loginHandler.requires, loginHandler.ensures, profileHandler.requires, profileHandler.ensures, proxyHandler.requires, proxyHandler.ensures, rotateHandler.requires, rotateHandler.ensures, healthHandler.requires, healthHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/go/go-03-auth-gateway\n  auth.go: 1 violation, 0 gaps\n  handlers.go: 1 violation, 0 gaps\n  main.go: 1 violation, 0 gaps\nSummary: 3 files, 3 files with issues, 0 files with spec diagnostics\nfinding_counts: code=3, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=0, verified=3, unverifiable=0\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: tokenMatches.requires, tokenMatches.ensures, sessionUser.requires, sessionUser.ensures, bearerUser.requires, bearerUser.ensures, allowAttempt.requires, allowAttempt.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: loginHandler.requires, loginHandler.ensures, profileHandler.requires, profileHandler.ensures, proxyHandler.requires, proxyHandler.ensures, rotateHandler.requires, rotateHandler.ensures, healthHandler.requires, healthHandler.ensures, writeJSON.requires, writeJSON.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 3,
-  "files_with_issues": 2,
+  "files_with_issues": 3,
   "files_with_spec_diagnostics": 0,
   "verification_status": "verified",
   "spec_health_issues": [],
   "verification_violations": [
     "auth.go: Go function `tokenMatches` uses non-constant-time credential comparison that may expose a timing side channel",
+    "handlers.go: Go function `loginHandler` generates credential material from a timestamp at line 34",
     "main.go: Go hardcoded credential constant `adminPassword` in package main is stored directly in source"
   ],
   "cross_validation_gaps": [],
@@ -284,7 +300,7 @@
     }
   ],
   "finding_counts": {
-    "code": 2,
+    "code": 3,
     "confirmed": 0,
     "spec": 0,
     "model_limitations": 0,
@@ -302,6 +318,18 @@
       "line": null,
       "triage_bucket": "code_review",
       "fingerprint": "6c208c8b449f7970408e10ea85adcd1b52500018c665741ebebe45de7a850fe4"
+    },
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "code",
+      "severity": "error",
+      "confidence": "high",
+      "verification_basis": "deterministic-static-analysis",
+      "message": "Go function `loginHandler` generates credential material from a timestamp at line 34",
+      "source_file": "specimens/go/go-03-auth-gateway/handlers.go",
+      "line": null,
+      "triage_bucket": "code_review",
+      "fingerprint": "7ef2e1ce71e5e3d3bdccba5e9144dd9ff19694e0d3af67e15fedab6a1001d302"
     },
     {
       "schema": "mumei.audit-findings/v1",

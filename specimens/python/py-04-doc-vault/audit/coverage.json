@@ -8,8 +8,8 @@
   "files_with_issues": 1,
   "counts": {
     "total": 11,
-    "detected": 1,
-    "function_flagged": 1,
+    "detected": 2,
+    "function_flagged": 0,
     "missed": 9
   },
   "defects": [
@@ -19,10 +19,10 @@
       "function": "make_share_token",
       "category": "insecure-randomness",
       "class": "vulnerability",
-      "in_target_category": false,
-      "status": "function_flagged",
+      "in_target_category": true,
+      "status": "detected",
       "findings": [
-        "spec precondition assumed, not enforced, by `make_share_token`"
+        "Python function `make_share_token` generates credential material with direct weak randomness at line 25"
       ]
     },
     {
@@ -138,14 +138,20 @@
     },
     {
       "file": "vault.py",
+      "kind": "verification_violations",
+      "text": "Python function `make_share_token` generates credential material with direct weak randomness at line 25",
+      "status": "defect_evidence"
+    },
+    {
+      "file": "vault.py",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `make_share_token`",
       "status": "unreviewed"
     }
   ],
   "finding_counts": {
-    "total": 2,
-    "defect_evidence": 1,
+    "total": 3,
+    "defect_evidence": 2,
     "real": 0,
     "false_positive": 0,
     "unreviewed": 1
@@ -156,12 +162,12 @@
   "input_hash": "ba907c51ab9799149df009df6dd1864d833a29f82085772a2e3c6c9c1cd7a69f",
   "defect_catalog_hash": "aee0ede7043f21a2429f626ab0ef2239d3c4c44440bd8662fa92fd10b6e34f38",
   "meta": {
-    "mumei_agent_commit": "6b87f348515fd519d290ba5987cf6d1c166d7951",
+    "mumei_agent_commit": "b128577526c3540f5f307c0ddf169e1720389d15",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T05:10:21Z"
+    "generated_at": "2026-11-28T06:23:54Z"
   },
   "fixed": {
     "defects": 11,

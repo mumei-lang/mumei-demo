@@ -245,6 +245,26 @@ def test_timing_side_channel_is_an_audit_target_not_a_contract_bench_target():
     assert "timing-side-channel" not in rsa.CONTRACT_BENCH_TARGET_CATEGORIES
 
 
+def test_insecure_randomness_is_an_audit_target_not_a_contract_bench_target():
+    assert "insecure-randomness" in rsa.TARGET_CATEGORIES
+    assert "insecure-randomness" not in rsa.CONTRACT_BENCH_TARGET_CATEGORIES
+
+
+def test_insecure_randomness_scoring_keyword_covers_timestamp_credential_message():
+    assert rsa.category_hit(
+        "Go function `loginHandler` generates credential material from a timestamp at line 34",
+        "insecure-randomness",
+    )
+    assert rsa.category_hit(
+        "Python function `make_share_token` generates credential material with direct weak randomness at line 25",
+        "insecure-randomness",
+    )
+    assert rsa.category_hit(
+        "Solidity function `drawWinner` derives random winner selection from predictable block entropy at line 6",
+        "insecure-randomness",
+    )
+
+
 def test_aggregate_numbers():
     d = lambda status, cat: {"status": status, "category": cat,
                              "in_target_category": cat in rsa.TARGET_CATEGORIES}

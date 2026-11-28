@@ -55,7 +55,7 @@ An executable corpus of deliberately broken Python/TypeScript/Go/Rust/Solidity a
 
 Latest committed baseline:
 
-- No LLM — 2026-11-28, mumei-agent `6b87f34`, mumei `b777e8e`: 23/171 detected (13%), 39/171 detected or function-flagged, precision 69%–94% of 36 findings, adjudication incomplete (9 unreviewed, 0 stale), 1 false alarms on fixed code (16 specimens)
+- No LLM — 2026-11-28, mumei-agent `b128577`, mumei `b777e8e`: 27/171 detected (16%), 43/171 detected or function-flagged, precision 72%–95% of 40 findings, adjudication incomplete (9 unreviewed, 0 stale), 1 false alarms on fixed code (16 specimens)
 - With LLM (`openai/gpt-6-luna`) — 2026-11-03, mumei-agent `e8be527`, mumei `36eb534`: 12/171 detected (7%), 65/171 detected or function-flagged, precision 10%–87% of 200 findings, adjudication incomplete (339 unreviewed, 0 stale), 211 false alarms on fixed code (16 specimens)
 
 Exploratory reruns are not folded into this baseline until finding adjudication is current.
@@ -91,11 +91,11 @@ The reference row uses hand-written ports, so it is a contract-expression check 
 
 ![mumei only vs mumei + LLM vs LLM only](specimens/scoreboard/arms.svg)
 
-Evidence snapshot: measured 2026-11-03–2026-11-28; mumei-agent commits: mumei + LLM `e8be527`, mumei only `6b87f34`; mumei commits: mumei + LLM `36eb534`, mumei only `b777e8e`.
+Evidence snapshot: measured 2026-11-03–2026-11-28; mumei-agent commits: mumei + LLM `e8be527`, mumei only `b128577`; mumei commits: mumei + LLM `36eb534`, mumei only `b777e8e`.
 
 | | Detected | Detected or flagged | Precision | False alarms on fixed code | Cost per pass | Time per pass |
 |---|---:|---:|---:|---:|---:|---:|
-| mumei only | 23 (13%) | 39 (23%) | 69%–94% | 1 | $0.00 | 2 min wall |
+| mumei only | 27 (16%) | 43 (25%) | 72%–95% | 1 | $0.00 | 2 min wall |
 | mumei + LLM | 12 (7%) | 65 (38%) | 10%–87% | 211 | $0.22 | 54 min wall |
 | LLM only (3 runs, median) | 105 (61%), range 105–106 | 137 (80%), range 136–139 | 63%–100% | 76, range 68–79 | $0.06 | 22 min model time |
 

@@ -71,6 +71,7 @@ CONTRACT_BENCH_TARGET_CATEGORIES = {
 # Categories the audit pipeline targets today (see specimens/README.md).
 TARGET_CATEGORIES = CONTRACT_BENCH_TARGET_CATEGORIES | {
     "hardcoded-secret",
+    "insecure-randomness",
     "timing-side-channel",
 }
 
@@ -102,7 +103,7 @@ CATEGORY_KEYWORDS: dict[str, list[str]] = {
     "idor": ["authoriz", "idor", "owner"],
     "hardcoded-secret": ["secret", "hardcoded", "credential"],
     "weak-crypto": ["md5", "sha1", "crypto", "hash"],
-    "insecure-randomness": ["random", "predictable"],
+    "insecure-randomness": ["random", "predictable", "credential material from a timestamp"],
     "timing-side-channel": ["timing", "constant-time", "constant time"],
     "redos": ["regex", "redos", "backtrack"],
     "race-condition": ["data race", "race condition", "mutex", "concurren", "atomic", "lost update"],
