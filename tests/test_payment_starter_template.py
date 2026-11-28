@@ -86,6 +86,8 @@ def test_payment_starter_readme_preserves_review_and_evidence_boundaries() -> No
     assert "does not independently re-run proof certificates" in readme
     assert "produced with migration execution output and baseline generation enabled" in readme
     assert "offline corruption/consistency check" in readme
+    assert "permissions:\n  contents: read\n  security-events: write" in readme
+    assert "keeps checkout access while adding code-scanning access" in readme
     assert "CI policy, not evidence" in readme
     assert "zero-candidate real-repository artifact is outside that verifier contract" in readme
     assert "removing only the strict flags is not enough" in readme

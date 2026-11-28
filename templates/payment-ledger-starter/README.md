@@ -20,7 +20,15 @@ Expected fixture-smoke result:
 
 The starter pins both the composite action and the artifact verifier script to commit `640d597ec60bf574d0102cae6b89054d47fd9f0f`. Keep those two commit references identical when updating them. `uses:` cannot interpolate an environment variable, so the duplication must be reviewed manually or by repository tests.
 
-The audit job uses only `contents: read`. The verification job adds `actions: read` so it can download the artifact. `upload-sarif` is `false` because code scanning is optional. To publish SARIF to code scanning, enable GitHub code scanning, add `security-events: write` to the audit job, and set `upload-sarif: true`; the SARIF file is already present in the evidence artifact either way.
+The audit job uses only `contents: read`. The verification job adds `actions: read` so it can download the artifact. `upload-sarif` is `false` because code scanning is optional. To publish SARIF to code scanning, enable GitHub code scanning, set `upload-sarif: true`, and give the audit job a permissions block that keeps checkout access while adding code-scanning access:
+
+```yaml
+permissions:
+  contents: read
+  security-events: write
+```
+
+The SARIF file is already present in the evidence artifact either way.
 
 No LLM secret is required. The workflow explicitly sets `LLM_API_KEY` and `OPENAI_API_KEY` to empty strings for the action step so repository- or organization-level secrets do not silently change the adoption gate into an LLM-backed audit. Do not pass secret values through action inputs.
 
