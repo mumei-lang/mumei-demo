@@ -1107,7 +1107,7 @@ def test_golden_path_consumer_workflow_matches_documented_action_contract() -> N
     assert "--fail-on high-confidence" in workflow
     assert "contract_erosion" in workflow
     assert "- templates/payment-ledger-starter/**" in workflow
-    assert "insecure-randomness findings are projected as high-confidence" in doc
+    assert "Action pins that include the insecure-randomness detector also project qualifying Python/Go credential-generation or Solidity winner-selection insecure-randomness findings as high-confidence" in doc
     assert "TypeScript lookup-capability insecure-randomness findings remain medium-confidence" in doc
     assert "cp templates/payment-ledger-starter/src/payment_ledger.py src/payment_ledger.py" in workflow
     assert "## Payment/ledger vertical quick start" in doc
