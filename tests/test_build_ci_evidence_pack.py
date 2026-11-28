@@ -1137,6 +1137,11 @@ def test_golden_path_consumer_workflow_matches_documented_action_contract() -> N
     ):
         assert fragment in workflow
 
+    # The pinned action precheck fails when a migration execution output path
+    # already exists, so the two invocations must use distinct fresh paths.
+    assert workflow.count("migration-execution-output: .mumei-audit/migration_execution.json") == 1
+    assert workflow.count("migration-execution-output: .mumei-audit/migration_execution-baselined.json") == 1
+
 
 def test_golden_path_consumer_download_verification_is_strict_and_pinned() -> None:
     workflow = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
