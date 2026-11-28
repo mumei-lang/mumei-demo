@@ -211,6 +211,34 @@ def test_positive_report_rejects_input_drift_or_missing_boundary_checks():
         module.validate_positive_report(data, runtime=False)
 
 
+def test_legacy_build_id_file_is_cleaned_for_reused_workdir(tmp_path, monkeypatch):
+    fixture = tmp_path / "fixture.mm"
+    fixture.write_text("atom main() -> i64\nrequires: true;\nbody: { 0 };\n", encoding="utf-8")
+    monkeypatch.setattr(module, "TRUSTED_FIXTURE", fixture.resolve())
+    fake_core = tmp_path / "mumei"
+    fake_core.write_text("#!/bin/sh\n", encoding="utf-8")
+    work_dir = tmp_path / "out"
+    work_dir.mkdir()
+    legacy = work_dir / "build_id.txt"
+    legacy.write_text("old\n", encoding="utf-8")
+
+    def failed_build(argv, **kwargs):
+        return module.subprocess.CompletedProcess(argv, 1)
+
+    monkeypatch.setattr(module.subprocess, "run", failed_build)
+    parser = module.build_parser()
+    args = parser.parse_args([
+        "--mumei-bin", str(fake_core),
+        "--mumei-agent-python", "python",
+        "--mumei-agent-repo", str(tmp_path),
+        "--source", str(fixture),
+        "--work-dir", str(work_dir),
+    ])
+    with pytest.raises(RuntimeError, match="build failed"):
+        module.validate_fixture(args)
+    assert not legacy.exists()
+
+
 def test_generated_workdir_preserves_unexpected_files(tmp_path, monkeypatch):
     unexpected = tmp_path / "user-file.txt"
     unexpected.write_text("keep", encoding="utf-8")
