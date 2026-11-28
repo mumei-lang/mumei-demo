@@ -107,6 +107,9 @@ def test_positive_report_rejects_input_drift_or_missing_boundary_checks():
 def test_generated_workdir_preserves_unexpected_files(tmp_path, monkeypatch):
     unexpected = tmp_path / "user-file.txt"
     unexpected.write_text("keep", encoding="utf-8")
+    prior_bundle = tmp_path / "bundle"
+    prior_bundle.mkdir()
+    (prior_bundle / "program").write_text("prior", encoding="utf-8")
     fixture = tmp_path / "fixture.mm"
     fixture.write_text("atom main() -> i64\nrequires: true;\nbody: { 0 };\n", encoding="utf-8")
     monkeypatch.setattr(module, "TRUSTED_FIXTURE", fixture.resolve())
@@ -123,6 +126,7 @@ def test_generated_workdir_preserves_unexpected_files(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="not generated"):
         module.validate_fixture(args)
     assert unexpected.read_text(encoding="utf-8") == "keep"
+    assert (prior_bundle / "program").read_text(encoding="utf-8") == "prior"
 
 
 def test_runtime_validation_rejects_non_reference_source(tmp_path):
