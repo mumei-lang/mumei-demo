@@ -125,7 +125,12 @@ def test_consumer_invocations_use_trusted_channel_readback(tmp_path, monkeypatch
             runtime_status="accepted" if runtime else "skipped"
         )
         report_path.write_text(json.dumps(data), encoding="utf-8")
-        return module.subprocess.CompletedProcess(argv, expected_exit)
+        stderr = ""
+        if report_path.name == "verify-distribution-extra-file.json":
+            stderr = "verify-distribution: bundle layout contains an undeclared file"
+        elif report_path.name == "verify-distribution-extra-symlink.json":
+            stderr = "verify-distribution: bundle layout contains an undeclared symlink"
+        return module.subprocess.CompletedProcess(argv, expected_exit, stdout="", stderr=stderr)
 
     monkeypatch.setattr(module, "run_checked", fake_run_checked)
     parser = module.build_parser()
@@ -140,10 +145,15 @@ def test_consumer_invocations_use_trusted_channel_readback(tmp_path, monkeypatch
 
     assert (tmp_path / "out" / module.TRUSTED_BUILD_ID_FILE).read_text(encoding="utf-8") == "a" * 64 + "\n"
     supplied = [argv[argv.index("--expected-build-id") + 1] for argv in invocations]
-    assert len(supplied) == 3
+    assert len(supplied) == 5
     assert supplied[:2] == ["b" * 64, "b" * 64]
     assert supplied[2] == hashlib.sha256(b"not-the-trusted-build-id").hexdigest()
+    assert supplied[3:] == ["b" * 64, "b" * 64]
     assert "a" * 64 not in supplied
+    assert all("--require-exact-bundle-layout" in argv for argv in invocations)
+    bundle = tmp_path / "out" / "bundle"
+    assert not (bundle / "layout-extra.txt").exists()
+    assert not (bundle / "layout-extra-link").exists()
 
 
 def test_reference_wiring_reads_back_channel_before_consumer_invocations():
@@ -155,6 +165,8 @@ def test_reference_wiring_reads_back_channel_before_consumer_invocations():
     assert write_index < read_index < off_index < on_index
     assert "verifier_argv(args, bundle, off_report, producer_build_id)" not in script
     assert "verifier_argv(args, bundle, on_report, producer_build_id)" not in script
+    assert "--require-exact-bundle-layout" in script
+    assert "validate_exact_layout_rejections" in script
 
 
 def test_integration_workflow_uses_trusted_fixture_and_generated_bundle():
@@ -191,6 +203,11 @@ def test_docs_state_role_boundary_and_runtime_opt_in():
         "independent integrity-protected channel",
         "consistency check only; it is not a trust root",
         "do not add verdict, role, or status vocabulary",
+        "--require-exact-bundle-layout",
+        "raw `mumei native-bundle build` output shape",
+        "undeclared extra-file and symlink probes",
+        "not a packaging policy",
+        "does not generate packaging metadata",
     ):
         assert fragment in docs
 
