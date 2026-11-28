@@ -94,6 +94,47 @@ jobs:
               assert fragment in summary_text, f"rendered step summary is missing {fragment!r}"
           PY
 
+      - name: Adopt generated baseline as input policy
+        shell: bash
+        run: |
+          # Reproduce the documented consumer loop: a human reviews the
+          # artifact's generated-baseline.json and commits it as audit-baseline.json.
+          test -s .mumei-audit/generated-baseline.json
+          cp .mumei-audit/generated-baseline.json audit-baseline.json
+
+      - name: Run audit again with adopted baseline
+        id: audit-baselined
+        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@fb6aeefd47c169f150256e870e683b314ab06384
+        env:
+          LLM_API_KEY: ""
+          OPENAI_API_KEY: ""
+        with:
+          code-file: src/
+          language: python
+          mumei-version: v0.7.1
+          audit-args: --baseline audit-baseline.json --write-baseline .mumei-audit/generated-baseline.json --fail-on high-confidence
+          migration-execution-output: .mumei-audit/migration_execution-baselined.json
+          artifact-name: mumei-audit-evidence-baselined
+          upload-sarif: false
+
+      - name: Validate baselined action outputs
+        if: always()
+        shell: bash
+        env:
+          AUDIT_EXIT_CODE: ${{ steps.audit-baselined.outputs.audit_exit_code }}
+          MIGRATION_STATUS: ${{ steps.audit-baselined.outputs.migration_execution_status }}
+          OPERATIONAL_ERROR_COUNT: ${{ steps.audit-baselined.outputs.migration_execution_operational_error_count }}
+        run: |
+          python3 - <<'PY'
+          import os
+
+          # Exit 0 is expected in both runs and is not round-trip improvement
+          # evidence; the verify job asserts suppression state instead.
+          assert os.environ["AUDIT_EXIT_CODE"] == "0"
+          assert os.environ["MIGRATION_STATUS"] == "emitted_by_audit_cli"
+          assert os.environ["OPERATIONAL_ERROR_COUNT"] == "0"
+          PY
+
   verify-downloaded-evidence:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -122,6 +163,60 @@ jobs:
             --require-blocked-candidate \
             --require-generated-mm \
             --forbidden-literal fake-unused-llm-key
+
+      - name: Download baselined evidence artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: mumei-audit-evidence-baselined
+          path: evidence-baselined
+
+      - name: Verify downloaded baselined artifact
+        shell: bash
+        run: |
+          python3 verify_audit_evidence_artifact.py evidence-baselined \
+            --require-hidden-companion \
+            --require-blocked-candidate \
+            --require-generated-mm \
+            --forbidden-literal fake-unused-llm-key
+
+      - name: Verify baseline suppression round-trip
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          first = json.loads(Path("evidence/audit.json").read_text(encoding="utf-8"))
+          second = json.loads(Path("evidence-baselined/audit.json").read_text(encoding="utf-8"))
+
+          # Negative control: the first run ships an empty fingerprint list, so
+          # every finding stays actively reported and none is suppressed.
+          first_states = [finding.get("baseline") for finding in first.get("findings", [])]
+          assert first_states, "first artifact carries no findings"
+          assert "new" in first_states, "first run must report active findings"
+          assert "suppressed" not in first_states, "empty baseline must not suppress anything"
+
+          # Round-trip evidence: after adopting the generated baseline, the same
+          # findings flip to suppressed rows instead of being deleted, and no new
+          # active code finding remains. The exit code is 0 in both runs and is
+          # not improvement evidence.
+          second_states = [finding.get("baseline") for finding in second.get("findings", [])]
+          assert second_states, "baselined artifact carries no findings"
+          assert "suppressed" in second_states, "adopted baseline must suppress at least one finding"
+          assert "new" not in second_states, "no new active finding may remain after full adoption"
+
+          # Baseline suppression acts on findings, not migration candidates: the
+          # fixture blocked candidate must survive the adopted baseline.
+          execution = json.loads(Path("evidence-baselined/migration-execution/migration_execution.json").read_text(encoding="utf-8"))
+          candidates = execution.get("candidates")
+          assert len(candidates) == 1
+          assert candidates[0].get("function_name") == "split_cents"
+          assert candidates[0].get("execution_state") == "blocked"
+
+          encoded = json.dumps(execution)
+          assert "fake-unused-llm-key" not in encoded
+          assert "127.0.0.1:9" not in encoded
+          PY
 
       - name: Verify empty env hid outer LLM configuration
         shell: bash
