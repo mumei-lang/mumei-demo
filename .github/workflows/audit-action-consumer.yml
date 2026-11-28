@@ -1,0 +1,136 @@
+name: Audit Action Golden Path Consumer
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/audit-action-consumer.yml
+      - docs/CI_REFERENCE.md
+      - scenarios/ci_evidence_pack/src/**
+      - tests/test_build_ci_evidence_pack.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}-${{ github.run_attempt }}
+  cancel-in-progress: true
+
+jobs:
+  documented-consumer-path:
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      # Deliberately fake outer values: the documented step-level empty env must
+      # hide them so the audit remains deterministic/no-LLM. These are not secrets.
+      LLM_API_KEY: fake-unused-llm-key
+      OPENAI_API_KEY: fake-unused-llm-key
+      LLM_BASE_URL: http://127.0.0.1:9
+    steps:
+      - name: Checkout mumei-demo
+        uses: actions/checkout@v7
+
+      - name: Create bootstrap consumer fixture
+        shell: bash
+        run: |
+          mkdir -p src
+          cp scenarios/ci_evidence_pack/src/ledger.py src/ledger.py
+          printf '%s\n' '{"version":"mumei.audit-baseline/v1","fingerprints":[]}' > audit-baseline.json
+
+      - name: Run documented deterministic audit action
+        id: audit
+        uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@757b9296d70f58d6edb85485dae168223509f40b
+        env:
+          LLM_API_KEY: ""
+          OPENAI_API_KEY: ""
+        with:
+          code-file: src/
+          language: python
+          mumei-version: v0.7.1
+          audit-args: --baseline audit-baseline.json --write-baseline .mumei-audit/generated-baseline.json --fail-on high-confidence
+          migration-execution-output: .mumei-audit/migration_execution.json
+          artifact-name: mumei-audit-evidence
+          upload-sarif: false
+
+      - name: Validate action outputs and pre-publication summary markdown
+        if: always()
+        shell: bash
+        env:
+          AUDIT_EXIT_CODE: ${{ steps.audit.outputs.audit_exit_code }}
+          SETUP_SECONDS: ${{ steps.audit.outputs.setup_seconds }}
+          AUDIT_SECONDS: ${{ steps.audit.outputs.audit_seconds }}
+          TOTAL_SECONDS: ${{ steps.audit.outputs.total_seconds }}
+          MIGRATION_STATUS: ${{ steps.audit.outputs.migration_execution_status }}
+          READY_COUNT: ${{ steps.audit.outputs.migration_execution_ready_count }}
+          OPERATIONAL_ERROR_COUNT: ${{ steps.audit.outputs.migration_execution_operational_error_count }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          assert os.environ["AUDIT_EXIT_CODE"] == "0"
+          assert os.environ["MIGRATION_STATUS"] == "emitted_by_audit_cli"
+          assert os.environ["OPERATIONAL_ERROR_COUNT"] == "0"
+          for name in ("SETUP_SECONDS", "AUDIT_SECONDS", "TOTAL_SECONDS", "READY_COUNT"):
+              value = os.environ[name]
+              assert value.isdigit(), f"{name} is not a non-negative integer: {value!r}"
+
+          summary_dir = Path(os.environ["RUNNER_TEMP"]) / "_runner_file_commands"
+          summaries = sorted(summary_dir.glob("step_summary_*"))
+          assert summaries, "no rendered step summary files found"
+          summary_text = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in summaries)
+          for fragment in (
+              "## Mumei audit",
+              "### migration execution",
+              "`--auto-migrate` was added automatically",
+              "Consumer policy: candidate `operational_error` fails the action",
+          ):
+              assert fragment in summary_text, f"rendered step summary is missing {fragment!r}"
+          PY
+
+  verify-downloaded-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    needs: documented-consumer-path
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Download golden-path evidence artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: mumei-audit-evidence
+          path: evidence
+
+      - name: Fetch pinned consumer artifact verifier
+        shell: bash
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/757b9296d70f58d6edb85485dae168223509f40b/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
+            -o verify_audit_evidence_artifact.py
+
+      - name: Verify downloaded golden-path artifact
+        shell: bash
+        run: |
+          python3 verify_audit_evidence_artifact.py evidence \
+            --require-hidden-companion \
+            --require-blocked-candidate \
+            --require-generated-mm \
+            --forbidden-literal fake-unused-llm-key
+
+      - name: Verify empty env hid outer LLM configuration
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          execution = json.loads(Path("evidence/migration-execution/migration_execution.json").read_text(encoding="utf-8"))
+          encoded = json.dumps(execution)
+          assert "LLM_API_KEY (or OPENAI_API_KEY) is not set" in encoded
+          assert "fake-unused-llm-key" not in encoded
+          assert "127.0.0.1:9" not in encoded
+          PY

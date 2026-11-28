@@ -473,7 +473,7 @@ def test_ci_reference_quickstart_statically_covers_migration_action_contract() -
 
     uses = re.search(r"mumei-audit@(?<![0-9a-f])([0-9a-f]{40})(?![0-9a-f])", workflow)
     assert uses is not None, "quick start must pin an immutable full action commit"
-    assert uses.group(1) == "f77cdca9fff98c6f90f67ed5a97a0c6a14cc5cca"
+    assert uses.group(1) == "757b9296d70f58d6edb85485dae168223509f40b"
 
     lines = workflow.splitlines()
     uses_index = next(index for index, line in enumerate(lines) if "mumei-audit@" in line)
@@ -1046,3 +1046,68 @@ def test_audit_evidence_workflow_verifies_real_downloaded_artifact() -> None:
     assert "if:" not in verify_step
 
     assert "Verify copied evidence pack as a consumer (strict proof revalidation)" in workflow
+
+
+def test_golden_path_consumer_workflow_matches_documented_action_contract() -> None:
+    workflow = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
+    doc = (REPO_ROOT / "docs" / "CI_REFERENCE.md").read_text(encoding="utf-8")
+    pin = "757b9296d70f58d6edb85485dae168223509f40b"
+
+    assert f"mumei-audit@{pin}" in workflow
+    assert f"mumei-audit@{pin}" in doc
+    assert "security-events" not in workflow
+    assert "upload-sarif: false" in workflow
+    assert 'LLM_API_KEY: fake-unused-llm-key' in workflow
+    assert 'OPENAI_API_KEY: fake-unused-llm-key' in workflow
+    assert 'LLM_API_KEY: ""' in workflow
+    assert 'OPENAI_API_KEY: ""' in workflow
+    assert "code-file: src/" in workflow
+    assert "mumei-version: v0.7.1" in workflow
+    assert "migration-execution-output: .mumei-audit/migration_execution.json" in workflow
+    assert "--fail-on high-confidence" in workflow
+    assert "cp scenarios/ci_evidence_pack/src/ledger.py src/ledger.py" in workflow
+
+    for fragment in (
+        "Validate action outputs and pre-publication summary markdown",
+        "## Mumei audit",
+        "### migration execution",
+        "`--auto-migrate` was added automatically",
+        "Consumer policy: candidate `operational_error` fails the action",
+        'os.environ["AUDIT_EXIT_CODE"] == "0"',
+        'os.environ["MIGRATION_STATUS"] == "emitted_by_audit_cli"',
+        'os.environ["OPERATIONAL_ERROR_COUNT"] == "0"',
+    ):
+        assert fragment in workflow
+
+
+def test_golden_path_consumer_download_verification_is_strict_and_pinned() -> None:
+    workflow = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
+    pin = "757b9296d70f58d6edb85485dae168223509f40b"
+    download_job = workflow.split("  verify-downloaded-evidence:", 1)[1]
+
+    assert "needs: documented-consumer-path" in download_job
+    assert "uses: actions/download-artifact@v7" in download_job
+    assert "name: mumei-audit-evidence" in download_job
+    assert f"raw.githubusercontent.com/mumei-lang/mumei-agent/{pin}/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py" in download_job
+    for flag in (
+        "--require-hidden-companion",
+        "--require-blocked-candidate",
+        "--require-generated-mm",
+        "--forbidden-literal fake-unused-llm-key",
+    ):
+        assert flag in download_job
+    assert "LLM_API_KEY (or OPENAI_API_KEY) is not set" in download_job
+    assert '"fake-unused-llm-key" not in encoded' in download_job
+    assert '"127.0.0.1:9" not in encoded' in download_job
+
+
+def test_ci_reference_documents_minimal_offline_action_verifier_path() -> None:
+    doc = (REPO_ROOT / "docs" / "CI_REFERENCE.md").read_text(encoding="utf-8")
+    pin = "757b9296d70f58d6edb85485dae168223509f40b"
+
+    assert "## Verifying a downloaded action artifact offline" in doc
+    assert f"raw.githubusercontent.com/mumei-lang/mumei-agent/{pin}/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py" in doc
+    assert "python3 verify_audit_evidence_artifact.py /path/to/downloaded/mumei-audit-evidence" in doc
+    assert "not a malicious-tamper trust anchor" in doc
+    assert "does not independently re-run proof certificates" in doc
+    assert "audit action golden-path consumer workflow" in doc

@@ -26,7 +26,7 @@ Use the upstream composite action for the initial existing-code audit gate. The 
                printf '%s\n' '{"version":"mumei.audit-baseline/v1","fingerprints":[]}' > audit-baseline.json
              fi
 
-         - uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@f77cdca9fff98c6f90f67ed5a97a0c6a14cc5cca
+         - uses: mumei-lang/mumei-agent/.github/actions/mumei-audit@757b9296d70f58d6edb85485dae168223509f40b
           # Keep the default deterministic/no-LLM path even when repository secrets exist.
            env:
              LLM_API_KEY: ""
@@ -89,6 +89,21 @@ Step outputs have distinct roles: `audit_exit_code` is the audit process classif
 ## Migration states are not CI failure classes
 
 Migration execution `blocked` and `ready_for_human_review` candidate states are review routing evidence. `blocked` means the artifact retains a contract/provenance/evidence blocker for a human; it is not an operational CI failure and does not mean the audit CLI failed. `ready_for_human_review` means the generated `.mm` acceptance evidence is complete enough to review, not that the host code is equivalent or that the migration may merge without review. Candidate-level `operational_error` is different: the artifact and companion files are copied first, but the composite action then fails the job as its consumer policy. Use `migration_execution_operational_error_count` or `migration-execution/status.json` to distinguish that candidate failure from collection/precheck failure. The action still writes its summary and uploads the evidence artifact before the outer job fails; a caller job that consumes the count output in a later step must give the audit step an `id` and use an always-run condition such as `if: always()` on that consumer step. Do not add a separate CI failure merely because a candidate is `blocked` or `ready_for_human_review`.
+
+
+## Verifying a downloaded action artifact offline
+
+The composite action repository carries a small stdlib-only verifier for accidental artifact corruption, missing files, count mismatches, path/hash mismatches, and hidden companion loss. It applies to artifacts produced with `migration-execution-output` and `--write-baseline` enabled, as in the golden path above, and currently expects at least one blocked or ready migration candidate. An artifact from an audit run that omits migration execution, baseline generation, or migration candidates is outside this verifier's current contract and is expected to fail its required evidence checks. It is not a malicious-tamper trust anchor by itself and it does not independently re-run proof certificates. Pin it to the same immutable action commit, then run it against the downloaded artifact directory:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mumei-lang/mumei-agent/757b9296d70f58d6edb85485dae168223509f40b/.github/actions/mumei-audit/scripts/verify_audit_evidence_artifact.py \
+  -o verify_audit_evidence_artifact.py
+python3 verify_audit_evidence_artifact.py /path/to/downloaded/mumei-audit-evidence
+```
+
+The verifier checks the action artifact layout, migration execution counts and boundaries, and generated companion path/hash claims. It treats the baseline as CI policy and migration execution as generated `.mm` acceptance evidence only.
+
+This repository's [audit action golden-path consumer workflow](../.github/workflows/audit-action-consumer.yml) runs the documented no-LLM path with `upload-sarif: false`, downloads the resulting artifact in a separate job, and verifies it with the same pinned script.
 
 ## Timing evidence
 
