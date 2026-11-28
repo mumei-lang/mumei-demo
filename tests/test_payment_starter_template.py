@@ -80,10 +80,25 @@ def test_payment_starter_readme_preserves_review_and_evidence_boundaries() -> No
 
     assert "evidence generation and review-handoff confirmation" in readme
     assert "does not mean the human migration review is complete" in readme
+    assert "cp -a templates/payment-ledger-starter/. /path/to/consumer-repo/" in readme
+    assert ".github/workflows/mumei-audit.yml" in readme
+    assert "hidden by default" in readme
+    assert "canonical detailed reference" in readme
+    assert "consumer workstation does not need Rust, Z3, LLVM, or sibling `mumei` repositories" in readme
+    assert "`make setup` in `mumei-demo` is maintainer setup" in readme
+    assert "no non-suppressed high-confidence code evidence failed the gate" in readme
+    assert "Audit exit `1` is finding-policy failure" in readme
+    assert "positive-path fixture smoke" in readme
+    assert "root `generated-baseline.json` entry" in readme
+    assert "does not update the committed input baseline automatically" in readme
+    assert "runner/workspace provenance, not portable links" in readme
     assert "generated `.mm` acceptance evidence only" in readme
     assert "not proof that the host-language Python implements the same behavior" in readme
     assert "not a malicious-tamper trust anchor" in readme
+    assert "does not establish artifact producer authenticity" in readme
+    assert "does not prove host-language semantic equivalence" in readme
     assert "does not independently re-run proof certificates" in readme
+    assert "otherwise guarantee proof correctness" in readme
     assert "produced with migration execution output and baseline generation enabled" in readme
     assert "offline corruption/consistency check" in readme
     assert "permissions:\n  contents: read\n  security-events: write" in readme
@@ -108,6 +123,13 @@ def test_payment_fixture_is_canonical_in_starter_and_docs_reference_it() -> None
     assert "evidence generation and review-handoff confirmation" in doc
     assert "Human migration review is not included" in doc
     assert "verification job also needs `actions: read`" in doc
+    assert "cp -a templates/payment-ledger-starter/. /path/to/consumer-repo/" in doc
+    assert "consumer workstation does not need Rust, Z3, LLVM, or sibling `mumei` repositories" in doc
+    assert "not a consumer prerequisite" in doc
+    assert "positive-path fixture smoke" in doc
+    assert "does not establish artifact producer authenticity" in doc
+    assert "otherwise guarantee proof correctness" in doc
+    assert "does not update the committed input baseline automatically" in doc
     assert f"mumei-audit@{PIN}" in doc
 
     consumer = (REPO_ROOT / ".github" / "workflows" / "audit-action-consumer.yml").read_text(encoding="utf-8")
