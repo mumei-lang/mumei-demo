@@ -1014,6 +1014,13 @@ def test_history_entry_records_findings_and_rescore():
     assert plain["target_definition_hash"] == rsa.target_definition_hash()
 
 
+def test_readme_recent_runs_show_target_count_and_denominator():
+    run = _run(date="2025-01-01", llm=False, tgt_total=79, tgt_det=20)
+    block = rsa.readme_block_specimens({"runs": [run]})
+    assert "| Target detected |" in block
+    assert "| 20/79 (25%) |" in block
+
+
 def test_readme_blocks_show_precision_and_dash_for_old_runs():
     old = _run(date="2025-01-01", llm=False)
     new = {**_run(date="2025-01-02", llm=False), "findings": _fc(4, 1, 1, 1, 1),

@@ -1697,7 +1697,7 @@ def readme_block_specimens(history: dict) -> str:
             "",
             "Recent runs:",
             "",
-            "| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected % | Flagged % | Precision | False alarms on fixed code | Adjudication |",
+            "| Date | LLM | mumei-agent | mumei | Defects | Detected % | Target detected | Flagged % | Precision | False alarms on fixed code | Adjudication |",
             "|---|---|---|---|---|---:|---:|---:|---:|---:|---|",
         ]
         for r in reversed(runs[-10:]):
@@ -1711,7 +1711,7 @@ def readme_block_specimens(history: dict) -> str:
                 f"`{_sha7(r.get('mumei_agent_commit'))}` | "
                 f"`{_sha7(r.get('mumei_commit'))}` | {rt['total']} | "
                 f"{pct(rt['detected'], rt['total'])} | "
-                f"{pct(rt['target_detected'], rt['target_total'])} | "
+                f"{rt['target_detected']}/{rt['target_total']} ({pct(rt['target_detected'], rt['target_total'])}) | "
                 f"{pct(rt['detected'] + rt['function_flagged'], rt['total'])} | "
                 f"{fmt_precision(r.get('findings'))} | {fmt_fixed(r.get('fixed'))} | "
                 f"{fmt_adjudication(r)} |"
