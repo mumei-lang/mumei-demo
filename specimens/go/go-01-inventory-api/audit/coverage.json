@@ -5,12 +5,12 @@
   "audit_markdown_exit_code": 0,
   "verification_status": "refuted",
   "files_audited": 4,
-  "files_with_issues": 1,
+  "files_with_issues": 2,
   "counts": {
     "total": 11,
-    "detected": 1,
+    "detected": 2,
     "function_flagged": 1,
-    "missed": 9
+    "missed": 8
   },
   "defects": [
     {
@@ -123,9 +123,11 @@
       "function": "main",
       "category": "hardcoded-secret",
       "class": "vulnerability",
-      "in_target_category": false,
-      "status": "missed",
-      "findings": []
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Go hardcoded credential constant `adminToken` in package main is stored directly in source"
+      ]
     }
   ],
   "unmatched_findings": [
@@ -155,6 +157,12 @@
       "status": "unreviewed"
     },
     {
+      "file": "main.go",
+      "kind": "verification_violations",
+      "text": "Go hardcoded credential constant `adminToken` in package main is stored directly in source",
+      "status": "defect_evidence"
+    },
+    {
       "file": "store.go",
       "kind": "cross_validation_gaps",
       "text": "spec precondition assumed, not enforced, by `Get`",
@@ -162,8 +170,8 @@
     }
   ],
   "finding_counts": {
-    "total": 4,
-    "defect_evidence": 1,
+    "total": 5,
+    "defect_evidence": 2,
     "real": 0,
     "false_positive": 0,
     "unreviewed": 3
@@ -171,12 +179,12 @@
   "reviews_used": [],
   "source_hash": "5014fb7d871106c11847f9092f9e18758378b37f1e691a333b4b7ab14540faa5",
   "meta": {
-    "mumei_agent_commit": "45f534532110d367a72adb0aad2d00bb86f04ee4",
+    "mumei_agent_commit": "15541ebe5e6feb947f54f4633a34bcaa9377a434",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T00:52:02Z"
+    "generated_at": "2026-11-28T01:49:34Z"
   },
   "fixed": {
     "defects": 11,

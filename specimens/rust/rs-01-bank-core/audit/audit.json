@@ -13,6 +13,7 @@
       "verification_violations": [
         "Rust function `split_payment` can divide by `recipients.len()` without a non-zero contract (Z3 counterexample: recipients.len()=0)",
         "Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)",
+        "Rust hardcoded credential constant `OPERATOR_TOKEN` is stored directly in source",
         "Z3 Counter-example: recipients.len()=0"
       ],
       "counterexample_values": [
@@ -45,7 +46,7 @@
       "scheduled_verification": null,
       "scheduled_verification_check": null,
       "finding_counts": {
-        "code": 3,
+        "code": 4,
         "confirmed": 0,
         "spec": 0,
         "model_limitations": 0,
@@ -75,6 +76,18 @@
           "line": null,
           "triage_bucket": "code_review",
           "fingerprint": "b9f72458428a7da71398fdc4a74af83c17e5bc4b77dd1087d4654a91cb04251a"
+        },
+        {
+          "schema": "mumei.audit-findings/v1",
+          "category": "code",
+          "severity": "error",
+          "confidence": "medium",
+          "verification_basis": "deterministic-static-analysis",
+          "message": "Rust hardcoded credential constant `OPERATOR_TOKEN` is stored directly in source",
+          "source_file": "specimens/rust/rs-01-bank-core/src/bank.rs",
+          "line": null,
+          "triage_bucket": "code_review",
+          "fingerprint": "7d1a62042f82cffda278c8eadcd6ac7548533a1f73340440eae465f1ff625ea3"
         },
         {
           "schema": "mumei.audit-findings/v1",
@@ -117,7 +130,7 @@
       },
       "proof_certificate": null,
       "lean_bridge": null,
-      "report": "Audit found issues: specimens/rust/rs-01-bank-core/src/bank.rs\nlanguage: rust\nspec_extracted: True\nverification_status: refuted\nspec_health_issues: []\nverification_violations: ['Rust function `split_payment` can divide by `recipients.len()` without a non-zero contract (Z3 counterexample: recipients.len()=0)', 'Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)', 'Z3 Counter-example: recipients.len()=0']\ncounterexample_values: [{'function_name': 'split_payment', 'counterexample': {'recipients.len()': 0}}]\ncross_validation_gaps: []\nfinding_counts: code=3, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: accrue_interest.requires, accrue_interest.ensures, remaining_daily_allowance.requires, remaining_daily_allowance.ensures, split_payment.requires, split_payment.ensures, find_index.requires, find_index.ensures, get_mut.requires, get_mut.ensures, account_at.requires, account_at.ensures, open_account.requires, open_account.ensures, deposit.requires, deposit.ensures, request_transfer.requires, request_transfer.ensures, settle.requires, settle.ensures, close_account.requires, close_account.ensures, charge_fee.requires, charge_fee.ensures, apply_interest.requires, apply_interest.ensures, adjust.requires, adjust.ensures, record_audit.requires, record_audit.ensures, recent_audit.requires, recent_audit.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+      "report": "Audit found issues: specimens/rust/rs-01-bank-core/src/bank.rs\nlanguage: rust\nspec_extracted: True\nverification_status: refuted\nspec_health_issues: []\nverification_violations: ['Rust function `split_payment` can divide by `recipients.len()` without a non-zero contract (Z3 counterexample: recipients.len()=0)', 'Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)', 'Rust hardcoded credential constant `OPERATOR_TOKEN` is stored directly in source', 'Z3 Counter-example: recipients.len()=0']\ncounterexample_values: [{'function_name': 'split_payment', 'counterexample': {'recipients.len()': 0}}]\ncross_validation_gaps: []\nfinding_counts: code=4, confirmed=0, spec=0, model_limitations=0, errors=0\nmigration_hints:\n  []\nhealed_files: []\nheal_errors: []\ntrusted_atoms:\n  []\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: accrue_interest.requires, accrue_interest.ensures, remaining_daily_allowance.requires, remaining_daily_allowance.ensures, split_payment.requires, split_payment.ensures, find_index.requires, find_index.ensures, get_mut.requires, get_mut.ensures, account_at.requires, account_at.ensures, open_account.requires, open_account.ensures, deposit.requires, deposit.ensures, request_transfer.requires, request_transfer.ensures, settle.requires, settle.ensures, close_account.requires, close_account.ensures, charge_fee.requires, charge_fee.ensures, apply_interest.requires, apply_interest.ensures, adjust.requires, adjust.ensures, record_audit.requires, record_audit.ensures, recent_audit.requires, recent_audit.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
       "errors": [],
       "skipped_rate_limited": false
     },
@@ -262,7 +275,7 @@
       "skipped_rate_limited": false
     }
   ],
-  "summary": "Audit directory: specimens/rust/rs-01-bank-core\n  src/bank.rs: 3 violations, 0 gaps\n  src/main.rs: 0 violations, 0 gaps\n  src/store.rs: 0 violations, 0 gaps\nSummary: 3 files, 1 file with issues, 0 files with spec diagnostics\nfinding_counts: code=3, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=1, verified=2, unverifiable=0\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: accrue_interest.requires, accrue_interest.ensures, remaining_daily_allowance.requires, remaining_daily_allowance.ensures, split_payment.requires, split_payment.ensures, find_index.requires, find_index.ensures, get_mut.requires, get_mut.ensures, account_at.requires, account_at.ensures, open_account.requires, open_account.ensures, deposit.requires, deposit.ensures, request_transfer.requires, request_transfer.ensures, settle.requires, settle.ensures, close_account.requires, close_account.ensures, charge_fee.requires, charge_fee.ensures, apply_interest.requires, apply_interest.ensures, adjust.requires, adjust.ensures, record_audit.requires, record_audit.ensures, recent_audit.requires, recent_audit.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_cents.requires, parse_cents.ensures, operator_token.requires, operator_token.ensures, balance_of.requires, balance_of.ensures, print_balance.requires, print_balance.ensures, write_statement.requires, write_statement.ensures, usage.requires, usage.ensures, run_line.requires, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: load.requires, load.ensures, save.requires, save.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
+  "summary": "Audit directory: specimens/rust/rs-01-bank-core\n  src/bank.rs: 4 violations, 0 gaps\n  src/main.rs: 0 violations, 0 gaps\n  src/store.rs: 0 violations, 0 gaps\nSummary: 3 files, 1 file with issues, 0 files with spec diagnostics\nfinding_counts: code=4, confirmed=0, spec=0, model_limitations=0, errors=0\ntriage: refuted=1, verified=2, unverifiable=0\nnext_steps:\n  - priority: high\n    action: migrate-suggest で .mm スケルトンを生成\n    command: mumei-agent migrate-suggest --code-file <file> --language <lang> --output generated/mm\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: accrue_interest.requires, accrue_interest.ensures, remaining_daily_allowance.requires, remaining_daily_allowance.ensures, split_payment.requires, split_payment.ensures, find_index.requires, find_index.ensures, get_mut.requires, get_mut.ensures, account_at.requires, account_at.ensures, open_account.requires, open_account.ensures, deposit.requires, deposit.ensures, request_transfer.requires, request_transfer.ensures, settle.requires, settle.ensures, close_account.requires, close_account.ensures, charge_fee.requires, charge_fee.ensures, apply_interest.requires, apply_interest.ensures, adjust.requires, adjust.ensures, record_audit.requires, record_audit.ensures, recent_audit.requires, recent_audit.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: parse_cents.requires, parse_cents.ensures, operator_token.requires, operator_token.ensures, balance_of.requires, balance_of.ensures, print_balance.requires, print_balance.ensures, write_statement.requires, write_statement.ensures, usage.requires, usage.ensures, run_line.requires, main.requires, main.ensures\n    command: mumei-agent validate-spec --input <spec> --format human\n  - priority: medium\n    action: underspecified な意図を明文化（推測で補完しない）: load.requires, load.ensures, save.requires, save.ensures\n    command: mumei-agent validate-spec --input <spec> --format human",
   "total_files": 3,
   "files_with_issues": 1,
   "files_with_spec_diagnostics": 0,
@@ -271,6 +284,7 @@
   "verification_violations": [
     "src/bank.rs: Rust function `split_payment` can divide by `recipients.len()` without a non-zero contract (Z3 counterexample: recipients.len()=0)",
     "src/bank.rs: Rust function `charge_fee` can truncate `cents` in cast to `u64` without a range contract (cents outside 0..=18446744073709551615 wraps)",
+    "src/bank.rs: Rust hardcoded credential constant `OPERATOR_TOKEN` is stored directly in source",
     "src/bank.rs: Z3 Counter-example: recipients.len()=0"
   ],
   "cross_validation_gaps": [],
@@ -303,7 +317,7 @@
     }
   ],
   "finding_counts": {
-    "code": 3,
+    "code": 4,
     "confirmed": 0,
     "spec": 0,
     "model_limitations": 0,
@@ -333,6 +347,18 @@
       "line": null,
       "triage_bucket": "code_review",
       "fingerprint": "b9f72458428a7da71398fdc4a74af83c17e5bc4b77dd1087d4654a91cb04251a"
+    },
+    {
+      "schema": "mumei.audit-findings/v1",
+      "category": "code",
+      "severity": "error",
+      "confidence": "medium",
+      "verification_basis": "deterministic-static-analysis",
+      "message": "Rust hardcoded credential constant `OPERATOR_TOKEN` is stored directly in source",
+      "source_file": "specimens/rust/rs-01-bank-core/src/bank.rs",
+      "line": null,
+      "triage_bucket": "code_review",
+      "fingerprint": "7d1a62042f82cffda278c8eadcd6ac7548533a1f73340440eae465f1ff625ea3"
     },
     {
       "schema": "mumei.audit-findings/v1",

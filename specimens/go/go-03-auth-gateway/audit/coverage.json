@@ -5,12 +5,12 @@
   "audit_markdown_exit_code": 0,
   "verification_status": "verified",
   "files_audited": 3,
-  "files_with_issues": 0,
+  "files_with_issues": 1,
   "counts": {
     "total": 11,
-    "detected": 0,
+    "detected": 1,
     "function_flagged": 0,
-    "missed": 11
+    "missed": 10
   },
   "defects": [
     {
@@ -99,9 +99,11 @@
       "function": "main",
       "category": "hardcoded-secret",
       "class": "vulnerability",
-      "in_target_category": false,
-      "status": "missed",
-      "findings": []
+      "in_target_category": true,
+      "status": "detected",
+      "findings": [
+        "Go hardcoded credential constant `adminPassword` in package main is stored directly in source"
+      ]
     },
     {
       "id": "GO03-D10",
@@ -125,10 +127,17 @@
     }
   ],
   "unmatched_findings": [],
-  "findings": [],
+  "findings": [
+    {
+      "file": "main.go",
+      "kind": "verification_violations",
+      "text": "Go hardcoded credential constant `adminPassword` in package main is stored directly in source",
+      "status": "defect_evidence"
+    }
+  ],
   "finding_counts": {
-    "total": 0,
-    "defect_evidence": 0,
+    "total": 1,
+    "defect_evidence": 1,
     "real": 0,
     "false_positive": 0,
     "unreviewed": 0
@@ -136,12 +145,12 @@
   "reviews_used": [],
   "source_hash": "a7f22803f92f10a530668fdb2e95355a4ad0869e0f8ea6c9418121ac5cba70a5",
   "meta": {
-    "mumei_agent_commit": "45f534532110d367a72adb0aad2d00bb86f04ee4",
+    "mumei_agent_commit": "15541ebe5e6feb947f54f4633a34bcaa9377a434",
     "mumei_commit": "b777e8ed36bb92dcde868ca76de66380801989ed",
     "mumei_version": "mumei 0.6.23",
     "llm_configured": false,
     "command": "mumei-agent audit --code-file <specimen-dir> --format json|markdown --fail-on never",
-    "generated_at": "2026-11-28T00:52:02Z"
+    "generated_at": "2026-11-28T01:49:34Z"
   },
   "fixed": {
     "defects": 11,
