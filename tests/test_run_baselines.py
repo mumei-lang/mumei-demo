@@ -1208,9 +1208,12 @@ def test_main_writes_comparison_and_readme(monkeypatch, tmp_path):
 
 def test_committed_comparison_matches_records():
     root = rb.SPECIMENS_ROOT
-    comp = rb.comparison(rb.mumei_coverages(root), [json.loads(p.read_text())
-                                                    for p in sorted(root.glob("*/*/baselines/*.json"))])
+    records = [json.loads(p.read_text()) for p in sorted(root.glob("*/*/baselines/*.json"))]
+    comp = rb.comparison(rb.mumei_coverages(root), records)
     assert json.loads((root / "scoreboard" / "comparison.json").read_text()) == comp
+    summary = json.loads((root / "scoreboard" / "baselines.json").read_text())
+    stale = rb.stale_reviews(records, rb.load_reviews(root, set(rb.TOOLS)))
+    assert (root / "BASELINES.md").read_text() == rb.render_summary(summary, stale, comp)
     assert comp["stale_specimens"] == []
     assert comp["missing_baselines"] == []
     readme = (root / "README.md").read_text()
